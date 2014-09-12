@@ -121,6 +121,17 @@ static const VSFrameRef *VS_CC mvsuperGetFrame(int n, int activationReason, void
 
         delete pSrcGOF;
 
+        if (n == 0) {
+            VSMap *props = vsapi->getFramePropsRW(dst);
+
+            vsapi->propSetInt(props, "Super height", d->nHeight, paReplace);
+            vsapi->propSetInt(props, "Super hpad", d->nHPad, paReplace);
+            vsapi->propSetInt(props, "Super vpad", d->nVPad, paReplace);
+            vsapi->propSetInt(props, "Super pel", d->nPel, paReplace);
+            vsapi->propSetInt(props, "Super modeyuv", d->nModeYUV, paReplace);
+            vsapi->propSetInt(props, "Super levels", d->nLevels, paReplace);
+        }
+
         return dst;
     }
 
