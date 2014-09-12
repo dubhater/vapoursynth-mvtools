@@ -5,7 +5,7 @@
 //#include "MVInterface.h"
 #include <VSHelper.h>
 
-void BitBlt(unsigned char* dstp, int dst_pitch, const unsigned char* srcp, int src_pitch, int row_size, int height, bool isse) {
+inline void BitBlt(unsigned char* dstp, int dst_pitch, const unsigned char* srcp, int src_pitch, int row_size, int height, bool isse) {
     vs_bitblt(dstp, dst_pitch, srcp, src_pitch, row_size, height);
 }
 
@@ -14,6 +14,7 @@ void asm_BitBlt_ISSE(unsigned char* dstp, int dst_pitch, const unsigned char* sr
 void memcpy_amd(void *dest, const void *src, size_t n);
 void MemZoneSet(unsigned char *ptr, unsigned char value, int width,
 				int height, int offsetX, int offsetY, int pitch);
+#endif
 
 typedef void (COPYFunction)(unsigned char *pDst, int nDstPitch,
                             const unsigned char *pSrc, int nSrcPitch);
@@ -35,6 +36,68 @@ void Copy_C(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch)
 {
    Copy_C<nBlkSize, nBlkSize>(pDst, nDstPitch, pSrc, nSrcPitch);
 }
+
+/*
+extern "C" void  Copy32x16_mmx(uint8_t *pDst, int nDstPitch,
+                                   const uint8_t *pSrc, int nSrcPitch);
+
+extern "C" void  Copy16x16_mmx(uint8_t *pDst, int nDstPitch,
+                                   const uint8_t *pSrc, int nSrcPitch);
+
+extern "C" void  Copy8x8_mmx(uint8_t *pDst, int nDstPitch,
+                                  const uint8_t *pSrc, int nSrcPitch);
+
+extern "C" void  Copy4x4_mmx(uint8_t *pDst, int nDstPitch,
+                                  const uint8_t *pSrc, int nSrcPitch);
+
+extern "C" void  Copy2x2_mmx(uint8_t *pDst, int nDstPitch,
+                                  const uint8_t *pSrc, int nSrcPitch);
+
+extern "C" void  Copy4x8_mmx(uint8_t *pDst, int nDstPitch,
+                                  const uint8_t *pSrc, int nSrcPitch);
+
+extern "C" void  Copy8x16_mmx(uint8_t *pDst, int nDstPitch,
+                                  const uint8_t *pSrc, int nSrcPitch);
+
+extern "C" void  Copy8x4_mmx(uint8_t *pDst, int nDstPitch,
+                                  const uint8_t *pSrc, int nSrcPitch);
+extern "C" void  Copy4x2_mmx(uint8_t *pDst, int nDstPitch,
+                                  const uint8_t *pSrc, int nSrcPitch);
+extern "C" void  Copy16x8_mmx(uint8_t *pDst, int nDstPitch,
+                                  const uint8_t *pSrc, int nSrcPitch);
+extern "C" void  Copy2x4_mmx(uint8_t *pDst, int nDstPitch,
+                                  const uint8_t *pSrc, int nSrcPitch);
+
+extern "C" void  Copy16x2_mmx(uint8_t *pDst, int nDstPitch,
+                                  const uint8_t *pSrc, int nSrcPitch);
+
+extern "C" void  Copy8x2_mmx(uint8_t *pDst, int nDstPitch,
+                                  const uint8_t *pSrc, int nSrcPitch);
+
+extern "C" void  Copy8x1_mmx(uint8_t *pDst, int nDstPitch,
+                                  const uint8_t *pSrc, int nSrcPitch);
+*/
+//extern "C" void  Copy16x16_mmx(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch);
+#define MK_CFUNC(functionname) extern "C" void  functionname (uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch)
+//default functions
+MK_CFUNC(Copy32x32_mmx);
+MK_CFUNC(Copy16x32_mmx);
+MK_CFUNC(Copy32x16_mmx);
+MK_CFUNC(Copy16x16_mmx);
+MK_CFUNC(Copy16x8_mmx);
+MK_CFUNC(Copy16x2_mmx);
+MK_CFUNC(Copy8x16_mmx);
+MK_CFUNC(Copy8x8_mmx);
+MK_CFUNC(Copy8x4_mmx);
+MK_CFUNC(Copy8x2_mmx);
+MK_CFUNC(Copy8x1_mmx);
+MK_CFUNC(Copy4x8_mmx);
+MK_CFUNC(Copy4x4_mmx);
+MK_CFUNC(Copy4x2_mmx);
+MK_CFUNC(Copy2x4_mmx);
+MK_CFUNC(Copy2x2_mmx);
+MK_CFUNC(Copy2x1_mmx);
+
 // even sizes,
 template<int nBlkWidth, int nBlkHeight>
 void Copy_mmx(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch)
@@ -108,68 +171,6 @@ void Copy_mmx(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch)
          *(pDst + i + j * nDstPitch) = *(pSrc + i + j * nSrcPitch);
    }
 }
-#endif
-/*
-extern "C" void  Copy32x16_mmx(uint8_t *pDst, int nDstPitch,
-                                   const uint8_t *pSrc, int nSrcPitch);
-
-extern "C" void  Copy16x16_mmx(uint8_t *pDst, int nDstPitch,
-                                   const uint8_t *pSrc, int nSrcPitch);
-
-extern "C" void  Copy8x8_mmx(uint8_t *pDst, int nDstPitch,
-                                  const uint8_t *pSrc, int nSrcPitch);
-
-extern "C" void  Copy4x4_mmx(uint8_t *pDst, int nDstPitch,
-                                  const uint8_t *pSrc, int nSrcPitch);
-
-extern "C" void  Copy2x2_mmx(uint8_t *pDst, int nDstPitch,
-                                  const uint8_t *pSrc, int nSrcPitch);
-
-extern "C" void  Copy4x8_mmx(uint8_t *pDst, int nDstPitch,
-                                  const uint8_t *pSrc, int nSrcPitch);
-
-extern "C" void  Copy8x16_mmx(uint8_t *pDst, int nDstPitch,
-                                  const uint8_t *pSrc, int nSrcPitch);
-
-extern "C" void  Copy8x4_mmx(uint8_t *pDst, int nDstPitch,
-                                  const uint8_t *pSrc, int nSrcPitch);
-extern "C" void  Copy4x2_mmx(uint8_t *pDst, int nDstPitch,
-                                  const uint8_t *pSrc, int nSrcPitch);
-extern "C" void  Copy16x8_mmx(uint8_t *pDst, int nDstPitch,
-                                  const uint8_t *pSrc, int nSrcPitch);
-extern "C" void  Copy2x4_mmx(uint8_t *pDst, int nDstPitch,
-                                  const uint8_t *pSrc, int nSrcPitch);
-
-extern "C" void  Copy16x2_mmx(uint8_t *pDst, int nDstPitch,
-                                  const uint8_t *pSrc, int nSrcPitch);
-
-extern "C" void  Copy8x2_mmx(uint8_t *pDst, int nDstPitch,
-                                  const uint8_t *pSrc, int nSrcPitch);
-
-extern "C" void  Copy8x1_mmx(uint8_t *pDst, int nDstPitch,
-                                  const uint8_t *pSrc, int nSrcPitch);
-*/
-//extern "C" void  Copy16x16_mmx(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch);
-#define MK_CFUNC(functionname) extern "C" void  functionname (uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch)
-//default functions
-MK_CFUNC(Copy32x32_mmx);
-MK_CFUNC(Copy16x32_mmx);
-MK_CFUNC(Copy32x16_mmx);
-MK_CFUNC(Copy16x16_mmx);
-MK_CFUNC(Copy16x8_mmx);
-MK_CFUNC(Copy16x2_mmx);
-MK_CFUNC(Copy8x16_mmx);
-MK_CFUNC(Copy8x8_mmx);
-MK_CFUNC(Copy8x4_mmx);
-MK_CFUNC(Copy8x2_mmx);
-MK_CFUNC(Copy8x1_mmx);
-MK_CFUNC(Copy4x8_mmx);
-MK_CFUNC(Copy4x4_mmx);
-MK_CFUNC(Copy4x2_mmx);
-MK_CFUNC(Copy2x4_mmx);
-MK_CFUNC(Copy2x2_mmx);
-MK_CFUNC(Copy2x1_mmx);
-
 /*
 //new functions derived from x264
 // unfortunately slower than default

@@ -292,7 +292,6 @@ public :
 
 #define MVANALYSIS_DATA_VERSION 5
 
-#if 0
 class MVAnalysisData
 {
 public:
@@ -385,6 +384,7 @@ public :
 
 };
 
+#if 0
 class MVClip : public GenericVideoFilter, public FakeGroupOfPlanes, public MVAnalysisData
 {
 	/*! \brief Number of blocks horizontaly, at the first level */
