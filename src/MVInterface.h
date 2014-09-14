@@ -26,6 +26,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <stdexcept>
+
+#include <VapourSynth.h>
+
 //#define _STLP_USE_STATIC_LIB
 
 //#pragma pack(16)
@@ -384,6 +388,52 @@ public :
 
 };
 
+
+class MVClipDicks : public MVAnalysisData {
+	/*! \brief Number of blocks at the first level */
+	int nBlkCount;
+
+   /*! \brief First Scene Change Detection threshold ( compared against SAD value of the block ) */
+   int nSCD1;
+
+   /*! \brief Second Scene Change Detection threshold ( compared against the number of block over the first threshold */
+   int nSCD2;
+
+   //int nHeaderSize; // offset to data
+
+    const VSAPI *vsapi;
+
+public:
+    MVClipDicks(VSNodeRef *vectors, int nSCD1, int nSCD2, const VSAPI *_vsapi);
+    ~MVClipDicks();
+
+   inline int GetBlkCount() const { return nBlkCount; }
+   inline int GetThSCD1() const { return nSCD1; }
+   inline int GetThSCD2() const { return nSCD2; }
+};
+
+
+class MVClipBalls : public FakeGroupOfPlanes {
+    MVClipDicks *dicks;
+    const VSAPI *vsapi;
+public:
+    MVClipBalls(MVClipDicks *_dicks, const VSAPI *_vsapi);
+    ~MVClipBalls();
+
+   void Update(const VSFrameRef *fn); // v1.4.13
+   inline const FakeBlockData& GetBlock(int nLevel, int nBlk) const { return GetPlane(nLevel)[nBlk]; }
+   bool IsUsable() const;
+   bool IsSceneChange(int nSCD1, int nSCD2) const { return FakeGroupOfPlanes::IsSceneChange(nSCD1, nSCD2); }
+};
+
+
+class MVException : public std::runtime_error {
+public:
+    MVException(const char *descr) : std::runtime_error(descr) {}
+    MVException(const std::string &descr) : std::runtime_error(descr) {}
+};
+
+
 #if 0
 class MVClip : public GenericVideoFilter, public FakeGroupOfPlanes, public MVAnalysisData
 {
@@ -450,9 +500,8 @@ public :
 };
 #endif
 
-#if 0
 class MVFilter {
-protected:
+public:
 	/*! \brief Number of blocks horizontaly, at the first level */
 	int nBlkX;
 
@@ -498,11 +547,10 @@ protected:
    /*! \brief Pointer to the MVCore object */
 //   MVCore *mvCore;
 
-   MVFilter(const PClip &vector, const char *filterName, IScriptEnvironment *env);
+   MVFilter(VSNodeRef *vector, const char *filterName, const VSAPI *vsapi);
 
-   void CheckSimilarity(const MVClip &vector, const char *vectorName, IScriptEnvironment *env);
+   void CheckSimilarity(const MVClipDicks *vector, const char *vectorName);
 };
-#endif
 
 
 //#define MOTION_DELTA_FRAME_BUFFER 5

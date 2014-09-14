@@ -191,3 +191,22 @@ SATD_SSSE3_PHADD( 8,  4);
 //dummy for testing and deactivate SAD
 MK_CFUNC(SadDummy);
 #undef MK_CFUNC
+
+
+// XXX From overlap.h
+extern "C" void Overlaps32x32_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void Overlaps16x32_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void Overlaps32x16_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void Overlaps16x16_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void Overlaps8x16_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void Overlaps8x8_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void Overlaps4x8_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void Overlaps4x4_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void Overlaps2x4_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void Overlaps2x2_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void Overlaps8x4_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void Overlaps4x2_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void Overlaps16x8_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void Overlaps16x2_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void Overlaps8x2_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void Overlaps8x1_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
