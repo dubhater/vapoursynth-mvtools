@@ -194,8 +194,8 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
         int nHeight_B = nBlkY * (nBlkSizeY - nOverlapY) + nOverlapY;
 
 
-        MVPlane *pPlanesB[3];
-        MVPlane *pPlanesF[3];
+        MVPlane *pPlanesB[3] = { };
+        MVPlane *pPlanesF[3] = { };
 
         if (isUsableF)
         {
