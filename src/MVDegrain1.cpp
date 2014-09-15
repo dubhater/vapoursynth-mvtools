@@ -112,14 +112,12 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
         MVClipBalls ballsF(d->mvClipF, vsapi);
         ballsF.Update(mvF);
         isUsableF = ballsF.IsUsable();
-        // maybe free here
         vsapi->freeFrame(mvF);
 
         const VSFrameRef *mvB = vsapi->getFrameFilter(n, d->mvbw, frameCtx);
         MVClipBalls ballsB(d->mvClipB, vsapi);
         ballsB.Update(mvB);
         isUsableB = ballsB.IsUsable();
-        // maybe free here
         vsapi->freeFrame(mvB);
 
         const VSFrameRef *refB = NULL;
@@ -161,12 +159,20 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
         const int nBlkSizeY = d->bleh->nBlkSizeY;
         const int nBlkX = d->bleh->nBlkX;
         const int nBlkY = d->bleh->nBlkY;
+        const int isse = d->isse;
+        const int thSAD = d->thSAD;
+        const int thSADC = d->thSADC;
+        const int YUVplanes = d->YUVplanes;
+        const int dstShortPitch = d->dstShortPitch;
+        const int nLimit = d->nLimit;
+        const int nLimitC = d->nLimitC;
+        const int nSuperModeYUV = d->nSuperModeYUV;
 
         int ySubUV = (yRatioUV == 2) ? 1 : 0;
 
 
-        MVGroupOfFrames *pRefBGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth, nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, yRatioUV);
-        MVGroupOfFrames *pRefFGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth, nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, yRatioUV);
+        MVGroupOfFrames *pRefBGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth, nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, isse, yRatioUV);
+        MVGroupOfFrames *pRefFGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth, nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, isse, yRatioUV);
 
 
         short *winOver;
@@ -179,7 +185,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
         {
             OverWins = new OverlapWindows(nBlkSizeX, nBlkSizeY, nOverlapX, nOverlapY);
             OverWinsUV = new OverlapWindows(nBlkSizeX / 2, nBlkSizeY / yRatioUV, nOverlapX / 2, nOverlapY / yRatioUV);
-            DstShort = new unsigned short[d->dstShortPitch * nHeight];
+            DstShort = new unsigned short[dstShortPitch * nHeight];
         }
 
         uint8_t *tmpBlock = new uint8_t[32*32];
@@ -193,22 +199,22 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
 
         if (isUsableF)
         {
-            pRefFGOF->Update(d->YUVplanes, (uint8_t*)pRefF[0], nRefFPitches[0], (uint8_t*)pRefF[1], nRefFPitches[1], (uint8_t*)pRefF[2], nRefFPitches[2]);
-            if (d->YUVplanes & YPLANE)
+            pRefFGOF->Update(YUVplanes, (uint8_t*)pRefF[0], nRefFPitches[0], (uint8_t*)pRefF[1], nRefFPitches[1], (uint8_t*)pRefF[2], nRefFPitches[2]);
+            if (YUVplanes & YPLANE)
                 pPlanesF[0] = pRefFGOF->GetFrame(0)->GetPlane(YPLANE);
-            if (d->YUVplanes & UPLANE)
+            if (YUVplanes & UPLANE)
                 pPlanesF[1] = pRefFGOF->GetFrame(0)->GetPlane(UPLANE);
-            if (d->YUVplanes & VPLANE)
+            if (YUVplanes & VPLANE)
                 pPlanesF[2] = pRefFGOF->GetFrame(0)->GetPlane(VPLANE);
         }
         if (isUsableB)
         {
-            pRefBGOF->Update(d->YUVplanes, (uint8_t*)pRefB[0], nRefBPitches[0], (uint8_t*)pRefB[1], nRefBPitches[1], (uint8_t*)pRefB[2], nRefBPitches[2]);// v2.0
-            if (d->YUVplanes & YPLANE)
+            pRefBGOF->Update(YUVplanes, (uint8_t*)pRefB[0], nRefBPitches[0], (uint8_t*)pRefB[1], nRefBPitches[1], (uint8_t*)pRefB[2], nRefBPitches[2]);// v2.0
+            if (YUVplanes & YPLANE)
                 pPlanesB[0] = pRefBGOF->GetFrame(0)->GetPlane(YPLANE);
-            if (d->YUVplanes & UPLANE)
+            if (YUVplanes & UPLANE)
                 pPlanesB[1] = pRefBGOF->GetFrame(0)->GetPlane(UPLANE);
-            if (d->YUVplanes & VPLANE)
+            if (YUVplanes & VPLANE)
                 pPlanesB[2] = pRefBGOF->GetFrame(0)->GetPlane(VPLANE);
         }
 
@@ -223,8 +229,8 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
         // FIXME: duplicating Huge Chuncks of Code is a bad idea.
         // LUMA plane Y
 
-        if (!(d->YUVplanes & YPLANE))
-            BitBlt(pDstCur[0], nDstPitches[0], pSrcCur[0], nSrcPitches[0], nWidth, nHeight, d->isse);
+        if (!(YUVplanes & YPLANE))
+            BitBlt(pDstCur[0], nDstPitches[0], pSrcCur[0], nSrcPitches[0], nWidth, nHeight, isse);
         else
         {
             if (nOverlapX==0 && nOverlapY==0)
@@ -247,7 +253,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                             pB = pPlanesB[0]->GetPointer(blxB, blyB);
                             npB = pPlanesB[0]->GetPitch();
                             int blockSAD = blockB.GetSAD();
-                            WRefB = DegrainWeight(d->thSAD, blockSAD);
+                            WRefB = DegrainWeight(thSAD, blockSAD);
                         }
                         else
                         {
@@ -263,7 +269,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                             pF = pPlanesF[0]->GetPointer(blxF, blyF);
                             npF = pPlanesF[0]->GetPitch();
                             int blockSAD = blockF.GetSAD();
-                            WRefF = DegrainWeight(d->thSAD, blockSAD);
+                            WRefF = DegrainWeight(thSAD, blockSAD);
                         }
                         else
                         {
@@ -285,7 +291,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                         if (bx == nBlkX-1 && nWidth_B < nWidth) // right non-covered region
                         {
                             BitBlt(pDstCur[0] + nWidth_B, nDstPitches[0],
-                                    pSrcCur[0] + nWidth_B, nSrcPitches[0], nWidth-nWidth_B, nBlkSizeY, d->isse);
+                                    pSrcCur[0] + nWidth_B, nSrcPitches[0], nWidth-nWidth_B, nBlkSizeY, isse);
                         }
                     }
                     pDstCur[0] += ( nBlkSizeY ) * nDstPitches[0];
@@ -293,14 +299,14 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
 
                     if (by == nBlkY-1 && nHeight_B < nHeight) // bottom uncovered region
                     {
-                        BitBlt(pDstCur[0], nDstPitches[0], pSrcCur[0], nSrcPitches[0], nWidth, nHeight-nHeight_B, d->isse);
+                        BitBlt(pDstCur[0], nDstPitches[0], pSrcCur[0], nSrcPitches[0], nWidth, nHeight-nHeight_B, isse);
                     }
                 }
             }
             else // overlap
             {
                 pDstShort = DstShort;
-                MemZoneSet(reinterpret_cast<unsigned char*>(pDstShort), 0, nWidth_B*2, nHeight_B, 0, 0, d->dstShortPitch*2);
+                MemZoneSet(reinterpret_cast<unsigned char*>(pDstShort), 0, nWidth_B*2, nHeight_B, 0, 0, dstShortPitch*2);
 
                 for (int by=0; by<nBlkY; by++)
                 {
@@ -324,7 +330,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                             pB = pPlanesB[0]->GetPointer(blxB, blyB);
                             npB = pPlanesB[0]->GetPitch();
                             int blockSAD = blockB.GetSAD();
-                            WRefB = DegrainWeight(d->thSAD, blockSAD);
+                            WRefB = DegrainWeight(thSAD, blockSAD);
                         }
                         else
                         {
@@ -340,7 +346,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                             pF = pPlanesF[0]->GetPointer(blxF, blyF);
                             npF = pPlanesF[0]->GetPitch();
                             int blockSAD = blockF.GetSAD();
-                            WRefF = DegrainWeight(d->thSAD, blockSAD);
+                            WRefF = DegrainWeight(thSAD, blockSAD);
                         }
                         else
                         {
@@ -355,33 +361,33 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                         WSrc = 256 - WRefB - WRefF;
                         // luma
                         d->DEGRAINLUMA(tmpBlock, tmpPitch, pSrcCur[0]+ xx, nSrcPitches[0], pB, npB, pF, npF, WSrc, WRefB, WRefF);
-                        d->OVERSLUMA(pDstShort + xx, d->dstShortPitch, tmpBlock, tmpPitch, winOver, nBlkSizeX);
+                        d->OVERSLUMA(pDstShort + xx, dstShortPitch, tmpBlock, tmpPitch, winOver, nBlkSizeX);
 
                         xx += (nBlkSizeX - nOverlapX);
 
                     }
                     pSrcCur[0] += (nBlkSizeY - nOverlapY) * nSrcPitches[0];
-                    pDstShort += (nBlkSizeY - nOverlapY) * d->dstShortPitch;
+                    pDstShort += (nBlkSizeY - nOverlapY) * dstShortPitch;
 
                 }
-                Short2Bytes(pDst[0], nDstPitches[0], DstShort, d->dstShortPitch, nWidth_B, nHeight_B);
+                Short2Bytes(pDst[0], nDstPitches[0], DstShort, dstShortPitch, nWidth_B, nHeight_B);
                 if (nWidth_B < nWidth)
-                    BitBlt(pDst[0] + nWidth_B, nDstPitches[0], pSrc[0] + nWidth_B, nSrcPitches[0], nWidth-nWidth_B, nHeight_B, d->isse);
+                    BitBlt(pDst[0] + nWidth_B, nDstPitches[0], pSrc[0] + nWidth_B, nSrcPitches[0], nWidth-nWidth_B, nHeight_B, isse);
                 if (nHeight_B < nHeight) // bottom noncovered region
-                    BitBlt(pDst[0] + nHeight_B*nDstPitches[0], nDstPitches[0], pSrc[0] + nHeight_B*nSrcPitches[0], nSrcPitches[0], nWidth, nHeight-nHeight_B, d->isse);
+                    BitBlt(pDst[0] + nHeight_B*nDstPitches[0], nDstPitches[0], pSrc[0] + nHeight_B*nSrcPitches[0], nSrcPitches[0], nWidth, nHeight-nHeight_B, isse);
             }
-            if (d->nLimit < 255) {
-                if (d->isse)
-                    LimitChanges_mmx(pDst[0], nDstPitches[0], pSrc[0], nSrcPitches[0], nWidth, nHeight, d->nLimit);
+            if (nLimit < 255) {
+                if (isse)
+                    LimitChanges_mmx(pDst[0], nDstPitches[0], pSrc[0], nSrcPitches[0], nWidth, nHeight, nLimit);
                 else
-                    LimitChanges_c(pDst[0], nDstPitches[0], pSrc[0], nSrcPitches[0], nWidth, nHeight, d->nLimit);
+                    LimitChanges_c(pDst[0], nDstPitches[0], pSrc[0], nSrcPitches[0], nWidth, nHeight, nLimit);
             }
         }
 
         //-----------------------------------------------------------------------------------
         // CHROMA plane U
-        if (!(d->YUVplanes & UPLANE & d->nSuperModeYUV)) // v2.0.8.1
-            BitBlt(pDstCur[1], nDstPitches[1], pSrcCur[1], nSrcPitches[1], nWidth>>1, nHeight>>ySubUV, d->isse);
+        if (!(YUVplanes & UPLANE & nSuperModeYUV)) // v2.0.8.1
+            BitBlt(pDstCur[1], nDstPitches[1], pSrcCur[1], nSrcPitches[1], nWidth>>1, nHeight>>ySubUV, isse);
         else
         {
             if (nOverlapX==0 && nOverlapY==0)
@@ -404,7 +410,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                             pBU = pPlanesB[1]->GetPointer(blxB>>1, blyB>>ySubUV);
                             npBU = pPlanesB[1]->GetPitch();
                             int blockSAD = blockB.GetSAD();
-                            WRefB = DegrainWeight(d->thSADC, blockSAD);
+                            WRefB = DegrainWeight(thSADC, blockSAD);
                         }
                         else
                         {
@@ -420,7 +426,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                             pFU = pPlanesF[1]->GetPointer(blxF>>1, blyF>>ySubUV);
                             npFU = pPlanesF[1]->GetPitch();
                             int blockSAD = blockF.GetSAD();
-                            WRefF = DegrainWeight(d->thSADC, blockSAD);
+                            WRefF = DegrainWeight(thSADC, blockSAD);
                         }
                         else
                         {
@@ -442,7 +448,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                         if (bx == nBlkX-1 && nWidth_B < nWidth) // right non-covered region
                         {
                             BitBlt(pDstCur[1] + (nWidth_B>>1), nDstPitches[1],
-                                    pSrcCur[1] + (nWidth_B>>1), nSrcPitches[1], (nWidth-nWidth_B)>>1, (nBlkSizeY)>>ySubUV, d->isse);
+                                    pSrcCur[1] + (nWidth_B>>1), nSrcPitches[1], (nWidth-nWidth_B)>>1, (nBlkSizeY)>>ySubUV, isse);
                         }
                     }
                     pDstCur[1] += ( nBlkSizeY >>ySubUV) * nDstPitches[1] ;
@@ -450,14 +456,14 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
 
                     if (by == nBlkY-1 && nHeight_B < nHeight) // bottom uncovered region
                     {
-                        BitBlt(pDstCur[1], nDstPitches[1], pSrcCur[1], nSrcPitches[1], nWidth>>1, (nHeight-nHeight_B)>>ySubUV, d->isse);
+                        BitBlt(pDstCur[1], nDstPitches[1], pSrcCur[1], nSrcPitches[1], nWidth>>1, (nHeight-nHeight_B)>>ySubUV, isse);
                     }
                 }
             }
             else // overlap
             {
                 pDstShort = DstShort;
-                MemZoneSet(reinterpret_cast<unsigned char*>(pDstShort), 0, nWidth_B, nHeight_B>>ySubUV, 0, 0, d->dstShortPitch*2);
+                MemZoneSet(reinterpret_cast<unsigned char*>(pDstShort), 0, nWidth_B, nHeight_B>>ySubUV, 0, 0, dstShortPitch*2);
                 for (int by=0; by<nBlkY; by++)
                 {
                     int wby = ((by + nBlkY - 3)/(nBlkY - 2))*3;
@@ -479,7 +485,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                             pBU = pPlanesB[1]->GetPointer(blxB>>1, blyB>>ySubUV);
                             npBU = pPlanesB[1]->GetPitch();
                             int blockSAD = blockB.GetSAD();
-                            WRefB = DegrainWeight(d->thSADC, blockSAD);
+                            WRefB = DegrainWeight(thSADC, blockSAD);
                         }
                         else
                         {
@@ -495,7 +501,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                             pFU = pPlanesF[1]->GetPointer(blxF>>1, blyF>>ySubUV);
                             npFU = pPlanesF[1]->GetPitch();
                             int blockSAD = blockF.GetSAD();
-                            WRefF = DegrainWeight(d->thSADC, blockSAD);
+                            WRefF = DegrainWeight(thSADC, blockSAD);
                         }
                         else
                         {
@@ -511,33 +517,33 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
 
                         d->DEGRAINCHROMA(tmpBlock, tmpPitch, pSrcCur[1]+ (xx>>1), nSrcPitches[1],
                                 pBU, npBU, pFU, npFU, WSrc, WRefB, WRefF);
-                        d->OVERSCHROMA(pDstShort + (xx>>1), d->dstShortPitch, tmpBlock, tmpPitch, winOverUV, nBlkSizeX/2);
+                        d->OVERSCHROMA(pDstShort + (xx>>1), dstShortPitch, tmpBlock, tmpPitch, winOverUV, nBlkSizeX/2);
 
                         xx += (nBlkSizeX - nOverlapX);
 
                     }
                     pSrcCur[1] += ((nBlkSizeY - nOverlapY)>>ySubUV) * nSrcPitches[1] ;
-                    pDstShort += ((nBlkSizeY - nOverlapY)>>ySubUV) * d->dstShortPitch;
+                    pDstShort += ((nBlkSizeY - nOverlapY)>>ySubUV) * dstShortPitch;
 
                 }
-                Short2Bytes(pDst[1], nDstPitches[1], DstShort, d->dstShortPitch, nWidth_B>>1, nHeight_B>>ySubUV);
+                Short2Bytes(pDst[1], nDstPitches[1], DstShort, dstShortPitch, nWidth_B>>1, nHeight_B>>ySubUV);
                 if (nWidth_B < nWidth)
-                    BitBlt(pDst[1] + (nWidth_B>>1), nDstPitches[1], pSrc[1] + (nWidth_B>>1), nSrcPitches[1], (nWidth-nWidth_B)>>1, nHeight_B>>ySubUV, d->isse);
+                    BitBlt(pDst[1] + (nWidth_B>>1), nDstPitches[1], pSrc[1] + (nWidth_B>>1), nSrcPitches[1], (nWidth-nWidth_B)>>1, nHeight_B>>ySubUV, isse);
                 if (nHeight_B < nHeight) // bottom noncovered region
-                    BitBlt(pDst[1] + nDstPitches[1]*(nHeight_B>>ySubUV), nDstPitches[1], pSrc[1] + nSrcPitches[1]*(nHeight_B>>ySubUV), nSrcPitches[1], nWidth>>1, (nHeight-nHeight_B)>>ySubUV, d->isse);
+                    BitBlt(pDst[1] + nDstPitches[1]*(nHeight_B>>ySubUV), nDstPitches[1], pSrc[1] + nSrcPitches[1]*(nHeight_B>>ySubUV), nSrcPitches[1], nWidth>>1, (nHeight-nHeight_B)>>ySubUV, isse);
             }
-            if (d->nLimitC < 255) {
-                if (d->isse)
-                    LimitChanges_mmx(pDst[1], nDstPitches[1], pSrc[1], nSrcPitches[1], nWidth/2, nHeight/yRatioUV, d->nLimitC);
+            if (nLimitC < 255) {
+                if (isse)
+                    LimitChanges_mmx(pDst[1], nDstPitches[1], pSrc[1], nSrcPitches[1], nWidth/2, nHeight/yRatioUV, nLimitC);
                 else
-                    LimitChanges_c(pDst[1], nDstPitches[1], pSrc[1], nSrcPitches[1], nWidth/2, nHeight/yRatioUV, d->nLimitC);
+                    LimitChanges_c(pDst[1], nDstPitches[1], pSrc[1], nSrcPitches[1], nWidth/2, nHeight/yRatioUV, nLimitC);
             }
         }
         //--------------------------------------------------------------------------------
 
         // CHROMA plane V
-        if (!(d->YUVplanes & VPLANE & d->nSuperModeYUV))
-            BitBlt(pDstCur[2], nDstPitches[2], pSrcCur[2], nSrcPitches[2], nWidth>>1, nHeight>>ySubUV, d->isse);
+        if (!(YUVplanes & VPLANE & nSuperModeYUV))
+            BitBlt(pDstCur[2], nDstPitches[2], pSrcCur[2], nSrcPitches[2], nWidth>>1, nHeight>>ySubUV, isse);
         else
         {
 
@@ -561,7 +567,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                             pBV = pPlanesB[2]->GetPointer(blxB>>1, blyB>>ySubUV);
                             npBV = pPlanesB[2]->GetPitch();
                             int blockSAD = blockB.GetSAD();
-                            WRefB = DegrainWeight(d->thSADC, blockSAD);
+                            WRefB = DegrainWeight(thSADC, blockSAD);
                         }
                         else
                         {
@@ -577,7 +583,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                             pFV = pPlanesF[2]->GetPointer(blxF>>1, blyF>>ySubUV);
                             npFV = pPlanesF[2]->GetPitch();
                             int blockSAD = blockF.GetSAD();
-                            WRefF = DegrainWeight(d->thSADC, blockSAD);
+                            WRefF = DegrainWeight(thSADC, blockSAD);
                         }
                         else
                         {
@@ -599,7 +605,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                         if (bx == nBlkX-1 && nWidth_B < nWidth) // right non-covered region
                         {
                             BitBlt(pDstCur[2] + (nWidth_B>>1), nDstPitches[2],
-                                    pSrcCur[2] + (nWidth_B>>1), nSrcPitches[2], (nWidth-nWidth_B)>>1, nBlkSizeY>>ySubUV, d->isse);
+                                    pSrcCur[2] + (nWidth_B>>1), nSrcPitches[2], (nWidth-nWidth_B)>>1, nBlkSizeY>>ySubUV, isse);
                         }
                     }
                     pDstCur[2] += ( nBlkSizeY >>ySubUV) * nDstPitches[2] ;
@@ -607,14 +613,14 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
 
                     if (by == nBlkY-1 && nHeight_B < nHeight) // bottom uncovered region
                     {
-                        BitBlt(pDstCur[2], nDstPitches[2], pSrcCur[2], nSrcPitches[2], nWidth>>1, (nHeight-nHeight_B)>>ySubUV, d->isse);
+                        BitBlt(pDstCur[2], nDstPitches[2], pSrcCur[2], nSrcPitches[2], nWidth>>1, (nHeight-nHeight_B)>>ySubUV, isse);
                     }
                 }
             }
             else // overlap
             {
                 pDstShort = DstShort;
-                MemZoneSet(reinterpret_cast<unsigned char*>(pDstShort), 0, nWidth_B, nHeight_B>>ySubUV, 0, 0, d->dstShortPitch*2);
+                MemZoneSet(reinterpret_cast<unsigned char*>(pDstShort), 0, nWidth_B, nHeight_B>>ySubUV, 0, 0, dstShortPitch*2);
                 for (int by=0; by<nBlkY; by++)
                 {
                     int wby = ((by + nBlkY - 3)/(nBlkY - 2))*3;
@@ -637,7 +643,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                             pBV = pPlanesB[2]->GetPointer(blxB>>1, blyB>>ySubUV);
                             npBV = pPlanesB[2]->GetPitch();
                             int blockSAD = blockB.GetSAD();
-                            WRefB = DegrainWeight(d->thSADC, blockSAD);
+                            WRefB = DegrainWeight(thSADC, blockSAD);
                         }
                         else
                         {
@@ -653,7 +659,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                             pFV = pPlanesF[2]->GetPointer(blxF>>1, blyF>>ySubUV);
                             npFV = pPlanesF[2]->GetPitch();
                             int blockSAD = blockF.GetSAD();
-                            WRefF = DegrainWeight(d->thSADC, blockSAD);
+                            WRefF = DegrainWeight(thSADC, blockSAD);
                         }
                         else
                         {
@@ -669,26 +675,26 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
 
                         d->DEGRAINCHROMA(tmpBlock, tmpPitch, pSrcCur[2]+ (xx>>1), nSrcPitches[2],
                                 pBV, npBV, pFV, npFV, WSrc, WRefB, WRefF);
-                        d->OVERSCHROMA(pDstShort + (xx>>1), d->dstShortPitch, tmpBlock, tmpPitch, winOverUV, nBlkSizeX/2);
+                        d->OVERSCHROMA(pDstShort + (xx>>1), dstShortPitch, tmpBlock, tmpPitch, winOverUV, nBlkSizeX/2);
 
                         xx += (nBlkSizeX - nOverlapX);
 
                     }
                     pSrcCur[2] += ((nBlkSizeY - nOverlapY)>>ySubUV) * nSrcPitches[2] ;
-                    pDstShort += ((nBlkSizeY - nOverlapY)>>ySubUV) * d->dstShortPitch;
+                    pDstShort += ((nBlkSizeY - nOverlapY)>>ySubUV) * dstShortPitch;
 
                 }
-                Short2Bytes(pDst[2], nDstPitches[2], DstShort, d->dstShortPitch, nWidth_B>>1, nHeight_B>>ySubUV);
+                Short2Bytes(pDst[2], nDstPitches[2], DstShort, dstShortPitch, nWidth_B>>1, nHeight_B>>ySubUV);
                 if (nWidth_B < nWidth)
-                    BitBlt(pDst[2] + (nWidth_B>>1), nDstPitches[2], pSrc[2] + (nWidth_B>>1), nSrcPitches[2], (nWidth-nWidth_B)>>1, nHeight_B>>ySubUV, d->isse);
+                    BitBlt(pDst[2] + (nWidth_B>>1), nDstPitches[2], pSrc[2] + (nWidth_B>>1), nSrcPitches[2], (nWidth-nWidth_B)>>1, nHeight_B>>ySubUV, isse);
                 if (nHeight_B < nHeight) // bottom noncovered region
-                    BitBlt(pDst[2] + nDstPitches[2]*(nHeight_B>>ySubUV), nDstPitches[2], pSrc[2] + nSrcPitches[2]*(nHeight_B>>ySubUV), nSrcPitches[2], nWidth>>1, (nHeight-nHeight_B)>>ySubUV, d->isse);
+                    BitBlt(pDst[2] + nDstPitches[2]*(nHeight_B>>ySubUV), nDstPitches[2], pSrc[2] + nSrcPitches[2]*(nHeight_B>>ySubUV), nSrcPitches[2], nWidth>>1, (nHeight-nHeight_B)>>ySubUV, isse);
             }
-            if (d->nLimitC < 255) {
-                if (d->isse)
-                    LimitChanges_mmx(pDst[2], nDstPitches[2], pSrc[2], nSrcPitches[2], nWidth/2, nHeight/yRatioUV, d->nLimitC);
+            if (nLimitC < 255) {
+                if (isse)
+                    LimitChanges_mmx(pDst[2], nDstPitches[2], pSrc[2], nSrcPitches[2], nWidth/2, nHeight/yRatioUV, nLimitC);
                 else
-                    LimitChanges_c(pDst[2], nDstPitches[2], pSrc[2], nSrcPitches[2], nWidth/2, nHeight/yRatioUV, d->nLimitC);
+                    LimitChanges_c(pDst[2], nDstPitches[2], pSrc[2], nSrcPitches[2], nWidth/2, nHeight/yRatioUV, nLimitC);
             }
         }
         //-------------------------------------------------------------------------------
@@ -718,7 +724,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
     }
 
     return 0;
-    }
+}
 
 
 static void VS_CC mvdegrain1Free(void *instanceData, VSCore *core, const VSAPI *vsapi) {
