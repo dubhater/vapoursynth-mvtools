@@ -80,6 +80,10 @@ static const VSFrameRef *VS_CC mvsuperGetFrame(int n, int activationReason, void
         nDstPitchY  = vsapi->getStride(dst, 0);
         nDstPitchUV  = vsapi->getStride(dst, 1);
 
+        memset(pDstY, 0, nDstPitchY * d->vi.height);
+        memset(pDstU, 0, nDstPitchUV * (d->vi.height >> d->vi.format->subSamplingH));
+        memset(pDstV, 0, nDstPitchUV * (d->vi.height >> d->vi.format->subSamplingH));
+
         //MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(nLevels, nWidth, nHeight, nPel, nHPad, nVPad, nModeYUV, isse, yRatioUV);
         MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nLevels, d->nWidth, d->nHeight, d->nPel, d->nHPad, d->nVPad, YUVPLANES, d->isse, d->yRatioUV);
 
