@@ -7,6 +7,7 @@
 void mvsuperRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 void mvanalyseRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 void mvdegrain1Register(VSRegisterFunction registerFunc, VSPlugin *plugin);
+void mvdegrain2Register(VSRegisterFunction registerFunc, VSPlugin *plugin);
 
 
 VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegisterFunction registerFunc, VSPlugin *plugin) {
@@ -15,4 +16,5 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegiste
     mvsuperRegister(registerFunc, plugin);
     mvanalyseRegister(registerFunc, plugin);
     mvdegrain1Register(registerFunc, plugin);
+    mvdegrain2Register(registerFunc, plugin);
 }
