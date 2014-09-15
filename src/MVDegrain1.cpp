@@ -78,26 +78,17 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
     MVDegrain1Data *d = (MVDegrain1Data *) * instanceData;
 
     if (activationReason == arInitial) {
-        int offF = ( d->mvClipF->IsBackward() ) ? 1 : -1;
-        offF *= d->mvClipF->GetDeltaFrame();
-        int offB = ( d->mvClipB->IsBackward() ) ? 1 : -1;
-        offB *= d->mvClipB->GetDeltaFrame();
-        // must request from forward first because forward requests n-delta
-        if (d->mvClipF->IsBackward()) {
-            vsapi->requestFrameFilter(n, d->mvbw, frameCtx);
-            vsapi->requestFrameFilter(n, d->mvfw, frameCtx);
-            if (n + offB >= 0 && n + offB < d->vi->numFrames)
-                vsapi->requestFrameFilter(n + offB, d->super, frameCtx);
-            if (n + offF >= 0 && n + offF < d->vi->numFrames)
+        int offF = -1 * d->mvClipF->GetDeltaFrame();
+        int offB = d->mvClipB->GetDeltaFrame();
+
+        vsapi->requestFrameFilter(n, d->mvfw, frameCtx);
+        vsapi->requestFrameFilter(n, d->mvbw, frameCtx);
+
+        if (n + offF >= 0)
             vsapi->requestFrameFilter(n + offF, d->super, frameCtx);
-        } else {
-            vsapi->requestFrameFilter(n, d->mvfw, frameCtx);
-            vsapi->requestFrameFilter(n, d->mvbw, frameCtx);
-            if (n + offF >= 0 && n + offF < d->vi->numFrames)
-                vsapi->requestFrameFilter(n + offF, d->super, frameCtx);
-            if (n + offB >= 0 && n + offB < d->vi->numFrames)
-                vsapi->requestFrameFilter(n + offB, d->super, frameCtx);
-        }
+        if (n + offB < d->vi->numFrames)
+            vsapi->requestFrameFilter(n + offB, d->super, frameCtx);
+
         vsapi->requestFrameFilter(n, d->node, frameCtx);
     } else if (activationReason == arAllFramesReady) {
         const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx);
@@ -136,15 +127,13 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
 
         if (isUsableF)
         {
-            int offF = ( d->mvClipF->IsBackward() ) ? 1 : -1;
-            offF *= d->mvClipF->GetDeltaFrame();
+            int offF = -1 * d->mvClipF->GetDeltaFrame();
             refF = vsapi->getFrameFilter(n + offF, d->super, frameCtx);
         }
 
         if (isUsableB)
         {
-            int offB = ( d->mvClipB->IsBackward() ) ? 1 : -1;
-            offB *= d->mvClipB->GetDeltaFrame();
+            int offB = d->mvClipB->GetDeltaFrame();
             refB = vsapi->getFrameFilter(n + offB, d->super, frameCtx);
         }
 
@@ -916,6 +905,18 @@ static void VS_CC mvdegrain1Create(const VSMap *in, VSMap *out, void *userData, 
         d.bleh = new MVFilter(d.mvfw, "Degrain1", vsapi);
     } catch (MVException &e) {
         vsapi->setError(out, e.what());
+        vsapi->freeNode(d.super);
+        vsapi->freeNode(d.mvfw);
+        vsapi->freeNode(d.mvbw);
+        return;
+    }
+
+    // Make sure the motion vector clips are correct.
+    if (!d.mvClipB->IsBackward() || d.mvClipF->IsBackward()) {
+        if (!d.mvClipB->IsBackward())
+            vsapi->setError(out, "Degrain1: mvbw must be generated with isb=True.");
+        else
+            vsapi->setError(out, "Degrain1: mvfw must be generated with isb=False.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
