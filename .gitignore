@@ -1,0 +1,26 @@
+orig/
+*.zip
+releases/
+test stuff/
+*.o
+*.la
+*.lo
+*.so
+*.dll
+.libs
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache
+compile
+config.log
+config.status
+configure
+depcomp
+install-sh
+libtool
+ltmain.sh
+missing
+src/.deps/
+src/.dirstamp
+src/.libs/
