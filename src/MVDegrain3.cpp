@@ -101,11 +101,11 @@ static const VSFrameRef *VS_CC mvdegrain3GetFrame(int n, int activationReason, v
             vsapi->requestFrameFilter(n + offF2, d->super, frameCtx);
         if (n + offF >= 0)
             vsapi->requestFrameFilter(n + offF, d->super, frameCtx);
-        if (n + offB < d->vi->numFrames)
+        if (n + offB < d->vi->numFrames || !d->vi->numFrames)
             vsapi->requestFrameFilter(n + offB, d->super, frameCtx);
-        if (n + offB2 < d->vi->numFrames)
+        if (n + offB2 < d->vi->numFrames || !d->vi->numFrames)
             vsapi->requestFrameFilter(n + offB2, d->super, frameCtx);
-        if (n + offB3 < d->vi->numFrames)
+        if (n + offB3 < d->vi->numFrames || !d->vi->numFrames)
             vsapi->requestFrameFilter(n + offB3, d->super, frameCtx);
 
         vsapi->requestFrameFilter(n, d->node, frameCtx);

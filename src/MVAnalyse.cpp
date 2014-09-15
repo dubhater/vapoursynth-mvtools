@@ -87,8 +87,9 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         int minframe, maxframe, nref;
 
         if (d->analysisData.nDeltaFrame > 0) {
+            // FIXME: make it less ugly
             minframe = ( d->analysisData.isBackward ) ? 0 : d->analysisData.nDeltaFrame;
-            maxframe = ( d->analysisData.isBackward ) ? d->vi.numFrames - d->analysisData.nDeltaFrame : d->vi.numFrames;
+            maxframe = ( d->analysisData.isBackward ) ? (d->vi.numFrames ? d->vi.numFrames - d->analysisData.nDeltaFrame : n + d->analysisData.nDeltaFrame + 1) : d->vi.numFrames;
             int offset = ( d->analysisData.isBackward ) ? d->analysisData.nDeltaFrame : -d->analysisData.nDeltaFrame;
             nref = n + offset;
         } else { // special static mode
@@ -123,7 +124,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
 
         if (d->analysisData.nDeltaFrame > 0) {
             minframe = ( d->analysisData.isBackward ) ? 0 : d->analysisData.nDeltaFrame;
-            maxframe = ( d->analysisData.isBackward ) ? d->vi.numFrames - d->analysisData.nDeltaFrame : d->vi.numFrames;
+            maxframe = ( d->analysisData.isBackward ) ? (d->vi.numFrames ? d->vi.numFrames - d->analysisData.nDeltaFrame : n + d->analysisData.nDeltaFrame + 1) : d->vi.numFrames;
             int offset = ( d->analysisData.isBackward ) ? d->analysisData.nDeltaFrame : -d->analysisData.nDeltaFrame;
             nref = n + offset;
         } else { // special static mode

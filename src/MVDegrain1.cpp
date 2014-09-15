@@ -86,7 +86,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
 
         if (n + offF >= 0)
             vsapi->requestFrameFilter(n + offF, d->super, frameCtx);
-        if (n + offB < d->vi->numFrames)
+        if (n + offB < d->vi->numFrames || !d->vi->numFrames)
             vsapi->requestFrameFilter(n + offB, d->super, frameCtx);
 
         vsapi->requestFrameFilter(n, d->node, frameCtx);
