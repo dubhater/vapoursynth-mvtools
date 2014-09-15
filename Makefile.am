@@ -16,6 +16,7 @@ libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/MVClip.cpp \
 						src/MVDegrain1.cpp \
 						src/MVDegrain2.cpp \
+						src/MVDegrain3.cpp \
 						src/MVFilter.cpp \
 						src/MVFrame.cpp \
 						src/MVSuper.cpp \
