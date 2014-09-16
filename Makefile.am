@@ -12,8 +12,10 @@ libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/FakePlaneOfBlocks.cpp \
 						src/GroupOfPlanes.cpp \
 						src/Interpolation.cpp \
+						src/MaskFun.cpp \
 						src/MVAnalyse.cpp \
 						src/MVClip.cpp \
+						src/MVCompensate.cpp \
 						src/MVDegrain1.cpp \
 						src/MVDegrain2.cpp \
 						src/MVDegrain3.cpp \
