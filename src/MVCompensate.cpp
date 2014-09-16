@@ -40,6 +40,8 @@ typedef struct {
     int nSCD1;
     int nSCD2;
     int isse;
+    int tff;
+    int tffexists;
 
     MVClipDicks *mvClip;
 
@@ -194,9 +196,30 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
             int fieldShift = 0;
             if (fields && nPel > 1 && ((nref-n) %2 != 0))
             {
-                // FIXME
-                bool paritySrc = true; //child->GetParity(n);
-                bool parityRef = true; //child->GetParity(nref);
+                int err;
+                const VSMap *props = vsapi->getFramePropsRO(src);
+                bool paritySrc = vsapi->propGetInt(props, "_Field", 0, &err); //child->GetParity(n);
+                if (err && !d->tffexists) {
+                    vsapi->setFilterError("Compensate: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
+                    delete pRefGOF;
+                    delete pSrcGOF;
+                    vsapi->freeFrame(src);
+                    vsapi->freeFrame(dst);
+                    vsapi->freeFrame(ref);
+                    return NULL;
+                }
+
+                props = vsapi->getFramePropsRO(ref);
+                bool parityRef = vsapi->propGetInt(props, "_Field", 0, &err); //child->GetParity(nref);
+                if (err && !d->tffexists) {
+                    vsapi->setFilterError("Compensate: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
+                    delete pRefGOF;
+                    delete pSrcGOF;
+                    vsapi->freeFrame(src);
+                    vsapi->freeFrame(dst);
+                    vsapi->freeFrame(ref);
+                    return NULL;
+                }
                 fieldShift = (paritySrc && !parityRef) ? nPel/2 : ( (parityRef && !paritySrc) ? -(nPel/2) : 0);
                 // vertical shift of fields for fieldbased video at finest level pel2
             }
@@ -632,6 +655,9 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
     if (err)
         d.isse = 0; // FIXME: used to be 1
 
+    d.tff = !!vsapi->propGetInt(in, "tff", 0, &err);
+    d.tffexists = err;
+
 
     d.super = vsapi->propGetNode(in, "super", 0, NULL);
 
@@ -746,5 +772,6 @@ void mvcompensateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
                  "isse:int:opt;"
+                 "tff:int:opt;"
                  , mvcompensateCreate, 0, plugin);
 }
