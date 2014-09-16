@@ -376,14 +376,8 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.tffexists = err;
 
 
-    //d.analysisData.pixelType = vi.pixel_type;//hopefully not necessary
-
     d.analysisData.yRatioUV = 2; //(vi.IsYV12()) ? 2 : 1;
     d.analysisData.xRatioUV = 2; // for YV12 and YUY2, really do not used and assumed to 2
-
-    // unused
-    //nSuperWidth = d.vi.width;
-    //nSuperHeight = d.vi.height;
 
 
     d.analysisData.nBlkSizeX = d.blksize;
@@ -436,7 +430,6 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.badSAD = d.badSAD * (d.blksize * d.blksizev) / 64;
 
     SearchType searchTypes[] = { ONETIME, NSTEP, LOGARITHMIC, EXHAUSTIVE, HEX2SEARCH, UMHSEARCH, HSEARCH, VSEARCH };
-
     d.searchType = searchTypes[d.search];
 
     if (d.searchType == NSTEP)
@@ -477,6 +470,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
 
     // XXX maybe get rid of these two
+    // Bleh, they're checked by client filters. Though it's kind of pointless.
     d.analysisData.nMagicKey = MOTION_MAGIC_KEY;
     d.analysisData.nVersion = MVANALYSIS_DATA_VERSION; // MVAnalysisData and outfile format version: last update v1.8.1
 
@@ -497,7 +491,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     char errorMsg[1024];
     const VSFrameRef *evil = vsapi->getFrame(0, d.node, errorMsg, 1024);
     if (!evil) {
-        vsapi->setError(out, std::string("Analyse: failed to retrieve first frame from input clip. Error message: ").append(errorMsg).c_str());
+        vsapi->setError(out, std::string("Analyse: failed to retrieve first frame from super clip. Error message: ").append(errorMsg).c_str());
         vsapi->freeNode(d.node);
         return;
     }
@@ -596,18 +590,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         d.analysisDataDivided.nOverlapX = d.analysisData.nOverlapX / 2;
         d.analysisDataDivided.nOverlapY = d.analysisData.nOverlapY / 2;
         d.analysisDataDivided.nLvCount = d.analysisData.nLvCount + 1;
-
-        // FIXME: put it in the first frame if really needed downstream
-        //vi.nchannels = reinterpret_cast<intptr_t>(&d.analysisDataDivided);
     }
-    else
-    {
-        //  we'll transmit to the processing filters a handle
-        // on the analyzing filter itself ( it's own pointer ), in order
-        // to activate the right parameters.
-        //vi.nchannels = reinterpret_cast<intptr_t>(&d.analysisData);
-    }
-
 
 
     // XXX Can't know the output width yet, because vectorFields doesn't exist here. Will just return a clip with unknown dimensions.
