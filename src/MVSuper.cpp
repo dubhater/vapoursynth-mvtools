@@ -84,7 +84,6 @@ static const VSFrameRef *VS_CC mvsuperGetFrame(int n, int activationReason, void
         memset(pDstU, 0, nDstPitchUV * (d->vi.height >> d->vi.format->subSamplingH));
         memset(pDstV, 0, nDstPitchUV * (d->vi.height >> d->vi.format->subSamplingH));
 
-        //MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(nLevels, nWidth, nHeight, nPel, nHPad, nVPad, nModeYUV, isse, yRatioUV);
         MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nLevels, d->nWidth, d->nHeight, d->nPel, d->nHPad, d->nVPad, YUVPLANES, d->isse, d->yRatioUV);
 
         pSrcGOF->Update(YUVPLANES, pDstY, nDstPitchY, pDstU, nDstPitchUV, pDstV, nDstPitchUV);
@@ -256,22 +255,6 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
         d.nSuperHeight++; // even
     d.vi.width = d.nSuperWidth;
     d.vi.height = d.nSuperHeight;
-
-    /*
-    SuperParams64Bits params;
-
-    params.nHeight = nHeight;
-    params.nHPad = nHPad;
-    params.nVPad = nVPad;
-    params.nPel = nPel;
-    params.nModeYUV = nModeYUV;
-    params.nLevels = nLevels;
-
-
-    // pack parameters to fake audio properties
-    memcpy(&vi.num_audio_samples, &params, 8); //nHeight + (nHPad<<16) + (nVPad<<24) + ((_int64)(nPel)<<32) + ((_int64)nModeYUV<<40) + ((_int64)nLevels<<48);
-    vi.audio_samples_per_second = 0; // kill audio
-    */
 
 
     data = (MVSuperData *)malloc(sizeof(d));
