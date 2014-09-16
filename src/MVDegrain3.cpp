@@ -1480,14 +1480,107 @@ static void VS_CC mvdegrain3Create(const VSMap *in, VSMap *out, void *userData, 
     d.mvbw3 = vsapi->propGetNode(in, "mvbw3", 0, NULL);
     d.mvfw3 = vsapi->propGetNode(in, "mvfw3", 0, NULL);
 
+    // XXX Yoda had the right idea.
     try {
         d.mvClipB = new MVClipDicks(d.mvbw, d.nSCD1, d.nSCD2, vsapi);
-        d.mvClipF = new MVClipDicks(d.mvfw, d.nSCD1, d.nSCD2, vsapi);
-        d.mvClipB2 = new MVClipDicks(d.mvbw2, d.nSCD1, d.nSCD2, vsapi);
-        d.mvClipF2 = new MVClipDicks(d.mvfw2, d.nSCD1, d.nSCD2, vsapi);
-        d.mvClipB3 = new MVClipDicks(d.mvbw3, d.nSCD1, d.nSCD2, vsapi);
-        d.mvClipF3 = new MVClipDicks(d.mvfw3, d.nSCD1, d.nSCD2, vsapi);
+    } catch (MVException &e) {
+        vsapi->setError(out, e.what());
+        vsapi->freeNode(d.super);
+        vsapi->freeNode(d.mvfw);
+        vsapi->freeNode(d.mvbw);
+        vsapi->freeNode(d.mvfw2);
+        vsapi->freeNode(d.mvbw2);
+        vsapi->freeNode(d.mvfw3);
+        vsapi->freeNode(d.mvbw3);
+        return;
+    }
 
+    try {
+        d.mvClipF = new MVClipDicks(d.mvfw, d.nSCD1, d.nSCD2, vsapi);
+    } catch (MVException &e) {
+        vsapi->setError(out, e.what());
+        vsapi->freeNode(d.super);
+        vsapi->freeNode(d.mvfw);
+        vsapi->freeNode(d.mvbw);
+        vsapi->freeNode(d.mvfw2);
+        vsapi->freeNode(d.mvbw2);
+        vsapi->freeNode(d.mvfw3);
+        vsapi->freeNode(d.mvbw3);
+        delete d.mvClipB;
+        return;
+    }
+
+    try {
+        d.mvClipB2 = new MVClipDicks(d.mvbw2, d.nSCD1, d.nSCD2, vsapi);
+    } catch (MVException &e) {
+        vsapi->setError(out, e.what());
+        vsapi->freeNode(d.super);
+        vsapi->freeNode(d.mvfw);
+        vsapi->freeNode(d.mvbw);
+        vsapi->freeNode(d.mvfw2);
+        vsapi->freeNode(d.mvbw2);
+        vsapi->freeNode(d.mvfw3);
+        vsapi->freeNode(d.mvbw3);
+        delete d.mvClipB;
+        delete d.mvClipF;
+        return;
+    }
+
+    try {
+        d.mvClipF2 = new MVClipDicks(d.mvfw2, d.nSCD1, d.nSCD2, vsapi);
+    } catch (MVException &e) {
+        vsapi->setError(out, e.what());
+        vsapi->freeNode(d.super);
+        vsapi->freeNode(d.mvfw);
+        vsapi->freeNode(d.mvbw);
+        vsapi->freeNode(d.mvfw2);
+        vsapi->freeNode(d.mvbw2);
+        vsapi->freeNode(d.mvfw3);
+        vsapi->freeNode(d.mvbw3);
+        delete d.mvClipB;
+        delete d.mvClipF;
+        delete d.mvClipB2;
+        return;
+    }
+
+    try {
+        d.mvClipB3 = new MVClipDicks(d.mvbw3, d.nSCD1, d.nSCD2, vsapi);
+    } catch (MVException &e) {
+        vsapi->setError(out, e.what());
+        vsapi->freeNode(d.super);
+        vsapi->freeNode(d.mvfw);
+        vsapi->freeNode(d.mvbw);
+        vsapi->freeNode(d.mvfw2);
+        vsapi->freeNode(d.mvbw2);
+        vsapi->freeNode(d.mvfw3);
+        vsapi->freeNode(d.mvbw3);
+        delete d.mvClipB;
+        delete d.mvClipF;
+        delete d.mvClipB2;
+        delete d.mvClipF2;
+        return;
+    }
+
+    try {
+        d.mvClipF3 = new MVClipDicks(d.mvfw3, d.nSCD1, d.nSCD2, vsapi);
+    } catch (MVException &e) {
+        vsapi->setError(out, e.what());
+        vsapi->freeNode(d.super);
+        vsapi->freeNode(d.mvfw);
+        vsapi->freeNode(d.mvbw);
+        vsapi->freeNode(d.mvfw2);
+        vsapi->freeNode(d.mvbw2);
+        vsapi->freeNode(d.mvfw3);
+        vsapi->freeNode(d.mvbw3);
+        delete d.mvClipB;
+        delete d.mvClipF;
+        delete d.mvClipB2;
+        delete d.mvClipF2;
+        delete d.mvClipB3;
+        return;
+    }
+
+    try {
         // Make sure the motion vector clips are correct.
         if (!d.mvClipB3->IsBackward())
             throw MVException("Degrain3: mvbw3 must be generated with isb=True.");
@@ -1521,6 +1614,12 @@ static void VS_CC mvdegrain3Create(const VSMap *in, VSMap *out, void *userData, 
         vsapi->freeNode(d.mvbw2);
         vsapi->freeNode(d.mvfw3);
         vsapi->freeNode(d.mvbw3);
+        delete d.mvClipB;
+        delete d.mvClipF;
+        delete d.mvClipB2;
+        delete d.mvClipF2;
+        delete d.mvClipB3;
+        delete d.mvClipF3;
         return;
     }
 
@@ -1534,7 +1633,6 @@ static void VS_CC mvdegrain3Create(const VSMap *in, VSMap *out, void *userData, 
         d.bleh->CheckSimilarity(d.mvClipB2, "mvbw3");
     } catch (MVException &e) {
         vsapi->setError(out, e.what());
-        delete d.bleh;
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -1542,6 +1640,13 @@ static void VS_CC mvdegrain3Create(const VSMap *in, VSMap *out, void *userData, 
         vsapi->freeNode(d.mvbw2);
         vsapi->freeNode(d.mvfw3);
         vsapi->freeNode(d.mvbw3);
+        delete d.mvClipB;
+        delete d.mvClipF;
+        delete d.mvClipB2;
+        delete d.mvClipF2;
+        delete d.mvClipB3;
+        delete d.mvClipF3;
+        delete d.bleh;
         return;
     }
 
@@ -1572,6 +1677,13 @@ static void VS_CC mvdegrain3Create(const VSMap *in, VSMap *out, void *userData, 
         vsapi->freeNode(d.mvfw3);
         vsapi->freeNode(d.mvbw3);
         vsapi->freeNode(d.node);
+        delete d.mvClipB;
+        delete d.mvClipF;
+        delete d.mvClipB2;
+        delete d.mvClipF2;
+        delete d.mvClipB3;
+        delete d.mvClipF3;
+        delete d.bleh;
         return;
     }
 
@@ -1585,6 +1697,13 @@ static void VS_CC mvdegrain3Create(const VSMap *in, VSMap *out, void *userData, 
         vsapi->freeNode(d.mvfw3);
         vsapi->freeNode(d.mvbw3);
         vsapi->freeNode(d.node);
+        delete d.mvClipB;
+        delete d.mvClipF;
+        delete d.mvClipB2;
+        delete d.mvClipF2;
+        delete d.mvClipB3;
+        delete d.mvClipF3;
+        delete d.bleh;
         return;
     }
 
