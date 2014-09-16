@@ -904,16 +904,37 @@ static void VS_CC mvdegrain1Create(const VSMap *in, VSMap *out, void *userData, 
     d.mvbw = vsapi->propGetNode(in, "mvbw", 0, NULL);
     d.mvfw = vsapi->propGetNode(in, "mvfw", 0, NULL);
 
+    // XXX Fuck all this trying.
     try {
         d.mvClipB = new MVClipDicks(d.mvbw, d.nSCD1, d.nSCD2, vsapi);
-        d.mvClipF = new MVClipDicks(d.mvfw, d.nSCD1, d.nSCD2, vsapi);
+    } catch (MVException &e) {
+        vsapi->setError(out, e.what());
+        vsapi->freeNode(d.super);
+        vsapi->freeNode(d.mvbw);
+        vsapi->freeNode(d.mvfw);
+        return;
+    }
 
+    try {
+        d.mvClipF = new MVClipDicks(d.mvfw, d.nSCD1, d.nSCD2, vsapi);
+    } catch (MVException &e) {
+        vsapi->setError(out, e.what());
+        vsapi->freeNode(d.super);
+        vsapi->freeNode(d.mvfw);
+        vsapi->freeNode(d.mvbw);
+        delete d.mvClipB;
+        return;
+    }
+
+    try {
         d.bleh = new MVFilter(d.mvfw, "Degrain1", vsapi);
     } catch (MVException &e) {
         vsapi->setError(out, e.what());
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
+        delete d.mvClipB;
+        delete d.mvClipF;
         return;
     }
 
@@ -926,6 +947,8 @@ static void VS_CC mvdegrain1Create(const VSMap *in, VSMap *out, void *userData, 
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
+        delete d.mvClipB;
+        delete d.mvClipF;
         return;
     }
 
@@ -937,6 +960,8 @@ static void VS_CC mvdegrain1Create(const VSMap *in, VSMap *out, void *userData, 
     } catch (MVException &e) {
         vsapi->setError(out, e.what());
         delete d.bleh;
+        delete d.mvClipB;
+        delete d.mvClipF;
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -966,6 +991,9 @@ static void VS_CC mvdegrain1Create(const VSMap *in, VSMap *out, void *userData, 
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
         vsapi->freeNode(d.node);
+        delete d.bleh;
+        delete d.mvClipB;
+        delete d.mvClipF;
         return;
     }
 
@@ -975,6 +1003,9 @@ static void VS_CC mvdegrain1Create(const VSMap *in, VSMap *out, void *userData, 
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
         vsapi->freeNode(d.node);
+        delete d.bleh;
+        delete d.mvClipB;
+        delete d.mvClipF;
         return;
     }
 
