@@ -484,7 +484,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.headerSize = VSMAX(4 + sizeof(d.analysisData), 256); // include itself, but usually equal to 256 :-)
 
 
-    d.node = vsapi->propGetNode(in, "clip", 0, 0);
+    d.node = vsapi->propGetNode(in, "super", 0, 0);
     d.vi = *vsapi->getVideoInfo(d.node);
 
     if (!isConstantFormat(&d.vi) || d.vi.format->id != pfYUV420P8) {
@@ -634,7 +634,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
 void mvanalyseRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Analyse",
-                 "clip:clip;"
+                 "super:clip;"
                  "blksize:int:opt;"
                  "blksizev:int:opt;"
                  "levels:int:opt;"
