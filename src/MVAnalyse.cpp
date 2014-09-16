@@ -71,6 +71,10 @@ typedef struct {
     int overlap;
     int overlapv;
     int sadx264;
+
+    int fields;
+    int tff;
+    int tffexists;
 } MVAnalyseData;
 
 
@@ -134,7 +138,20 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         }
 
         const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx);
-        bool paritysrc = true; //child->GetParity(n); // bool tff;
+        const VSMap *srcprops = vsapi->getFramePropsRO(src);
+        int err;
+
+        bool srctff = vsapi->propGetInt(srcprops, "_Field", 0, &err);
+        if (err && d->fields && !d->tffexists) {
+            vsapi->setFilterError("Analyse: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
+            delete vectorFields;
+            vsapi->freeFrame(src);
+            return NULL;
+        }
+
+        // if tff was passed, it overrides _Field.
+        if (d->tffexists)
+            srctff = d->tff && (n % 2 == 0); //child->GetParity(n); // bool tff;
 
         pSrcY = vsapi->getReadPtr(src, 0);
         pSrcU = vsapi->getReadPtr(src, 1);
@@ -165,15 +182,26 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         if (( n < maxframe ) && ( n >= minframe ))
         {
             const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->node, frameCtx);
-            bool parityref = true; //child->GetParity(nref); // bool tff;
+            const VSMap *refprops = vsapi->getFramePropsRO(ref);
 
-            // TODO: must add "separated" and "tff" parameters, maybe.
-            // The "_Field" property could be used instead. Ask Myrsloik.
+            bool reftff = vsapi->propGetInt(refprops, "_Field", 0, &err);
+            if (err && d->fields && !d->tffexists) {
+                vsapi->setFilterError("Analyse: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
+                delete vectorFields;
+                vsapi->freeFrame(src);
+                vsapi->freeFrame(ref);
+                vsapi->freeFrame(dst);
+                return NULL;
+            }
+
+            // if tff was passed, it overrides _Field.
+            if (d->tffexists)
+                reftff = d->tff && (nref % 2 == 0); //child->GetParity(n); // bool tff;
+
             int fieldShift = 0;
-            bool separated = false; // TODO: replace with parameter
-            if (separated && d->analysisData.nPel > 1 && (d->analysisData.nDeltaFrame % 2))
+            if (d->fields && d->analysisData.nPel > 1 && (d->analysisData.nDeltaFrame % 2))
             {
-                fieldShift = (paritysrc && !parityref) ? d->analysisData.nPel/2 : ( (parityref && !paritysrc) ? -(d->analysisData.nPel/2) : 0);
+                fieldShift = (srctff && !reftff) ? d->analysisData.nPel/2 : ( (reftff && !srctff) ? -(d->analysisData.nPel/2) : 0);
                 // vertical shift of fields for fieldbased video at finest level pel2
             }
 
@@ -342,7 +370,10 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     d.tryMany = vsapi->propGetInt(in, "trymany", 0, &err);
 
+    d.fields = !!vsapi->propGetInt(in, "fields", 0, &err);
 
+    d.tff = vsapi->propGetInt(in, "tff", 0, &err);
+    d.tffexists = err;
 
 
     //d.analysisData.pixelType = vi.pixel_type;//hopefully not necessary
@@ -631,5 +662,7 @@ void mvanalyseRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "isse:int:opt;"
                  "meander:int:opt;"
                  "trymany:int:opt;"
+                 "fields:int:opt;"
+                 "tff:int:opt;"
                  , mvanalyseCreate, 0, plugin);
 }
