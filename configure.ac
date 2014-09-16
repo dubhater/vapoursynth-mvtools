@@ -21,5 +21,7 @@ AS_CASE(
 
 PKG_CHECK_MODULES([VapourSynth], [vapoursynth])
 
+PKG_CHECK_MODULES([FFTW3F], [fftw3f])
+
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

@@ -1,4 +1,4 @@
-// DCT abstract class
+// DCT calculation with fftw (real)
 // Copyright(c)2006 A.G.Balakhnin aka Fizick
 // See legal notice in Copying.txt for more information
 
@@ -17,21 +17,34 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html .
 
-#ifndef __MV_DCT__
-#define __MV_DCT__
+#ifndef __MV_DCTFFTW__
+#define __MV_DCTFFTW__
 
+#include <fftw3.h>
 
-class DCTClass {
+#include "dct.h"
 
+class DCTFFTW : public DCTClass {
+	float * fSrc;
+	fftwf_plan dctplan;
+	float * fSrcDCT;
+
+//	int sizex;
+//	int sizey;
+//	int dctmode;
+	int dctshift;
+	int dctshift0;
+
+	void Bytes2Float(const unsigned char * srcp0, int _pitch, float * realdata);
+	void Float2Bytes(unsigned char * srcp0, int _pitch, float * realdata);
 
 public:
-	int sizex;
-	int sizey;
-	int dctmode;
 
-//	DCTClass(int _sizex, int _sizey, int _dctshift0extra);
-	virtual ~DCTClass() {}
-	virtual void DCTBytes2D(const unsigned char *srcp0, int _src_pitch, unsigned char *dctp, int _dct_pitch) = 0;
+
+
+	DCTFFTW(int _sizex, int _sizey, int _dctmode);
+	~DCTFFTW();
+	void DCTBytes2D(const unsigned char *srcp0, int _src_pitch, unsigned char *dctp, int _dct_pitch);
 
 };
 

@@ -7,7 +7,7 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-#include "dct.h"
+#include "dctfftw.h"
 #include "MVInterface.h"
 #include "GroupOfPlanes.h"
 
@@ -221,19 +221,15 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
 
 
             DCTClass *DCTc = NULL;
-            // FIXME: deal with this inline asm shit
-            /*
             if (d->dctmode != 0) {
+                /*
+                // FIXME: deal with this inline asm shit
                 if (d->isse && (d->blksize == 8) && d->blksizev == 8)
                     DCTc = new DCTINT(d->blksize, d->blksizev, d->dctmode);
                 else
-                {
-                    //hinstFFTW3 = LoadLibrary("fftw3.dll"); // delayed loading
-                    //if (hinstFFTW3==NULL) env->ThrowError("MAnalyse: Can not load FFTW3.DLL !");
-                    DCTc = new DCTFFTW(d->blksize, d->blksizev, hinstFFTW3, d->dctmode); // check order x,y
-                }
+                */
+                DCTc = new DCTFFTW(d->blksize, d->blksizev, d->dctmode); // check order x,y
             }
-            */
 
 
             vectorFields->SearchMVs(pSrcGOF, pRefGOF, d->searchType, d->nSearchParam, d->nPelSearch, d->nLambda, d->lsad, d->pnew, d->plevel, d->global, d->analysisData.nFlags, reinterpret_cast<int*>(pDst), NULL, fieldShift, DCTc, d->pzero, d->pglobal, d->badSAD, d->badrange, d->meander, NULL, d->tryMany);
@@ -244,8 +240,8 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             }
 
             delete vectorFields;
-            //if (DCTc)
-            //    delete DCTc;
+            if (DCTc)
+                delete DCTc;
             delete pSrcGOF;
             delete pRefGOF;
             vsapi->freeFrame(ref);
