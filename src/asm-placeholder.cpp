@@ -193,7 +193,7 @@ MK_CFUNC(SadDummy);
 #undef MK_CFUNC
 
 
-// XXX From overlap.h
+// XXX From Overlap.h
 extern "C" void Overlaps32x32_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
 extern "C" void Overlaps16x32_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
 extern "C" void Overlaps32x16_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }

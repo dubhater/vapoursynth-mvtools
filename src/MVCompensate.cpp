@@ -23,7 +23,7 @@
 
 #include "MVInterface.h"
 #include "CopyCode.h"
-#include "overlap.h"
+#include "Overlap.h"
 #include "MaskFun.h"
 
 

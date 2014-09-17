@@ -20,7 +20,7 @@
 #include <algorithm>
 #include <cmath>
 
-#include "dctfftw.h"
+#include "DCTFFTW.h"
 
 
 DCTFFTW::DCTFFTW(int _sizex, int _sizey, int _dctmode) 

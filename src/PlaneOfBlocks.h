@@ -23,9 +23,9 @@
 #include "Interpolation.h"
 #include "CopyCode.h"
 #include "SADFunctions.h"
-#include "commonfunctions.h"
+#include "CommonFunctions.h"
 #include "Variance.h"
-#include "dct.h"
+#include "DCT.h"
 
 #define MAX_PREDICTOR 20 // right now 5 should be enough (TSchniede)
 

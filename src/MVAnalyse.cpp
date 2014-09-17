@@ -7,7 +7,7 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-#include "dctfftw.h"
+#include "DCTFFTW.h"
 #include "MVInterface.h"
 #include "GroupOfPlanes.h"
 

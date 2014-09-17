@@ -23,7 +23,7 @@
 
 //#include "MVInterface.h"
 //#include "GroupOfPlanes.h"
-//#include "commonfunctions.h"
+//#include "CommonFunctions.h"
 
 inline int PlaneHeightLuma(int src_height, int level, int yRatioUV, int vpad)
     {

@@ -22,7 +22,7 @@
 
 #include <fftw3.h>
 
-#include "dct.h"
+#include "DCT.h"
 
 class DCTFFTW : public DCTClass {
 	float * fSrc;

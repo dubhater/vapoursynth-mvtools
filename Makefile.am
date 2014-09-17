@@ -6,8 +6,8 @@ lib_LTLIBRARIES = libmvtools.la
 
 libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/CopyCode.cpp \
-						src/dctfftw.cpp \
-						src/entry-point.cpp \
+						src/DCTFFTW.cpp \
+						src/EntryPoint.cpp \
 						src/FakeBlockData.cpp \
 						src/FakeGroupOfPlanes.cpp \
 						src/FakePlaneOfBlocks.cpp \
@@ -23,7 +23,7 @@ libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/MVFilter.cpp \
 						src/MVFrame.cpp \
 						src/MVSuper.cpp \
-						src/overlap.cpp \
+						src/Overlap.cpp \
 						src/Padding.cpp \
 						src/PlaneOfBlocks.cpp
 

@@ -16,7 +16,7 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html .
 
-#include "overlap.h"
+#include "Overlap.h"
 
 #ifndef min
 #define min(a,b)            (((a) < (b)) ? (a) : (b))

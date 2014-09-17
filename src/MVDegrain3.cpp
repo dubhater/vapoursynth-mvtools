@@ -23,7 +23,7 @@
 #include "MVDegrain3.h"
 #include "MVInterface.h"
 #include "CopyCode.h"
-#include "overlap.h"
+#include "Overlap.h"
 
 
 typedef struct {
