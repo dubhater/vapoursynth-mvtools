@@ -146,6 +146,7 @@ cglobal cpu_sfence
     sfence
     ret
 
+%if 0
 cextern intel_cpu_indicator_init
 
 ;-----------------------------------------------------------------------------
@@ -195,3 +196,5 @@ cglobal safe_intel_cpu_indicator_init
     pop r1
     pop r0
     ret
+
+%endif ; %if 0
