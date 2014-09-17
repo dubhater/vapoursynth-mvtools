@@ -7,9 +7,10 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
+#include "CPU.h"
 #include "DCTFFTW.h"
-#include "MVInterface.h"
 #include "GroupOfPlanes.h"
+#include "MVInterface.h"
 
 
 // FIXME: Redundant members. A few can go straight in analysisData.
@@ -442,8 +443,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     if (d.sadx264 == 0)
     {
-        // FIXME: get cpu_detect() working
-        d.analysisData.nFlags |= 0; //cpu_detect();
+        d.analysisData.nFlags |= cpu_detect();
     }
     else
     {

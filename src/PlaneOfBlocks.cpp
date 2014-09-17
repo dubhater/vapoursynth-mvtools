@@ -53,12 +53,10 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
    chroma = (bool)(nFlags & MOTION_USE_CHROMA_MOTION);
 
 	bool mmxext = (bool)(nFlags & CPU_MMXEXT);
-	bool cache32 = (bool)(nFlags & CPU_CACHELINE_32);
 	bool cache64 = (bool)(nFlags & CPU_CACHELINE_64);
 	bool sse2 = (bool)(nFlags & CPU_SSE2_IS_FAST);
 	bool sse3 = (bool)(nFlags & CPU_SSE3);
 	bool ssse3 = (bool)(nFlags & CPU_SSSE3);
-	bool ssse3pha = (bool)(nFlags & CPU_PHADD_IS_FAST);
 	bool ssd = (bool)(nFlags & MOTION_USE_SSD);
 	bool satd = (bool)(nFlags & MOTION_USE_SATD);
 
@@ -110,8 +108,8 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 //I suppose it is faster to use MMX than use SSE on a cache line split affected platform if that occurs
 #define SETBLIT16(blksizex, blksizey, type) \
 	type = copy_mc_##blksizex##x##blksizey##_mmx; \
-	if (sse2&&(((!cache32)&&(!cache64))||(!ssse3))) type = copy_mc_##blksizex##x##blksizey##_sse2; \
-	if (sse3&&(((!cache32)&&(!cache64))||(!ssse3))) type = copy_mc_##blksizex##x##blksizey##_sse3
+	if (sse2&&(((!cache64))||(!ssse3))) type = copy_mc_##blksizex##x##blksizey##_sse2; \
+	if (sse3&&(((!cache64))||(!ssse3))) type = copy_mc_##blksizex##x##blksizey##_sse3
 	if (sse2&&(nOverlapX %16 == 0)) type = copy_mc_##blksizex##x##blksizey##_aligned_sse2; \
 #define SETBLITX(blksizex, blksizey, type) \
 	type = copy_mc_##blksizex##x##blksizey##_mmx
@@ -122,39 +120,33 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 
 
 #define SET_FUNCPTR_x264(blksizex, blksizey, type) \
-		type = x264_pixel_sad_##blksizex##x##blksizey##_mmxext; \
-		if (cache32) type = x264_pixel_sad_##blksizex##x##blksizey##_cache32_mmxext; \
-		if (cache64) type = x264_pixel_sad_##blksizex##x##blksizey##_cache64_mmxext; \
-		if (sse2) type = x264_pixel_sad_##blksizex##x##blksizey##_sse2; \
-		if (sse3) type = x264_pixel_sad_##blksizex##x##blksizey##_sse3; \
-		if (cache32&&cache64) type = x264_pixel_sad_##blksizex##x##blksizey##_cache64_sse2; \
-		if (ssse3&&cache64) type = x264_pixel_sad_##blksizex##x##blksizey##_cache64_ssse3; \
-		if (ssd) type = x264_pixel_ssd_##blksizex##x##blksizey##_mmx; \
-		if (satd) type = x264_pixel_satd_##blksizex##x##blksizey##_mmxext; \
-		if (satd&&sse2) type = x264_pixel_satd_##blksizex##x##blksizey##_sse2; \
-		if (satd&&ssse3) type = x264_pixel_satd_##blksizex##x##blksizey##_ssse3; \
-		if (satd&&ssse3pha) type = x264_pixel_satd_##blksizex##x##blksizey##_ssse3_phadd
+		type = mvtools_pixel_sad_##blksizex##x##blksizey##_mmx2; \
+		if (sse2) type = mvtools_pixel_sad_##blksizex##x##blksizey##_sse2; \
+		if (sse3) type = mvtools_pixel_sad_##blksizex##x##blksizey##_sse3; \
+		if (ssse3&&cache64) type = mvtools_pixel_sad_##blksizex##x##blksizey##_cache64_ssse3; \
+		if (ssd) type = mvtools_pixel_ssd_##blksizex##x##blksizey##_mmx; \
+		if (satd) type = mvtools_pixel_satd_##blksizex##x##blksizey##_mmx2; \
+		if (satd&&sse2) type = mvtools_pixel_satd_##blksizex##x##blksizey##_sse2; \
+		if (satd&&ssse3) type = mvtools_pixel_satd_##blksizex##x##blksizey##_ssse3;
 
 
 #define SET_FUNCPTR_x264_mmx(blksizex, blksizey, type) \
-		type = x264_pixel_sad_##blksizex##x##blksizey##_mmxext; \
-		if (cache32) type = x264_pixel_sad_##blksizex##x##blksizey##_cache32_mmxext; \
-		if (cache64) type = x264_pixel_sad_##blksizex##x##blksizey##_cache64_mmxext; \
-		if (ssd) type = x264_pixel_ssd_##blksizex##x##blksizey##_mmx; \
-		if (satd) type = x264_pixel_satd_##blksizex##x##blksizey##_mmxext; \
-		if (satd&&sse2) type = x264_pixel_satd_##blksizex##x##blksizey##_sse2; \
-		if (satd&&ssse3) type = x264_pixel_satd_##blksizex##x##blksizey##_ssse3; \
-		if (satd&&ssse3pha) type = x264_pixel_satd_##blksizex##x##blksizey##_ssse3_phadd
+		type = mvtools_pixel_sad_##blksizex##x##blksizey##_mmx2; \
+		if (cache64) type = mvtools_pixel_sad_##blksizex##x##blksizey##_cache64_mmx2; \
+		if (ssd) type = mvtools_pixel_ssd_##blksizex##x##blksizey##_mmx; \
+		if (satd) type = mvtools_pixel_satd_##blksizex##x##blksizey##_mmx2; \
+		if (satd&&sse2) type = mvtools_pixel_satd_##blksizex##x##blksizey##_sse2; \
+		if (satd&&ssse3) type = mvtools_pixel_satd_##blksizex##x##blksizey##_ssse3;
 
 #define SET_FUNCPTR_x264_mmx_4x(blksizey, type) \
-		type = x264_pixel_sad_4x##blksizey##_mmxext; \
-		if (ssd) type = x264_pixel_ssd_4x##blksizey##_mmx; \
-		if (satd) type = x264_pixel_satd_4x##blksizey##_mmxext
+		type = mvtools_pixel_sad_4x##blksizey##_mmx2; \
+		if (ssd) type = mvtools_pixel_ssd_4x##blksizey##_mmx; \
+		if (satd) type = mvtools_pixel_satd_4x##blksizey##_mmx2
 
 #define SET_FUNCPTR_x264_SATD(blksizex,blksizey) \
-		SATD = x264_pixel_satd_##blksizex##x##blksizey##_mmxext; \
-		if (sse2) SATD = x264_pixel_satd_##blksizex##x##blksizey##_sse2; \
-		if (ssse3) SATD = x264_pixel_satd_##blksizex##x##blksizey##_ssse3
+		SATD = mvtools_pixel_satd_##blksizex##x##blksizey##_mmx2; \
+		if (sse2) SATD = mvtools_pixel_satd_##blksizex##x##blksizey##_sse2; \
+		if (ssse3) SATD = mvtools_pixel_satd_##blksizex##x##blksizey##_ssse3
 
 
 	SATD = SadDummy; //for now disable SATD if default functions are used
@@ -299,7 +291,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 			break;
 		case 4:
 				SET_FUNCPTR_x264_mmx_4x(4, SAD);
-				SATD = x264_pixel_satd_4x4_mmxext;
+				SATD = mvtools_pixel_satd_4x4_mmx2;
 				SETBLITX(4,4,BLITLUMA);
 				if (yRatioUV==2) {
 					SADCHROMA = Sad2x2_iSSE_T;
@@ -342,12 +334,12 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 		SADCHROMA = SadDummy;
 
 // for debug:
-//         SAD = x264_pixel_sad_4x4_mmxext;
+//         SAD = mvtools_pixel_sad_4x4_mmx2;
 //         VAR = Var_C<8>;
 //         LUMA = Luma_C<8>;
 //         BLITLUMA = Copy_C<16,16>;
 //		 BLITCHROMA = Copy_C<8,8>; // idem
-//		 SADCHROMA = x264_pixel_sad_8x8_mmxext;
+//		 SADCHROMA = mvtools_pixel_sad_8x8_mmx2;
 
 
 #ifdef ALIGN_SOURCEBLOCK

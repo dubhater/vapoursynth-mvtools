@@ -114,6 +114,7 @@ MK_CFUNC(Sad2x4_iSSE_T);
 #undef SAD_ISSE
 
 
+#if 0
 #define SAD_x264(blsizex, blsizey) extern "C" unsigned int  x264_pixel_sad_##blsizex##x##blsizey##_mmxext(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch) { abort(); }
 //x264_pixel_sad_16x16_mmxext(   x,y can be: 16 8 4
 SAD_x264(16,16);
@@ -187,6 +188,7 @@ SATD_SSSE3_PHADD( 8,  4);
 #undef SATD_SSE2
 #undef SATD_SSSE3
 #undef SATD_SSSE3_PHADD
+#endif // #if 0
 
 //dummy for testing and deactivate SAD
 MK_CFUNC(SadDummy);

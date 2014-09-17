@@ -138,8 +138,8 @@ MK_CPPWRAP(2,2);
 #undef MK_CPPWRAP
 */
 /* included from x264 */
-#define SAD_x264(blsizex, blsizey) extern "C" unsigned int  x264_pixel_sad_##blsizex##x##blsizey##_mmxext(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
-//x264_pixel_sad_16x16_mmxext(   x,y can be: 16 8 4
+#define SAD_x264(blsizex, blsizey) extern "C" unsigned int  mvtools_pixel_sad_##blsizex##x##blsizey##_mmx2(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
+//mvtools_pixel_sad_16x16_mmx2(   x,y can be: 16 8 4
 SAD_x264(16,16);
 SAD_x264(16,8);
 SAD_x264(8,16);
@@ -149,50 +149,50 @@ SAD_x264(4,8);
 SAD_x264(4,4);
 #undef SAD_x264
 //parameter is function name
-MK_CFUNC(x264_pixel_sad_16x16_sse2); //non optimized cache access, for AMD?
-MK_CFUNC(x264_pixel_sad_16x8_sse2);	 //non optimized cache access, for AMD?
-MK_CFUNC(x264_pixel_sad_16x16_sse3); //LDDQU Pentium4E (Core1?), not for Core2!
-MK_CFUNC(x264_pixel_sad_16x8_sse3);  //LDDQU Pentium4E (Core1?), not for Core2!
-MK_CFUNC(x264_pixel_sad_16x16_cache64_sse2);//core2 optimized
-MK_CFUNC(x264_pixel_sad_16x8_cache64_sse2);//core2 optimized
-MK_CFUNC(x264_pixel_sad_16x16_cache64_ssse3);//core2 optimized
-MK_CFUNC(x264_pixel_sad_16x8_cache64_ssse3); //core2 optimized
+MK_CFUNC(mvtools_pixel_sad_16x16_sse2); //non optimized cache access, for AMD?
+MK_CFUNC(mvtools_pixel_sad_16x8_sse2);	 //non optimized cache access, for AMD?
+MK_CFUNC(mvtools_pixel_sad_16x16_sse3); //LDDQU Pentium4E (Core1?), not for Core2!
+MK_CFUNC(mvtools_pixel_sad_16x8_sse3);  //LDDQU Pentium4E (Core1?), not for Core2!
+//MK_CFUNC(mvtools_pixel_sad_16x16_cache64_sse2);//core2 optimized
+//MK_CFUNC(mvtools_pixel_sad_16x8_cache64_sse2);//core2 optimized
+MK_CFUNC(mvtools_pixel_sad_16x16_cache64_ssse3);//core2 optimized
+MK_CFUNC(mvtools_pixel_sad_16x8_cache64_ssse3); //core2 optimized
 
-MK_CFUNC(x264_pixel_sad_16x16_cache32_mmxext);
-MK_CFUNC(x264_pixel_sad_16x8_cache32_mmxext);
-MK_CFUNC(x264_pixel_sad_16x16_cache64_mmxext);
-MK_CFUNC(x264_pixel_sad_16x8_cache64_mmxext);
-MK_CFUNC(x264_pixel_sad_8x16_cache32_mmxext);
-MK_CFUNC(x264_pixel_sad_8x8_cache32_mmxext);
-MK_CFUNC(x264_pixel_sad_8x4_cache32_mmxext);
-MK_CFUNC(x264_pixel_sad_8x16_cache64_mmxext);
-MK_CFUNC(x264_pixel_sad_8x8_cache64_mmxext);
-MK_CFUNC(x264_pixel_sad_8x4_cache64_mmxext);
+//MK_CFUNC(mvtools_pixel_sad_16x16_cache32_mmx2);
+//MK_CFUNC(mvtools_pixel_sad_16x8_cache32_mmx2);
+//MK_CFUNC(mvtools_pixel_sad_16x16_cache64_mmx2);
+//MK_CFUNC(mvtools_pixel_sad_16x8_cache64_mmx2);
+//MK_CFUNC(mvtools_pixel_sad_8x16_cache32_mmx2);
+//MK_CFUNC(mvtools_pixel_sad_8x8_cache32_mmx2);
+//MK_CFUNC(mvtools_pixel_sad_8x4_cache32_mmx2);
+MK_CFUNC(mvtools_pixel_sad_8x16_cache64_mmx2);
+MK_CFUNC(mvtools_pixel_sad_8x8_cache64_mmx2);
+MK_CFUNC(mvtools_pixel_sad_8x4_cache64_mmx2);
 
 //1.9.5.3: added ssd & SATD (TSchniede)
 /* alternative to SAD - SSD: squared sum of differences, VERY sensitive to noise */
-MK_CFUNC(x264_pixel_ssd_16x16_mmx);
-MK_CFUNC(x264_pixel_ssd_16x8_mmx);
-MK_CFUNC(x264_pixel_ssd_8x16_mmx);
-MK_CFUNC(x264_pixel_ssd_8x8_mmx);
-MK_CFUNC(x264_pixel_ssd_8x4_mmx);
-MK_CFUNC(x264_pixel_ssd_4x8_mmx);
-MK_CFUNC(x264_pixel_ssd_4x4_mmx);
+MK_CFUNC(mvtools_pixel_ssd_16x16_mmx);
+MK_CFUNC(mvtools_pixel_ssd_16x8_mmx);
+MK_CFUNC(mvtools_pixel_ssd_8x16_mmx);
+MK_CFUNC(mvtools_pixel_ssd_8x8_mmx);
+MK_CFUNC(mvtools_pixel_ssd_8x4_mmx);
+MK_CFUNC(mvtools_pixel_ssd_4x8_mmx);
+MK_CFUNC(mvtools_pixel_ssd_4x4_mmx);
 
 /* SATD: Sum of Absolute Transformed Differences, more sensitive to noise, frequency domain based - replacement to dct/SAD */
-MK_CFUNC(x264_pixel_satd_16x16_mmxext);
-MK_CFUNC(x264_pixel_satd_16x8_mmxext);
-MK_CFUNC(x264_pixel_satd_8x16_mmxext);
-MK_CFUNC(x264_pixel_satd_8x8_mmxext);
-MK_CFUNC(x264_pixel_satd_8x4_mmxext);
-MK_CFUNC(x264_pixel_satd_4x8_mmxext);
-MK_CFUNC(x264_pixel_satd_4x4_mmxext);
+MK_CFUNC(mvtools_pixel_satd_16x16_mmx2);
+MK_CFUNC(mvtools_pixel_satd_16x8_mmx2);
+MK_CFUNC(mvtools_pixel_satd_8x16_mmx2);
+MK_CFUNC(mvtools_pixel_satd_8x8_mmx2);
+MK_CFUNC(mvtools_pixel_satd_8x4_mmx2);
+MK_CFUNC(mvtools_pixel_satd_4x8_mmx2);
+MK_CFUNC(mvtools_pixel_satd_4x4_mmx2);
 
-#define SATD_SSE2(blsizex, blsizey) extern "C" unsigned int  x264_pixel_satd_##blsizex##x##blsizey##_sse2(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
-#define SATD_SSSE3(blsizex, blsizey) extern "C" unsigned int  x264_pixel_satd_##blsizex##x##blsizey##_ssse3(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
-#define SATD_SSSE3_PHADD(blsizex, blsizey) extern "C" unsigned int  x264_pixel_satd_##blsizex##x##blsizey##_ssse3_phadd(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
+#define SATD_SSE2(blsizex, blsizey) extern "C" unsigned int  mvtools_pixel_satd_##blsizex##x##blsizey##_sse2(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
+#define SATD_SSSE3(blsizex, blsizey) extern "C" unsigned int  mvtools_pixel_satd_##blsizex##x##blsizey##_ssse3(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
+//#define SATD_SSSE3_PHADD(blsizex, blsizey) extern "C" unsigned int  mvtools_pixel_satd_##blsizex##x##blsizey##_ssse3_phadd(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
 
-//x264_pixel_satd_16x16_%1
+//mvtools_pixel_satd_16x16_%1
 SATD_SSE2(16, 16);
 SATD_SSE2(16,  8);
 SATD_SSE2( 8, 16);
@@ -203,14 +203,14 @@ SATD_SSSE3(16,  8);
 SATD_SSSE3( 8, 16);
 SATD_SSSE3( 8,  8);
 SATD_SSSE3( 8,  4);
-SATD_SSSE3_PHADD(16, 16); //identical to ssse3, for Penryn useful only?
-SATD_SSSE3_PHADD(16,  8); //identical to ssse3
-SATD_SSSE3_PHADD( 8, 16);
-SATD_SSSE3_PHADD( 8,  8);
-SATD_SSSE3_PHADD( 8,  4);
+//SATD_SSSE3_PHADD(16, 16); //identical to ssse3, for Penryn useful only?
+//SATD_SSSE3_PHADD(16,  8); //identical to ssse3
+//SATD_SSSE3_PHADD( 8, 16);
+//SATD_SSSE3_PHADD( 8,  8);
+//SATD_SSSE3_PHADD( 8,  4);
 #undef SATD_SSE2
 #undef SATD_SSSE3
-#undef SATD_SSSE3_PHADD
+//#undef SATD_SSSE3_PHADD
 
 //dummy for testing and deactivate SAD
 MK_CFUNC(SadDummy);

@@ -11,13 +11,60 @@ AC_PROG_CXX
 
 AC_CANONICAL_HOST
 
-AS_CASE(
-   [$host_cpu], [i?86],
-   [AS_CASE(
-      [$host_os], [cygwin*|mingw*],
-      [LDFLAGS="-Wl,--kill-at"]
-   )]
+
+
+
+AC_CHECK_PROGS([YASM], [yasm])
+AS_IF(
+   [test "x$YASM" = "x"],
+   [AC_MSG_ERROR([yasm required but not found])],
+   [AS="$YASM"]
 )
+
+ASFLAGS="$ASFLAGS -Dprivate_prefix=mvtools -DHIGH_BIT_DEPTH=0 -DBIT_DEPTH=8"
+
+AS_CASE(
+  [$host_cpu],
+  [i?86],   [BITS="32" ASFLAGS="$ASFLAGS -DARCH_X86_64=0"],
+  [x86_64], [BITS="64" ASFLAGS="$ASFLAGS -DARCH_X86_64=1 -DPIC -m amd64"],
+  [AC_MSG_ERROR([Currently MVTools can only be compiled for Intel CPUs.])]
+)
+
+AS_CASE(
+   [$host_os],
+   [darwin*],
+   [
+      ASFLAGS="$ASFLAGS -f macho$BITS -DPREFIX"
+   ],
+   [*linux*],
+   [
+      ASFLAGS="$ASFLAGS -f elf"
+   ],
+   [gnu*],
+   [
+      ASFLAGS="$ASFLAGS -f elf"
+   ],
+   [cygwin*],
+   [
+      ASFLAGS="$ASFLAGS -f win32"
+      AS_IF(
+         [test "x$BITS" = "x32"],
+         [ASFLAGS="$ASFLAGS -DPREFIX" LDFLAGS="-Wl,--kill-at"]
+      )
+   ],
+   [mingw*],
+   [
+      ASFLAGS="$ASFLAGS -f win32"
+      AS_IF(
+         [test "x$BITS" = "x32"],
+         [ASFLAGS="$ASFLAGS -DPREFIX" LDFLAGS="-Wl,--kill-at"]
+      )
+   ],
+   [AC_MSG_ERROR([Unknown host OS])]
+)
+AC_SUBST([ASFLAGS])
+
+
 
 PKG_CHECK_MODULES([VapourSynth], [vapoursynth])
 
