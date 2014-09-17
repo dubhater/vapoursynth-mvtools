@@ -25,7 +25,7 @@
 ;* For more information, contact us at licensing@x264.com.
 ;*****************************************************************************
 
-%include "x86inc.asm"
+%include "include/x86inc.asm"
 
 SECTION .text
 
