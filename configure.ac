@@ -1,6 +1,6 @@
 AC_INIT([MVTools], [1], [https://github.com/dubhater/vapoursynth-mvtools/issues], [MVTools], [https://github.com/dubhater/vapoursynth-mvtools/])
 
-: ${CXXFLAGS="-std=c++11 -O2"}
+: ${CXXFLAGS="-O2"}
 
 AM_INIT_AUTOMAKE([foreign no-dist-gzip dist-xz subdir-objects no-define])
 AM_SILENT_RULES([yes])

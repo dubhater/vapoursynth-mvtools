@@ -1,4 +1,4 @@
-AM_CXXFLAGS = -Wall -Wextra -Wno-unused-parameter
+AM_CXXFLAGS = -std=c++11 -Wall -Wextra -Wno-unused-parameter
 
 AM_CPPFLAGS = $(VapourSynth_CFLAGS) $(FFTW3F_CFLAGS)
 
