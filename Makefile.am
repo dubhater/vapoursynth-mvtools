@@ -7,7 +7,12 @@ lib_LTLIBRARIES = libmvtools.la
 BUILT_SOURCES = src/asm/const-a.o \
 				src/asm/cpu-a.o \
 				src/asm/pixel-a.o \
-				src/asm/sad-a.o
+				src/asm/sad-a.o \
+				src/asm/CopyCode.o \
+				src/asm/Interpolation.o \
+				src/asm/MVDegrains.o \
+				src/asm/Overlap.o \
+				src/asm/Variance.o
 CLEANFILES = $(BUILT_SOURCES)
 
 .asm.o:
@@ -40,13 +45,23 @@ libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/asm/const-a.asm \
 						src/asm/cpu-a.asm \
 						src/asm/pixel-a.asm \
-						src/asm/sad-a.asm
+						src/asm/sad-a.asm \
+						src/asm/CopyCode.asm \
+						src/asm/Interpolation.asm \
+						src/asm/MVDegrains.asm \
+						src/asm/Overlap.asm \
+						src/asm/Variance.asm
 
 libmvtools_la_LDFLAGS = -no-undefined -avoid-version \
 						-Xlinker src/asm/const-a.o \
 						-Xlinker src/asm/cpu-a.o \
 						-Xlinker src/asm/pixel-a.o \
-						-Xlinker src/asm/sad-a.o
+						-Xlinker src/asm/sad-a.o \
+						-Xlinker src/asm/CopyCode.o \
+						-Xlinker src/asm/Interpolation.o \
+						-Xlinker src/asm/MVDegrains.o \
+						-Xlinker src/asm/Overlap.o \
+						-Xlinker src/asm/Variance.o
 
 libmvtools_la_LIBADD = $(FFTW3F_LIBS)
 

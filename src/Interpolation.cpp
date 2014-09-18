@@ -194,7 +194,7 @@ void RB2FilteredVertical(unsigned char *pDst, const unsigned char *pSrc, int nDs
             int nSrcPitch, int nWidth, int nHeight, bool isse)
 { //  Filtered with 1/4, 1/2, 1/4 filter for smoothing and anti-aliasing - Fizick
             // nHeight is dst height which is reduced by 2 source height
-    int nWidthMMX = (nWidth/4)*4;
+    //int nWidthMMX = (nWidth/4)*4;
 
 	for ( int y = 0; y < 1; y++ )
 	{
@@ -204,6 +204,7 @@ void RB2FilteredVertical(unsigned char *pDst, const unsigned char *pSrc, int nDs
 		pSrc += nSrcPitch * 2;
 	}
 
+    /* TODO: port the asm
    if (isse && nWidthMMX>=4)
     {
         for ( int y = 1; y < nHeight; y++ )
@@ -218,6 +219,7 @@ void RB2FilteredVertical(unsigned char *pDst, const unsigned char *pSrc, int nDs
         }
     }
     else
+    */
     {
         for ( int y = 1; y < nHeight; y++ )
         {
@@ -233,13 +235,14 @@ void RB2FilteredVertical(unsigned char *pDst, const unsigned char *pSrc, int nDs
 void RB2FilteredHorizontalInplace(unsigned char *pSrc, int nSrcPitch, int nWidth, int nHeight, bool isse)
 { // Filtered with 1/4, 1/2, 1/4 filter for smoothing and anti-aliasing - Fizick
             // nWidth is dst height which is reduced by 2 source width
-    int nWidthMMX = 1 + ((nWidth-2)/4)*4;
+    //int nWidthMMX = 1 + ((nWidth-2)/4)*4;
 
 	for ( int y = 0; y < nHeight; y++ )
 	{
 		int x = 0;
            int pSrc0 = (pSrc[x*2] + pSrc[x*2+1] + 1) / 2;
 
+           /* TODO: port the asm
         if (isse)
         {
             RB2FilteredHorizontalInplaceLine_SSE(pSrc, nWidthMMX); // very first is skipped
@@ -247,6 +250,7 @@ void RB2FilteredHorizontalInplace(unsigned char *pSrc, int nSrcPitch, int nWidth
                 pSrc[x] = (pSrc[x*2-1] + pSrc[x*2]*2 + pSrc[x*2+1] + 2) /4;
         }
         else
+        */
         {
             for ( int x = 1; x < nWidth; x++ )
                 pSrc[x] = (pSrc[x*2-1] + pSrc[x*2]*2 + pSrc[x*2+1] + 2) /4;
@@ -270,7 +274,7 @@ void RB2BilinearFilteredVertical(unsigned char *pDst, const unsigned char *pSrc,
             int nSrcPitch, int nWidth, int nHeight, bool isse)
 { //  BilinearFiltered with 1/8, 3/8, 3/8, 1/8 filter for smoothing and anti-aliasing - Fizick
             // nHeight is dst height which is reduced by 2 source height
-    int nWidthMMX = (nWidth/4)*4;
+    int nWidthMMX = (nWidth/8)*8;
 
 	for ( int y = 0; y < 1  && y<nHeight; y++ )
 	{
@@ -280,11 +284,11 @@ void RB2BilinearFilteredVertical(unsigned char *pDst, const unsigned char *pSrc,
 		pSrc += nSrcPitch * 2;
 	}
 
-    if (isse && nWidthMMX>=4)
+    if (isse && nWidthMMX>=8)
     {
         for ( int y = 1; y < nHeight-1; y++ )
         {
-                RB2BilinearFilteredVerticalLine_SSE(pDst, pSrc, nSrcPitch, nWidthMMX);
+                mvtools_RB2BilinearFilteredVerticalLine_sse2(pDst, pSrc, nSrcPitch, nWidthMMX);
 
              for ( int x = nWidthMMX; x < nWidth; x++ )
                 pDst[x] = (pSrc[x-nSrcPitch] + pSrc[x]*3 + pSrc[x+nSrcPitch]*3 + pSrc[x+nSrcPitch*2] + 4) /8;
@@ -316,7 +320,7 @@ void RB2BilinearFilteredVertical(unsigned char *pDst, const unsigned char *pSrc,
 void RB2BilinearFilteredHorizontalInplace(unsigned char *pSrc, int nSrcPitch, int nWidth, int nHeight, bool isse)
 { // BilinearFiltered with 1/8, 3/8, 3/8, 1/8 filter for smoothing and anti-aliasing - Fizick
             // nWidth is dst height which is reduced by 2 source width
-    int nWidthMMX = 1 + ((nWidth-2)/4)*4;
+    int nWidthMMX = 1 + ((nWidth-2)/8)*8;
 
 	for ( int y = 0; y < nHeight; y++ )
 	{
@@ -325,7 +329,7 @@ void RB2BilinearFilteredHorizontalInplace(unsigned char *pSrc, int nSrcPitch, in
 
         if (isse)
         {
-            RB2BilinearFilteredHorizontalInplaceLine_SSE(pSrc, nWidthMMX); // very first is skipped
+            mvtools_RB2BilinearFilteredHorizontalInplaceLine_sse2(pSrc, nWidthMMX); // very first is skipped
             for ( int x = nWidthMMX; x < nWidth-1; x++ )
                 pSrc[x] = (pSrc[x*2-1] + pSrc[x*2]*3 + pSrc[x*2+1]*3 + pSrc[x*2+2] + 4) /8;
         }
@@ -355,7 +359,7 @@ void RB2QuadraticVertical(unsigned char *pDst, const unsigned char *pSrc, int nD
             int nSrcPitch, int nWidth, int nHeight, bool isse)
 { // filtered Quadratic with 1/64, 9/64, 22/64, 22/64, 9/64, 1/64 filter for smoothing and anti-aliasing - Fizick
             // nHeight is dst height which is reduced by 2 source height
-    int nWidthMMX = (nWidth/4)*4;
+    int nWidthMMX = (nWidth/8)*8;
 
 	for ( int y = 0; y < 1  && y<nHeight; y++ )
 	{
@@ -365,11 +369,11 @@ void RB2QuadraticVertical(unsigned char *pDst, const unsigned char *pSrc, int nD
 		pSrc += nSrcPitch * 2;
 	}
 
-    if (isse && nWidthMMX>=4)
+    if (isse && nWidthMMX>=8)
     {
         for ( int y = 1; y < nHeight-1; y++ )
         {
-                RB2QuadraticVerticalLine_SSE(pDst, pSrc, nSrcPitch, nWidthMMX);
+                mvtools_RB2QuadraticVerticalLine_sse2(pDst, pSrc, nSrcPitch, nWidthMMX);
 
              for ( int x = nWidthMMX; x < nWidth; x++ )
                 pDst[x] = (pSrc[x-nSrcPitch*2] + pSrc[x-nSrcPitch]*9 + pSrc[x]*22 +
@@ -404,7 +408,7 @@ void RB2QuadraticVertical(unsigned char *pDst, const unsigned char *pSrc, int nD
 void RB2QuadraticHorizontalInplace(unsigned char *pSrc, int nSrcPitch, int nWidth, int nHeight, int isse)
 { // filtered Quadratic with 1/64, 9/64, 22/64, 22/64, 9/64, 1/64 filter for smoothing and anti-aliasing - Fizick
             // nWidth is dst height which is reduced by 2 source width
-    int nWidthMMX = 1 + ((nWidth-2)/4)*4;
+    int nWidthMMX = 1 + ((nWidth-2)/8)*8;
 
 	for ( int y = 0; y < nHeight; y++ )
 	{
@@ -413,7 +417,7 @@ void RB2QuadraticHorizontalInplace(unsigned char *pSrc, int nSrcPitch, int nWidt
 
         if (isse)
         {
-            RB2QuadraticHorizontalInplaceLine_SSE(pSrc, nWidthMMX);
+            mvtools_RB2QuadraticHorizontalInplaceLine_sse2(pSrc, nWidthMMX);
             for ( int x = nWidthMMX; x < nWidth-1; x++ )
                 pSrc[x] = (pSrc[x*2-2] + pSrc[x*2-1]*9 + pSrc[x*2]*22 + pSrc[x*2+1]*22 + pSrc[x*2+2]*9 + pSrc[x*2+3] + 32) /64;
         }
@@ -444,7 +448,7 @@ void RB2CubicVertical(unsigned char *pDst, const unsigned char *pSrc, int nDstPi
             int nSrcPitch, int nWidth, int nHeight, bool isse)
 { // filtered qubic with 1/32, 5/32, 10/32, 10/32, 5/32, 1/32 filter for smoothing and anti-aliasing - Fizick
             // nHeight is dst height which is reduced by 2 source height
-    int nWidthMMX = (nWidth/4)*4;
+    int nWidthMMX = (nWidth/8)*8;
 	for ( int y = 0; y < 1  && y<nHeight; y++ )
 	{
 		for ( int x = 0; x < nWidth; x++ )
@@ -453,11 +457,11 @@ void RB2CubicVertical(unsigned char *pDst, const unsigned char *pSrc, int nDstPi
 		pSrc += nSrcPitch * 2;
 	}
 
-    if (isse && nWidthMMX>=4)
+    if (isse && nWidthMMX>=8)
     {
         for ( int y = 1; y < nHeight-1; y++ )
         {
-                RB2CubicVerticalLine_SSE(pDst, pSrc, nSrcPitch, nWidthMMX);
+                mvtools_RB2CubicVerticalLine_sse2(pDst, pSrc, nSrcPitch, nWidthMMX);
 
              for ( int x = nWidthMMX; x < nWidth; x++ )
                 pDst[x] = (pSrc[x-nSrcPitch*2] + pSrc[x-nSrcPitch]*5 + pSrc[x]*10 +
@@ -491,14 +495,14 @@ void RB2CubicVertical(unsigned char *pDst, const unsigned char *pSrc, int nDstPi
 void RB2CubicHorizontalInplace(unsigned char *pSrc, int nSrcPitch, int nWidth, int nHeight, bool isse)
 { // filtered qubic with 1/32, 5/32, 10/32, 10/32, 5/32, 1/32 filter for smoothing and anti-aliasing - Fizick
             // nWidth is dst height which is reduced by 2 source width
-    int nWidthMMX = 1 + ((nWidth-2)/4)*4;
+    int nWidthMMX = 1 + ((nWidth-2)/8)*8;
 	for ( int y = 0; y < nHeight; y++ )
 	{
 		int x = 0;
            int pSrcw0 = (pSrc[x*2] + pSrc[x*2+1] + 1) / 2; // store temporary
         if (isse)
         {
-            RB2CubicHorizontalInplaceLine_SSE(pSrc, nWidthMMX);
+            mvtools_RB2CubicHorizontalInplaceLine_sse2(pSrc, nWidthMMX);
             for ( int x = nWidthMMX; x < nWidth-1; x++ )
                 pSrc[x] = (pSrc[x*2-2] + pSrc[x*2-1]*5 + pSrc[x*2]*10 + pSrc[x*2+1]*10 + pSrc[x*2+2]*5 + pSrc[x*2+3] + 16) /32;
         }
@@ -525,7 +529,7 @@ void RB2Cubic(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
 }
 
 
-void VerticalBilin(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
+void VerticalBilinear(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
                    int nSrcPitch, int nWidth, int nHeight)
 {
     for ( int j = 0; j < nHeight - 1; j++ )
@@ -540,7 +544,7 @@ void VerticalBilin(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch
         pDst[i] = pSrc[i];
 }
 
-void HorizontalBilin(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
+void HorizontalBilinear(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
                      int nSrcPitch, int nWidth, int nHeight)
 {
     for ( int j = 0; j < nHeight; j++ )
@@ -554,7 +558,7 @@ void HorizontalBilin(unsigned char *pDst, const unsigned char *pSrc, int nDstPit
     }
 }
 
-void DiagonalBilin(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
+void DiagonalBilinear(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
                    int nSrcPitch, int nWidth, int nHeight)
 {
     for ( int j = 0; j < nHeight - 1; j++ )

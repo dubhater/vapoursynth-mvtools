@@ -121,22 +121,20 @@ void MVPlane::Refine(int sharp)
 	  {
       if (isse)
       {
-         HorizontalBilin_iSSE(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-//         HorizontalBilin(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         VerticalBilin_iSSE(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-//         VerticalBilin(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         DiagonalBilin_iSSE(pPlane[3], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-//         DiagonalBilin(pPlane[3], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_HorizontalBilinear_sse2(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_VerticalBilinear_sse2(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_DiagonalBilinear_sse2(pPlane[3], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
       }
       else
       {
-         HorizontalBilin(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         VerticalBilin(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         DiagonalBilin(pPlane[3], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         HorizontalBilinear(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         VerticalBilinear(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         DiagonalBilinear(pPlane[3], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
       }
 	}
 	else if(sharp==1) // bicubic
 	{
+        /* TODO: port the asm
       if (isse)
       {
          HorizontalBicubic_iSSE(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
@@ -144,6 +142,7 @@ void MVPlane::Refine(int sharp)
          HorizontalBicubic_iSSE(pPlane[3], pPlane[2], nPitch, nPitch, nExtendedWidth, nExtendedHeight); // faster from ready-made horizontal
 	  }
       else
+      */
 	  {
          HorizontalBicubic(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
          VerticalBicubic(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
@@ -155,9 +154,9 @@ void MVPlane::Refine(int sharp)
 	{
       if (isse)
       {
-         HorizontalWiener_iSSE(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         VerticalWiener_iSSE(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         HorizontalWiener_iSSE(pPlane[3], pPlane[2], nPitch, nPitch, nExtendedWidth, nExtendedHeight);// faster from ready-made horizontal
+         mvtools_HorizontalWiener_sse2(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_VerticalWiener_sse2(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_HorizontalWiener_sse2(pPlane[3], pPlane[2], nPitch, nPitch, nExtendedWidth, nExtendedHeight);// faster from ready-made horizontal
       }
       else
       {
@@ -174,19 +173,20 @@ void MVPlane::Refine(int sharp)
 	  {
       if (isse)
       {
-         HorizontalBilin_iSSE(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         VerticalBilin_iSSE(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         DiagonalBilin_iSSE(pPlane[10], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_HorizontalBilinear_sse2(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_VerticalBilinear_sse2(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_DiagonalBilinear_sse2(pPlane[10], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
       }
       else
       {
-         HorizontalBilin(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         VerticalBilin(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         DiagonalBilin(pPlane[10], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         HorizontalBilinear(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         VerticalBilinear(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         DiagonalBilinear(pPlane[10], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
       }
 	}
 	else if(sharp==1) // bicubic
 	{
+        /* TODO: port the asm
       if (isse)
       {
          HorizontalBicubic_iSSE(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
@@ -194,6 +194,7 @@ void MVPlane::Refine(int sharp)
          HorizontalBicubic_iSSE(pPlane[10], pPlane[8], nPitch, nPitch, nExtendedWidth, nExtendedHeight); // faster from ready-made horizontal
 	  }
       else
+      */
 	  {
          HorizontalBicubic(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
          VerticalBicubic(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
@@ -205,9 +206,9 @@ void MVPlane::Refine(int sharp)
 	{
       if (isse)
       {
-         HorizontalWiener_iSSE(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         VerticalWiener_iSSE(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         HorizontalWiener_iSSE(pPlane[10], pPlane[8], nPitch, nPitch, nExtendedWidth, nExtendedHeight);// faster from ready-made horizontal
+         mvtools_HorizontalWiener_sse2(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_VerticalWiener_sse2(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_HorizontalWiener_sse2(pPlane[10], pPlane[8], nPitch, nPitch, nExtendedWidth, nExtendedHeight);// faster from ready-made horizontal
       }
       else
       {
@@ -217,7 +218,7 @@ void MVPlane::Refine(int sharp)
 	  }
 	}
      // now interpolate intermediate
-     void (*Average2x)(unsigned char*, const unsigned char*, const unsigned char*, int, int, int) = isse ? Average2_iSSE : Average2;
+     void (*Average2x)(unsigned char*, const unsigned char*, const unsigned char*, int, int, int) = isse ? mvtools_Average2_sse2 : Average2;
      Average2x(pPlane[1], pPlane[0], pPlane[2], nPitch, nExtendedWidth, nExtendedHeight);
      Average2x(pPlane[9], pPlane[8], pPlane[10], nPitch, nExtendedWidth, nExtendedHeight);
      Average2x(pPlane[4], pPlane[0], pPlane[8], nPitch, nExtendedWidth, nExtendedHeight);
@@ -358,12 +359,14 @@ void MVPlane::ReduceTo(MVPlane *pReducedPlane, int rfilter)
    {
     if (rfilter==0)
     {
+        /* TODO: port the asm
       if (isse)
       {
          RB2F_iSSE(pReducedPlane->pPlane[0] + pReducedPlane->nOffsetPadding, pPlane[0] + nOffsetPadding,
             pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight);
       }
       else
+      */
       {
          RB2F_C(pReducedPlane->pPlane[0] + pReducedPlane->nOffsetPadding, pPlane[0] + nOffsetPadding,
             pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight);

@@ -463,91 +463,91 @@ static void selectFunctions(MVCompensateData *d) {
         {
             case 32:
                 if (nBlkSizeY==16) {
-                    d->BLITLUMA = Copy32x16_mmx;
-                    d->OVERSLUMA = Overlaps32x16_mmx;
+                    d->BLITLUMA = mvtools_Copy32x16_sse2;
+                    d->OVERSLUMA = mvtools_Overlaps32x16_sse2;
                     if (yRatioUV==2) {
-                        d->BLITCHROMA = Copy16x8_mmx;
-                        d->OVERSCHROMA = Overlaps16x8_mmx;
+                        d->BLITCHROMA = mvtools_Copy16x8_sse2;
+                        d->OVERSCHROMA = mvtools_Overlaps16x8_sse2;
                     } else {
-                        d->BLITCHROMA = Copy16x16_mmx;
-                        d->OVERSCHROMA = Overlaps16x16_mmx;
+                        d->BLITCHROMA = mvtools_Copy16x16_sse2;
+                        d->OVERSCHROMA = mvtools_Overlaps16x16_sse2;
                     }
                 } else if (nBlkSizeY==32) {
-                    d->BLITLUMA = Copy32x32_mmx;
-                    d->OVERSLUMA = Overlaps32x32_mmx;
+                    d->BLITLUMA = mvtools_Copy32x32_sse2;
+                    d->OVERSLUMA = mvtools_Overlaps32x32_sse2;
                     if (yRatioUV==2) {
-                        d->BLITCHROMA = Copy16x16_mmx;
-                        d->OVERSCHROMA = Overlaps16x16_mmx;
+                        d->BLITCHROMA = mvtools_Copy16x16_sse2;
+                        d->OVERSCHROMA = mvtools_Overlaps16x16_sse2;
                     } else {
-                        d->BLITCHROMA = Copy16x32_mmx;
-                        d->OVERSCHROMA = Overlaps16x32_mmx;
+                        d->BLITCHROMA = mvtools_Copy16x32_sse2;
+                        d->OVERSCHROMA = mvtools_Overlaps16x32_sse2;
                     }
                 } break;
             case 16:
                 if (nBlkSizeY==16) {
-                    d->BLITLUMA = Copy16x16_mmx;
-                    d->OVERSLUMA = Overlaps16x16_mmx;
+                    d->BLITLUMA = mvtools_Copy16x16_sse2;
+                    d->OVERSLUMA = mvtools_Overlaps16x16_sse2;
                     if (yRatioUV==2) {
-                        d->BLITCHROMA = Copy8x8_mmx;
-                        d->OVERSCHROMA = Overlaps8x8_mmx;
+                        d->BLITCHROMA = mvtools_Copy8x8_sse2;
+                        d->OVERSCHROMA = mvtools_Overlaps8x8_sse2;
                     } else {
-                        d->BLITCHROMA = Copy8x16_mmx;
-                        d->OVERSCHROMA = Overlaps8x16_mmx;
+                        d->BLITCHROMA = mvtools_Copy8x16_sse2;
+                        d->OVERSCHROMA = mvtools_Overlaps8x16_sse2;
                     }
                 } else if (nBlkSizeY==8) {
-                    d->BLITLUMA = Copy16x8_mmx;
-                    d->OVERSLUMA = Overlaps16x8_mmx;
+                    d->BLITLUMA = mvtools_Copy16x8_sse2;
+                    d->OVERSLUMA = mvtools_Overlaps16x8_sse2;
                     if (yRatioUV==2) {
-                        d->BLITCHROMA = Copy8x4_mmx;
-                        d->OVERSCHROMA = Overlaps8x4_mmx;
+                        d->BLITCHROMA = mvtools_Copy8x4_sse2;
+                        d->OVERSCHROMA = mvtools_Overlaps8x4_sse2;
                     } else {
-                        d->BLITCHROMA = Copy8x8_mmx;
-                        d->OVERSCHROMA = Overlaps8x8_mmx;
+                        d->BLITCHROMA = mvtools_Copy8x8_sse2;
+                        d->OVERSCHROMA = mvtools_Overlaps8x8_sse2;
                     }
                 } else if (nBlkSizeY==2) {
-                    d->BLITLUMA = Copy16x2_mmx;
-                    d->OVERSLUMA = Overlaps16x2_mmx;
+                    d->BLITLUMA = mvtools_Copy16x2_sse2;
+                    d->OVERSLUMA = mvtools_Overlaps16x2_sse2;
                     if (yRatioUV==2) {
-                        d->BLITCHROMA = Copy8x1_mmx;
-                        d->OVERSCHROMA = Overlaps8x1_mmx;
+                        d->BLITCHROMA = mvtools_Copy8x1_sse2;
+                        d->OVERSCHROMA = mvtools_Overlaps8x1_sse2;
                     } else {
-                        d->BLITCHROMA = Copy8x2_mmx;
-                        d->OVERSCHROMA = Overlaps8x2_mmx;
+                        d->BLITCHROMA = mvtools_Copy8x2_sse2;
+                        d->OVERSCHROMA = mvtools_Overlaps8x2_sse2;
                     }
                 }
                 break;
             case 4:
-                d->BLITLUMA = Copy4x4_mmx;
-                d->OVERSLUMA = Overlaps4x4_mmx;
+                d->BLITLUMA = mvtools_Copy4x4_sse2;
+                d->OVERSLUMA = mvtools_Overlaps4x4_sse2;
                 if (yRatioUV==2) {
-                    d->BLITCHROMA = Copy2x2_mmx;
+                    d->BLITCHROMA = mvtools_Copy2x2_sse2;
                     d->OVERSCHROMA = Overlaps_C<2,2>;
                 } else {
-                    d->BLITCHROMA = Copy2x4_mmx;
+                    d->BLITCHROMA = mvtools_Copy2x4_sse2;
                     d->OVERSCHROMA = Overlaps_C<2,4>;
                 }
                 break;
             case 8:
             default:
                 if (nBlkSizeY==8) {
-                    d->BLITLUMA = Copy8x8_mmx;
-                    d->OVERSLUMA = Overlaps8x8_mmx;
+                    d->BLITLUMA = mvtools_Copy8x8_sse2;
+                    d->OVERSLUMA = mvtools_Overlaps8x8_sse2;
                     if (yRatioUV==2) {
-                        d->BLITCHROMA = Copy4x4_mmx;
-                        d->OVERSCHROMA = Overlaps4x4_mmx;
+                        d->BLITCHROMA = mvtools_Copy4x4_sse2;
+                        d->OVERSCHROMA = mvtools_Overlaps4x4_sse2;
                     } else {
-                        d->BLITCHROMA = Copy4x8_mmx;
-                        d->OVERSCHROMA = Overlaps4x8_mmx;
+                        d->BLITCHROMA = mvtools_Copy4x8_sse2;
+                        d->OVERSCHROMA = mvtools_Overlaps4x8_sse2;
                     }
                 } else if (nBlkSizeY==4) { // 8x4
-                    d->BLITLUMA = Copy8x4_mmx;
-                    d->OVERSLUMA = Overlaps8x4_mmx;
+                    d->BLITLUMA = mvtools_Copy8x4_sse2;
+                    d->OVERSLUMA = mvtools_Overlaps8x4_sse2;
                     if (yRatioUV==2) {
-                        d->BLITCHROMA = Copy4x2_mmx; // idem
-                        d->OVERSCHROMA = Overlaps4x2_mmx;
+                        d->BLITCHROMA = mvtools_Copy4x2_sse2; // idem
+                        d->OVERSCHROMA = mvtools_Overlaps4x2_sse2;
                     } else {
-                        d->BLITCHROMA = Copy4x4_mmx; // idem
-                        d->OVERSCHROMA = Overlaps4x4_mmx;
+                        d->BLITCHROMA = mvtools_Copy4x4_sse2; // idem
+                        d->OVERSCHROMA = mvtools_Overlaps4x4_sse2;
                     }
                 }
         }

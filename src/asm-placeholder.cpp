@@ -4,84 +4,91 @@
 
 // XXX From Interpolation.h
 //
-extern "C" void  VerticalBilin_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
-                                int nSrcPitch, int nWidth, int nHeight) { abort(); }
-extern "C" void  HorizontalBilin_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
-                                  int nSrcPitch, int nWidth, int nHeight){ abort(); }
-extern "C" void  DiagonalBilin_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
-                                int nSrcPitch, int nWidth, int nHeight){ abort(); }
 
-extern "C" void  RB2F_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
-                       int nSrcPitch, int nWidth, int nHeight){ abort(); }
-
-extern "C" void  RB2CubicHorizontalInplaceLine_SSE(unsigned char *pSrc, int nWidthMMX){ abort(); }
-extern "C" void  RB2CubicVerticalLine_SSE(unsigned char *pDst, const unsigned char *pSrc, int nSrcPitch, int nWidthMMX){ abort(); }
-extern "C" void  RB2QuadraticHorizontalInplaceLine_SSE(unsigned char *pSrc, int nWidthMMX){ abort(); }
-extern "C" void  RB2QuadraticVerticalLine_SSE(unsigned char *pDst, const unsigned char *pSrc, int nSrcPitch, int nWidthMMX){ abort(); }
-extern "C" void  RB2FilteredVerticalLine_SSE(unsigned char *pDst, const unsigned char *pSrc, int nSrcPitch, int nWidthMMX){ abort(); }
-extern "C" void  RB2FilteredHorizontalInplaceLine_SSE(unsigned char *pSrc, int nWidthMMX){ abort(); }
-extern "C" void  RB2BilinearFilteredVerticalLine_SSE(unsigned char *pDst, const unsigned char *pSrc, int nSrcPitch, int nWidthMMX){ abort(); }
-extern "C" void  RB2BilinearFilteredHorizontalInplaceLine_SSE(unsigned char *pSrc, int nWidthMMX){ abort(); }
+// TODO: Not yet ported
+//extern "C" void  RB2F_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
+//                       int nSrcPitch, int nWidth, int nHeight){ abort(); }
+//extern "C" void  RB2FilteredVerticalLine_SSE(unsigned char *pDst, const unsigned char *pSrc, int nSrcPitch, int nWidthMMX){ abort(); }
+//extern "C" void  RB2FilteredHorizontalInplaceLine_SSE(unsigned char *pSrc, int nWidthMMX){ abort(); }
+//extern "C" void  VerticalBicubic_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
+//                                int nSrcPitch, int nWidth, int nHeight){ abort(); }
+//extern "C" void  HorizontalBicubic_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
+//                                int nSrcPitch, int nWidth, int nHeight){ abort(); }
 
 
-extern "C" void  VerticalWiener_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
-                                int nSrcPitch, int nWidth, int nHeight){ abort(); }
-extern "C" void  HorizontalWiener_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
-                                int nSrcPitch, int nWidth, int nHeight){ abort(); }
+
+//extern "C" void  VerticalBilin_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
+//                                int nSrcPitch, int nWidth, int nHeight) { abort(); }
+//extern "C" void  HorizontalBilin_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
+//                                  int nSrcPitch, int nWidth, int nHeight){ abort(); }
+//extern "C" void  DiagonalBilin_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
+//                                int nSrcPitch, int nWidth, int nHeight){ abort(); }
+//extern "C" void  RB2CubicHorizontalInplaceLine_SSE(unsigned char *pSrc, int nWidthMMX){ abort(); }
+//extern "C" void  RB2CubicVerticalLine_SSE(unsigned char *pDst, const unsigned char *pSrc, int nSrcPitch, int nWidthMMX){ abort(); }
+//extern "C" void  RB2QuadraticHorizontalInplaceLine_SSE(unsigned char *pSrc, int nWidthMMX){ abort(); }
+//extern "C" void  RB2QuadraticVerticalLine_SSE(unsigned char *pDst, const unsigned char *pSrc, int nSrcPitch, int nWidthMMX){ abort(); }
+//extern "C" void  RB2BilinearFilteredVerticalLine_SSE(unsigned char *pDst, const unsigned char *pSrc, int nSrcPitch, int nWidthMMX){ abort(); }
+//extern "C" void  RB2BilinearFilteredHorizontalInplaceLine_SSE(unsigned char *pSrc, int nWidthMMX){ abort(); }
 
 
-extern "C" void  VerticalBicubic_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
-                                int nSrcPitch, int nWidth, int nHeight){ abort(); }
-extern "C" void  HorizontalBicubic_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
-                                int nSrcPitch, int nWidth, int nHeight){ abort(); }
-
-extern "C" void Average2_iSSE(unsigned char *pDst, const unsigned char *pSrc1, const unsigned char *pSrc2, int nPitch, int nWidth, int nHeight){ abort(); }
+//extern "C" void  VerticalWiener_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
+//                                int nSrcPitch, int nWidth, int nHeight){ abort(); }
+//extern "C" void  HorizontalWiener_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
+//                                int nSrcPitch, int nWidth, int nHeight){ abort(); }
 
 
+
+//extern "C" void Average2_iSSE(unsigned char *pDst, const unsigned char *pSrc1, const unsigned char *pSrc2, int nPitch, int nWidth, int nHeight){ abort(); }
+
+
+#if 0
 // XXX From CopyCode.h
 //
 #define MK_CFUNC(functionname) extern "C" void  functionname (uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch) { abort(); }
 //default functions
-MK_CFUNC(Copy32x32_mmx);
-MK_CFUNC(Copy16x32_mmx);
-MK_CFUNC(Copy32x16_mmx);
-MK_CFUNC(Copy16x16_mmx);
-MK_CFUNC(Copy16x8_mmx);
-MK_CFUNC(Copy16x2_mmx);
-MK_CFUNC(Copy8x16_mmx);
-MK_CFUNC(Copy8x8_mmx);
-MK_CFUNC(Copy8x4_mmx);
-MK_CFUNC(Copy8x2_mmx);
-MK_CFUNC(Copy8x1_mmx);
-MK_CFUNC(Copy4x8_mmx);
-MK_CFUNC(Copy4x4_mmx);
-MK_CFUNC(Copy4x2_mmx);
-MK_CFUNC(Copy2x4_mmx);
-MK_CFUNC(Copy2x2_mmx);
-MK_CFUNC(Copy2x1_mmx);
+MK_CFUNC(mvtools_Copy32x32_sse2);
+MK_CFUNC(mvtools_Copy16x32_sse2);
+MK_CFUNC(mvtools_Copy32x16_sse2);
+MK_CFUNC(mvtools_Copy16x16_sse2);
+MK_CFUNC(mvtools_Copy16x8_sse2);
+MK_CFUNC(mvtools_Copy16x2_sse2);
+MK_CFUNC(mvtools_Copy8x16_sse2);
+MK_CFUNC(mvtools_Copy8x8_sse2);
+MK_CFUNC(mvtools_Copy8x4_sse2);
+MK_CFUNC(mvtools_Copy8x2_sse2);
+MK_CFUNC(mvtools_Copy8x1_sse2);
+MK_CFUNC(mvtools_Copy4x8_sse2);
+MK_CFUNC(mvtools_Copy4x4_sse2);
+MK_CFUNC(mvtools_Copy4x2_sse2);
+MK_CFUNC(mvtools_Copy2x4_sse2);
+MK_CFUNC(mvtools_Copy2x2_sse2);
+MK_CFUNC(mvtools_Copy2x1_sse2);
 #undef MK_CFUNC
+#endif
 
 
+#if 0
 // XXX From Variance.h
 //
-extern "C" unsigned int  Var32x32_iSSE(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
-extern "C" unsigned int  Var16x32_iSSE(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
-extern "C" unsigned int  Var32x16_iSSE(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
-extern "C" unsigned int  Var16x16_iSSE(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
-extern "C" unsigned int  Var8x8_iSSE(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
-extern "C" unsigned int  Var4x4_iSSE(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
-extern "C" unsigned int  Var8x4_iSSE(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
-extern "C" unsigned int  Var16x8_iSSE(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
-extern "C" unsigned int  Var16x2_iSSE(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
-extern "C" unsigned int  Luma32x32_iSSE(const unsigned char *pSrc, int nSrcPitch) { abort(); }
-extern "C" unsigned int  Luma16x32_iSSE(const unsigned char *pSrc, int nSrcPitch) { abort(); }
-extern "C" unsigned int  Luma32x16_iSSE(const unsigned char *pSrc, int nSrcPitch) { abort(); }
-extern "C" unsigned int  Luma16x16_iSSE(const unsigned char *pSrc, int nSrcPitch) { abort(); }
-extern "C" unsigned int  Luma8x8_iSSE(const unsigned char *pSrc, int nSrcPitch) { abort(); }
-extern "C" unsigned int  Luma4x4_iSSE(const unsigned char *pSrc, int nSrcPitch) { abort(); }
-extern "C" unsigned int  Luma8x4_iSSE(const unsigned char *pSrc, int nSrcPitch) { abort(); }
-extern "C" unsigned int  Luma16x8_iSSE(const unsigned char *pSrc, int nSrcPitch) { abort(); }
-extern "C" unsigned int  Luma16x2_iSSE(const unsigned char *pSrc, int nSrcPitch) { abort(); }
+extern "C" unsigned int mvtools_Var32x32_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
+extern "C" unsigned int mvtools_Var16x32_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
+extern "C" unsigned int mvtools_Var32x16_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
+extern "C" unsigned int mvtools_Var16x16_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
+extern "C" unsigned int mvtools_Var8x8_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
+extern "C" unsigned int mvtools_Var4x4_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
+extern "C" unsigned int mvtools_Var8x4_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
+extern "C" unsigned int mvtools_Var16x8_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
+extern "C" unsigned int mvtools_Var16x2_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma) { abort(); }
+extern "C" unsigned int mvtools_Luma32x32_sse2(const unsigned char *pSrc, int nSrcPitch) { abort(); }
+extern "C" unsigned int mvtools_Luma16x32_sse2(const unsigned char *pSrc, int nSrcPitch) { abort(); }
+extern "C" unsigned int mvtools_Luma32x16_sse2(const unsigned char *pSrc, int nSrcPitch) { abort(); }
+extern "C" unsigned int mvtools_Luma16x16_sse2(const unsigned char *pSrc, int nSrcPitch) { abort(); }
+extern "C" unsigned int mvtools_Luma8x8_sse2(const unsigned char *pSrc, int nSrcPitch) { abort(); }
+extern "C" unsigned int mvtools_Luma4x4_sse2(const unsigned char *pSrc, int nSrcPitch) { abort(); }
+extern "C" unsigned int mvtools_Luma8x4_sse2(const unsigned char *pSrc, int nSrcPitch) { abort(); }
+extern "C" unsigned int mvtools_Luma16x8_sse2(const unsigned char *pSrc, int nSrcPitch) { abort(); }
+extern "C" unsigned int mvtools_Luma16x2_sse2(const unsigned char *pSrc, int nSrcPitch) { abort(); }
+#endif
 
 
 // XXX From SADFunctions.h
@@ -195,20 +202,22 @@ MK_CFUNC(SadDummy);
 #undef MK_CFUNC
 
 
+#if 0
 // XXX From Overlap.h
-extern "C" void Overlaps32x32_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
-extern "C" void Overlaps16x32_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
-extern "C" void Overlaps32x16_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
-extern "C" void Overlaps16x16_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
-extern "C" void Overlaps8x16_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
-extern "C" void Overlaps8x8_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
-extern "C" void Overlaps4x8_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
-extern "C" void Overlaps4x4_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
-extern "C" void Overlaps2x4_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
-extern "C" void Overlaps2x2_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
-extern "C" void Overlaps8x4_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
-extern "C" void Overlaps4x2_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
-extern "C" void Overlaps16x8_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
-extern "C" void Overlaps16x2_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
-extern "C" void Overlaps8x2_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
-extern "C" void Overlaps8x1_mmx(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void mvtools_Overlaps32x32_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void mvtools_Overlaps16x32_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void mvtools_Overlaps32x16_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void mvtools_Overlaps16x16_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void mvtools_Overlaps8x16_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void mvtools_Overlaps8x8_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void mvtools_Overlaps4x8_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void mvtools_Overlaps4x4_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void mvtools_Overlaps2x4_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void mvtools_Overlaps2x2_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void mvtools_Overlaps8x4_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void mvtools_Overlaps4x2_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void mvtools_Overlaps16x8_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void mvtools_Overlaps16x2_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void mvtools_Overlaps8x2_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+extern "C" void mvtools_Overlaps8x1_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch) { abort(); }
+#endif

@@ -76,15 +76,15 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 
 #define SET_FUNCPTR(blksizex, blksizey, blksizex2, blksizey2) \
 	SAD = Sad##blksizex##x##blksizey##_iSSE; \
-	VAR = Var##blksizex##x##blksizey##_iSSE; \
-	LUMA = Luma##blksizex##x##blksizey##_iSSE; \
-	BLITLUMA = Copy##blksizex##x##blksizey##_mmx; \
+	VAR = mvtools_Var##blksizex##x##blksizey##_sse2; \
+	LUMA = mvtools_Luma##blksizex##x##blksizey##_sse2; \
+	BLITLUMA = mvtools_Copy##blksizex##x##blksizey##_sse2; \
 	if (yRatioUV==2) { \
-		BLITCHROMA = Copy##blksizex2##x##blksizey2##_mmx; \
+		BLITCHROMA = mvtools_Copy##blksizex2##x##blksizey2##_sse2; \
 		SADCHROMA = Sad##blksizex2##x##blksizey2##_iSSE; \
 	} \
 	else { \
-		BLITCHROMA = Copy##blksizex2##x##blksizey##_mmx; \
+		BLITCHROMA = mvtools_Copy##blksizex2##x##blksizey##_sse2; \
 		SADCHROMA = Sad##blksizex2##x##blksizey##_iSSE; \
 	}
 
@@ -170,7 +170,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 						//error
 					}
 					else { //yRatioUV==1
-						BLITCHROMA = Copy8x1_mmx;
+						BLITCHROMA = mvtools_Copy8x1_sse2;
 						SADCHROMA = Sad8x1_iSSE;
 					}
 				}
