@@ -601,10 +601,8 @@ void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
 }
 
 
-#if 0
-// only used by MVRecalculate
-void PlaneOfBlocks::RecalculateMVs(MVClip & mvClip, MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
-                              SearchType st, int stp, int lambda, int lsad, int pnew,
+void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
+                              SearchType st, int stp, int lambda, int pnew,
 							  int flags, int *out,
 							  short *outfilebuf, int fieldShift, int thSAD, DCTClass *_DCT, int divideExtra, int smooth, bool meander)
 {
@@ -622,8 +620,6 @@ void PlaneOfBlocks::RecalculateMVs(MVClip & mvClip, MVFrame *_pSrcFrame, MVFrame
 	globalMVPredictor.y = fieldShift;//nPel*globalMVec->y + fieldShift;
 	globalMVPredictor.sad = 9999999;//globalMVec->sad;
 
-   int nOutPitchY = nBlkX * (nBlkSizeX - nOverlapX) + nOverlapX;
-   int nOutPitchUV = (nBlkX * (nBlkSizeX - nOverlapX) + nOverlapX) / 2; // xRatioUV=2
 //  char debugbuf[128];
 //   wsprintf(debugbuf,"MVCOMP1: nOutPitchUV=%d, nOverlap=%d, nBlkX=%d, nBlkSize=%d",nOutPitchUV, nOverlap, nBlkX, nBlkSize);
 //   OutputDebugString(debugbuf);
@@ -759,7 +755,6 @@ void PlaneOfBlocks::RecalculateMVs(MVClip & mvClip, MVFrame *_pSrcFrame, MVFrame
         nLambda = nLambdaLevel;
 
 	  penaltyNew = pnew; // penalty for new vector
-	  LSAD = lsad;    // SAD limit for lambda using
 	  // may be they must be scaled by nPel ?
 
       /* computes search boundaries */
@@ -946,7 +941,6 @@ void PlaneOfBlocks::RecalculateMVs(MVClip & mvClip, MVFrame *_pSrcFrame, MVFrame
          y[2] += ((nBlkSizeY - nOverlapY) >> nLogyRatioUV );
 	}
 }
-#endif
 
 void PlaneOfBlocks::InterpolatePrediction(const PlaneOfBlocks &pob)
 {

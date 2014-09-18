@@ -533,12 +533,10 @@ public :
 	inline int GetnBlkX() { return nBlkX; }
 	inline int GetnBlkY() { return nBlkY; }
 
-    /* // only used by MVRecalculate
-	void RecalculateMVs(MVClip & mvClip, MVFrame *_pSrcFrame, MVFrame *_pRefFrame, SearchType st,
-                  int stp, int _lambda, int _lSAD, int _pennew,
+	void RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MVFrame *_pRefFrame, SearchType st,
+                  int stp, int _lambda, int _pennew,
 				  int flags, int *out, short * outfilebuf, int _fieldShiftCur, int thSAD, DCTClass * _DCT,
 				  int _divideExtra, int smooth, bool meander);
-                  */
 };
 
 #endif

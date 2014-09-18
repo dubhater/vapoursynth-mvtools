@@ -43,11 +43,9 @@ public :
 	void WriteDefaultToArray(int *array);
 	int GetArraySize();
     void ExtraDivide(int *out, int flags);
-    /* // only used by MVRecalculate
-	void RecalculateMVs(MVClip &mvClip, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
-                  SearchType _searchType, int _nSearchParam, int _nLambda, int _lsad, int _pnew,
+	void RecalculateMVs(MVClipBalls &mvClip, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
+                  SearchType _searchType, int _nSearchParam, int _nLambda, int _pnew,
                   int flags, int *out, short * outfilebuf, int fieldShift, int thSAD, DCTClass * DCT, int smooth, bool meander);
-                  */
 };
 
 #endif

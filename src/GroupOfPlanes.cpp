@@ -141,10 +141,9 @@ void GroupOfPlanes::SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF
 	}
 }
 
-/* // only used by MVRecalculate
-void GroupOfPlanes::RecalculateMVs(MVClip &mvClip, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
+void GroupOfPlanes::RecalculateMVs(MVClipBalls &mvClip, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
                               SearchType searchType, int nSearchParam, int nLambda,
-                              int lsad, int pnew, int flags,
+                              int pnew, int flags,
 							  int *out, short *outfilebuf, int fieldShift, int thSAD, DCTClass * _DCT, int smooth, bool meander)
 {
 //	int i;
@@ -159,20 +158,17 @@ void GroupOfPlanes::RecalculateMVs(MVClip &mvClip, MVGroupOfFrames *pSrcGOF, MVG
 
    out += 2;
 
-   int meanLumaChange = 0;
-
 	// Search the motion vectors, for the low details interpolations first
 	// Refining the search until we reach the highest detail interpolation.
 //         DebugPrintf("SearchMV level %i", nLevelCount-1);
    planes[0]->RecalculateMVs(mvClip, pSrcGOF->GetFrame(0),
                                       pRefGOF->GetFrame(0),
-                                      searchType, nSearchParam, nLambda, lsad, pnew, flags,
+                                      searchType, nSearchParam, nLambda, pnew, flags,
 									  out, outfilebuf, fieldShift, thSAD, _DCT, divideExtra, smooth, meander);
 
    out += planes[0]->GetArraySize(divideExtra);
 
 }
-*/
 
 void GroupOfPlanes::WriteDefaultToArray(int *array)
 {
