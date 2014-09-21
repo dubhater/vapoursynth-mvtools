@@ -75,17 +75,17 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 /* function's pointers initialization */
 
 #define SET_FUNCPTR(blksizex, blksizey, blksizex2, blksizey2) \
-	SAD = Sad##blksizex##x##blksizey##_iSSE; \
+	SAD = Sad_C<blksizex , blksizey>; \
 	VAR = mvtools_Var##blksizex##x##blksizey##_sse2; \
 	LUMA = mvtools_Luma##blksizex##x##blksizey##_sse2; \
 	BLITLUMA = mvtools_Copy##blksizex##x##blksizey##_sse2; \
 	if (yRatioUV==2) { \
 		BLITCHROMA = mvtools_Copy##blksizex2##x##blksizey2##_sse2; \
-		SADCHROMA = Sad##blksizex2##x##blksizey2##_iSSE; \
+		SADCHROMA = Sad_C<blksizex2 , blksizey2>; \
 	} \
 	else { \
 		BLITCHROMA = mvtools_Copy##blksizex2##x##blksizey##_sse2; \
-		SADCHROMA = Sad##blksizex2##x##blksizey##_iSSE; \
+		SADCHROMA = Sad_C<blksizex2  , blksizey>; \
 	}
 
 #define SET_FUNCPTR_C(blksizex, blksizey, blksizex2, blksizey2) \
@@ -162,7 +162,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 			} else if (nBlkSizeY==2) {
 				SET_FUNCPTR(16,2,8,1)
 				} else if (nBlkSizeY==1){
-					SAD = Sad16x1_iSSE;
+					SAD = Sad_C<16,1>;
 					VAR = Var_C<16,1>;;
 					LUMA = Luma_C<16,1>;
 					BLITLUMA = Copy_C<16,1>;
@@ -171,7 +171,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 					}
 					else { //yRatioUV==1
 						BLITCHROMA = mvtools_Copy8x1_sse2;
-						SADCHROMA = Sad8x1_iSSE;
+						SADCHROMA = Sad_C<8,1>;
 					}
 				}
 			break;
@@ -235,7 +235,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 		}
 	}
 
-	if (mmxext) //use new functions from x264
+	if (isse && mmxext) //use new functions from x264
 	{
 		switch (nBlkSizeX)
 		{
@@ -294,12 +294,12 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 				SATD = mvtools_pixel_satd_4x4_mmx2;
 				SETBLITX(4,4,BLITLUMA);
 				if (yRatioUV==2) {
-					SADCHROMA = Sad2x2_iSSE_T;
+					SADCHROMA = Sad_C<2,2>;
 			//		if (sse3)
 			//			SADCHROMA = Sad2x2_iSSE_O; //debug
 				}
 				else {
-					SADCHROMA = Sad2x4_iSSE_T;
+					SADCHROMA = Sad_C<2,4>;
 				}
 			break;
 		case 8:

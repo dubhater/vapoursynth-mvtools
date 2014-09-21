@@ -94,49 +94,6 @@ inline unsigned int Sad2x4_C(const uint8_t *pSrc, const uint8_t *pRef,int nSrcPi
 */
 #define MK_CFUNC(functionname) extern "C" unsigned int  functionname (const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
 
-#define SAD_ISSE(blsizex, blsizey) extern "C" unsigned int  Sad##blsizex##x##blsizey##_iSSE(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
-//Sad16x16_iSSE( x,y can be: 32 16 8 4 2
-SAD_ISSE(32,32);
-SAD_ISSE(16,32);
-SAD_ISSE(32,16);
-SAD_ISSE(16,16);
-SAD_ISSE(16,8);
-SAD_ISSE(16,2);
-SAD_ISSE(16,1);
-SAD_ISSE(8,16);
-SAD_ISSE(8,8);
-SAD_ISSE(8,4);
-SAD_ISSE(8,2);
-SAD_ISSE(8,1);
-SAD_ISSE(4,8);
-SAD_ISSE(4,4);
-SAD_ISSE(4,2);
-SAD_ISSE(2,4);
-SAD_ISSE(2,2);
-
-MK_CFUNC(Sad2x2_iSSE_T); //only work with packed, aligned source block copy
-MK_CFUNC(Sad2x4_iSSE_T);
-//MK_CFUNC(Sad2x2_iSSE_O);
-
-
-#undef SAD_ISSE
-/* //allows simple wrapping SAD functions, implementation in SADFunctions.h
-#define MK_CPPWRAP(blkx, blky) unsigned int  Sad##blkx##x##blky##_wrap(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
-MK_CPPWRAP(16,16);
-MK_CPPWRAP(16,8);
-MK_CPPWRAP(16,2);
-MK_CPPWRAP(8,16);
-MK_CPPWRAP(8,8);
-MK_CPPWRAP(8,4);
-MK_CPPWRAP(8,2);
-MK_CPPWRAP(8,1);
-MK_CPPWRAP(4,8);
-MK_CPPWRAP(4,4);
-MK_CPPWRAP(4,2);
-MK_CPPWRAP(2,4);
-MK_CPPWRAP(2,2);
-#undef MK_CPPWRAP
-*/
 /* included from x264 */
 #define SAD_x264(blsizex, blsizey) extern "C" unsigned int  mvtools_pixel_sad_##blsizex##x##blsizey##_mmx2(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
 //mvtools_pixel_sad_16x16_mmx2(   x,y can be: 16 8 4

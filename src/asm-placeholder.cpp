@@ -95,30 +95,6 @@ extern "C" unsigned int mvtools_Luma16x2_sse2(const unsigned char *pSrc, int nSr
 //
 #define MK_CFUNC(functionname) extern "C" unsigned int  functionname (const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch) { abort(); }
 
-#define SAD_ISSE(blsizex, blsizey) extern "C" unsigned int  Sad##blsizex##x##blsizey##_iSSE(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch) { abort(); }
-//Sad16x16_iSSE( x,y can be: 32 16 8 4 2
-SAD_ISSE(32,32);
-SAD_ISSE(16,32);
-SAD_ISSE(32,16);
-SAD_ISSE(16,16);
-SAD_ISSE(16,8);
-SAD_ISSE(16,2);
-SAD_ISSE(16,1);
-SAD_ISSE(8,16);
-SAD_ISSE(8,8);
-SAD_ISSE(8,4);
-SAD_ISSE(8,2);
-SAD_ISSE(8,1);
-SAD_ISSE(4,8);
-SAD_ISSE(4,4);
-SAD_ISSE(4,2);
-SAD_ISSE(2,4);
-SAD_ISSE(2,2);
-
-MK_CFUNC(Sad2x2_iSSE_T); //only work with packed, aligned source block copy
-MK_CFUNC(Sad2x4_iSSE_T);
-
-#undef SAD_ISSE
 
 
 #if 0
