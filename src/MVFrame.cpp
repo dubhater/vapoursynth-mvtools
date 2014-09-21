@@ -121,9 +121,9 @@ void MVPlane::Refine(int sharp)
 	  {
       if (isse)
       {
-         mvtools_HorizontalBilinear_sse2(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         mvtools_VerticalBilinear_sse2(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         mvtools_DiagonalBilinear_sse2(pPlane[3], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_HorizontalBilinear_sse2(pPlane[1], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_VerticalBilinear_sse2(pPlane[2], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_DiagonalBilinear_sse2(pPlane[3], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
       }
       else
       {
@@ -154,9 +154,9 @@ void MVPlane::Refine(int sharp)
 	{
       if (isse)
       {
-         mvtools_HorizontalWiener_sse2(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         mvtools_VerticalWiener_sse2(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         mvtools_HorizontalWiener_sse2(pPlane[3], pPlane[2], nPitch, nPitch, nExtendedWidth, nExtendedHeight);// faster from ready-made horizontal
+         mvtools_HorizontalWiener_sse2(pPlane[1], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_VerticalWiener_sse2(pPlane[2], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_HorizontalWiener_sse2(pPlane[3], pPlane[2], nPitch, nExtendedWidth, nExtendedHeight);// faster from ready-made horizontal
       }
       else
       {
@@ -173,9 +173,9 @@ void MVPlane::Refine(int sharp)
 	  {
       if (isse)
       {
-         mvtools_HorizontalBilinear_sse2(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         mvtools_VerticalBilinear_sse2(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         mvtools_DiagonalBilinear_sse2(pPlane[10], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_HorizontalBilinear_sse2(pPlane[2], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_VerticalBilinear_sse2(pPlane[8], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_DiagonalBilinear_sse2(pPlane[10], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
       }
       else
       {
@@ -206,9 +206,9 @@ void MVPlane::Refine(int sharp)
 	{
       if (isse)
       {
-         mvtools_HorizontalWiener_sse2(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         mvtools_VerticalWiener_sse2(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-         mvtools_HorizontalWiener_sse2(pPlane[10], pPlane[8], nPitch, nPitch, nExtendedWidth, nExtendedHeight);// faster from ready-made horizontal
+         mvtools_HorizontalWiener_sse2(pPlane[2], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_VerticalWiener_sse2(pPlane[8], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+         mvtools_HorizontalWiener_sse2(pPlane[10], pPlane[8], nPitch, nExtendedWidth, nExtendedHeight);// faster from ready-made horizontal
       }
       else
       {
@@ -218,7 +218,7 @@ void MVPlane::Refine(int sharp)
 	  }
 	}
      // now interpolate intermediate
-     void (*Average2x)(unsigned char*, const unsigned char*, const unsigned char*, int, int, int) = isse ? mvtools_Average2_sse2 : Average2;
+     void (*Average2x)(unsigned char*, const unsigned char*, const unsigned char*, intptr_t, intptr_t, intptr_t) = isse ? mvtools_Average2_sse2 : Average2;
      Average2x(pPlane[1], pPlane[0], pPlane[2], nPitch, nExtendedWidth, nExtendedHeight);
      Average2x(pPlane[9], pPlane[8], pPlane[10], nPitch, nExtendedWidth, nExtendedHeight);
      Average2x(pPlane[4], pPlane[0], pPlane[8], nPitch, nExtendedWidth, nExtendedHeight);

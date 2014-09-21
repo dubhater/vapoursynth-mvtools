@@ -32,6 +32,8 @@
 #ifndef __INTERPOL__
 #define __INTERPOL__
 
+#include <stdint.h>
+
 void VerticalBilinear(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
                    int nSrcPitch, int nWidth, int nHeight);
 void HorizontalBilinear(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
@@ -66,37 +68,37 @@ void HorizontalBicubic(unsigned char *pDst, const unsigned char *pSrc, int nDstP
 void DiagonalBicubic(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
                    int nSrcPitch, int nWidth, int nHeight);
 
-extern "C" void Average2(unsigned char *pDst, const unsigned char *pSrc1, const unsigned char *pSrc2, int nPitch, int nWidth, int nHeight);
+void Average2(unsigned char *pDst, const unsigned char *pSrc1, const unsigned char *pSrc2, intptr_t nPitch, intptr_t nWidth, intptr_t nHeight);
 
 /* TODO: port these
-extern "C" void  VerticalBicubic_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
-                                           int nSrcPitch, int nWidth, int nHeight);
-extern "C" void  HorizontalBicubic_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
-                                           int nSrcPitch, int nWidth, int nHeight);
-extern "C" void  RB2F_iSSE(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
-                                  int nSrcPitch, int nWidth, int nHeight);
-extern "C" void  RB2FilteredVerticalLine_SSE(unsigned char *pDst, const unsigned char *pSrc, int nSrcPitch, int nWidthMMX);
-extern "C" void  RB2FilteredHorizontalInplaceLine_SSE(unsigned char *pSrc, int nWidthMMX);
+extern "C" void  VerticalBicubic_iSSE(unsigned char *pDst, const unsigned char *pSrc, intptr_t nDstPitch,
+                                          intptr_t nWidth, intptr_t nHeight);
+extern "C" void  HorizontalBicubic_iSSE(unsigned char *pDst, const unsigned char *pSrc, intptr_t nDstPitch,
+                                           intptr_t nWidth, intptr_t nHeight);
+extern "C" void  RB2F_iSSE(unsigned char *pDst, const unsigned char *pSrc, intptr_t nDstPitch,
+                                  intptr_t nSrcPitch, intptr_t nWidth, intptr_t nHeight);
+extern "C" void  RB2FilteredVerticalLine_SSE(unsigned char *pDst, const unsigned char *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX);
+extern "C" void  RB2FilteredHorizontalInplaceLine_SSE(unsigned char *pSrc, intptr_t nWidthMMX);
 */
 
-extern "C" void mvtools_Average2_sse2(unsigned char *pDst, const unsigned char *pSrc1, const unsigned char *pSrc2, int nPitch, int nWidth, int nHeight);
+extern "C" void mvtools_Average2_sse2(unsigned char *pDst, const unsigned char *pSrc1, const unsigned char *pSrc2, intptr_t nPitch, intptr_t nWidth, intptr_t nHeight);
 
-extern "C" void mvtools_VerticalBilinear_sse2(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
-                                           int nSrcPitch, int nWidth, int nHeight);
-extern "C" void mvtools_HorizontalBilinear_sse2(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
-                                             int nSrcPitch, int nWidth, int nHeight);
-extern "C" void mvtools_DiagonalBilinear_sse2(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
-                                           int nSrcPitch, int nWidth, int nHeight);
+extern "C" void mvtools_VerticalBilinear_sse2(unsigned char *pDst, const unsigned char *pSrc, intptr_t nPitch,
+                                           intptr_t nWidth, intptr_t nHeight);
+extern "C" void mvtools_HorizontalBilinear_sse2(unsigned char *pDst, const unsigned char *pSrc, intptr_t nPitch,
+                                             intptr_t nWidth, intptr_t nHeight);
+extern "C" void mvtools_DiagonalBilinear_sse2(unsigned char *pDst, const unsigned char *pSrc, intptr_t nPitch,
+                                           intptr_t nWidth, intptr_t nHeight);
 
 
-extern "C" void mvtools_RB2CubicHorizontalInplaceLine_sse2(unsigned char *pSrc, int nWidthMMX);
-extern "C" void mvtools_RB2CubicVerticalLine_sse2(unsigned char *pDst, const unsigned char *pSrc, int nSrcPitch, int nWidthMMX);
-extern "C" void mvtools_RB2QuadraticHorizontalInplaceLine_sse2(unsigned char *pSrc, int nWidthMMX);
-extern "C" void mvtools_RB2QuadraticVerticalLine_sse2(unsigned char *pDst, const unsigned char *pSrc, int nSrcPitch, int nWidthMMX);
-extern "C" void mvtools_RB2BilinearFilteredVerticalLine_sse2(unsigned char *pDst, const unsigned char *pSrc, int nSrcPitch, int nWidthMMX);
-extern "C" void mvtools_RB2BilinearFilteredHorizontalInplaceLine_sse2(unsigned char *pSrc, int nWidthMMX);
-extern "C" void mvtools_VerticalWiener_sse2(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
-                                           int nSrcPitch, int nWidth, int nHeight);
-extern "C" void mvtools_HorizontalWiener_sse2(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
-                                           int nSrcPitch, int nWidth, int nHeight);
+extern "C" void mvtools_RB2CubicHorizontalInplaceLine_sse2(unsigned char *pSrc, intptr_t nWidthMMX);
+extern "C" void mvtools_RB2CubicVerticalLine_sse2(unsigned char *pDst, const unsigned char *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX);
+extern "C" void mvtools_RB2QuadraticHorizontalInplaceLine_sse2(unsigned char *pSrc, intptr_t nWidthMMX);
+extern "C" void mvtools_RB2QuadraticVerticalLine_sse2(unsigned char *pDst, const unsigned char *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX);
+extern "C" void mvtools_RB2BilinearFilteredVerticalLine_sse2(unsigned char *pDst, const unsigned char *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX);
+extern "C" void mvtools_RB2BilinearFilteredHorizontalInplaceLine_sse2(unsigned char *pSrc, intptr_t nWidthMMX);
+extern "C" void mvtools_VerticalWiener_sse2(unsigned char *pDst, const unsigned char *pSrc, intptr_t nPitch,
+                                           intptr_t nWidth, intptr_t nHeight);
+extern "C" void mvtools_HorizontalWiener_sse2(unsigned char *pDst, const unsigned char *pSrc, intptr_t nPitch,
+                                           intptr_t nWidth, intptr_t nHeight);
 #endif

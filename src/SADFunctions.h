@@ -30,15 +30,15 @@
 
 #include "MVInterface.h"
 
-typedef unsigned int (SADFunction)(const uint8_t *pSrc, int nSrcPitch,
-								    const uint8_t *pRef, int nRefPitch);
+typedef unsigned int (SADFunction)(const uint8_t *pSrc, intptr_t nSrcPitch,
+								    const uint8_t *pRef, intptr_t nRefPitch);
 
 inline unsigned int SADABS(int x) {	return ( x < 0 ) ? -x : x; }
 //inline unsigned int SADABS(int x) {	return ( x < -16 ) ? 16 : ( x < 0 ) ? -x : ( x > 16) ? 16 : x; }
 
 template<int nBlkWidth, int nBlkHeight>
-unsigned int Sad_C(const uint8_t *pSrc, int nSrcPitch,const uint8_t *pRef,
-					     int nRefPitch)
+unsigned int Sad_C(const uint8_t *pSrc, intptr_t nSrcPitch,const uint8_t *pRef,
+					     intptr_t nRefPitch)
 {
 	unsigned int sum = 0;
 	for ( int y = 0; y < nBlkHeight; y++ )
@@ -51,8 +51,8 @@ unsigned int Sad_C(const uint8_t *pSrc, int nSrcPitch,const uint8_t *pRef,
 	return sum;
 }
 template<int nBlkSize>
-unsigned int Sad_C(const uint8_t *pSrc, int nSrcPitch,const uint8_t *pRef,
-                    int nRefPitch)
+unsigned int Sad_C(const uint8_t *pSrc, intptr_t nSrcPitch,const uint8_t *pRef,
+                    intptr_t nRefPitch)
 {
    return Sad_C<nBlkSize, nBlkSize>(pSrc, pRef, nSrcPitch, nRefPitch);
 }
@@ -92,10 +92,10 @@ inline unsigned int Sad2x4_C(const uint8_t *pSrc, const uint8_t *pRef,int nSrcPi
 	return sum;
 }
 */
-#define MK_CFUNC(functionname) extern "C" unsigned int  functionname (const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
+#define MK_CFUNC(functionname) extern "C" unsigned int  functionname (const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch)
 
 /* included from x264 */
-#define SAD_x264(blsizex, blsizey) extern "C" unsigned int  mvtools_pixel_sad_##blsizex##x##blsizey##_mmx2(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
+#define SAD_x264(blsizex, blsizey) extern "C" unsigned int  mvtools_pixel_sad_##blsizex##x##blsizey##_mmx2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch)
 //mvtools_pixel_sad_16x16_mmx2(   x,y can be: 16 8 4
 SAD_x264(16,16);
 SAD_x264(16,8);
@@ -145,8 +145,8 @@ MK_CFUNC(mvtools_pixel_satd_8x4_mmx2);
 MK_CFUNC(mvtools_pixel_satd_4x8_mmx2);
 MK_CFUNC(mvtools_pixel_satd_4x4_mmx2);
 
-#define SATD_SSE2(blsizex, blsizey) extern "C" unsigned int  mvtools_pixel_satd_##blsizex##x##blsizey##_sse2(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
-#define SATD_SSSE3(blsizex, blsizey) extern "C" unsigned int  mvtools_pixel_satd_##blsizex##x##blsizey##_ssse3(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
+#define SATD_SSE2(blsizex, blsizey) extern "C" unsigned int  mvtools_pixel_satd_##blsizex##x##blsizey##_sse2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch)
+#define SATD_SSSE3(blsizex, blsizey) extern "C" unsigned int  mvtools_pixel_satd_##blsizex##x##blsizey##_ssse3(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch)
 //#define SATD_SSSE3_PHADD(blsizex, blsizey) extern "C" unsigned int  mvtools_pixel_satd_##blsizex##x##blsizey##_ssse3_phadd(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
 
 //mvtools_pixel_satd_16x16_%1

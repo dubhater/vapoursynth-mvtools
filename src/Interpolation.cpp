@@ -782,7 +782,7 @@ void DiagonalBicubic(unsigned char *pDst, const unsigned char *pSrc, int nDstPit
 }
 
 void Average2(unsigned char *pDst, const unsigned char *pSrc1, const unsigned char *pSrc2,
-                     int nPitch, int nWidth, int nHeight)
+                     intptr_t nPitch, intptr_t nWidth, intptr_t nHeight)
 { // assume all pitches equal
     for ( int j = 0; j < nHeight; j++ )
     {

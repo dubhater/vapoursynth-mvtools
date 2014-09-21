@@ -1,7 +1,8 @@
 #ifndef __OVERLAP__
 #define __OVERLAP__
 
-#include "math.h"
+#include <math.h>
+#include <stdint.h>
 //#define M_PI       3.14159265358979323846f
 
 // top, middle, botom and left, middle, right windows
@@ -42,14 +43,14 @@ public :
    inline short *GetWindow(int i) const { return Overlap9Windows + size*i; }
 };
 
-typedef void (OverlapsFunction)(unsigned short *pDst, int nDstPitch,
-                            const unsigned char *pSrc, int nSrcPitch,
-							short *pWin, int nWinPitch);
+typedef void (OverlapsFunction)(unsigned short *pDst, intptr_t nDstPitch,
+                            const unsigned char *pSrc, intptr_t nSrcPitch,
+							short *pWin, intptr_t nWinPitch);
 
 //=============================================================
 // short
 template <int blockWidth, int blockHeight>
-void Overlaps_C(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch)
+void Overlaps_C(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch)
 {
 	// pWin from 0 to 2048
 	for (int j=0; j<blockHeight; j++)
@@ -64,28 +65,28 @@ void Overlaps_C(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, 
 	}
 }
 
-extern "C" void mvtools_Overlaps32x32_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch);
-extern "C" void mvtools_Overlaps16x32_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch);
-extern "C" void mvtools_Overlaps32x16_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch);
-extern "C" void mvtools_Overlaps16x16_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch);
-extern "C" void mvtools_Overlaps8x16_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch);
-extern "C" void mvtools_Overlaps8x8_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch);
-extern "C" void mvtools_Overlaps4x8_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch);
-extern "C" void mvtools_Overlaps4x4_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch);
-extern "C" void mvtools_Overlaps2x4_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch);
-extern "C" void mvtools_Overlaps2x2_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch);
-extern "C" void mvtools_Overlaps8x4_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch);
-extern "C" void mvtools_Overlaps4x2_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch);
-extern "C" void mvtools_Overlaps16x8_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch);
-extern "C" void mvtools_Overlaps16x2_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch);
-extern "C" void mvtools_Overlaps8x2_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch);
-extern "C" void mvtools_Overlaps8x1_sse2(unsigned short *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, short *pWin, int nWinPitch);
+extern "C" void mvtools_Overlaps32x32_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
+extern "C" void mvtools_Overlaps16x32_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
+extern "C" void mvtools_Overlaps32x16_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
+extern "C" void mvtools_Overlaps16x16_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
+extern "C" void mvtools_Overlaps8x16_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
+extern "C" void mvtools_Overlaps8x8_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
+extern "C" void mvtools_Overlaps4x8_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
+extern "C" void mvtools_Overlaps4x4_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
+extern "C" void mvtools_Overlaps2x4_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
+extern "C" void mvtools_Overlaps2x2_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
+extern "C" void mvtools_Overlaps8x4_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
+extern "C" void mvtools_Overlaps4x2_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
+extern "C" void mvtools_Overlaps16x8_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
+extern "C" void mvtools_Overlaps16x2_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
+extern "C" void mvtools_Overlaps8x2_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
+extern "C" void mvtools_Overlaps8x1_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
 
 void Short2Bytes(unsigned char *pDst, int nDstPitch, unsigned short *pDstShort, int dstShortPitch, int nWidth, int nHeight);
 
 // FIXME: these don't belong here
-void LimitChanges_c(unsigned char *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, int nWidth, int nHeight, int nLimit);
-extern "C" void mvtools_LimitChanges_sse2(unsigned char *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, int nWidth, int nHeight, int nLimit);
+void LimitChanges_c(unsigned char *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, intptr_t nWidth, intptr_t nHeight, intptr_t nLimit);
+extern "C" void mvtools_LimitChanges_sse2(unsigned char *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, intptr_t nWidth, intptr_t nHeight, intptr_t nLimit);
 
 inline int DegrainWeight(int thSAD, int blockSAD) // not reaaly related to overlap, but common to MDegrainX functions
 {

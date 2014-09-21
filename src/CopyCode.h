@@ -15,11 +15,11 @@ void memcpy_amd(void *dest, const void *src, size_t n);
 void MemZoneSet(unsigned char *ptr, unsigned char value, int width,
 				int height, int offsetX, int offsetY, int pitch);
 
-typedef void (COPYFunction)(unsigned char *pDst, int nDstPitch,
-                            const unsigned char *pSrc, int nSrcPitch);
+typedef void (COPYFunction)(unsigned char *pDst, intptr_t nDstPitch,
+                            const unsigned char *pSrc, intptr_t nSrcPitch);
 
 template<int nBlkWidth, int nBlkHeight>
-void Copy_C(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch)
+void Copy_C(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch)
 {
    for ( int j = 0; j < nBlkHeight; j++ )
    {
@@ -31,13 +31,13 @@ void Copy_C(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch)
 }
 
 template<int nBlkSize>
-void Copy_C(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch)
+void Copy_C(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch)
 {
    Copy_C<nBlkSize, nBlkSize>(pDst, nDstPitch, pSrc, nSrcPitch);
 }
 
 //extern "C" void  Copy16x16_mmx(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch);
-#define MK_CFUNC(functionname) extern "C" void  functionname (uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch)
+#define MK_CFUNC(functionname) extern "C" void  functionname (uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch)
 //default functions
 MK_CFUNC(mvtools_Copy32x32_sse2);
 MK_CFUNC(mvtools_Copy16x32_sse2);

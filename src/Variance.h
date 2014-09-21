@@ -3,10 +3,10 @@
 
 inline unsigned int VARABS(int x) { return x < 0 ? -x : x; }
 
-typedef unsigned int (VARFunction)(const unsigned char *pSrc, int nSrcPitch, int *pLuma);
+typedef unsigned int (VARFunction)(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma);
 
 template<int nBlkWidth, int nBlkHeight>
-unsigned int Var_C(const unsigned char *pSrc, int nSrcPitch, int *pLuma)
+unsigned int Var_C(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma)
 {
    const unsigned char *s = pSrc;
    int meanLuma = 0;
@@ -30,25 +30,25 @@ unsigned int Var_C(const unsigned char *pSrc, int nSrcPitch, int *pLuma)
 }
 
 template<int nBlkSize>
-unsigned int Var_C(const unsigned char *pSrc, int nSrcPitch, int *pLuma)
+unsigned int Var_C(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma)
 {
    return Var_C<nBlkSize, nBlkSize>(pSrc, nSrcPitch, pLuma);
 }
 
-extern "C" unsigned int mvtools_Var32x32_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma);
-extern "C" unsigned int mvtools_Var16x32_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma);
-extern "C" unsigned int mvtools_Var32x16_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma);
-extern "C" unsigned int mvtools_Var16x16_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma);
-extern "C" unsigned int mvtools_Var8x8_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma);
-extern "C" unsigned int mvtools_Var4x4_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma);
-extern "C" unsigned int mvtools_Var8x4_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma);
-extern "C" unsigned int mvtools_Var16x8_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma);
-extern "C" unsigned int mvtools_Var16x2_sse2(const unsigned char *pSrc, int nSrcPitch, int *pLuma);
+extern "C" unsigned int mvtools_Var32x32_sse2(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma);
+extern "C" unsigned int mvtools_Var16x32_sse2(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma);
+extern "C" unsigned int mvtools_Var32x16_sse2(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma);
+extern "C" unsigned int mvtools_Var16x16_sse2(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma);
+extern "C" unsigned int mvtools_Var8x8_sse2(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma);
+extern "C" unsigned int mvtools_Var4x4_sse2(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma);
+extern "C" unsigned int mvtools_Var8x4_sse2(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma);
+extern "C" unsigned int mvtools_Var16x8_sse2(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma);
+extern "C" unsigned int mvtools_Var16x2_sse2(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma);
 
-typedef unsigned int (LUMAFunction)(const unsigned char *pSrc, int nSrcPitch);
+typedef unsigned int (LUMAFunction)(const unsigned char *pSrc, intptr_t nSrcPitch);
 
 template<int nBlkWidth, int nBlkHeight>
-unsigned int Luma_C(const unsigned char *pSrc, int nSrcPitch)
+unsigned int Luma_C(const unsigned char *pSrc, intptr_t nSrcPitch)
 {
    const unsigned char *s = pSrc;
    int meanLuma = 0;
@@ -62,19 +62,19 @@ unsigned int Luma_C(const unsigned char *pSrc, int nSrcPitch)
 }
 
 template<int nBlkSize>
-unsigned int Luma_C(const unsigned char *pSrc, int nSrcPitch)
+unsigned int Luma_C(const unsigned char *pSrc, intptr_t nSrcPitch)
 {
    return Luma_C<nBlkSize, nBlkSize>(pSrc, nSrcPitch);
 }
 
-extern "C" unsigned int mvtools_Luma32x32_sse2(const unsigned char *pSrc, int nSrcPitch);
-extern "C" unsigned int mvtools_Luma16x32_sse2(const unsigned char *pSrc, int nSrcPitch);
-extern "C" unsigned int mvtools_Luma32x16_sse2(const unsigned char *pSrc, int nSrcPitch);
-extern "C" unsigned int mvtools_Luma16x16_sse2(const unsigned char *pSrc, int nSrcPitch);
-extern "C" unsigned int mvtools_Luma8x8_sse2(const unsigned char *pSrc, int nSrcPitch);
-extern "C" unsigned int mvtools_Luma4x4_sse2(const unsigned char *pSrc, int nSrcPitch);
-extern "C" unsigned int mvtools_Luma8x4_sse2(const unsigned char *pSrc, int nSrcPitch);
-extern "C" unsigned int mvtools_Luma16x8_sse2(const unsigned char *pSrc, int nSrcPitch);
-extern "C" unsigned int mvtools_Luma16x2_sse2(const unsigned char *pSrc, int nSrcPitch);
+extern "C" unsigned int mvtools_Luma32x32_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma16x32_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma32x16_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma16x16_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma8x8_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma4x4_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma8x4_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma16x8_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma16x2_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
 
 #endif
