@@ -3,7 +3,9 @@
 
 #include <math.h>
 #include <stdint.h>
-//#define M_PI       3.14159265358979323846f
+#ifndef M_PI
+#define M_PI       3.14159265358979323846f
+#endif
 
 // top, middle, botom and left, middle, right windows
 #define OW_TL 0
