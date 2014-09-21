@@ -1439,7 +1439,7 @@ static void VS_CC mvdegrain3Create(const VSMap *in, VSMap *out, void *userData, 
 
     d.isse = vsapi->propGetInt(in, "isse", 0, &err);
     if (err)
-        d.isse = 0; // FIXME: used to be 1
+        d.isse = 1;
 
 
     int planes[5] = { YPLANE, UPLANE, VPLANE, UVPLANES, YUVPLANES };

@@ -184,7 +184,7 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
 
     d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
     if (err)
-        d.isse = 0; // FIXME: the default used to be 1
+        d.isse = 1;
 
 
     if (( d.nPel != 1 ) && ( d.nPel != 2 ) && ( d.nPel != 4 )) {

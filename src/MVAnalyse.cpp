@@ -71,7 +71,6 @@ typedef struct {
     int truemotion;
     int overlap;
     int overlapv;
-    int sadx264;
 
     int fields;
     int tff;
@@ -347,8 +346,6 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     d.divideExtra = vsapi->propGetInt(in, "divide", 0, &err);
 
-    d.sadx264 = vsapi->propGetInt(in, "sadx264", 0, &err);
-
     d.badSAD = vsapi->propGetInt(in, "badsad", 0, &err);
     if (err)
         d.badSAD = 10000;
@@ -359,7 +356,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     d.isse = vsapi->propGetInt(in, "isse", 0, &err);
     if (err)
-        d.isse = 0; // FIXME: used to be 1
+        d.isse = 1;
 
     d.meander = vsapi->propGetInt(in, "meander", 0, &err);
     if (err)
@@ -441,26 +438,9 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.analysisData.nFlags |= d.chroma ? MOTION_USE_CHROMA_MOTION : 0;
 
 
-    if (d.sadx264 == 0)
+    if (d.isse)
     {
         d.analysisData.nFlags |= cpu_detect();
-    }
-    else
-    {
-        if ((d.sadx264 > 0) && (d.sadx264 <= 12))
-        {
-            //force specific function
-            d.analysisData.nFlags |= CPU_MMXEXT;
-            d.analysisData.nFlags |= (d.sadx264 == 2) ? CPU_CACHELINE_32 : 0;
-            d.analysisData.nFlags |= ((d.sadx264 == 3) || (d.sadx264 == 5) || (d.sadx264 == 7)) ? CPU_CACHELINE_64 : 0;
-            d.analysisData.nFlags |= ((d.sadx264 == 4) || (d.sadx264 == 5) || (d.sadx264 == 10)) ? CPU_SSE2_IS_FAST : 0;
-            d.analysisData.nFlags |= (d.sadx264 == 6) ? CPU_SSE3 : 0;
-            d.analysisData.nFlags |= ((d.sadx264 == 7) || (d.sadx264 >= 11)) ? CPU_SSSE3 : 0;
-            //beta (debug)
-            d.analysisData.nFlags |= (d.sadx264 == 8) ? MOTION_USE_SSD : 0;
-            d.analysisData.nFlags |= ((d.sadx264 >= 9) && (d.sadx264 <= 12)) ? MOTION_USE_SATD : 0;
-            d.analysisData.nFlags |= (d.sadx264 == 12) ? CPU_PHADD_IS_FAST : 0;
-        }
     }
 
     d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
@@ -635,7 +615,6 @@ void mvanalyseRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "overlapv:int:opt;"
                  "dct:int:opt;"
                  "divide:int:opt;"
-                 "sadx264:int:opt;"
                  "badsad:int:opt;"
                  "badrange:int:opt;"
                  "isse:int:opt;"

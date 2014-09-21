@@ -653,7 +653,7 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
 
     d.isse = vsapi->propGetInt(in, "isse", 0, &err);
     if (err)
-        d.isse = 0; // FIXME: used to be 1
+        d.isse = 1;
 
     d.tff = !!vsapi->propGetInt(in, "tff", 0, &err);
     d.tffexists = err;
