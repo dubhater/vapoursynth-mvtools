@@ -87,7 +87,7 @@ extern "C" void mvtools_Overlaps8x1_sse2(unsigned short *pDst, intptr_t nDstPitc
 void Short2Bytes(unsigned char *pDst, int nDstPitch, unsigned short *pDstShort, int dstShortPitch, int nWidth, int nHeight);
 
 // FIXME: these don't belong here
-void LimitChanges_c(unsigned char *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, intptr_t nWidth, intptr_t nHeight, intptr_t nLimit);
+void LimitChanges_c(unsigned char *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, int nWidth, int nHeight, int nLimit);
 extern "C" void mvtools_LimitChanges_sse2(unsigned char *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, intptr_t nWidth, intptr_t nHeight, intptr_t nLimit);
 
 inline int DegrainWeight(int thSAD, int blockSAD) // not reaaly related to overlap, but common to MDegrainX functions
