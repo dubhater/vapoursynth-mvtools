@@ -68,7 +68,7 @@ AC_SUBST([ASFLAGS])
 
 PKG_CHECK_MODULES([VapourSynth], [vapoursynth])
 
-dnl PKG_CHECK_MODULES([FFTW3F], [fftw3f])
+PKG_CHECK_MODULES([FFTW3F], [fftw3f])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

@@ -1,6 +1,6 @@
 AM_CXXFLAGS = -std=c++11 -msse2 -Wall -Wextra -Wno-unused-parameter
 
-AM_CPPFLAGS = $(VapourSynth_CFLAGS)
+AM_CPPFLAGS = $(VapourSynth_CFLAGS) $(FFTW3F_CFLAGS)
 
 lib_LTLIBRARIES = libmvtools.la
 
@@ -21,6 +21,7 @@ CLEANFILES = $(BUILT_SOURCES)
 libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/CopyCode.cpp \
 						src/CPU.cpp \
+						src/DCTFFTW.cpp \
 						src/EntryPoint.cpp \
 						src/FakeBlockData.cpp \
 						src/FakeGroupOfPlanes.cpp \
@@ -61,5 +62,7 @@ libmvtools_la_LDFLAGS = -no-undefined -avoid-version \
 						-Xlinker src/asm/MVDegrains.o \
 						-Xlinker src/asm/Overlap.o \
 						-Xlinker src/asm/Variance.o
+
+libmvtools_la_LIBADD = $(FFTW3F_LIBS)
 
 libmvtools_la_DEPENDENCIES = $(BUILT_SOURCES)
