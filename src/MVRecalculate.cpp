@@ -235,6 +235,8 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             delete vectorFields;
         }
 
+        // FIXME: Get rid of all mmx shit.
+        mvtools_cpu_emms();
 
         vsapi->freeFrame(src);
 

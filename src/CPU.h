@@ -5,4 +5,6 @@
 
 uint32_t cpu_detect( void );
 
+extern "C" void mvtools_cpu_emms();
+
 #endif
