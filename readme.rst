@@ -23,13 +23,13 @@ Differences
 
     * No "outfile" parameter.
 
+    * No "dct" parameter, because fftw3 fails to link, and the special code for 8x8 blocks is a pile of inline and standalone asm that may take a while to decipher.
+
     * No "sadx264" parameter. If isse is True, the best functions imported from x264 will be selected automatically. Otherwise, only C functions will be used.
 
     * New parameters "fields" and "tff".
 
     * The optimised SAD, SATD, and SSD functions from x264 have been updated to the latest versions (as of September 2014).
-
-    * fftw3 is always used when "dct" is greater than 0, because the special code for dct=1 and 8x8 blocks is a pile of inline and standalone asm that may take a while to decipher.
 
 * Recalculate:
     * Same as Analyse.
@@ -46,9 +46,9 @@ Usage
 
     mv.Super(clip clip[, int hpad=8, int vpad=8, int pel=2, int levels=0, bint chroma=True, int sharp=2, int rfilter=2, clip pelclip=None, bint isse=True])
 
-    mv.Analyse(clip super[, int blksize=8, int blksizev=blksize, int levels=0, int search=4, int searchparam=2, int pelsearch=0, bint isb=False, int lambda, bint chroma=True, int delta=1, bint truemotion=True, int lsad, int plevel, int global, int pnew, int pzero=pnew, int pglobal=0, int overlap=0, int overlapv=overlap, int dct=0, bint divide=False, int badsad=10000, int badrange=24, bint isse=True, bint meander=True, bint trymany=False, bint fields=False, bint tff])
+    mv.Analyse(clip super[, int blksize=8, int blksizev=blksize, int levels=0, int search=4, int searchparam=2, int pelsearch=0, bint isb=False, int lambda, bint chroma=True, int delta=1, bint truemotion=True, int lsad, int plevel, int global, int pnew, int pzero=pnew, int pglobal=0, int overlap=0, int overlapv=overlap, bint divide=False, int badsad=10000, int badrange=24, bint isse=True, bint meander=True, bint trymany=False, bint fields=False, bint tff])
 
-    mv.Recalculate(clip super, clip vectors[, int blksize=8, int blksizev=blksize, int search=4, int searchparam=2, int lambda, bint chroma=True, bint truemotion=True, int pnew, int overlap=0, int overlapv=overlap, int dct=0, bint divide=False, bint isse=True, bint meander=True, bint fields=False, bint tff])
+    mv.Recalculate(clip super, clip vectors[, int blksize=8, int blksizev=blksize, int search=4, int searchparam=2, int lambda, bint chroma=True, bint truemotion=True, int pnew, int overlap=0, int overlapv=overlap, bint divide=False, bint isse=True, bint meander=True, bint fields=False, bint tff])
 
     mv.Compensate(clip clip, clip super, clip vectors[, int scbehavior=1, int thsad=10000, bint fields=False, int thscd1=400, int thscd2=130, bint isse=True, bint tff])
 
