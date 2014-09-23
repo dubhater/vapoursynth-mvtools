@@ -23,7 +23,7 @@ Differences
 
     * No "outfile" parameter.
 
-    * No "dct" parameter, because fftw3 fails to link, and the special code for 8x8 blocks is a pile of inline and standalone asm that may take a while to decipher.
+    * No "dct" parameter, because fftw3 likes to crash, and the special code for 8x8 blocks is a pile of inline and standalone asm that may take a while to decipher.
 
     * No "sadx264" parameter. If isse is True, the best functions imported from x264 will be selected automatically. Otherwise, only C functions will be used.
 
