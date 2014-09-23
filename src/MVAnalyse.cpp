@@ -8,7 +8,7 @@
 #include <VSHelper.h>
 
 #include "CPU.h"
-#include "DCTFFTW.h"
+#include "DCT.h"
 #include "GroupOfPlanes.h"
 #include "MVInterface.h"
 
@@ -228,7 +228,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
                     DCTc = new DCTINT(d->blksize, d->blksizev, d->dctmode);
                 else
                 */
-                DCTc = new DCTFFTW(d->blksize, d->blksizev, d->dctmode); // check order x,y
+                //DCTc = new DCTFFTW(d->blksize, d->blksizev, d->dctmode); // check order x,y
             }
 
 
@@ -615,7 +615,6 @@ void mvanalyseRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "pglobal:int:opt;"
                  "overlap:int:opt;"
                  "overlapv:int:opt;"
-                 "dct:int:opt;"
                  "divide:int:opt;"
                  "badsad:int:opt;"
                  "badrange:int:opt;"
