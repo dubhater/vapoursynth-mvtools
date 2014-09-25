@@ -41,6 +41,7 @@ libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/Overlap.cpp \
 						src/Padding.cpp \
 						src/PlaneOfBlocks.cpp \
+						src/SimpleResize.cpp \
 						src/asm/const-a.asm \
 						src/asm/cpu-a.asm \
 						src/asm/pixel-a.asm \
