@@ -18,6 +18,8 @@ Differences
 
     * The audio is definitely not killed.
 
+    * No "planar" parameter.
+
 * Analyse:
     * No "temporal" parameter, as it's sort of incompatible with multithreading.
 
