@@ -280,7 +280,7 @@ void VectorSmallMaskYToHalfUV(uint8_t * VSmallY, int nBlkX, int nBlkY, uint8_t *
 
 
 void Merge4PlanesToBig(uint8_t *pel2Plane, int pel2Pitch, const uint8_t *pPlane0, const uint8_t *pPlane1,
-					  const uint8_t *pPlane2, const uint8_t * pPlane3, int width, int height, int pitch, bool isse)
+					  const uint8_t *pPlane2, const uint8_t * pPlane3, int width, int height, int pitch)
 {
 	// copy refined planes to big one plane
 	if (/*!isse*/ 1)
@@ -392,7 +392,7 @@ void Merge16PlanesToBig(uint8_t *pel4Plane, int pel4Pitch,
                     const uint8_t *pPlane4, const uint8_t *pPlane5, const uint8_t *pPlane6, const uint8_t * pPlane7,
                     const uint8_t *pPlane8, const uint8_t *pPlane9, const uint8_t *pPlane10, const uint8_t * pPlane11,
                     const uint8_t *pPlane12, const uint8_t * pPlane13, const uint8_t *pPlane14, const uint8_t * pPlane15,
-					int width, int height, int pitch, bool isse)
+					int width, int height, int pitch)
 {
 	// copy refined planes to big one plane
 //	if (!isse)

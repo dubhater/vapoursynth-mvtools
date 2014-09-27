@@ -12,6 +12,7 @@ void mvdegrain3Register(VSRegisterFunction registerFunc, VSPlugin *plugin);
 void mvcompensateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 void mvrecalculateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 void mvmaskRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
+void mvfinestRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 
 
 VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegisterFunction registerFunc, VSPlugin *plugin) {
@@ -25,4 +26,5 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegiste
     mvcompensateRegister(registerFunc, plugin);
     mvrecalculateRegister(registerFunc, plugin);
     mvmaskRegister(registerFunc, plugin);
+    mvfinestRegister(registerFunc, plugin);
 }
