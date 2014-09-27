@@ -41,6 +41,9 @@ Differences
 
     * New parameter "tff".
 
+* Mask:
+    * No "isse" parameter, because there is no asm in Mask anymore.
+
 
 Usage
 =====
@@ -60,6 +63,8 @@ Usage
 
     mv.Degrain3(clip clip, clip super, clip mvbw, clip mvfw, clip mvbw2, clip mvfw2, clip mvbw3, clip mvfw3[, int thsad=400, int thsadc=thsad, int plane=4, int limit=255, int limitc=limit, int thscd1=400, int thscd2=130, bint isse=True])
 
+    mv.Mask(clip clip, clip vectors[, float ml=100.0, float gamma=1.0, int kind=0, int ysc=0, int thscd1=400, int thscd2=130])
+
 
 If *fields* is True, it is assumed that the clip named *clip* first went through std.SeparateFields.
 
@@ -73,7 +78,7 @@ Things that may happen soon™
 
   * Support for up to 16 bits per sample
 
-  * mv.Mask and mv.FlowBlur, because they are used by QTGMC
+  * mv.FlowBlur, because it is used by QTGMC
 
   * Possibly lower memory usage
 
