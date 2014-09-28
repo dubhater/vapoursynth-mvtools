@@ -327,6 +327,16 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     d.tffexists = err;
 
 
+    if (d.search < 0 || d.search > 7) {
+        vsapi->setError(out, "Recalculate: search must be between 0 and 7 (inclusive).");
+        return;
+    }
+
+    if (d.divideExtra < 0 || d.divideExtra > 2) {
+        vsapi->setError(out, "Recalculate: divide must be between 0 and 2 (inclusive).");
+        return;
+    }
+
     d.analysisData.yRatioUV = 2; //(vi.IsYV12()) ? 2 : 1;
     d.analysisData.xRatioUV = 2; // for YV12 and YUY2, really do not used and assumed to 2
 

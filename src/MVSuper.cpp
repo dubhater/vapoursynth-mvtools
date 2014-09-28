@@ -192,6 +192,16 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
         return;
     }
 
+    if (d.sharp < 0 || d.sharp > 2) {
+        vsapi->setError(out, "Super: sharp must be between 0 and 2 (inclusive).");
+        return;
+    }
+
+    if (d.rfilter < 0 || d.rfilter > 4) {
+        vsapi->setError(out, "Super: rfilter must be between 0 and 4 (inclusive).");
+        return;
+    }
+
 
     d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
 

@@ -1442,6 +1442,21 @@ static void VS_CC mvdegrain3Create(const VSMap *in, VSMap *out, void *userData, 
         d.isse = 1;
 
 
+    if (plane < 0 || plane > 4) {
+        vsapi->setError(out, "Degrain3: plane must be between 0 and 4 (inclusive).");
+        return;
+    }
+
+    if (d.nLimit < 0 || d.nLimit > 255) {
+        vsapi->setError(out, "Degrain3: limit must be between 0 and 255 (inclusive).");
+        return;
+    }
+
+    if (d.nLimitC < 0 || d.nLimitC > 255) {
+        vsapi->setError(out, "Degrain3: limitc must be between 0 and 255 (inclusive).");
+        return;
+    }
+
     int planes[5] = { YPLANE, UPLANE, VPLANE, UVPLANES, YUVPLANES };
     d.YUVplanes = planes[plane];
 

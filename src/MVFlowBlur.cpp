@@ -462,6 +462,10 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
         return;
     }
 
+    if (d.prec < 1) {
+        vsapi->setError(out, "FlowBlur: prec must be at least 1.");
+        return;
+    }
 
     d.blur256 = (int)(d.blur * 256.0f / 200.0f);
 
