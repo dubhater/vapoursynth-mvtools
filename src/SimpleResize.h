@@ -36,7 +36,7 @@ class SimpleResize {
     int *horizontal_offsets;
     int *horizontal_weights;
 
-	void InitTables();
+	void InitTables(int *offsets, int *weights, int out, int in);
 
 public:
 	SimpleResize(int _dst_width, int _dst_height, int _src_width, int _src_height);

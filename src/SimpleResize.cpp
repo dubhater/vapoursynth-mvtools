@@ -1,7 +1,9 @@
 // This used to contain code from the SimpleResize Avisynth plugin, written
-// by Tom Barry and modified by Fizick. All of that was rewritten by dubhater.
+// by Tom Barry and modified by Fizick. All of that was rewritten by dubhater,
+// using code by anon32 for, ahem, inspiration.
 // Only the name and the basic algorithm remain.
 
+#include <algorithm>
 
 #include <cstdlib>
 
@@ -22,7 +24,8 @@ SimpleResize::SimpleResize(int _dst_width, int _dst_height, int _src_width, int 
     horizontal_offsets = (int *)malloc(dst_width * sizeof(int));
     horizontal_weights = (int *)malloc(dst_width * sizeof(int));
 
-    InitTables();
+    InitTables(horizontal_offsets, horizontal_weights, dst_width, src_width);
+    InitTables(vertical_offsets, vertical_weights, dst_height, src_height);
 };
 
 
@@ -43,23 +46,23 @@ void SimpleResize::Resize(uint8_t *dstp, int dst_stride, const uint8_t* srcp, in
 
     for (int y = 0; y < dst_height; y++) {
         int weight_bottom = vertical_weights[y];
-        int weight_top = 256 - weight_bottom;
+        int weight_top = 32768 - weight_bottom;
 
         srcp1 = srcp + vertical_offsets[y] * src_stride;
         srcp2 = srcp1 + src_stride;
 
         // vertical
         for (int x = 0; x < src_width; x++) {
-            workp[x] = (srcp1[x] * weight_top + srcp2[x] * weight_bottom + 128) / 256;
+            workp[x] = (srcp1[x] * weight_top + srcp2[x] * weight_bottom + 16384) / 32768;
         }
 
         // horizontal
         for (int x = 0; x < dst_width; x++) {
             int weight_right = horizontal_weights[x];
-            int weight_left = 256 - weight_right;
+            int weight_left = 32768 - weight_right;
             int offset = horizontal_offsets[x];
 
-            dstp[x] = (workp[offset] * weight_left + workp[offset + 1] * weight_right + 128) / 256;
+            dstp[x] = (workp[offset] * weight_left + workp[offset + 1] * weight_right + 16384) / 32768;
         }
 
         dstp += dst_stride;
@@ -69,89 +72,33 @@ void SimpleResize::Resize(uint8_t *dstp, int dst_stride, const uint8_t* srcp, in
 }
 
 
-void SimpleResize::InitTables() {
-    // Written with integer, even ratios in mind, but the clamping to
-    // src_width-2/src_height-2 makes it work (badly?) with fractional
-    // ratios too.
+void SimpleResize::InitTables(int *offsets, int *weights, int out, int in) {
+    // We don't do shifts.
+    float leftmost = 0.5f; // + shift
+    float rightmost = in - 0.5f; // + shift
 
-    int ratio = dst_height / src_height;
+    int leftmost_idx = std::max((int)leftmost, 0);
+    int rightmost_idx = std::min((int)rightmost, in - 1);
 
-    // Distance between adjacent dst lines
-    float dst_distance = 1.0f / ratio;
-    // Distance from any src line to the nearest dst line - for even ratios
-    // only. Would be zero for odd ratios.
-    float initial_distance = dst_distance / 2.0f;
+    for (int i = 0; i < out; i++) {
+        float position = (i + 0.5f) * (float)in / (float)out;
 
-    // Distance between adjacent src lines.
-    //float src_distance = 1; // unused
+        float weight;
+        int offset;
 
-    // Edge pixels that are left with only one src line, thus can't be
-    // interpolated like the rest.
-    int edge = ratio / 2;
+        if (position <= leftmost) {
+            offset = leftmost_idx;
+            weight = 0.0f;
+        } else if (position >= rightmost) {
+            offset = rightmost_idx - 1;
+            weight = 1.0f;
+        } else {
+            offset = (int)(position - leftmost);
+            weight = position - leftmost - offset;
+        }
 
-    for (int y = 0; y < dst_height - ratio; y++) {
-        int offset = y / ratio;
-        if (offset > src_height - 2)
-            offset = src_height - 2;
+        offsets[i] = offset;
 
-        vertical_offsets[y + edge] = offset;
-
-        float weight = initial_distance + (y % ratio) * dst_distance;
-
-        // For a maximum ratio of 32 (the maximum block size), 256 is sufficient.
-        // Nothing is lost in the conversion to int.
-        vertical_weights[y + edge] = (int)(weight * 256);
-    }
-
-    // The edges.
-    for (int y = 0; y < edge; y++) {
-        vertical_offsets[y] = vertical_offsets[edge];
-        vertical_weights[y] = vertical_weights[edge];
-    }
-
-    for (int y = dst_height - edge; y < dst_height; y++) {
-        vertical_offsets[y] = vertical_offsets[dst_height - edge - 1];
-        vertical_weights[y] = vertical_weights[dst_height - edge - 1];
-    }
-
-
-    ratio = dst_width / src_width;
-
-    // Distance between adjacent dst columns
-    dst_distance = 1.0f / ratio;
-    // Distance from any src column to the nearest dst column - for even ratios
-    // only. Would be zero for odd ratios.
-    initial_distance = dst_distance / 2.0f;
-
-    // Distance between adjacent src columns.
-    //float src_distance = 1; // unused
-
-    // Edge pixels that are left with only one src column, thus can't be
-    // interpolated like the rest.
-    edge = ratio / 2;
-
-    for (int x = 0; x < dst_width - ratio; x++) {
-        int offset = x / ratio;
-        if (offset > src_width - 2)
-            offset = src_width - 2;
-
-        horizontal_offsets[x + edge] = offset;
-
-        float weight = initial_distance + (x % ratio) * dst_distance;
-
-        // For a maximum ratio of 32 (the maximum block size), 256 is sufficient.
-        // Nothing is lost in the conversion to int.
-        horizontal_weights[x + edge] = (int)(weight * 256);
-    }
-
-    // The edges.
-    for (int x = 0; x < edge; x++) {
-        horizontal_offsets[x] = horizontal_offsets[edge];
-        horizontal_weights[x] = horizontal_weights[edge];
-    }
-
-    for (int x = dst_width - edge; x < dst_width; x++) {
-        horizontal_offsets[x] = horizontal_offsets[dst_width - edge - 1];
-        horizontal_weights[x] = horizontal_weights[dst_width - edge - 1];
+        weights[i] = (int)(weight * 32768);
     }
 }
