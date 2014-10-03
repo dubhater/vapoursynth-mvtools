@@ -39,7 +39,7 @@ typedef struct {
     VSNodeRef *mvbw;
     VSNodeRef *mvfw;
 
-    int blur;
+    float blur;
     int prec;
     int thscd1;
     int thscd2;
