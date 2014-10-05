@@ -396,17 +396,6 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
         d.nSearchParam = ( d.searchparam < 1 ) ? 1 : d.searchparam;
 
 
-    d.analysisData.nFlags = 0;
-    d.analysisData.nFlags |= d.isse ? MOTION_USE_ISSE : 0;
-    d.analysisData.nFlags |= d.analysisData.isBackward ? MOTION_IS_BACKWARD : 0;
-    d.analysisData.nFlags |= d.chroma ? MOTION_USE_CHROMA_MOTION : 0;
-
-
-    if (d.isse)
-    {
-        d.analysisData.nFlags |= cpu_detect();
-    }
-
     d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
 
     // XXX maybe get rid of these two
@@ -474,6 +463,17 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     d.analysisData.isBackward = pAnalyseFilter->IsBackward();
     vsapi->freeFrame(evil);
 
+
+    d.analysisData.nFlags = 0;
+    d.analysisData.nFlags |= d.isse ? MOTION_USE_ISSE : 0;
+    d.analysisData.nFlags |= d.analysisData.isBackward ? MOTION_IS_BACKWARD : 0;
+    d.analysisData.nFlags |= d.chroma ? MOTION_USE_CHROMA_MOTION : 0;
+
+
+    if (d.isse)
+    {
+        d.analysisData.nFlags |= cpu_detect();
+    }
 
     d.analysisData.nPel = d.nSuperPel;//x
 
