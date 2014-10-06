@@ -48,20 +48,12 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
    nLogyRatioUV = ilog2(yRatioUV);
 
    smallestPlane = (bool)(nFlags & MOTION_SMALLEST_PLANE);
-//   mmx = (bool)(nFlags & MOTION_USE_MMX);
    isse = (bool)(nFlags & MOTION_USE_ISSE);
    chroma = (bool)(nFlags & MOTION_USE_CHROMA_MOTION);
 
-	bool mmxext = (bool)(nFlags & CPU_MMXEXT);
 	bool cache64 = (bool)(nFlags & CPU_CACHELINE_64);
-	bool sse2 = (bool)(nFlags & CPU_SSE2_IS_FAST);
 	bool sse3 = (bool)(nFlags & CPU_SSE3);
 	bool ssse3 = (bool)(nFlags & CPU_SSSE3);
-	bool ssd = (bool)(nFlags & MOTION_USE_SSD);
-	bool satd = (bool)(nFlags & MOTION_USE_SATD);
-
-//	ssd=false;
-//	satd=false;
 
    globalMVPredictor.x = zeroMV.x;
    globalMVPredictor.y = zeroMV.y;
@@ -74,272 +66,262 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 
 /* function's pointers initialization */
 
-#define SET_FUNCPTR(blksizex, blksizey, blksizex2, blksizey2) \
-	SAD = Sad_C<blksizex , blksizey>; \
-	VAR = mvtools_Var##blksizex##x##blksizey##_sse2; \
-	LUMA = mvtools_Luma##blksizex##x##blksizey##_sse2; \
-	BLITLUMA = mvtools_Copy##blksizex##x##blksizey##_sse2; \
-	if (yRatioUV==2) { \
-		BLITCHROMA = mvtools_Copy##blksizex2##x##blksizey2##_sse2; \
-		SADCHROMA = Sad_C<blksizex2 , blksizey2>; \
-	} \
-	else { \
-		BLITCHROMA = mvtools_Copy##blksizex2##x##blksizey##_sse2; \
-		SADCHROMA = Sad_C<blksizex2  , blksizey>; \
-	}
+    if (isse) {
+        if (nBlkSizeX == 4) {
+            SAD = mvtools_pixel_sad_4x4_mmx2;
+            LUMA = mvtools_Luma4x4_sse2;
+            BLITLUMA = mvtools_Copy4x4_sse2;
 
-#define SET_FUNCPTR_C(blksizex, blksizey, blksizex2, blksizey2) \
-	SAD = Sad_C<blksizex , blksizey>; \
-	VAR = Var_C<blksizex , blksizey>; \
-	LUMA = Luma_C<blksizex , blksizey>; \
-	BLITLUMA = Copy_C<blksizex , blksizey>; \
-	if (yRatioUV==2) { \
-		BLITCHROMA = Copy_C<blksizex2 , blksizey2>; \
-		SADCHROMA = Sad_C<blksizex2 , blksizey2>; \
-	} \
-	else { \
-		BLITCHROMA = Copy_C<blksizex2 , blksizey>; \
-		SADCHROMA = Sad_C<blksizex2  , blksizey>; \
-	}
+            if (yRatioUV == 2) {
+                BLITCHROMA = mvtools_Copy2x2_sse2;
+                SADCHROMA = Sad_C<2, 2>;
+            } else {
+                BLITCHROMA = mvtools_Copy2x4_sse2;
+                SADCHROMA = Sad_C<2, 4>;
+            }
+        } else if (nBlkSizeX == 8) {
+            if (nBlkSizeY == 4) {
+                SAD = mvtools_pixel_sad_8x4_mmx2;
+                if (cache64)
+                    SAD = mvtools_pixel_sad_8x4_cache64_mmx2;
 
-//#define NEWBLIT
+                LUMA = mvtools_Luma8x4_sse2;
+                BLITLUMA = mvtools_Copy8x4_sse2;
 
-#ifdef NEWBLIT
-//I suppose it is faster to use MMX than use SSE on a cache line split affected platform if that occurs
-#define SETBLIT16(blksizex, blksizey, type) \
-	type = copy_mc_##blksizex##x##blksizey##_mmx; \
-	if (sse2&&(((!cache64))||(!ssse3))) type = copy_mc_##blksizex##x##blksizey##_sse2; \
-	if (sse3&&(((!cache64))||(!ssse3))) type = copy_mc_##blksizex##x##blksizey##_sse3
-	if (sse2&&(nOverlapX %16 == 0)) type = copy_mc_##blksizex##x##blksizey##_aligned_sse2; \
-#define SETBLITX(blksizex, blksizey, type) \
-	type = copy_mc_##blksizex##x##blksizey##_mmx
-#else
-#define SETBLIT16(blksizex, blksizey, type)
-#define SETBLITX(blksizex, blksizey, type)
-#endif
+                if (yRatioUV == 2) {
+                    BLITCHROMA = mvtools_Copy4x2_sse2;
+                    SADCHROMA = Sad_C<4, 2>;
+                } else {
+                    BLITCHROMA = mvtools_Copy4x4_sse2;
+                    SADCHROMA = mvtools_pixel_sad_4x4_mmx2;
+                }
+            } else if (nBlkSizeY == 8) {
+                SAD = mvtools_pixel_sad_8x8_mmx2;
+                if (cache64)
+                    SAD = mvtools_pixel_sad_8x8_cache64_mmx2;
 
+                LUMA = mvtools_Luma8x8_sse2;
+                BLITLUMA = mvtools_Copy8x8_sse2;
 
-#define SET_FUNCPTR_x264(blksizex, blksizey, type) \
-		type = mvtools_pixel_sad_##blksizex##x##blksizey##_mmx2; \
-		if (sse2) type = mvtools_pixel_sad_##blksizex##x##blksizey##_sse2; \
-		if (sse3) type = mvtools_pixel_sad_##blksizex##x##blksizey##_sse3; \
-		if (ssse3&&cache64) type = mvtools_pixel_sad_##blksizex##x##blksizey##_cache64_ssse3; \
-		if (ssd) type = mvtools_pixel_ssd_##blksizex##x##blksizey##_mmx; \
-		if (satd) type = mvtools_pixel_satd_##blksizex##x##blksizey##_mmx2; \
-		if (satd&&sse2) type = mvtools_pixel_satd_##blksizex##x##blksizey##_sse2; \
-		if (satd&&ssse3) type = mvtools_pixel_satd_##blksizex##x##blksizey##_ssse3;
+                if (yRatioUV == 2) {
+                    BLITCHROMA = mvtools_Copy4x4_sse2;
+                    SADCHROMA = mvtools_pixel_sad_4x4_mmx2;
+                } else {
+                    BLITCHROMA = mvtools_Copy4x8_sse2;
+                    SADCHROMA = mvtools_pixel_sad_4x8_mmx2;
+                }
+            }
+        } else if (nBlkSizeX == 16) {
+            if (nBlkSizeY == 2) {
+                SAD = Sad_C<16, 2>;
+                LUMA = mvtools_Luma16x2_sse2;
+                BLITLUMA = mvtools_Copy16x2_sse2;
+                if (yRatioUV == 2) {
+                    BLITCHROMA = mvtools_Copy8x1_sse2;
+                    SADCHROMA = Sad_C<8, 1>;
+                } else {
+                    BLITCHROMA = mvtools_Copy8x2_sse2;
+                    SADCHROMA = Sad_C<8, 2>;
+                }
+            } else if (nBlkSizeY == 8) {
+                SAD = mvtools_pixel_sad_16x8_sse2;
+                if (sse3)
+                    SAD = mvtools_pixel_sad_16x8_sse3;
+                if (ssse3 && cache64)
+                    SAD = mvtools_pixel_sad_16x8_cache64_ssse3;
 
+                LUMA = mvtools_Luma16x8_sse2;
+                BLITLUMA = mvtools_Copy16x8_sse2;
 
-#define SET_FUNCPTR_x264_mmx(blksizex, blksizey, type) \
-		type = mvtools_pixel_sad_##blksizex##x##blksizey##_mmx2; \
-		if (cache64) type = mvtools_pixel_sad_##blksizex##x##blksizey##_cache64_mmx2; \
-		if (ssd) type = mvtools_pixel_ssd_##blksizex##x##blksizey##_mmx; \
-		if (satd) type = mvtools_pixel_satd_##blksizex##x##blksizey##_mmx2; \
-		if (satd&&sse2) type = mvtools_pixel_satd_##blksizex##x##blksizey##_sse2; \
-		if (satd&&ssse3) type = mvtools_pixel_satd_##blksizex##x##blksizey##_ssse3;
+                if (yRatioUV == 2) {
+                    BLITCHROMA = mvtools_Copy8x4_sse2;
 
-#define SET_FUNCPTR_x264_mmx_4x(blksizey, type) \
-		type = mvtools_pixel_sad_4x##blksizey##_mmx2; \
-		if (ssd) type = mvtools_pixel_ssd_4x##blksizey##_mmx; \
-		if (satd) type = mvtools_pixel_satd_4x##blksizey##_mmx2
+                    SADCHROMA = mvtools_pixel_sad_8x4_mmx2;
+                    if (cache64)
+                        SADCHROMA = mvtools_pixel_sad_8x4_cache64_mmx2;
+                } else {
+                    BLITCHROMA = mvtools_Copy8x8_sse2;
 
-#define SET_FUNCPTR_x264_SATD(blksizex,blksizey) \
-		SATD = mvtools_pixel_satd_##blksizex##x##blksizey##_mmx2; \
-		if (sse2) SATD = mvtools_pixel_satd_##blksizex##x##blksizey##_sse2; \
-		if (ssse3) SATD = mvtools_pixel_satd_##blksizex##x##blksizey##_ssse3
+                    SADCHROMA = mvtools_pixel_sad_8x8_mmx2;
+                    if (cache64)
+                        SADCHROMA = mvtools_pixel_sad_8x8_cache64_mmx2;
+                }
+            } else if (nBlkSizeY == 16) {
+                SAD = mvtools_pixel_sad_16x16_sse2;
+                if (sse3)
+                    SAD = mvtools_pixel_sad_16x16_sse3;
+                if (ssse3 && cache64)
+                    SAD = mvtools_pixel_sad_16x16_cache64_ssse3;
 
+                LUMA = mvtools_Luma16x16_sse2;
+                BLITLUMA = mvtools_Copy16x16_sse2;
+
+                if (yRatioUV == 2) {
+                    BLITCHROMA = mvtools_Copy8x8_sse2;
+
+                    SADCHROMA = mvtools_pixel_sad_8x8_mmx2;
+                    if (cache64)
+                        SADCHROMA = mvtools_pixel_sad_8x8_cache64_mmx2;
+                } else {
+                    BLITCHROMA = mvtools_Copy8x16_sse2;
+
+                    SADCHROMA = mvtools_pixel_sad_8x16_mmx2;
+                    if (cache64)
+                        SADCHROMA = mvtools_pixel_sad_8x16_cache64_mmx2;
+                }
+            }
+        } else if (nBlkSizeX == 32) {
+            if (nBlkSizeY == 16) {
+                SAD = Sad_C<32, 16>;
+                LUMA = mvtools_Luma32x16_sse2;
+                BLITLUMA = mvtools_Copy32x16_sse2;
+
+                if (yRatioUV == 2) {
+                    BLITCHROMA = mvtools_Copy16x8_sse2;
+
+                    SADCHROMA = mvtools_pixel_sad_16x8_sse2;
+                    if (sse3)
+                        SADCHROMA = mvtools_pixel_sad_16x8_sse3;
+                    if (ssse3 && cache64)
+                        SADCHROMA = mvtools_pixel_sad_16x8_cache64_ssse3;
+                } else {
+                    BLITCHROMA = mvtools_Copy16x16_sse2;
+
+                    SADCHROMA = mvtools_pixel_sad_16x16_sse2;
+                    if (sse3)
+                        SADCHROMA = mvtools_pixel_sad_16x16_sse3;
+                    if (ssse3 && cache64)
+                        SADCHROMA = mvtools_pixel_sad_16x16_cache64_ssse3;
+                }
+            } else if (nBlkSizeY == 32) {
+                SAD = Sad_C<32, 32>;
+                LUMA = mvtools_Luma32x32_sse2;
+                BLITLUMA = mvtools_Copy32x32_sse2;
+
+                if (yRatioUV == 2) {
+                    BLITCHROMA = mvtools_Copy16x16_sse2;
+
+                    SADCHROMA = mvtools_pixel_sad_16x16_sse2;
+                    if (sse3)
+                        SADCHROMA = mvtools_pixel_sad_16x16_sse3;
+                    if (ssse3 && cache64)
+                        SADCHROMA = mvtools_pixel_sad_16x16_cache64_ssse3;
+                } else {
+                    BLITCHROMA = mvtools_Copy16x32_sse2;
+                    SADCHROMA = Sad_C<16, 32>;
+                }
+            }
+        }
+    } else { // no isse
+        if (nBlkSizeX == 4) {
+            SAD = Sad_C<4, 4>;
+            LUMA = Luma_C<4, 4>;
+            BLITLUMA = Copy_C<4, 4>;
+
+            if (yRatioUV == 2) {
+                BLITCHROMA = Copy_C<2, 2>;
+                SADCHROMA = Sad_C<2, 2>;
+            } else {
+                BLITCHROMA = Copy_C<2, 4>;
+                SADCHROMA = Sad_C<2, 4>;
+            }
+        } else if (nBlkSizeX == 8) {
+            if (nBlkSizeY == 4) {
+                SAD = Sad_C<8, 4>;
+                LUMA = Luma_C<8, 4>;
+                BLITLUMA = Copy_C<8, 4>;
+
+                if (yRatioUV == 2) {
+                    BLITCHROMA = Copy_C<4, 2>;
+                    SADCHROMA = Sad_C<4, 2>;
+                } else {
+                    BLITCHROMA = Copy_C<4, 4>;
+                    SADCHROMA = Sad_C<4, 4>;
+                }
+            } else if (nBlkSizeY == 8) {
+                SAD = Sad_C<8, 8>;
+                LUMA = Luma_C<8, 8>;
+                BLITLUMA = Copy_C<8, 8>;
+
+                if (yRatioUV == 2) {
+                    BLITCHROMA = Copy_C<4, 4>;
+                    SADCHROMA = Sad_C<4, 4>;
+                } else {
+                    BLITCHROMA = Copy_C<4, 8>;
+                    SADCHROMA = Sad_C<4, 8>;
+                }
+            }
+        } else if (nBlkSizeX == 16) {
+            if (nBlkSizeY == 2) {
+                SAD = Sad_C<16, 2>;
+                LUMA = Luma_C<16, 2>;
+                BLITLUMA = Copy_C<16, 2>;
+
+                if (yRatioUV == 2) {
+                    BLITCHROMA = Copy_C<8, 1>;
+                    SADCHROMA = Sad_C<8, 1>;
+                } else {
+                    BLITCHROMA = Copy_C<8, 2>;
+                    SADCHROMA = Sad_C<8, 2>;
+                }
+            } else if (nBlkSizeY == 8) {
+                SAD = Sad_C<16, 8>;
+                LUMA = Luma_C<16, 8>;
+                BLITLUMA = Copy_C<16, 8>;
+
+                if (yRatioUV == 2) {
+                    BLITCHROMA = Copy_C<8, 4>;
+                    SADCHROMA = Sad_C<8, 4>;
+                } else {
+                    BLITCHROMA = Copy_C<8, 8>;
+                    SADCHROMA = Sad_C<8, 8>;
+                }
+            } else if (nBlkSizeY == 16) {
+                SAD = Sad_C<16, 16>;
+                LUMA = Luma_C<16, 16>;
+                BLITLUMA = Copy_C<16, 16>;
+
+                if (yRatioUV == 2) {
+                    BLITCHROMA = Copy_C<8, 4>;
+                    SADCHROMA = Sad_C<8, 4>;
+                } else {
+                    BLITCHROMA = Copy_C<8, 16>;
+                    SADCHROMA = Sad_C<8, 16>;
+                }
+            }
+        } else if (nBlkSizeX == 32) {
+            if (nBlkSizeY == 16) {
+                SAD = Sad_C<32, 16>;
+                LUMA = Luma_C<32, 16>;
+                BLITLUMA = Copy_C<32, 16>;
+
+                if (yRatioUV == 2) {
+                    BLITCHROMA = Copy_C<16, 8>;
+                    SADCHROMA = Sad_C<16, 8>;
+                } else {
+                    BLITCHROMA = Copy_C<16, 16>;
+                    SADCHROMA = Sad_C<16, 16>;
+                }
+            } else if (nBlkSizeY == 32) {
+                SAD = Sad_C<32, 32>;
+                LUMA = Luma_C<32, 32>;
+                BLITLUMA = Copy_C<32, 32>;
+
+                if (yRatioUV == 2) {
+                    BLITCHROMA = Copy_C<16, 16>;
+                    SADCHROMA = Sad_C<16, 16>;
+                } else {
+                    BLITCHROMA = Copy_C<16, 32>;
+                    SADCHROMA = Sad_C<16, 32>;
+                }
+            }
+        }
+    }
 
 	SATD = SadDummy; //for now disable SATD if default functions are used
-	if ( isse )
-	{
-		switch (nBlkSizeX)
-		{
-		case 16:
-			if (nBlkSizeY==16) {
-				SET_FUNCPTR(16,16,8,8)
-			} else if (nBlkSizeY==8) {
-			    SET_FUNCPTR(16,8,8,4)
-			} else if (nBlkSizeY==2) {
-				SET_FUNCPTR(16,2,8,1)
-				} else if (nBlkSizeY==1){
-					SAD = Sad_C<16,1>;
-					VAR = Var_C<16,1>;;
-					LUMA = Luma_C<16,1>;
-					BLITLUMA = Copy_C<16,1>;
-					if (yRatioUV==2) {
-						//error
-					}
-					else { //yRatioUV==1
-						BLITCHROMA = mvtools_Copy8x1_sse2;
-						SADCHROMA = Sad_C<8,1>;
-					}
-				}
-			break;
-		case 4:
-			SET_FUNCPTR(4,4,2,2)
-				if (yRatioUV==2) {
-					//SADCHROMA = Sad2x2_iSSE_T;
-				}
-				else {
-					//SADCHROMA = Sad2x4_iSSE_T;
-				}
-			break;
-		case 32:
-			if (nBlkSizeY==16) {
-				SET_FUNCPTR(32,16,16,8)
-			}
-			else if (nBlkSizeY==32) {
-				SET_FUNCPTR(32,32,16,16)
-			}
-			break;
-		case 8:
-		default:
-			if (nBlkSizeY == 8) {
-				SET_FUNCPTR(8,8,4,4)
-			} else if (nBlkSizeY == 4) { // 8x4
-				SET_FUNCPTR(8,4,4,2)
-			}
-		}//end switch
-	}//end isse
-	else
-	{
-		switch (nBlkSizeX)
-		{
-		case 16:
-			if (nBlkSizeY==16) {
-				SET_FUNCPTR_C(16, 16, 8, 8)
-			} else if (nBlkSizeY==8) {
-				SET_FUNCPTR_C(16, 8, 8, 4)
-			} else if (nBlkSizeY==2) {
-				SET_FUNCPTR_C(16, 2, 8, 1)
-			}
-			break;
-		case 4:
-			SET_FUNCPTR_C(4, 4, 2, 2)
-			break;
-		case 32:
-			if (nBlkSizeY==16) {
-				SET_FUNCPTR_C(32, 16, 16, 8)
-			}
-			else if (nBlkSizeY==32) {
-				SET_FUNCPTR_C(32, 32, 16, 16)
-			}
-		break;
-		case 8:
-		default:
-			if (nBlkSizeY==8) {
-				SET_FUNCPTR_C(8, 8, 4, 4)
-			}else if (nBlkSizeY==4) {
-				SET_FUNCPTR_C(8, 4, 4, 2)
-			}
-		}
-	}
 
-	if (isse && mmxext) //use new functions from x264
-	{
-		switch (nBlkSizeX)
-		{
-		case 32:
-			if (nBlkSizeY==16) {
-				if (yRatioUV==2) {
-					SET_FUNCPTR_x264(16,8,SADCHROMA);
-					SETBLIT16(16,8,BLITCHROMA);
-				}
-				else {
-					SET_FUNCPTR_x264(16,16,SADCHROMA);
-					SETBLIT16(16,16,BLITCHROMA);
-				}
-			}
-			else if (nBlkSizeY==32) {
-				if (yRatioUV==2) {
-					SET_FUNCPTR_x264(16,16,SADCHROMA);
-					SETBLIT16(16,16,BLITCHROMA);
-				}
-				else {
-					//SET_FUNCPTR_x264(16,32,SADCHROMA); // does not exist
-					SETBLIT16(16,32,BLITCHROMA); // Note: check existing
-				}
-			}
-			break;
-		case 16:
-			if (nBlkSizeY==16) {
-				SET_FUNCPTR_x264(16,16,SAD);
-				SET_FUNCPTR_x264_SATD(16,16);
-				SETBLIT16(16,16,BLITLUMA);
-				if (yRatioUV==2) {
-					SET_FUNCPTR_x264_mmx(8,8, SADCHROMA);
-					SETBLITX(8,8,BLITCHROMA);
-				}
-				else {
-					SET_FUNCPTR_x264_mmx(8,16, SADCHROMA);
-					SETBLITX(8,16,BLITCHROMA);
-				}
-			} else if (nBlkSizeY==8) {
-				SET_FUNCPTR_x264(16,8,SAD);
-				SET_FUNCPTR_x264_SATD(16,8);
-				SETBLIT16(16,8,BLITLUMA);
-				if (yRatioUV==2) {
-					SET_FUNCPTR_x264_mmx(8,4, SADCHROMA);
-					SETBLITX(8,4,BLITCHROMA);
-				}
-				else {
-					SET_FUNCPTR_x264_mmx(8,8, SADCHROMA);
-					SETBLITX(8,8,BLITCHROMA);
-				}
-			} else if (nBlkSizeY==2) {
-			}
-			break;
-		case 4:
-				SET_FUNCPTR_x264_mmx_4x(4, SAD);
-				SATD = mvtools_pixel_satd_4x4_mmx2;
-				SETBLITX(4,4,BLITLUMA);
-				if (yRatioUV==2) {
-					SADCHROMA = Sad_C<2,2>;
-			//		if (sse3)
-			//			SADCHROMA = Sad2x2_iSSE_O; //debug
-				}
-				else {
-					SADCHROMA = Sad_C<2,4>;
-				}
-			break;
-		case 8:
-		default:
-			if (nBlkSizeY == 8) {
-				SET_FUNCPTR_x264_mmx(8,8, SAD);
-				SET_FUNCPTR_x264_SATD(8,8);
-				SETBLITX(8,8,BLITLUMA);
-				if (yRatioUV==2) {
-					SET_FUNCPTR_x264_mmx_4x(4,SADCHROMA);
-					SETBLITX(4,4,BLITCHROMA);
-				}
-				else {
-					SET_FUNCPTR_x264_mmx_4x(8,SADCHROMA);
-					SETBLITX(4,8,BLITCHROMA);
-				}
-			} else if (nBlkSizeY == 4) { // 8x4
-				SET_FUNCPTR_x264_mmx(8,4, SAD);
-				SET_FUNCPTR_x264_SATD(8,4);
-				SETBLITX(8,4,BLITLUMA);
-				if (yRatioUV==2) {	//for making it obvious,that yv12 is empty
-					SETBLITX(4,2,BLITCHROMA);
-				}
-				else {
-					SET_FUNCPTR_x264_mmx_4x(4,SADCHROMA);
-					SETBLITX(4,4,BLITCHROMA);
-				}
-			}
-		}//end switch
-	}
 	if ( !chroma )
 		SADCHROMA = SadDummy;
-
-// for debug:
-//         SAD = mvtools_pixel_sad_4x4_mmx2;
-//         VAR = Var_C<8>;
-//         LUMA = Luma_C<8>;
-//         BLITLUMA = Copy_C<16,16>;
-//		 BLITCHROMA = Copy_C<8,8>; // idem
-//		 SADCHROMA = mvtools_pixel_sad_8x8_mmx2;
 
 
 #ifdef ALIGN_SOURCEBLOCK
