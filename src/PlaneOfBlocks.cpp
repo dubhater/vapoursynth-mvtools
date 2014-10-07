@@ -90,7 +90,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 
                 if (yRatioUV == 2) {
                     BLITCHROMA = mvtools_Copy4x2_sse2;
-                    SADCHROMA = Sad_C<4, 2>;
+                    SADCHROMA = mvtools_sad_4x2_sse2;
                 } else {
                     BLITCHROMA = mvtools_Copy4x4_sse2;
                     SADCHROMA = mvtools_pixel_sad_4x4_mmx2;
@@ -113,15 +113,15 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
             }
         } else if (nBlkSizeX == 16) {
             if (nBlkSizeY == 2) {
-                SAD = Sad_C<16, 2>;
+                SAD = mvtools_sad_16x2_sse2;
                 LUMA = mvtools_Luma16x2_sse2;
                 BLITLUMA = mvtools_Copy16x2_sse2;
                 if (yRatioUV == 2) {
                     BLITCHROMA = mvtools_Copy8x1_sse2;
-                    SADCHROMA = Sad_C<8, 1>;
+                    SADCHROMA = mvtools_sad_8x1_sse2;
                 } else {
                     BLITCHROMA = mvtools_Copy8x2_sse2;
-                    SADCHROMA = Sad_C<8, 2>;
+                    SADCHROMA = mvtools_sad_8x2_sse2;
                 }
             } else if (nBlkSizeY == 8) {
                 SAD = mvtools_pixel_sad_16x8_sse2;
@@ -170,7 +170,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
             }
         } else if (nBlkSizeX == 32) {
             if (nBlkSizeY == 16) {
-                SAD = Sad_C<32, 16>;
+                SAD = mvtools_sad_32x16_sse2;
                 LUMA = mvtools_Luma32x16_sse2;
                 BLITLUMA = mvtools_Copy32x16_sse2;
 
@@ -192,7 +192,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
                         SADCHROMA = mvtools_pixel_sad_16x16_cache64_ssse3;
                 }
             } else if (nBlkSizeY == 32) {
-                SAD = Sad_C<32, 32>;
+                SAD = mvtools_sad_32x32_sse2;
                 LUMA = mvtools_Luma32x32_sse2;
                 BLITLUMA = mvtools_Copy32x32_sse2;
 
@@ -206,7 +206,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
                         SADCHROMA = mvtools_pixel_sad_16x16_cache64_ssse3;
                 } else {
                     BLITCHROMA = mvtools_Copy16x32_sse2;
-                    SADCHROMA = Sad_C<16, 32>;
+                    SADCHROMA = mvtools_sad_16x32_sse2;
                 }
             }
         }

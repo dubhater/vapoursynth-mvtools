@@ -12,6 +12,7 @@ BUILT_SOURCES = src/asm/const-a.o \
 				src/asm/Interpolation.o \
 				src/asm/MVDegrains.o \
 				src/asm/Overlap.o \
+				src/asm/SAD.o \
 				src/asm/Variance.o
 CLEANFILES = $(BUILT_SOURCES)
 
@@ -59,6 +60,7 @@ libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/asm/Interpolation.asm \
 						src/asm/MVDegrains.asm \
 						src/asm/Overlap.asm \
+						src/asm/SAD.asm \
 						src/asm/Variance.asm
 
 libmvtools_la_LDFLAGS = -no-undefined -avoid-version \
@@ -70,6 +72,7 @@ libmvtools_la_LDFLAGS = -no-undefined -avoid-version \
 						-Xlinker src/asm/Interpolation.o \
 						-Xlinker src/asm/MVDegrains.o \
 						-Xlinker src/asm/Overlap.o \
+						-Xlinker src/asm/SAD.o \
 						-Xlinker src/asm/Variance.o
 
 libmvtools_la_DEPENDENCIES = $(BUILT_SOURCES)

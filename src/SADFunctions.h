@@ -94,6 +94,15 @@ inline unsigned int Sad2x4_C(const uint8_t *pSrc, const uint8_t *pRef,int nSrcPi
 */
 #define MK_CFUNC(functionname) extern "C" unsigned int  functionname (const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch)
 
+// From SAD.asm
+MK_CFUNC(mvtools_sad_4x2_sse2);
+MK_CFUNC(mvtools_sad_8x1_sse2);
+MK_CFUNC(mvtools_sad_8x2_sse2);
+MK_CFUNC(mvtools_sad_16x2_sse2);
+MK_CFUNC(mvtools_sad_16x32_sse2);
+MK_CFUNC(mvtools_sad_32x16_sse2);
+MK_CFUNC(mvtools_sad_32x32_sse2);
+
 /* included from x264 */
 #define SAD_x264(blsizex, blsizey) extern "C" unsigned int  mvtools_pixel_sad_##blsizex##x##blsizey##_mmx2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch)
 //mvtools_pixel_sad_16x16_mmx2(   x,y can be: 16 8 4
