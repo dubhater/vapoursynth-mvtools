@@ -165,9 +165,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
                 } else {
                     BLITCHROMA = mvtools_Copy8x16_sse2;
 
-                    SADCHROMA = mvtools_pixel_sad_8x16_mmx2;
-                    if (cache64)
-                        SADCHROMA = mvtools_pixel_sad_8x16_cache64_mmx2;
+                    SADCHROMA = mvtools_pixel_sad_8x16_sse2;
                 }
             }
         } else if (nBlkSizeX == 32) {
