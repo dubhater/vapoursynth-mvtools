@@ -205,9 +205,6 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
 
     d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
 
-    d.yRatioUV = 2; //(vi.IsYV12()) ? 2 : 1;
-    d.xRatioUV = 2; // for YV12 and YUY2, really do not used and assumed to 2
-
     
     d.node = vsapi->propGetNode(in, "clip", 0, 0);
     d.vi = *vsapi->getVideoInfo(d.node);
@@ -215,11 +212,15 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
     d.nWidth = d.vi.width;
     d.nHeight = d.vi.height;
 
-    if (!isConstantFormat(&d.vi) || d.vi.format->id != pfYUV420P8) {
-        vsapi->setError(out, "Super: input clip must be YUV420P8 with constant dimensions.");
+    int id = d.vi.format->id;
+    if (!isConstantFormat(&d.vi) || (id != pfYUV420P8 && id != pfYUV422P8)) {
+        vsapi->setError(out, "Super: input clip must be YUV420P8 or YUV422P8, with constant dimensions.");
         vsapi->freeNode(d.node);
         return;
     }
+
+    d.yRatioUV = 1 << d.vi.format->subSamplingH;
+    d.xRatioUV = 2; // for YV12 and YUY2, really do not used and assumed to 2
 
     int nLevelsMax = 0;
     while (PlaneHeightLuma(d.vi.height, nLevelsMax, d.yRatioUV, d.nVPad) >= d.yRatioUV*2 &&

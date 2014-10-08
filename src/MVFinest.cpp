@@ -176,8 +176,9 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
     d.super = vsapi->propGetNode(in, "super", 0, 0);
     d.vi = *vsapi->getVideoInfo(d.super);
 
-    if (!isConstantFormat(&d.vi) || d.vi.format->id != pfYUV420P8) {
-        vsapi->setError(out, "Finest: input clip must be YUV420P8 with constant dimensions.");
+    int id = d.vi.format->id;
+    if (!isConstantFormat(&d.vi) || (id != pfYUV420P8 && id != pfYUV422P8)) {
+        vsapi->setError(out, "Finest: input clip must be YUV420P8 or YUV422P8, with constant dimensions.");
         vsapi->freeNode(d.super);
         return;
     }
@@ -210,7 +211,7 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
     int nSuperWidth = d.vi.width;
     d.nWidth = nSuperWidth - 2 * d.nSuperHPad;
 
-    d.yRatioUV = 2; //vi.IsYUY2() ? 1 : 2;
+    d.yRatioUV = 1 << d.vi.format->subSamplingH;
 
     d.vi.width = (d.nWidth + 2 * d.nSuperHPad) * d.nSuperPel;
     d.vi.height = (d.nHeight + 2 * d.nSuperVPad) * d.nSuperPel;

@@ -382,9 +382,6 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         return;
     }
 
-    d.analysisData.yRatioUV = 2; //(vi.IsYV12()) ? 2 : 1;
-    d.analysisData.xRatioUV = 2; // for YV12 and YUY2, really do not used and assumed to 2
-
 
     d.analysisData.nBlkSizeX = d.blksize;
     d.analysisData.nBlkSizeY = d.blksizev;
@@ -469,11 +466,15 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.node = vsapi->propGetNode(in, "super", 0, 0);
     d.vi = *vsapi->getVideoInfo(d.node);
 
-    if (!isConstantFormat(&d.vi) || d.vi.format->id != pfYUV420P8) {
-        vsapi->setError(out, "Analyse: Input clip must be YUV420P8 with constant format and dimensions.");
+    int id = d.vi.format->id;
+    if (!isConstantFormat(&d.vi) || (id != pfYUV420P8 && id != pfYUV422P8)) {
+        vsapi->setError(out, "Analyse: Input clip must be YUV420P8 or YUV422P8, with constant format and dimensions.");
         vsapi->freeNode(d.node);
         return;
     }
+
+    d.analysisData.yRatioUV = 1 << d.vi.format->subSamplingH;
+    d.analysisData.xRatioUV = 2; // for YV12 and YUY2, really do not used and assumed to 2
 
 
     char errorMsg[1024];

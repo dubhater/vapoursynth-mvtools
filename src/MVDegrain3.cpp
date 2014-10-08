@@ -1702,8 +1702,9 @@ static void VS_CC mvdegrain3Create(const VSMap *in, VSMap *out, void *userData, 
         return;
     }
 
-    if (!isConstantFormat(d.vi) || d.vi->format->id != pfYUV420P8) {
-        vsapi->setError(out, "Degrain3: input clip must be YUV420P8 with constant dimensions.");
+    int id = d.vi->format->id;
+    if (!isConstantFormat(d.vi) || (id != pfYUV420P8 && id != pfYUV422P8)) {
+        vsapi->setError(out, "Degrain3: input clip must be YUV420P8 or YUV422P8, with constant dimensions.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);

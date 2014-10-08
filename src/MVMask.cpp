@@ -311,17 +311,18 @@ static void VS_CC mvmaskCreate(const VSMap *in, VSMap *out, void *userData, VSCo
     d.nWidthB = d.bleh->nBlkX * (d.bleh->nBlkSizeX - d.bleh->nOverlapX) + d.bleh->nOverlapX;
     d.nHeightB = d.bleh->nBlkY * (d.bleh->nBlkSizeY - d.bleh->nOverlapY) + d.bleh->nOverlapY;
 
-    d.nHeightUV = d.bleh->nHeight / 2; //yRatioUV;
+    d.nHeightUV = d.bleh->nHeight / d.bleh->yRatioUV;
     d.nWidthUV = d.bleh->nWidth / 2;// for YV12
-    d.nHeightBUV = d.nHeightB / 2; //yRatioUV;
+    d.nHeightBUV = d.nHeightB / d.bleh->yRatioUV;
     d.nWidthBUV = d.nWidthB / 2;
 
 
     d.node = vsapi->propGetNode(in, "clip", 0, NULL);
     d.vi = vsapi->getVideoInfo(d.node);
 
-    if (!isConstantFormat(d.vi) || d.vi->format->id != pfYUV420P8) {
-        vsapi->setError(out, "Mask: input clip must be YUV420P8 with constant dimensions.");
+    int id = d.vi->format->id;
+    if (!isConstantFormat(d.vi) || (id != pfYUV420P8 && id != pfYUV422P8)) {
+        vsapi->setError(out, "Mask: input clip must be YUV420P8 or YUV422P8, with constant dimensions.");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.vectors);
         delete d.mvClip;
