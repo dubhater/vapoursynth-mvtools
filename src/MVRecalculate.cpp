@@ -354,12 +354,6 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     }
 
 
-   if (d.chroma) // normalize threshold to block size
-      d.thSAD = d.thSAD * (d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY) / (8 * 8) * (1 + d.analysisData.yRatioUV) / d.analysisData.yRatioUV;
-   else
-      d.thSAD = d.thSAD * (d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY) / (8 * 8);
-
-
     if (d.overlap < 0 || d.overlap >= d.blksize ||
         d.overlapv < 0 || d.overlapv >= d.blksizev) {
         vsapi->setError(out, "Recalculate: overlap must be less than blksize, and overlapv must be less than blksizev.");
@@ -462,6 +456,12 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
    d.analysisData.nDeltaFrame = pAnalyseFilter->GetDeltaFrame();
     d.analysisData.isBackward = pAnalyseFilter->IsBackward();
     vsapi->freeFrame(evil);
+
+
+   if (d.chroma) // normalize threshold to block size
+      d.thSAD = d.thSAD * (d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY) / (8 * 8) * (1 + d.analysisData.yRatioUV) / d.analysisData.yRatioUV;
+   else
+      d.thSAD = d.thSAD * (d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY) / (8 * 8);
 
 
     d.analysisData.nFlags = 0;
