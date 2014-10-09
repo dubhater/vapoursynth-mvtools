@@ -78,7 +78,8 @@ void GroupOfPlanes::SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF
                               SearchType searchType, int nSearchParam, int nPelSearch, int nLambda,
                               int lsad, int pnew, int plevel, bool global, int flags,
 							  int *out, short *outfilebuf, int fieldShift, DCTClass * _DCT,
-							  int pzero, int pglobal, int badSAD, int badrange, bool meander, int *vecPrev, bool tryMany)
+							  int pzero, int pglobal, int badSAD, int badrange, bool meander, int *vecPrev, bool tryMany,
+                              SearchType coarseSearchType)
 {
 	int i;
 
@@ -106,7 +107,7 @@ void GroupOfPlanes::SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF
    int meanLumaChange = 0;
 
 	// Search the motion vectors, for the low details interpolations first
-	SearchType searchTypeSmallest = (nLevelCount == 1 || searchType == HSEARCH || searchType == VSEARCH) ? searchType : EXHAUSTIVE; // full search for smallest coarse plane
+	SearchType searchTypeSmallest = (nLevelCount == 1 || searchType == HSEARCH || searchType == VSEARCH) ? searchType : coarseSearchType; // full search for smallest coarse plane
 	int nSearchParamSmallest = (nLevelCount == 1) ? nPelSearch : nSearchParam;
     bool tryManyLevel = tryMany && nLevelCount>1;
    planes[nLevelCount - 1]->SearchMVs(pSrcGOF->GetFrame(nLevelCount-1),
@@ -121,7 +122,7 @@ void GroupOfPlanes::SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF
 
 	for ( i = nLevelCount - 2; i >= 0; i-- )
 	{
-	SearchType searchTypeLevel = (i==0 || searchType == HSEARCH || searchType == VSEARCH) ? searchType : EXHAUSTIVE; // full search for coarse planes
+	SearchType searchTypeLevel = (i==0 || searchType == HSEARCH || searchType == VSEARCH) ? searchType : coarseSearchType; // full search for coarse planes
 	    int nSearchParamLevel = (i==0) ? nPelSearch : nSearchParam; // special case for finest level
 		if (global)
 		{

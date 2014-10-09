@@ -30,6 +30,8 @@ typedef struct {
     /*! \brief search type chosen for refinement in the EPZ */
     SearchType searchType;
 
+    SearchType searchTypeCoarse;
+
     /*! \brief additionnal parameter for this search */
     int nSearchParam; // usually search radius
 
@@ -64,6 +66,7 @@ typedef struct {
     int blksizev;
     int levels;
     int search;
+    int search_coarse;
     int searchparam;
     int isb;
     int chroma;
@@ -232,7 +235,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             }
 
 
-            vectorFields->SearchMVs(pSrcGOF, pRefGOF, d->searchType, d->nSearchParam, d->nPelSearch, d->nLambda, d->lsad, d->pnew, d->plevel, d->global, d->analysisData.nFlags, reinterpret_cast<int*>(pDst), NULL, fieldShift, DCTc, d->pzero, d->pglobal, d->badSAD, d->badrange, d->meander, NULL, d->tryMany);
+            vectorFields->SearchMVs(pSrcGOF, pRefGOF, d->searchType, d->nSearchParam, d->nPelSearch, d->nLambda, d->lsad, d->pnew, d->plevel, d->global, d->analysisData.nFlags, reinterpret_cast<int*>(pDst), NULL, fieldShift, DCTc, d->pzero, d->pglobal, d->badSAD, d->badrange, d->meander, NULL, d->tryMany, d->coarseSearchType);
 
             if (d->divideExtra) {
                 // make extra level with divided sublocks with median (not estimated) motion
@@ -291,6 +294,10 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.search = vsapi->propGetInt(in, "search", 0, &err);
     if (err)
         d.search = 4;
+
+    d.search_coarse = vsapi->propGetInt(in, "search_coarse", 0, &err);
+    if (err)
+        d.search_coarse = 3;
 
     d.searchparam = vsapi->propGetInt(in, "searchparam", 0, &err);
     if (err)
@@ -377,6 +384,11 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         return;
     }
 
+    if (d.search_coarse < 0 || d.search_coarse > 7) {
+        vsapi->setError(out, "Analyse: search_coarse must be between 0 and 7 (inclusive).");
+        return;
+    }
+
     if (d.divideExtra < 0 || d.divideExtra > 2) {
         vsapi->setError(out, "Analyse: divide must be between 0 and 2 (inclusive).");
         return;
@@ -434,6 +446,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     SearchType searchTypes[] = { ONETIME, NSTEP, LOGARITHMIC, EXHAUSTIVE, HEX2SEARCH, UMHSEARCH, HSEARCH, VSEARCH };
     d.searchType = searchTypes[d.search];
+    d.searchTypeCoarse = searchTypes[d.search_coarse];
 
     if (d.searchType == NSTEP)
         d.nSearchParam = ( d.searchparam < 0 ) ? 0 : d.searchparam;
@@ -634,5 +647,6 @@ void mvanalyseRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "trymany:int:opt;"
                  "fields:int:opt;"
                  "tff:int:opt;"
+                 "search_coarse:int:opt;"
                  , mvanalyseCreate, 0, plugin);
 }

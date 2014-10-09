@@ -39,7 +39,7 @@ public :
 	~GroupOfPlanes();
 	void SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
                   SearchType searchType, int nSearchParam, int _PelSearch, int _nLambda, int _lsad, int _pnew, int _plevel, bool _global,
-                  int flags, int *out, short * outfilebuf, int fieldShift, DCTClass * DCT, int _pzero, int _pglobal, int badSAD, int badrange, bool meander, int *vecPrev, bool tryMany);
+                  int flags, int *out, short * outfilebuf, int fieldShift, DCTClass * DCT, int _pzero, int _pglobal, int badSAD, int badrange, bool meander, int *vecPrev, bool tryMany, SearchType coarseSearchType);
 	void WriteDefaultToArray(int *array);
 	int GetArraySize();
     void ExtraDivide(int *out, int flags);
