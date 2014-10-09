@@ -14,7 +14,7 @@ Differences
 
     * Parameters are all lowercase now.
 
-    * YUY2 is not supported, only YV12.
+    * YUY2 is not supported, only YV12 and YV16 (named YUV420P8 and YUV422P8 in VapourSynth).
 
     * The audio is definitely not killed.
 
