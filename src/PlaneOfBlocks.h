@@ -296,22 +296,24 @@ class PlaneOfBlocks {
 			 (( vx != predictor.x ) || ( vy != predictor.y )) &&
 			 (( vx != globalMVPredictor.x ) || ( vy != globalMVPredictor.y )) &&
 #endif
-			 IsVectorOK(vx, vy) )
+            IsVectorOK(vx, vy))
 		{
-			int saduv = (chroma) ? SADCHROMA(pSrc[1], nSrcPitch[1], GetRefBlockU(vx, vy), nRefPitch[1])
-            + SADCHROMA(pSrc[2], nSrcPitch[2], GetRefBlockV(vx, vy), nRefPitch[2]) : 0;
-			int sad = LumaSAD(GetRefBlock(vx, vy));
-            sad += saduv;
-			int cost = sad + MotionDistorsion(vx, vy);
-//			int cost = sad + sad*MotionDistorsion(vx, vy)/(nBlkSizeX*nBlkSizeY*4);
-//        if (sad>bigSAD) { DebugPrintf("%d %d %d %d %d %d", blkIdx, vx, vy, nMinCost, cost, sad);}
-			if ( cost  < nMinCost )
-			{
-				bestMV.x = vx;
-				bestMV.y = vy;
-				nMinCost = cost;
-				bestMV.sad = sad;
-			}
+			int cost=MotionDistorsion(vx, vy);
+			if(cost>=nMinCost) return;
+
+			int sad=LumaSAD(GetRefBlock(vx, vy));
+			cost+=sad;
+			if(cost>=nMinCost) return;
+
+            int saduv = (chroma) ? SADCHROMA(pSrc[1], nSrcPitch[1], GetRefBlockU(vx, vy), nRefPitch[1])
+                    + SADCHROMA(pSrc[2], nSrcPitch[2], GetRefBlockV(vx, vy), nRefPitch[2]) : 0;
+            cost += saduv;
+            if(cost>=nMinCost) return;
+
+            bestMV.x = vx;
+            bestMV.y = vy;
+            nMinCost = cost;
+            bestMV.sad = sad+saduv;
 		}
 	}
 
@@ -326,22 +328,22 @@ class PlaneOfBlocks {
 #endif
 			 IsVectorOK(vx, vy) )
 		{
-			int saduv =
-			!(chroma) ? 0:
-			SADCHROMA(pSrc[1], nSrcPitch[1], GetRefBlockU(vx, vy), nRefPitch[1])
-            + SADCHROMA(pSrc[2], nSrcPitch[2], GetRefBlockV(vx, vy), nRefPitch[2]);
-			int sad = LumaSAD(GetRefBlock(vx, vy));
-            sad += saduv;
-			int cost = sad + MotionDistorsion(vx, vy)+ ((penaltyNew*sad)>>8); //v2
-//			int cost = sad + sad*MotionDistorsion(vx, vy)/(nBlkSizeX*nBlkSizeY*4);
-//        if (sad>bigSAD) { DebugPrintf("%d %d %d %d %d %d", blkIdx, vx, vy, nMinCost, cost, sad);}
-			if ( cost  < nMinCost )
-			{
-				bestMV.x = vx;
-				bestMV.y = vy;
-				nMinCost = cost;
-				bestMV.sad = sad;
-			}
+			int cost=MotionDistorsion(vx, vy);
+			if(cost>=nMinCost) return;
+
+			int sad=LumaSAD(GetRefBlock(vx, vy));
+			cost+=sad+((penaltyNew*sad)>>8);
+			if(cost>=nMinCost) return;
+
+            int saduv = (chroma) ? SADCHROMA(pSrc[1], nSrcPitch[1], GetRefBlockU(vx, vy), nRefPitch[1])
+                    + SADCHROMA(pSrc[2], nSrcPitch[2], GetRefBlockV(vx, vy), nRefPitch[2]) : 0;
+            cost += saduv+((penaltyNew*saduv)>>8);
+            if(cost>=nMinCost) return;
+
+            bestMV.x = vx;
+            bestMV.y = vy;
+            nMinCost = cost;
+            bestMV.sad = sad+saduv;
 		}
 	}
 
@@ -356,23 +358,23 @@ class PlaneOfBlocks {
 #endif
 			IsVectorOK(vx, vy) )
 		{
-			int saduv =
-			!(chroma) ? 0:
-			SADCHROMA(pSrc[1], nSrcPitch[1], GetRefBlockU(vx, vy), nRefPitch[1])
-            + SADCHROMA(pSrc[2], nSrcPitch[2], GetRefBlockV(vx, vy), nRefPitch[2]);
-			int sad = LumaSAD(GetRefBlock(vx, vy));
-			sad += saduv;
-			int cost = sad + MotionDistorsion(vx, vy) + ((penaltyNew*sad)>>8); // v1.5.8
-//			if (sad > LSAD/4) DebugPrintf("%d %d %d %d %d %d %d", blkIdx, vx, vy, val, nMinCost, cost, sad);
-//			int cost = sad + sad*MotionDistorsion(vx, vy)/(nBlkSizeX*nBlkSizeY*4) + ((penaltyNew*sad)>>8); // v1.5.8
-			if ( cost  < nMinCost )
-			{
-				bestMV.x = vx;
-				bestMV.y = vy;
-				bestMV.sad = sad;
-				nMinCost = cost;
-				*dir = val;
-			}
+			int cost=MotionDistorsion(vx, vy);
+			if(cost>=nMinCost) return;
+
+			int sad=LumaSAD(GetRefBlock(vx, vy));
+			cost+=sad+((penaltyNew*sad)>>8);
+			if(cost>=nMinCost) return;
+
+            int saduv = (chroma) ? SADCHROMA(pSrc[1], nSrcPitch[1], GetRefBlockU(vx, vy), nRefPitch[1])
+                    + SADCHROMA(pSrc[2], nSrcPitch[2], GetRefBlockV(vx, vy), nRefPitch[2]) : 0;
+            cost += saduv+((penaltyNew*saduv)>>8);
+            if(cost>=nMinCost) return;
+
+            bestMV.x = vx;
+            bestMV.y = vy;
+            nMinCost = cost;
+            bestMV.sad = sad+saduv;
+            *dir = val;
 		}
 	}
 
@@ -387,19 +389,21 @@ class PlaneOfBlocks {
 #endif
 			IsVectorOK(vx, vy) )
 		{
-			int saduv = (chroma) ? SADCHROMA(pSrc[1], nSrcPitch[1], GetRefBlockU(vx, vy), nRefPitch[1])
-            + SADCHROMA(pSrc[2], nSrcPitch[2], GetRefBlockV(vx, vy), nRefPitch[2]) : 0;
-			int sad = LumaSAD(GetRefBlock(vx, vy));
-			sad += saduv;
-			int cost = sad + MotionDistorsion(vx, vy) + ((penaltyNew*sad)>>8); // v1.5.8
-//			if (sad > LSAD/4) DebugPrintf("%d %d %d %d %d %d %d", blkIdx, vx, vy, val, nMinCost, cost, sad);
-//			int cost = sad + sad*MotionDistorsion(vx, vy)/(nBlkSizeX*nBlkSizeY*4) + ((penaltyNew*sad)>>8); // v1.5.8
-			if ( cost  < nMinCost )
-			{
-				bestMV.sad = sad;
-				nMinCost = cost;
-				*dir = val;
-			}
+			int cost=MotionDistorsion(vx, vy);
+			if(cost>=nMinCost) return;
+
+			int sad=LumaSAD(GetRefBlock(vx, vy));
+			cost+=sad+((penaltyNew*sad)>>8);
+			if(cost>=nMinCost) return;
+
+            int saduv = (chroma) ? SADCHROMA(pSrc[1], nSrcPitch[1], GetRefBlockU(vx, vy), nRefPitch[1])
+                    + SADCHROMA(pSrc[2], nSrcPitch[2], GetRefBlockV(vx, vy), nRefPitch[2]) : 0;
+            cost += saduv+((penaltyNew*saduv)>>8);
+            if(cost>=nMinCost) return;
+
+            nMinCost = cost;
+            bestMV.sad = sad+saduv;
+            *dir = val;
 		}
 	}
 
