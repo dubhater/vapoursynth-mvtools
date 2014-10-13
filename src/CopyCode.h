@@ -8,10 +8,6 @@ inline void BitBlt(unsigned char* dstp, int dst_pitch, const unsigned char* srcp
     vs_bitblt(dstp, dst_pitch, srcp, src_pitch, row_size, height);
 }
 
-#if 0
-void asm_BitBlt_ISSE(unsigned char* dstp, int dst_pitch, const unsigned char* srcp, int src_pitch, int row_size, int height);
-void memcpy_amd(void *dest, const void *src, size_t n);
-#endif
 void MemZoneSet(unsigned char *ptr, unsigned char value, int width,
 				int height, int offsetX, int offsetY, int pitch);
 
