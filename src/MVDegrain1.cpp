@@ -26,6 +26,7 @@
 #include <VSHelper.h>
 
 #include "MVDegrain1.h"
+#include "MVDegrains.h"
 #include "MVInterface.h"
 #include "CopyCode.h"
 #include "Overlap.h"
@@ -39,11 +40,9 @@ typedef struct {
     VSNodeRef *mvbw;
     VSNodeRef *mvfw;
 
-    int thSAD;
-    int thSADC;
+    int thSAD[3];
     int YUVplanes;
-    int nLimit;
-    int nLimitC;
+    int nLimit[3];
     int nSCD1;
     int nSCD2;
     int isse;
@@ -61,16 +60,37 @@ typedef struct {
 
     int dstShortPitch;
 
-    OverlapsFunction *OVERSLUMA;
-    OverlapsFunction *OVERSCHROMA;
-    Denoise1Function *DEGRAINLUMA;
-    Denoise1Function *DEGRAINCHROMA;
+    OverlapsFunction OVERS[3];
+    Denoise1Function DEGRAIN[3];
+
+    bool process[3];
+
+    int xSubUV;
+    int ySubUV;
+
+    int nWidth[3];
+    int nHeight[3];
+    int nOverlapX[3];
+    int nOverlapY[3];
+    int nBlkSizeX[3];
+    int nBlkSizeY[3];
+    int nWidth_B[3];
+    int nHeight_B[3];
 } MVDegrain1Data;
 
 
 static void VS_CC mvdegrain1Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
     MVDegrain1Data *d = (MVDegrain1Data *) * instanceData;
     vsapi->setVideoInfo(d->vi, 1, node);
+}
+
+
+static inline void normaliseWeights(int &WSrc, int &WRefB, int &WRefF) {
+    WSrc = 256;
+    int WSum = WRefB + WRefF + WSrc + 1;
+    WRefB = WRefB * 256 / WSum; // normalise weights to 256
+    WRefF = WRefF * 256 / WSum;
+    WSrc = 256 - WRefB - WRefF;
 }
 
 
@@ -105,7 +125,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
         int tmpPitch = d->bleh->nBlkSizeX;
         int WSrc, WRefB, WRefF;
         unsigned short *pDstShort;
-        int nLogPel = (d->bleh->nPel==4) ? 2 : (d->bleh->nPel==2) ? 1 : 0;
+        int nLogPel = (d->bleh->nPel == 4) ? 2 : (d->bleh->nPel == 2) ? 1 : 0;
         // nLogPel=0 for nPel=1, 1 for nPel=2, 2 for nPel=4, i.e. (x*nPel) = (x<<nLogPel)
 
         const VSFrameRef *mvF = vsapi->getFrameFilter(n, d->mvfw, frameCtx);
@@ -135,7 +155,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
             refB = vsapi->getFrameFilter(n + offB, d->super, frameCtx);
         }
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < d->vi->format->numPlanes; i++) {
             pDst[i] = vsapi->getWritePtr(dst, i);
             nDstPitches[i] = vsapi->getStride(dst, i);
             pSrc[i] = vsapi->getReadPtr(src, i);
@@ -150,48 +170,42 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
             }
         }
 
-        const int nWidth = d->bleh->nWidth;
-        const int nHeight = d->bleh->nHeight;
+        const int xSubUV = d->xSubUV;
+        const int ySubUV = d->ySubUV;
         const int yRatioUV = d->bleh->yRatioUV;
-        const int nOverlapX = d->bleh->nOverlapX;
-        const int nOverlapY = d->bleh->nOverlapY;
-        const int nBlkSizeX = d->bleh->nBlkSizeX;
-        const int nBlkSizeY = d->bleh->nBlkSizeY;
         const int nBlkX = d->bleh->nBlkX;
         const int nBlkY = d->bleh->nBlkY;
         const int isse = d->isse;
-        const int thSAD = d->thSAD;
-        const int thSADC = d->thSADC;
         const int YUVplanes = d->YUVplanes;
         const int dstShortPitch = d->dstShortPitch;
-        const int nLimit = d->nLimit;
-        const int nLimitC = d->nLimitC;
-        const int nSuperModeYUV = d->nSuperModeYUV;
+        const int *nWidth = d->nWidth;
+        const int *nHeight = d->nHeight;
+        const int *nOverlapX = d->nOverlapX;
+        const int *nOverlapY = d->nOverlapY;
+        const int *nBlkSizeX = d->nBlkSizeX;
+        const int *nBlkSizeY = d->nBlkSizeY;
+        const int *nWidth_B = d->nWidth_B;
+        const int *nHeight_B = d->nHeight_B;
+        const int *thSAD = d->thSAD;
+        const int *nLimit = d->nLimit;
 
-        int ySubUV = (yRatioUV == 2) ? 1 : 0;
 
-
-        MVGroupOfFrames *pRefBGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth, nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, isse, yRatioUV);
-        MVGroupOfFrames *pRefFGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth, nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, isse, yRatioUV);
+        MVGroupOfFrames *pRefBGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, isse, yRatioUV);
+        MVGroupOfFrames *pRefFGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, isse, yRatioUV);
 
 
         short *winOver;
-        short *winOverUV;
 
-        OverlapWindows *OverWins = NULL;
-        OverlapWindows *OverWinsUV = NULL;
+        OverlapWindows *OverWins[3] = { NULL, NULL, NULL };
         unsigned short *DstShort = NULL;
-        if (nOverlapX > 0 || nOverlapY > 0)
-        {
-            OverWins = new OverlapWindows(nBlkSizeX, nBlkSizeY, nOverlapX, nOverlapY);
-            OverWinsUV = new OverlapWindows(nBlkSizeX / 2, nBlkSizeY / yRatioUV, nOverlapX / 2, nOverlapY / yRatioUV);
-            DstShort = new unsigned short[dstShortPitch * nHeight];
+        if (nOverlapX[0] > 0 || nOverlapY[0] > 0) {
+            OverWins[0] = new OverlapWindows(nBlkSizeX[0], nBlkSizeY[0], nOverlapX[0], nOverlapY[0]);
+            OverWins[1] = new OverlapWindows(nBlkSizeX[1], nBlkSizeY[1], nOverlapX[1], nOverlapY[1]);
+            OverWins[2] = OverWins[1];
+            DstShort = new unsigned short[dstShortPitch * nHeight[0]];
         }
 
         uint8_t *tmpBlock = new uint8_t[32*32];
-
-        int nWidth_B = nBlkX * (nBlkSizeX - nOverlapX) + nOverlapX;
-        int nHeight_B = nBlkY * (nBlkSizeY - nOverlapY) + nOverlapY;
 
 
         MVPlane *pPlanesB[3] = { };
@@ -226,487 +240,107 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
         pSrcCur[2] = pSrc[2];
         // -----------------------------------------------------------------------------
 
-        // FIXME: duplicating Huge Chuncks of Code is a bad idea.
-        // LUMA plane Y
+        for (int plane = 0; plane < d->vi->format->numPlanes; plane++) {
+            if (!d->process[plane]) {
+                memcpy(pDstCur[plane], pSrcCur[plane], nSrcPitches[plane] * nHeight[plane]);
+                continue;
+            }
 
-        if (!(YUVplanes & YPLANE))
-            BitBlt(pDstCur[0], nDstPitches[0], pSrcCur[0], nSrcPitches[0], nWidth, nHeight, isse);
-        else
-        {
-            if (nOverlapX==0 && nOverlapY==0)
-            {
-                for (int by=0; by<nBlkY; by++)
-                {
+            if (nOverlapX[0] == 0 && nOverlapY[0] == 0) {
+                for (int by = 0; by < nBlkY; by++) {
                     int xx = 0;
-                    for (int bx=0; bx<nBlkX; bx++)
-                    {
-                        int i = by*nBlkX + bx;
-                        const uint8_t * pB, *pF;
+                    for (int bx = 0; bx < nBlkX; bx++) {
+                        int i = by * nBlkX + bx;
+                        const uint8_t *pB, *pF;
                         int npB, npF;
                         int WRefB, WRefF, WSrc;
 
-                        if (isUsableB)
-                        {
-                            const FakeBlockData &blockB = ballsB.GetBlock(0, i);
-                            int blxB = (blockB.GetX()<<nLogPel) + blockB.GetMV().x;
-                            int blyB = (blockB.GetY()<<nLogPel) + blockB.GetMV().y;
-                            pB = pPlanesB[0]->GetPointer(blxB, blyB);
-                            npB = pPlanesB[0]->GetPitch();
-                            int blockSAD = blockB.GetSAD();
-                            WRefB = DegrainWeight(thSAD, blockSAD);
-                        }
-                        else
-                        {
-                            pB = pSrcCur[0]+ xx;
-                            npB = nSrcPitches[0];
-                            WRefB = 0;
-                        }
-                        if (isUsableF)
-                        {
-                            const FakeBlockData &blockF = ballsF.GetBlock(0, i);
-                            int blxF = (blockF.GetX()<<nLogPel) + blockF.GetMV().x;
-                            int blyF = (blockF.GetY()<<nLogPel) + blockF.GetMV().y;
-                            pF = pPlanesF[0]->GetPointer(blxF, blyF);
-                            npF = pPlanesF[0]->GetPitch();
-                            int blockSAD = blockF.GetSAD();
-                            WRefF = DegrainWeight(thSAD, blockSAD);
-                        }
-                        else
-                        {
-                            pF = pSrcCur[0]+ xx;
-                            npF = nSrcPitches[0];
-                            WRefF = 0;
-                        }
-                        WSrc = 256;
-                        int WSum = WRefB + WRefF + WSrc + 1;
-                        WRefB = WRefB*256/WSum; // normailize weights to 256
-                        WRefF = WRefF*256/WSum;
-                        WSrc = 256 - WRefB - WRefF;
+                        useBlock(pB, npB, WRefB, isUsableB, ballsB, i, pPlanesB, pSrcCur, xx, nSrcPitches, nLogPel, plane, xSubUV, ySubUV, thSAD);
+                        useBlock(pF, npF, WRefF, isUsableF, ballsF, i, pPlanesF, pSrcCur, xx, nSrcPitches, nLogPel, plane, xSubUV, ySubUV, thSAD);
 
-                        d->DEGRAINLUMA(pDstCur[0] + xx, nDstPitches[0], pSrcCur[0]+ xx, nSrcPitches[0],
+                        normaliseWeights(WSrc, WRefB, WRefF);
+
+                        d->DEGRAIN[plane](pDstCur[plane] + xx, nDstPitches[plane], pSrcCur[plane] + xx, nSrcPitches[plane],
                                 pB, npB, pF, npF, WSrc, WRefB, WRefF);
 
-                        xx += (nBlkSizeX);
+                        xx += nBlkSizeX[plane];
 
-                        if (bx == nBlkX-1 && nWidth_B < nWidth) // right non-covered region
-                        {
-                            BitBlt(pDstCur[0] + nWidth_B, nDstPitches[0],
-                                    pSrcCur[0] + nWidth_B, nSrcPitches[0], nWidth-nWidth_B, nBlkSizeY, isse);
+                        if (bx == nBlkX - 1 && nWidth_B[0] < nWidth[0]) {// right non-covered region
+                            vs_bitblt(pDstCur[plane] + nWidth_B[plane], nDstPitches[plane],
+                                      pSrcCur[plane] + nWidth_B[plane], nSrcPitches[plane],
+                                      nWidth[plane] - nWidth_B[plane], nBlkSizeY[plane]);
                         }
                     }
-                    pDstCur[0] += ( nBlkSizeY ) * nDstPitches[0];
-                    pSrcCur[0] += ( nBlkSizeY ) * nSrcPitches[0];
+                    pDstCur[plane] += nBlkSizeY[plane] * nDstPitches[plane];
+                    pSrcCur[plane] += nBlkSizeY[plane] * nSrcPitches[plane];
 
-                    if (by == nBlkY-1 && nHeight_B < nHeight) // bottom uncovered region
-                    {
-                        BitBlt(pDstCur[0], nDstPitches[0], pSrcCur[0], nSrcPitches[0], nWidth, nHeight-nHeight_B, isse);
+                    if (by == nBlkY - 1 && nHeight_B[0] < nHeight[0]) {// bottom uncovered region
+                        vs_bitblt(pDstCur[plane], nDstPitches[plane],
+                                  pSrcCur[plane], nSrcPitches[plane],
+                                  nWidth[plane], nHeight[plane] - nHeight_B[plane]);
                     }
                 }
-            }
-            else // overlap
-            {
+            } else {// overlap
                 pDstShort = DstShort;
-                MemZoneSet(reinterpret_cast<unsigned char*>(pDstShort), 0, nWidth_B*2, nHeight_B, 0, 0, dstShortPitch*2);
+                memset(pDstShort, 0, dstShortPitch * 2 * nHeight_B[0]);
 
-                for (int by=0; by<nBlkY; by++)
-                {
-                    int wby = ((by + nBlkY - 3)/(nBlkY - 2))*3;
+                for (int by = 0; by < nBlkY; by++) {
+                    int wby = ((by + nBlkY - 3) / (nBlkY - 2)) * 3;
                     int xx = 0;
-                    for (int bx=0; bx<nBlkX; bx++)
-                    {
+                    for (int bx = 0; bx < nBlkX; bx++) {
                         // select window
-                        int wbx = (bx + nBlkX - 3)/(nBlkX - 2);
-                        winOver = OverWins->GetWindow(wby + wbx);
-
-                        int i = by*nBlkX + bx;
-                        const uint8_t * pB, *pF;
+                        int wbx = (bx + nBlkX - 3) / (nBlkX - 2);
+                        winOver = OverWins[plane]->GetWindow(wby + wbx);
+                        int i = by * nBlkX + bx;
+                        const uint8_t *pB, *pF;
                         int npB, npF;
 
-                        if (isUsableB)
-                        {
-                            const FakeBlockData &blockB = ballsB.GetBlock(0, i);
-                            int blxB = (blockB.GetX()<<nLogPel) + blockB.GetMV().x;
-                            int blyB = (blockB.GetY()<<nLogPel) + blockB.GetMV().y;
-                            pB = pPlanesB[0]->GetPointer(blxB, blyB);
-                            npB = pPlanesB[0]->GetPitch();
-                            int blockSAD = blockB.GetSAD();
-                            WRefB = DegrainWeight(thSAD, blockSAD);
-                        }
-                        else
-                        {
-                            pB = pSrcCur[0]+ xx;
-                            npB = nSrcPitches[0];
-                            WRefB = 0;
-                        }
-                        if (isUsableF)
-                        {
-                            const FakeBlockData &blockF = ballsF.GetBlock(0, i);
-                            int blxF = (blockF.GetX()<<nLogPel) + blockF.GetMV().x;
-                            int blyF = (blockF.GetY()<<nLogPel) + blockF.GetMV().y;
-                            pF = pPlanesF[0]->GetPointer(blxF, blyF);
-                            npF = pPlanesF[0]->GetPitch();
-                            int blockSAD = blockF.GetSAD();
-                            WRefF = DegrainWeight(thSAD, blockSAD);
-                        }
-                        else
-                        {
-                            pF = pSrcCur[0]+ xx;
-                            npF = nSrcPitches[0];
-                            WRefF = 0;
-                        }
-                        WSrc = 256;
-                        int WSum = WRefB + WRefF + WSrc + 1;
-                        WRefB = WRefB*256/WSum; // normailize weights to 256
-                        WRefF = WRefF*256/WSum;
-                        WSrc = 256 - WRefB - WRefF;
-                        // luma
-                        d->DEGRAINLUMA(tmpBlock, tmpPitch, pSrcCur[0]+ xx, nSrcPitches[0], pB, npB, pF, npF, WSrc, WRefB, WRefF);
-                        d->OVERSLUMA(pDstShort + xx, dstShortPitch, tmpBlock, tmpPitch, winOver, nBlkSizeX);
+                        useBlock(pB, npB, WRefB, isUsableB, ballsB, i, pPlanesB, pSrcCur, xx, nSrcPitches, nLogPel, plane, xSubUV, ySubUV, thSAD);
+                        useBlock(pF, npF, WRefF, isUsableF, ballsF, i, pPlanesF, pSrcCur, xx, nSrcPitches, nLogPel, plane, xSubUV, ySubUV, thSAD);
 
-                        xx += (nBlkSizeX - nOverlapX);
+                        normaliseWeights(WSrc, WRefB, WRefF);
 
+                        d->DEGRAIN[plane](tmpBlock, tmpPitch, pSrcCur[plane] + xx, nSrcPitches[plane],
+                                          pB, npB, pF, npF, WSrc, WRefB, WRefF);
+                        d->OVERS[plane](pDstShort + xx, dstShortPitch, tmpBlock, tmpPitch, winOver, nBlkSizeX[plane]);
+
+                        xx += (nBlkSizeX[plane] - nOverlapX[plane]);
                     }
-                    pSrcCur[0] += (nBlkSizeY - nOverlapY) * nSrcPitches[0];
-                    pDstShort += (nBlkSizeY - nOverlapY) * dstShortPitch;
-
+                    pSrcCur[plane] += ((nBlkSizeY[plane] - nOverlapY[plane]) * nSrcPitches[plane]);
+                    pDstShort += (nBlkSizeY[plane] - nOverlapY[plane]) * dstShortPitch;
                 }
-                Short2Bytes(pDst[0], nDstPitches[0], DstShort, dstShortPitch, nWidth_B, nHeight_B);
-                if (nWidth_B < nWidth)
-                    BitBlt(pDst[0] + nWidth_B, nDstPitches[0], pSrc[0] + nWidth_B, nSrcPitches[0], nWidth-nWidth_B, nHeight_B, isse);
-                if (nHeight_B < nHeight) // bottom noncovered region
-                    BitBlt(pDst[0] + nHeight_B*nDstPitches[0], nDstPitches[0], pSrc[0] + nHeight_B*nSrcPitches[0], nSrcPitches[0], nWidth, nHeight-nHeight_B, isse);
+
+                Short2Bytes(pDst[plane], nDstPitches[plane], DstShort, dstShortPitch, nWidth_B[plane], nHeight_B[plane]);
+
+                if (nWidth_B[0] < nWidth[0])
+                    vs_bitblt(pDst[plane] + nWidth_B[plane], nDstPitches[plane],
+                              pSrc[plane] + nWidth_B[plane], nSrcPitches[plane],
+                              nWidth[plane] - nWidth_B[plane], nHeight_B[plane]);
+                if (nHeight_B[0] < nHeight[0]) // bottom noncovered region
+                    vs_bitblt(pDst[plane] + nDstPitches[plane] * nHeight_B[plane], nDstPitches[plane],
+                              pSrc[plane] + nSrcPitches[plane] * nHeight_B[plane], nSrcPitches[plane],
+                              nWidth[plane], nHeight[plane] - nHeight_B[plane]);
             }
-            if (nLimit < 255) {
+
+            if (nLimit[plane] < 255) {
                 if (isse)
-                    mvtools_LimitChanges_sse2(pDst[0], nDstPitches[0], pSrc[0], nSrcPitches[0], nWidth, nHeight, nLimit);
+                    mvtools_LimitChanges_sse2(pDst[plane], nDstPitches[plane],
+                                              pSrc[plane], nSrcPitches[plane],
+                                              nWidth[plane], nHeight[plane], nLimit[plane]);
                 else
-                    LimitChanges_c(pDst[0], nDstPitches[0], pSrc[0], nSrcPitches[0], nWidth, nHeight, nLimit);
+                    LimitChanges_c(pDst[plane], nDstPitches[plane],
+                                   pSrc[plane], nSrcPitches[plane],
+                                   nWidth[plane], nHeight[plane], nLimit[plane]);
             }
         }
-
-        //-----------------------------------------------------------------------------------
-        // CHROMA plane U
-        if (!(YUVplanes & UPLANE & nSuperModeYUV)) // v2.0.8.1
-            BitBlt(pDstCur[1], nDstPitches[1], pSrcCur[1], nSrcPitches[1], nWidth>>1, nHeight>>ySubUV, isse);
-        else
-        {
-            if (nOverlapX==0 && nOverlapY==0)
-            {
-                for (int by=0; by<nBlkY; by++)
-                {
-                    int xx = 0;
-                    for (int bx=0; bx<nBlkX; bx++)
-                    {
-                        int i = by*nBlkX + bx;
-                        const uint8_t * pBU, *pFU;
-                        int npBU, npFU;
-                        int WRefB, WRefF, WSrc;
-
-                        if (isUsableB)
-                        {
-                            const FakeBlockData &blockB = ballsB.GetBlock(0, i);
-                            int blxB = (blockB.GetX()<<nLogPel) + blockB.GetMV().x;
-                            int blyB = (blockB.GetY()<<nLogPel) + blockB.GetMV().y;
-                            pBU = pPlanesB[1]->GetPointer(blxB>>1, blyB>>ySubUV);
-                            npBU = pPlanesB[1]->GetPitch();
-                            int blockSAD = blockB.GetSAD();
-                            WRefB = DegrainWeight(thSADC, blockSAD);
-                        }
-                        else
-                        {
-                            pBU = pSrcCur[1]+ (xx>>1);
-                            npBU = nSrcPitches[1];
-                            WRefB = 0;
-                        }
-                        if (isUsableF)
-                        {
-                            const FakeBlockData &blockF = ballsF.GetBlock(0, i);
-                            int blxF = (blockF.GetX()<<nLogPel) + blockF.GetMV().x;
-                            int blyF = (blockF.GetY()<<nLogPel) + blockF.GetMV().y;
-                            pFU = pPlanesF[1]->GetPointer(blxF>>1, blyF>>ySubUV);
-                            npFU = pPlanesF[1]->GetPitch();
-                            int blockSAD = blockF.GetSAD();
-                            WRefF = DegrainWeight(thSADC, blockSAD);
-                        }
-                        else
-                        {
-                            pFU = pSrcCur[1]+ (xx>>1);
-                            npFU = nSrcPitches[1];
-                            WRefF = 0;
-                        }
-                        WSrc = 256;
-                        int WSum = WRefB + WRefF + WSrc + 1;
-                        WRefB = WRefB*256/WSum; // normailize weights to 256
-                        WRefF = WRefF*256/WSum;
-                        WSrc = 256 - WRefB - WRefF;
-
-                        d->DEGRAINCHROMA(pDstCur[1] + (xx>>1), nDstPitches[1], pSrcCur[1]+ (xx>>1), nSrcPitches[1],
-                                pBU, npBU, pFU, npFU, WSrc, WRefB, WRefF);
-
-                        xx += (nBlkSizeX);
-
-                        if (bx == nBlkX-1 && nWidth_B < nWidth) // right non-covered region
-                        {
-                            BitBlt(pDstCur[1] + (nWidth_B>>1), nDstPitches[1],
-                                    pSrcCur[1] + (nWidth_B>>1), nSrcPitches[1], (nWidth-nWidth_B)>>1, (nBlkSizeY)>>ySubUV, isse);
-                        }
-                    }
-                    pDstCur[1] += ( nBlkSizeY >>ySubUV) * nDstPitches[1] ;
-                    pSrcCur[1] += ( nBlkSizeY >>ySubUV) * nSrcPitches[1] ;
-
-                    if (by == nBlkY-1 && nHeight_B < nHeight) // bottom uncovered region
-                    {
-                        BitBlt(pDstCur[1], nDstPitches[1], pSrcCur[1], nSrcPitches[1], nWidth>>1, (nHeight-nHeight_B)>>ySubUV, isse);
-                    }
-                }
-            }
-            else // overlap
-            {
-                pDstShort = DstShort;
-                MemZoneSet(reinterpret_cast<unsigned char*>(pDstShort), 0, nWidth_B, nHeight_B>>ySubUV, 0, 0, dstShortPitch*2);
-                for (int by=0; by<nBlkY; by++)
-                {
-                    int wby = ((by + nBlkY - 3)/(nBlkY - 2))*3;
-                    int xx = 0;
-                    for (int bx=0; bx<nBlkX; bx++)
-                    {
-                        // select window
-                        int wbx = (bx + nBlkX - 3)/(nBlkX - 2);
-                        winOverUV = OverWinsUV->GetWindow(wby + wbx);
-                        int i = by*nBlkX + bx;
-                        const uint8_t * pBU, *pFU;
-                        int npBU, npFU;
-
-                        if (isUsableB)
-                        {
-                            const FakeBlockData &blockB = ballsB.GetBlock(0, i);
-                            int blxB = (blockB.GetX()<<nLogPel) + blockB.GetMV().x;
-                            int blyB = (blockB.GetY()<<nLogPel) + blockB.GetMV().y;
-                            pBU = pPlanesB[1]->GetPointer(blxB>>1, blyB>>ySubUV);
-                            npBU = pPlanesB[1]->GetPitch();
-                            int blockSAD = blockB.GetSAD();
-                            WRefB = DegrainWeight(thSADC, blockSAD);
-                        }
-                        else
-                        {
-                            pBU = pSrcCur[1]+ (xx>>1);
-                            npBU = nSrcPitches[1];
-                            WRefB = 0;
-                        }
-                        if (isUsableF)
-                        {
-                            const FakeBlockData &blockF = ballsF.GetBlock(0, i);
-                            int blxF = (blockF.GetX()<<nLogPel) + blockF.GetMV().x;
-                            int blyF = (blockF.GetY()<<nLogPel) + blockF.GetMV().y;
-                            pFU = pPlanesF[1]->GetPointer(blxF>>1, blyF>>ySubUV);
-                            npFU = pPlanesF[1]->GetPitch();
-                            int blockSAD = blockF.GetSAD();
-                            WRefF = DegrainWeight(thSADC, blockSAD);
-                        }
-                        else
-                        {
-                            pFU = pSrcCur[1]+ (xx>>1);
-                            npFU = nSrcPitches[1];
-                            WRefF = 0;
-                        }
-                        WSrc = 256;
-                        int WSum = WRefB + WRefF + WSrc + 1;
-                        WRefB = WRefB*256/WSum; // normailize weights to 256
-                        WRefF = WRefF*256/WSum;
-                        WSrc = 256 - WRefB - WRefF;
-
-                        d->DEGRAINCHROMA(tmpBlock, tmpPitch, pSrcCur[1]+ (xx>>1), nSrcPitches[1],
-                                pBU, npBU, pFU, npFU, WSrc, WRefB, WRefF);
-                        d->OVERSCHROMA(pDstShort + (xx>>1), dstShortPitch, tmpBlock, tmpPitch, winOverUV, nBlkSizeX/2);
-
-                        xx += (nBlkSizeX - nOverlapX);
-
-                    }
-                    pSrcCur[1] += ((nBlkSizeY - nOverlapY)>>ySubUV) * nSrcPitches[1] ;
-                    pDstShort += ((nBlkSizeY - nOverlapY)>>ySubUV) * dstShortPitch;
-
-                }
-                Short2Bytes(pDst[1], nDstPitches[1], DstShort, dstShortPitch, nWidth_B>>1, nHeight_B>>ySubUV);
-                if (nWidth_B < nWidth)
-                    BitBlt(pDst[1] + (nWidth_B>>1), nDstPitches[1], pSrc[1] + (nWidth_B>>1), nSrcPitches[1], (nWidth-nWidth_B)>>1, nHeight_B>>ySubUV, isse);
-                if (nHeight_B < nHeight) // bottom noncovered region
-                    BitBlt(pDst[1] + nDstPitches[1]*(nHeight_B>>ySubUV), nDstPitches[1], pSrc[1] + nSrcPitches[1]*(nHeight_B>>ySubUV), nSrcPitches[1], nWidth>>1, (nHeight-nHeight_B)>>ySubUV, isse);
-            }
-            if (nLimitC < 255) {
-                if (isse)
-                    mvtools_LimitChanges_sse2(pDst[1], nDstPitches[1], pSrc[1], nSrcPitches[1], nWidth/2, nHeight/yRatioUV, nLimitC);
-                else
-                    LimitChanges_c(pDst[1], nDstPitches[1], pSrc[1], nSrcPitches[1], nWidth/2, nHeight/yRatioUV, nLimitC);
-            }
-        }
-        //--------------------------------------------------------------------------------
-
-        // CHROMA plane V
-        if (!(YUVplanes & VPLANE & nSuperModeYUV))
-            BitBlt(pDstCur[2], nDstPitches[2], pSrcCur[2], nSrcPitches[2], nWidth>>1, nHeight>>ySubUV, isse);
-        else
-        {
-
-            if (nOverlapX==0 && nOverlapY==0)
-            {
-                for (int by=0; by<nBlkY; by++)
-                {
-                    int xx = 0;
-                    for (int bx=0; bx<nBlkX; bx++)
-                    {
-                        int i = by*nBlkX + bx;
-                        const uint8_t * pBV, *pFV;
-                        int npBV, npFV;
-                        int WRefB, WRefF, WSrc;
-
-                        if (isUsableB)
-                        {
-                            const FakeBlockData &blockB = ballsB.GetBlock(0, i);
-                            int blxB = (blockB.GetX()<<nLogPel) + blockB.GetMV().x;
-                            int blyB = (blockB.GetY()<<nLogPel) + blockB.GetMV().y;
-                            pBV = pPlanesB[2]->GetPointer(blxB>>1, blyB>>ySubUV);
-                            npBV = pPlanesB[2]->GetPitch();
-                            int blockSAD = blockB.GetSAD();
-                            WRefB = DegrainWeight(thSADC, blockSAD);
-                        }
-                        else
-                        {
-                            pBV = pSrcCur[2]+ (xx>>1);
-                            npBV = nSrcPitches[2];
-                            WRefB = 0;
-                        }
-                        if (isUsableF)
-                        {
-                            const FakeBlockData &blockF = ballsF.GetBlock(0, i);
-                            int blxF = (blockF.GetX()<<nLogPel) + blockF.GetMV().x;
-                            int blyF = (blockF.GetY()<<nLogPel) + blockF.GetMV().y;
-                            pFV = pPlanesF[2]->GetPointer(blxF>>1, blyF>>ySubUV);
-                            npFV = pPlanesF[2]->GetPitch();
-                            int blockSAD = blockF.GetSAD();
-                            WRefF = DegrainWeight(thSADC, blockSAD);
-                        }
-                        else
-                        {
-                            pFV = pSrcCur[2]+ (xx>>1);
-                            npFV = nSrcPitches[2];
-                            WRefF = 0;
-                        }
-                        WSrc = 256;
-                        int WSum = WRefB + WRefF + WSrc + 1;
-                        WRefB = WRefB*256/WSum; // normailize weights to 256
-                        WRefF = WRefF*256/WSum;
-                        WSrc = 256 - WRefB - WRefF;
-
-                        d->DEGRAINCHROMA(pDstCur[2] + (xx>>1), nDstPitches[2], pSrcCur[2]+ (xx>>1), nSrcPitches[2],
-                                pBV, npBV, pFV, npFV, WSrc, WRefB, WRefF);
-
-                        xx += (nBlkSizeX);
-
-                        if (bx == nBlkX-1 && nWidth_B < nWidth) // right non-covered region
-                        {
-                            BitBlt(pDstCur[2] + (nWidth_B>>1), nDstPitches[2],
-                                    pSrcCur[2] + (nWidth_B>>1), nSrcPitches[2], (nWidth-nWidth_B)>>1, nBlkSizeY>>ySubUV, isse);
-                        }
-                    }
-                    pDstCur[2] += ( nBlkSizeY >>ySubUV) * nDstPitches[2] ;
-                    pSrcCur[2] += ( nBlkSizeY >>ySubUV) * nSrcPitches[2] ;
-
-                    if (by == nBlkY-1 && nHeight_B < nHeight) // bottom uncovered region
-                    {
-                        BitBlt(pDstCur[2], nDstPitches[2], pSrcCur[2], nSrcPitches[2], nWidth>>1, (nHeight-nHeight_B)>>ySubUV, isse);
-                    }
-                }
-            }
-            else // overlap
-            {
-                pDstShort = DstShort;
-                MemZoneSet(reinterpret_cast<unsigned char*>(pDstShort), 0, nWidth_B, nHeight_B>>ySubUV, 0, 0, dstShortPitch*2);
-                for (int by=0; by<nBlkY; by++)
-                {
-                    int wby = ((by + nBlkY - 3)/(nBlkY - 2))*3;
-                    int xx = 0;
-                    for (int bx=0; bx<nBlkX; bx++)
-                    {
-                        // select window
-                        int wbx = (bx + nBlkX - 3)/(nBlkX - 2);
-                        winOverUV = OverWinsUV->GetWindow(wby + wbx);
-
-                        int i = by*nBlkX + bx;
-                        const uint8_t * pBV, *pFV;
-                        int npBV, npFV;
-
-                        if (isUsableB)
-                        {
-                            const FakeBlockData &blockB = ballsB.GetBlock(0, i);
-                            int blxB = (blockB.GetX()<<nLogPel) + blockB.GetMV().x;
-                            int blyB = (blockB.GetY()<<nLogPel) + blockB.GetMV().y;
-                            pBV = pPlanesB[2]->GetPointer(blxB>>1, blyB>>ySubUV);
-                            npBV = pPlanesB[2]->GetPitch();
-                            int blockSAD = blockB.GetSAD();
-                            WRefB = DegrainWeight(thSADC, blockSAD);
-                        }
-                        else
-                        {
-                            pBV = pSrcCur[2]+ (xx>>1);
-                            npBV = nSrcPitches[2];
-                            WRefB = 0;
-                        }
-                        if (isUsableF)
-                        {
-                            const FakeBlockData &blockF = ballsF.GetBlock(0, i);
-                            int blxF = (blockF.GetX()<<nLogPel) + blockF.GetMV().x;
-                            int blyF = (blockF.GetY()<<nLogPel) + blockF.GetMV().y;
-                            pFV = pPlanesF[2]->GetPointer(blxF>>1, blyF>>ySubUV);
-                            npFV = pPlanesF[2]->GetPitch();
-                            int blockSAD = blockF.GetSAD();
-                            WRefF = DegrainWeight(thSADC, blockSAD);
-                        }
-                        else
-                        {
-                            pFV = pSrcCur[2]+ (xx>>1);
-                            npFV = nSrcPitches[2];
-                            WRefF = 0;
-                        }
-                        WSrc = 256;
-                        int WSum = WRefB + WRefF + WSrc + 1;
-                        WRefB = WRefB*256/WSum; // normailize weights to 256
-                        WRefF = WRefF*256/WSum;
-                        WSrc = 256 - WRefB - WRefF;
-
-                        d->DEGRAINCHROMA(tmpBlock, tmpPitch, pSrcCur[2]+ (xx>>1), nSrcPitches[2],
-                                pBV, npBV, pFV, npFV, WSrc, WRefB, WRefF);
-                        d->OVERSCHROMA(pDstShort + (xx>>1), dstShortPitch, tmpBlock, tmpPitch, winOverUV, nBlkSizeX/2);
-
-                        xx += (nBlkSizeX - nOverlapX);
-
-                    }
-                    pSrcCur[2] += ((nBlkSizeY - nOverlapY)>>ySubUV) * nSrcPitches[2] ;
-                    pDstShort += ((nBlkSizeY - nOverlapY)>>ySubUV) * dstShortPitch;
-
-                }
-                Short2Bytes(pDst[2], nDstPitches[2], DstShort, dstShortPitch, nWidth_B>>1, nHeight_B>>ySubUV);
-                if (nWidth_B < nWidth)
-                    BitBlt(pDst[2] + (nWidth_B>>1), nDstPitches[2], pSrc[2] + (nWidth_B>>1), nSrcPitches[2], (nWidth-nWidth_B)>>1, nHeight_B>>ySubUV, isse);
-                if (nHeight_B < nHeight) // bottom noncovered region
-                    BitBlt(pDst[2] + nDstPitches[2]*(nHeight_B>>ySubUV), nDstPitches[2], pSrc[2] + nSrcPitches[2]*(nHeight_B>>ySubUV), nSrcPitches[2], nWidth>>1, (nHeight-nHeight_B)>>ySubUV, isse);
-            }
-            if (nLimitC < 255) {
-                if (isse)
-                    mvtools_LimitChanges_sse2(pDst[2], nDstPitches[2], pSrc[2], nSrcPitches[2], nWidth/2, nHeight/yRatioUV, nLimitC);
-                else
-                    LimitChanges_c(pDst[2], nDstPitches[2], pSrc[2], nSrcPitches[2], nWidth/2, nHeight/yRatioUV, nLimitC);
-            }
-        }
-        //-------------------------------------------------------------------------------
-
 
 
         delete[] tmpBlock;
 
-        if (OverWins)
-            delete OverWins;
-        if (OverWinsUV)
-            delete OverWinsUV;
+        if (OverWins[0]) {
+            delete OverWins[0];
+            delete OverWins[1];
+        }
         if (DstShort)
             delete[] DstShort;
 
@@ -753,38 +387,38 @@ static void selectFunctions(MVDegrain1Data *d) {
         switch (nBlkSizeX)
         {
             case 32:
-                if (nBlkSizeY==16) {          d->OVERSLUMA = mvtools_Overlaps32x16_sse2;  d->DEGRAINLUMA = Degrain1_sse2<32,16>;
-                    if (yRatioUV==2) {         d->OVERSCHROMA = mvtools_Overlaps16x8_sse2; d->DEGRAINCHROMA = Degrain1_sse2<16,8>;         }
-                    else {                     d->OVERSCHROMA = mvtools_Overlaps16x16_sse2;d->DEGRAINCHROMA = Degrain1_sse2<16,16>;         }
-                } else if (nBlkSizeY==32) {    d->OVERSLUMA = mvtools_Overlaps32x32_sse2;  d->DEGRAINLUMA = Degrain1_sse2<32,32>;
-                    if (yRatioUV==2) {            d->OVERSCHROMA = mvtools_Overlaps16x16_sse2; d->DEGRAINCHROMA = Degrain1_sse2<16,16>;         }
-                    else {                        d->OVERSCHROMA = mvtools_Overlaps16x32_sse2; d->DEGRAINCHROMA = Degrain1_sse2<16,32>;         }
+                if (nBlkSizeY==16) {          d->OVERS[0] = mvtools_Overlaps32x16_sse2;  d->DEGRAIN[0] = Degrain1_sse2<32,16>;
+                    if (yRatioUV==2) {         d->OVERS[1] = mvtools_Overlaps16x8_sse2; d->DEGRAIN[1] = Degrain1_sse2<16,8>;         }
+                    else {                     d->OVERS[1] = mvtools_Overlaps16x16_sse2;d->DEGRAIN[1] = Degrain1_sse2<16,16>;         }
+                } else if (nBlkSizeY==32) {    d->OVERS[0] = mvtools_Overlaps32x32_sse2;  d->DEGRAIN[0] = Degrain1_sse2<32,32>;
+                    if (yRatioUV==2) {            d->OVERS[1] = mvtools_Overlaps16x16_sse2; d->DEGRAIN[1] = Degrain1_sse2<16,16>;         }
+                    else {                        d->OVERS[1] = mvtools_Overlaps16x32_sse2; d->DEGRAIN[1] = Degrain1_sse2<16,32>;         }
                 } break;
             case 16:
-                if (nBlkSizeY==16) {          d->OVERSLUMA = mvtools_Overlaps16x16_sse2; d->DEGRAINLUMA = Degrain1_sse2<16,16>;
-                    if (yRatioUV==2) {            d->OVERSCHROMA = mvtools_Overlaps8x8_sse2; d->DEGRAINCHROMA = Degrain1_sse2<8,8>;         }
-                    else {                        d->OVERSCHROMA = mvtools_Overlaps8x16_sse2;d->DEGRAINCHROMA = Degrain1_sse2<8,16>;         }
-                } else if (nBlkSizeY==8) {    d->OVERSLUMA = mvtools_Overlaps16x8_sse2;  d->DEGRAINLUMA = Degrain1_sse2<16,8>;
-                    if (yRatioUV==2) {            d->OVERSCHROMA = mvtools_Overlaps8x4_sse2; d->DEGRAINCHROMA = Degrain1_sse2<8,4>;         }
-                    else {                        d->OVERSCHROMA = mvtools_Overlaps8x8_sse2; d->DEGRAINCHROMA = Degrain1_sse2<8,8>;         }
-                } else if (nBlkSizeY==2) {    d->OVERSLUMA = mvtools_Overlaps16x2_sse2;  d->DEGRAINLUMA = Degrain1_sse2<16,2>;
-                    if (yRatioUV==2) {         d->OVERSCHROMA = mvtools_Overlaps8x1_sse2; d->DEGRAINCHROMA = Degrain1_sse2<8,1>;         }
-                    else {                        d->OVERSCHROMA = mvtools_Overlaps8x2_sse2; d->DEGRAINCHROMA = Degrain1_sse2<8,2>;         }
+                if (nBlkSizeY==16) {          d->OVERS[0] = mvtools_Overlaps16x16_sse2; d->DEGRAIN[0] = Degrain1_sse2<16,16>;
+                    if (yRatioUV==2) {            d->OVERS[1] = mvtools_Overlaps8x8_sse2; d->DEGRAIN[1] = Degrain1_sse2<8,8>;         }
+                    else {                        d->OVERS[1] = mvtools_Overlaps8x16_sse2;d->DEGRAIN[1] = Degrain1_sse2<8,16>;         }
+                } else if (nBlkSizeY==8) {    d->OVERS[0] = mvtools_Overlaps16x8_sse2;  d->DEGRAIN[0] = Degrain1_sse2<16,8>;
+                    if (yRatioUV==2) {            d->OVERS[1] = mvtools_Overlaps8x4_sse2; d->DEGRAIN[1] = Degrain1_sse2<8,4>;         }
+                    else {                        d->OVERS[1] = mvtools_Overlaps8x8_sse2; d->DEGRAIN[1] = Degrain1_sse2<8,8>;         }
+                } else if (nBlkSizeY==2) {    d->OVERS[0] = mvtools_Overlaps16x2_sse2;  d->DEGRAIN[0] = Degrain1_sse2<16,2>;
+                    if (yRatioUV==2) {         d->OVERS[1] = mvtools_Overlaps8x1_sse2; d->DEGRAIN[1] = Degrain1_sse2<8,1>;         }
+                    else {                        d->OVERS[1] = mvtools_Overlaps8x2_sse2; d->DEGRAIN[1] = Degrain1_sse2<8,2>;         }
                 }
                 break;
             case 4:
-                d->OVERSLUMA = mvtools_Overlaps4x4_sse2;    d->DEGRAINLUMA = Degrain1_mmx<4,4>;
-                if (yRatioUV==2) {            d->OVERSCHROMA = Overlaps_C<2,2>;    d->DEGRAINCHROMA = Degrain1_C<2,2>;         }
-                else {                        d->OVERSCHROMA = Overlaps_C<2,4>;    d->DEGRAINCHROMA = Degrain1_C<2,4>;         }
+                d->OVERS[0] = mvtools_Overlaps4x4_sse2;    d->DEGRAIN[0] = Degrain1_mmx<4,4>;
+                if (yRatioUV==2) {            d->OVERS[1] = Overlaps_C<2,2>;    d->DEGRAIN[1] = Degrain1_C<2,2>;         }
+                else {                        d->OVERS[1] = Overlaps_C<2,4>;    d->DEGRAIN[1] = Degrain1_C<2,4>;         }
                 break;
             case 8:
             default:
-                if (nBlkSizeY==8) {           d->OVERSLUMA = mvtools_Overlaps8x8_sse2;    d->DEGRAINLUMA = Degrain1_sse2<8,8>;
-                    if (yRatioUV==2) {            d->OVERSCHROMA = mvtools_Overlaps4x4_sse2;  d->DEGRAINCHROMA = Degrain1_mmx<4,4>;         }
-                    else {                        d->OVERSCHROMA = mvtools_Overlaps4x8_sse2;  d->DEGRAINCHROMA = Degrain1_mmx<4,8>;         }
-                }else if (nBlkSizeY==4) {     d->OVERSLUMA = mvtools_Overlaps8x4_sse2;    d->DEGRAINLUMA = Degrain1_sse2<8,4>;
-                    if (yRatioUV==2) {            d->OVERSCHROMA = mvtools_Overlaps4x2_sse2;    d->DEGRAINCHROMA = Degrain1_mmx<4,2>;         }
-                    else {                        d->OVERSCHROMA = mvtools_Overlaps4x4_sse2;  d->DEGRAINCHROMA = Degrain1_mmx<4,4>;         }
+                if (nBlkSizeY==8) {           d->OVERS[0] = mvtools_Overlaps8x8_sse2;    d->DEGRAIN[0] = Degrain1_sse2<8,8>;
+                    if (yRatioUV==2) {            d->OVERS[1] = mvtools_Overlaps4x4_sse2;  d->DEGRAIN[1] = Degrain1_mmx<4,4>;         }
+                    else {                        d->OVERS[1] = mvtools_Overlaps4x8_sse2;  d->DEGRAIN[1] = Degrain1_mmx<4,8>;         }
+                }else if (nBlkSizeY==4) {     d->OVERS[0] = mvtools_Overlaps8x4_sse2;    d->DEGRAIN[0] = Degrain1_sse2<8,4>;
+                    if (yRatioUV==2) {            d->OVERS[1] = mvtools_Overlaps4x2_sse2;    d->DEGRAIN[1] = Degrain1_mmx<4,2>;         }
+                    else {                        d->OVERS[1] = mvtools_Overlaps4x4_sse2;  d->DEGRAIN[1] = Degrain1_mmx<4,4>;         }
                 }
         }
     }
@@ -793,41 +427,44 @@ static void selectFunctions(MVDegrain1Data *d) {
         switch (nBlkSizeX)
         {
             case 32:
-                if (nBlkSizeY==16) {          d->OVERSLUMA = Overlaps_C<32,16>;  d->DEGRAINLUMA = Degrain1_C<32,16>;
-                    if (yRatioUV==2) {            d->OVERSCHROMA = Overlaps_C<16,8>; d->DEGRAINCHROMA = Degrain1_C<16,8>;         }
-                    else {                        d->OVERSCHROMA = Overlaps_C<16,16>;d->DEGRAINCHROMA = Degrain1_C<16,16>;         }
-                } else if (nBlkSizeY==32) {    d->OVERSLUMA = Overlaps_C<32,32>;   d->DEGRAINLUMA = Degrain1_C<32,32>;
-                    if (yRatioUV==2) {            d->OVERSCHROMA = Overlaps_C<16,16>;  d->DEGRAINCHROMA = Degrain1_C<16,16>;         }
-                    else {                        d->OVERSCHROMA = Overlaps_C<16,32>;  d->DEGRAINCHROMA = Degrain1_C<16,32>;         }
+                if (nBlkSizeY==16) {          d->OVERS[0] = Overlaps_C<32,16>;  d->DEGRAIN[0] = Degrain1_C<32,16>;
+                    if (yRatioUV==2) {            d->OVERS[1] = Overlaps_C<16,8>; d->DEGRAIN[1] = Degrain1_C<16,8>;         }
+                    else {                        d->OVERS[1] = Overlaps_C<16,16>;d->DEGRAIN[1] = Degrain1_C<16,16>;         }
+                } else if (nBlkSizeY==32) {    d->OVERS[0] = Overlaps_C<32,32>;   d->DEGRAIN[0] = Degrain1_C<32,32>;
+                    if (yRatioUV==2) {            d->OVERS[1] = Overlaps_C<16,16>;  d->DEGRAIN[1] = Degrain1_C<16,16>;         }
+                    else {                        d->OVERS[1] = Overlaps_C<16,32>;  d->DEGRAIN[1] = Degrain1_C<16,32>;         }
                 } break;
             case 16:
-                if (nBlkSizeY==16) {          d->OVERSLUMA = Overlaps_C<16,16>;  d->DEGRAINLUMA = Degrain1_C<16,16>;
-                    if (yRatioUV==2) {            d->OVERSCHROMA = Overlaps_C<8,8>;  d->DEGRAINCHROMA = Degrain1_C<8,8>;         }
-                    else {                        d->OVERSCHROMA = Overlaps_C<8,16>; d->DEGRAINCHROMA = Degrain1_C<8,16>;         }
-                } else if (nBlkSizeY==8) {    d->OVERSLUMA = Overlaps_C<16,8>;   d->DEGRAINLUMA = Degrain1_C<16,8>;
-                    if (yRatioUV==2) {            d->OVERSCHROMA = Overlaps_C<8,4>;  d->DEGRAINCHROMA = Degrain1_C<8,4>;         }
-                    else {                        d->OVERSCHROMA = Overlaps_C<8,8>;  d->DEGRAINCHROMA = Degrain1_C<8,8>;         }
-                } else if (nBlkSizeY==2) {    d->OVERSLUMA = Overlaps_C<16,2>;   d->DEGRAINLUMA = Degrain1_C<16,2>;
-                    if (yRatioUV==2) {            d->OVERSCHROMA = Overlaps_C<8,1>;  d->DEGRAINCHROMA = Degrain1_C<8,1>;         }
-                    else {                        d->OVERSCHROMA = Overlaps_C<8,2>;  d->DEGRAINCHROMA = Degrain1_C<8,2>;         }
+                if (nBlkSizeY==16) {          d->OVERS[0] = Overlaps_C<16,16>;  d->DEGRAIN[0] = Degrain1_C<16,16>;
+                    if (yRatioUV==2) {            d->OVERS[1] = Overlaps_C<8,8>;  d->DEGRAIN[1] = Degrain1_C<8,8>;         }
+                    else {                        d->OVERS[1] = Overlaps_C<8,16>; d->DEGRAIN[1] = Degrain1_C<8,16>;         }
+                } else if (nBlkSizeY==8) {    d->OVERS[0] = Overlaps_C<16,8>;   d->DEGRAIN[0] = Degrain1_C<16,8>;
+                    if (yRatioUV==2) {            d->OVERS[1] = Overlaps_C<8,4>;  d->DEGRAIN[1] = Degrain1_C<8,4>;         }
+                    else {                        d->OVERS[1] = Overlaps_C<8,8>;  d->DEGRAIN[1] = Degrain1_C<8,8>;         }
+                } else if (nBlkSizeY==2) {    d->OVERS[0] = Overlaps_C<16,2>;   d->DEGRAIN[0] = Degrain1_C<16,2>;
+                    if (yRatioUV==2) {            d->OVERS[1] = Overlaps_C<8,1>;  d->DEGRAIN[1] = Degrain1_C<8,1>;         }
+                    else {                        d->OVERS[1] = Overlaps_C<8,2>;  d->DEGRAIN[1] = Degrain1_C<8,2>;         }
                 }
                 break;
             case 4:
-                d->OVERSLUMA = Overlaps_C<4,4>;    d->DEGRAINLUMA = Degrain1_C<4,4>;
-                if (yRatioUV==2) {            d->OVERSCHROMA = Overlaps_C<2,2>;  d->DEGRAINCHROMA = Degrain1_C<2,2>;         }
-                else {                        d->OVERSCHROMA = Overlaps_C<2,4>;  d->DEGRAINCHROMA = Degrain1_C<2,4>;         }
+                d->OVERS[0] = Overlaps_C<4,4>;    d->DEGRAIN[0] = Degrain1_C<4,4>;
+                if (yRatioUV==2) {            d->OVERS[1] = Overlaps_C<2,2>;  d->DEGRAIN[1] = Degrain1_C<2,2>;         }
+                else {                        d->OVERS[1] = Overlaps_C<2,4>;  d->DEGRAIN[1] = Degrain1_C<2,4>;         }
                 break;
             case 8:
             default:
-                if (nBlkSizeY==8) {           d->OVERSLUMA = Overlaps_C<8,8>;    d->DEGRAINLUMA = Degrain1_C<8,8>;
-                    if (yRatioUV==2) {            d->OVERSCHROMA = Overlaps_C<4,4>;  d->DEGRAINCHROMA = Degrain1_C<4,4>;         }
-                    else {                        d->OVERSCHROMA = Overlaps_C<4,8>;  d->DEGRAINCHROMA = Degrain1_C<4,8>;         }
-                }else if (nBlkSizeY==4) {     d->OVERSLUMA = Overlaps_C<8,4>;    d->DEGRAINLUMA = Degrain1_C<8,4>;
-                    if (yRatioUV==2) {            d->OVERSCHROMA = Overlaps_C<4,2>;  d->DEGRAINCHROMA = Degrain1_C<4,2>;         }
-                    else {                        d->OVERSCHROMA = Overlaps_C<4,4>;  d->DEGRAINCHROMA = Degrain1_C<4,4>;         }
+                if (nBlkSizeY==8) {           d->OVERS[0] = Overlaps_C<8,8>;    d->DEGRAIN[0] = Degrain1_C<8,8>;
+                    if (yRatioUV==2) {            d->OVERS[1] = Overlaps_C<4,4>;  d->DEGRAIN[1] = Degrain1_C<4,4>;         }
+                    else {                        d->OVERS[1] = Overlaps_C<4,8>;  d->DEGRAIN[1] = Degrain1_C<4,8>;         }
+                }else if (nBlkSizeY==4) {     d->OVERS[0] = Overlaps_C<8,4>;    d->DEGRAIN[0] = Degrain1_C<8,4>;
+                    if (yRatioUV==2) {            d->OVERS[1] = Overlaps_C<4,2>;  d->DEGRAIN[1] = Degrain1_C<4,2>;         }
+                    else {                        d->OVERS[1] = Overlaps_C<4,4>;  d->DEGRAIN[1] = Degrain1_C<4,4>;         }
                 }
         }
     }
+
+    d->OVERS[2] = d->OVERS[1];
+    d->DEGRAIN[2] = d->DEGRAIN[1];
 }
 
 
@@ -837,25 +474,25 @@ static void VS_CC mvdegrain1Create(const VSMap *in, VSMap *out, void *userData, 
 
     int err;
 
-    d.thSAD = vsapi->propGetInt(in, "thsad", 0, &err);
+    d.thSAD[0] = vsapi->propGetInt(in, "thsad", 0, &err);
     if (err)
-        d.thSAD = 400;
+        d.thSAD[0] = 400;
 
-    d.thSADC = vsapi->propGetInt(in, "thsadc", 0, &err);
+    d.thSAD[1] = d.thSAD[2] = vsapi->propGetInt(in, "thsadc", 0, &err);
     if (err)
-        d.thSADC = d.thSAD;
+        d.thSAD[1] = d.thSAD[2] = d.thSAD[0];
 
     int plane = vsapi->propGetInt(in, "plane", 0, &err);
     if (err)
         plane = 4;
 
-    d.nLimit = vsapi->propGetInt(in, "limit", 0, &err);
+    d.nLimit[0] = vsapi->propGetInt(in, "limit", 0, &err);
     if (err)
-        d.nLimit = 255;
+        d.nLimit[0] = 255;
 
-    d.nLimitC = vsapi->propGetInt(in, "limitc", 0, &err);
+    d.nLimit[1] = d.nLimit[2] = vsapi->propGetInt(in, "limitc", 0, &err);
     if (err)
-        d.nLimitC = d.nLimit;
+        d.nLimit[1] = d.nLimit[2] = d.nLimit[0];
 
     d.nSCD1 = vsapi->propGetInt(in, "thscd1", 0, &err);
     if (err)
@@ -875,12 +512,12 @@ static void VS_CC mvdegrain1Create(const VSMap *in, VSMap *out, void *userData, 
         return;
     }
 
-    if (d.nLimit < 0 || d.nLimit > 255) {
+    if (d.nLimit[0] < 0 || d.nLimit[0] > 255) {
         vsapi->setError(out, "Degrain1: limit must be between 0 and 255 (inclusive).");
         return;
     }
 
-    if (d.nLimitC < 0 || d.nLimitC > 255) {
+    if (d.nLimit[1] < 0 || d.nLimit[1] > 255) {
         vsapi->setError(out, "Degrain1: limitc must be between 0 and 255 (inclusive).");
         return;
     }
@@ -983,8 +620,8 @@ static void VS_CC mvdegrain1Create(const VSMap *in, VSMap *out, void *userData, 
         return;
     }
 
-    d.thSAD = d.thSAD * d.mvClipB->GetThSCD1() / d.nSCD1; // normalize to block SAD
-    d.thSADC = d.thSADC * d.mvClipB->GetThSCD1() / d.nSCD1; // chroma threshold, normalized to block SAD
+    d.thSAD[0] = d.thSAD[0] * d.mvClipB->GetThSCD1() / d.nSCD1; // normalize to block SAD
+    d.thSAD[1] = d.thSAD[2] = d.thSAD[1] * d.mvClipB->GetThSCD1() / d.nSCD1; // chroma threshold, normalized to block SAD
 
 
 
@@ -1024,6 +661,37 @@ static void VS_CC mvdegrain1Create(const VSMap *in, VSMap *out, void *userData, 
         delete d.mvClipF;
         return;
     }
+
+    d.process[0] = d.YUVplanes & YPLANE;
+    d.process[1] = d.YUVplanes & UPLANE & d.nSuperModeYUV;
+    d.process[2] = d.YUVplanes & VPLANE & d.nSuperModeYUV;
+
+    d.xSubUV = d.vi->format->subSamplingW;
+    d.ySubUV = d.vi->format->subSamplingH;
+
+    d.nWidth[0] = d.bleh->nWidth;
+    d.nWidth[1] = d.nWidth[2] = d.nWidth[0] >> d.xSubUV;
+
+    d.nHeight[0] = d.bleh->nHeight;
+    d.nHeight[1] = d.nHeight[2] = d.nHeight[0] >> d.ySubUV;
+
+    d.nOverlapX[0] = d.bleh->nOverlapX;
+    d.nOverlapX[1] = d.nOverlapX[2] = d.nOverlapX[0] >> d.xSubUV;
+
+    d.nOverlapY[0] = d.bleh->nOverlapY;
+    d.nOverlapY[1] = d.nOverlapY[2] = d.nOverlapY[0] >> d.ySubUV;
+
+    d.nBlkSizeX[0] = d.bleh->nBlkSizeX;
+    d.nBlkSizeX[1] = d.nBlkSizeX[2] = d.nBlkSizeX[0] >> d.xSubUV;
+
+    d.nBlkSizeY[0] = d.bleh->nBlkSizeY;
+    d.nBlkSizeY[1] = d.nBlkSizeY[2] = d.nBlkSizeY[0] >> d.ySubUV;
+
+    d.nWidth_B[0] = d.bleh->nBlkX * (d.nBlkSizeX[0] - d.nOverlapX[0]) + d.nOverlapX[0];
+    d.nWidth_B[1] = d.nWidth_B[2] = d.nWidth_B[0] >> d.xSubUV;
+
+    d.nHeight_B[0] = d.bleh->nBlkY * (d.nBlkSizeY[0] - d.nOverlapY[0]) + d.nOverlapY[0];
+    d.nHeight_B[1] = d.nHeight_B[2] = d.nHeight_B[0] >> d.ySubUV;
 
 
     data = (MVDegrain1Data *)malloc(sizeof(d));

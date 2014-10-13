@@ -151,14 +151,3 @@ void Short2Bytes(unsigned char *pDst, int nDstPitch, unsigned short *pDstShort, 
 	}
 }
 
-void LimitChanges_c(unsigned char *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, int nWidth, int nHeight, int nLimit)
-{
-	for (int h=0; h<nHeight; h++)
-	{
-		for (int i=0; i<nWidth; i++)
-			pDst[i] = min( max (pDst[i], (pSrc[i]-nLimit)), (pSrc[i]+nLimit));
-		pDst += nDstPitch;
-		pSrc += nSrcPitch;
-	}
-}
-

@@ -56,8 +56,8 @@ typedef struct {
     int dstShortPitch;
     int dstShortPitchUV;
 
-    OverlapsFunction *OVERSLUMA;
-    OverlapsFunction *OVERSCHROMA;
+    OverlapsFunction OVERSLUMA;
+    OverlapsFunction OVERSCHROMA;
     COPYFunction *BLITLUMA;
     COPYFunction *BLITCHROMA;
 } MVCompensateData;

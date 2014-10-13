@@ -539,6 +539,7 @@ public:
 
    int pixelType;
    int yRatioUV;
+   int xRatioUV;
 
    /*! \brief Filter's name */
 //   std::string name;
