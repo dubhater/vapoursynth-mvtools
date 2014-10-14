@@ -2,7 +2,7 @@
 #define __MV_DEGRAIN3__
 
 
-typedef void (Denoise3Function)(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch,
+typedef void (*Denoise3Function)(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch,
 						const uint8_t *pRefB, int BPitch, const uint8_t *pRefF, int FPitch,
 						const uint8_t *pRefB2, int B2Pitch, const uint8_t *pRefF2, int F2Pitch,
 						const uint8_t *pRefB3, int B3Pitch, const uint8_t *pRefF3, int F3Pitch,
