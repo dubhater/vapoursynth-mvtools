@@ -27,6 +27,7 @@
 #include <stdio.h>
 
 #include <stdexcept>
+#include <string>
 
 #include <VapourSynth.h>
 
