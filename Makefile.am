@@ -4,25 +4,13 @@ AM_CPPFLAGS = $(VapourSynth_CFLAGS)
 
 lib_LTLIBRARIES = libmvtools.la
 
-BUILT_SOURCES = src/asm/const-a.o \
-				src/asm/cpu-a.o \
-				src/asm/pixel-a.o \
-				src/asm/sad-a.o \
-				src/asm/CopyCode.o \
-				src/asm/Interpolation.o \
-				src/asm/MVDegrains.o \
-				src/asm/Overlap.o \
-				src/asm/SAD.o \
-				src/asm/Variance.o
-CLEANFILES = $(BUILT_SOURCES)
-
 AM_V_YASM = $(am__v_YASM_$(V))
 am__v_YASM_ = $(am__v_YASM_$(AM_DEFAULT_VERBOSITY))
 am__v_YASM_0 = @echo "  YASM    " $@;
 am__v_YASM_1 =
 
-.asm.o:
-	$(AM_V_YASM)$(AS) $(ASFLAGS) -o $@ $<
+.asm.lo:
+	$(AM_V_YASM)$(LIBTOOL) $(AM_V_lt) --mode=compile --tag=CC $(AS) $(ASFLAGS) -o $@ $< -prefer-non-pic
 
 libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/CopyCode.cpp \
@@ -63,16 +51,4 @@ libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/asm/SAD.asm \
 						src/asm/Variance.asm
 
-libmvtools_la_LDFLAGS = -no-undefined -avoid-version \
-						-Xlinker src/asm/const-a.o \
-						-Xlinker src/asm/cpu-a.o \
-						-Xlinker src/asm/pixel-a.o \
-						-Xlinker src/asm/sad-a.o \
-						-Xlinker src/asm/CopyCode.o \
-						-Xlinker src/asm/Interpolation.o \
-						-Xlinker src/asm/MVDegrains.o \
-						-Xlinker src/asm/Overlap.o \
-						-Xlinker src/asm/SAD.o \
-						-Xlinker src/asm/Variance.o
-
-libmvtools_la_DEPENDENCIES = $(BUILT_SOURCES)
+libmvtools_la_LDFLAGS = -no-undefined -avoid-version
