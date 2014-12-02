@@ -73,6 +73,8 @@ Usage
 
     mv.FlowInter(clip clip, clip super, clip mvbw, clip mvfw[, float time=50.0, float ml=100.0, bint blend=True, int thscd1=400, int thscd2=130, bint isse=True])
 
+    mv.FlowFPS(clip clip, clip super, clip mvbw, clip mvfw[, int num=25, int den=1, int mask=2, float ml=100.0, bint blend=True, int thscd1=400, int thscd2=130, bint isse=True])
+
 
 If *fields* is True, it is assumed that the clip named *clip* first went through std.SeparateFields.
 

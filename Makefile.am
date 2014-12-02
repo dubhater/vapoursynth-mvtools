@@ -1,4 +1,4 @@
-AM_CXXFLAGS = -std=c++11 -msse2 -Wall -Wextra -Wno-unused-parameter
+AM_CXXFLAGS = -std=c++11 -msse2 -Wall -Wextra -Wno-unused-parameter -Wshadow
 
 AM_CPPFLAGS = $(VapourSynth_CFLAGS)
 
@@ -31,6 +31,7 @@ libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/MVFilter.cpp \
 						src/MVFinest.cpp \
 						src/MVFlowBlur.cpp \
+						src/MVFlowFPS.cpp \
 						src/MVFlowInter.cpp \
 						src/MVFrame.cpp \
 						src/MVMask.cpp \
