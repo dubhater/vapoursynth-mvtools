@@ -785,6 +785,19 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
     d.vi = *vsapi->getVideoInfo(d.node);
 
 
+    if (d.vi.fpsNum == 0 || d.vi.fpsDen == 0) {
+        vsapi->setError(out, "FlowFPS: The input clip must have a frame rate. Invoke AssumeFPS if necessary.");
+        vsapi->freeNode(d.finest);
+        vsapi->freeNode(d.super);
+        vsapi->freeNode(d.mvfw);
+        vsapi->freeNode(d.mvbw);
+        vsapi->freeNode(d.node);
+        delete d.bleh;
+        delete d.mvClipB;
+        delete d.mvClipF;
+        return;
+    }
+
 	int64_t numeratorOld = d.vi.fpsNum;
 	int64_t denominatorOld = d.vi.fpsDen;
     int64_t numerator, denominator;
