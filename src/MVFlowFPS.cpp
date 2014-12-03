@@ -966,6 +966,40 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
 
     // Can't use fmParallel because of nleftLast/nrightLast.
     vsapi->createFilter(in, out, "FlowFPS", mvflowfpsInit, mvflowfpsGetFrame, mvflowfpsFree, fmParallelRequests, 0, data, core);
+
+    // AssumeFPS sets the _DurationNum and _DurationDen properties.
+    VSNodeRef *node = vsapi->propGetNode(out, "clip", 0, NULL);
+    VSMap *args = vsapi->createMap();
+    vsapi->propSetNode(args, "clip", node, paReplace);
+    vsapi->freeNode(node);
+    vsapi->propSetInt(args, "fpsnum", d.vi.fpsNum, paReplace);
+    vsapi->propSetInt(args, "fpsden", d.vi.fpsDen, paReplace);
+    VSPlugin *stdPlugin = vsapi->getPluginById("com.vapoursynth.std", core);
+    VSMap *ret = vsapi->invoke(stdPlugin, "AssumeFPS", args);
+    const char *error = vsapi->getError(ret);
+    if (error) {
+        vsapi->setError(out, std::string("FlowFPS: Failed to invoke AssumeFPS. Error message: ").append(error).c_str());
+        vsapi->freeMap(args);
+        vsapi->freeMap(ret);
+        return;
+    }
+    node = vsapi->propGetNode(ret, "clip", 0, NULL);
+    vsapi->freeMap(ret);
+    vsapi->clearMap(args);
+    vsapi->propSetNode(args, "clip", node, paReplace);
+    vsapi->freeNode(node);
+    ret = vsapi->invoke(stdPlugin, "Cache", args);
+    vsapi->freeMap(args);
+    error = vsapi->getError(ret);
+    if (error) {
+        vsapi->setError(out, std::string("FlowFPS: Failed to invoke Cache. Error message: ").append(error).c_str());
+        vsapi->freeMap(ret);
+        return;
+    }
+    node = vsapi->propGetNode(ret, "clip", 0, NULL);
+    vsapi->freeMap(ret);
+    vsapi->propSetNode(out, "clip", node, paReplace);
+    vsapi->freeNode(node);
 }
 
 
