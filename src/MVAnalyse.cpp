@@ -486,6 +486,12 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         return;
     }
 
+    if (d.analysisData.nDeltaFrame <= 0 && d.vi.numFrames && (-d.analysisData.nDeltaFrame) >= d.vi.numFrames) {
+        vsapi->setError(out, "Analyse: delta points to frame past the input clip's end.");
+        vsapi->freeNode(d.node);
+        return;
+    }
+
     d.analysisData.yRatioUV = 1 << d.vi.format->subSamplingH;
     d.analysisData.xRatioUV = 2; // for YV12 and YUY2, really do not used and assumed to 2
 
