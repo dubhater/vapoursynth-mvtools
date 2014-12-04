@@ -91,30 +91,33 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
     MVAnalyseData *d = (MVAnalyseData *) * instanceData;
 
     if (activationReason == arInitial) {
-        int minframe, maxframe, nref;
+        int nref;
 
         if (d->analysisData.nDeltaFrame > 0) {
-            // FIXME: make it less ugly
-            minframe = ( d->analysisData.isBackward ) ? 0 : d->analysisData.nDeltaFrame;
-            maxframe = ( d->analysisData.isBackward ) ? (d->vi.numFrames ? d->vi.numFrames - d->analysisData.nDeltaFrame : n + d->analysisData.nDeltaFrame + 1) : d->vi.numFrames;
             int offset = ( d->analysisData.isBackward ) ? d->analysisData.nDeltaFrame : -d->analysisData.nDeltaFrame;
             nref = n + offset;
+
+            if (nref >= 0 && (nref < d->vi.numFrames || !d->vi.numFrames)) {
+                if (n < nref) {
+                    vsapi->requestFrameFilter(n, d->node, frameCtx);
+                    vsapi->requestFrameFilter(nref, d->node, frameCtx);
+                } else {
+                    vsapi->requestFrameFilter(nref, d->node, frameCtx);
+                    vsapi->requestFrameFilter(n, d->node, frameCtx);
+                }
+            } else { // too close to beginning/end of clip
+                vsapi->requestFrameFilter(n, d->node, frameCtx);
+            }
         } else { // special static mode
             nref = - d->analysisData.nDeltaFrame; // positive fixed frame number
-            minframe = 0;
-            maxframe = d->vi.numFrames;
-        }
 
-        if (( n < maxframe ) && ( n >= minframe )) {
-            if (nref < n)
+            if (n < nref) {
+                vsapi->requestFrameFilter(n, d->node, frameCtx);
                 vsapi->requestFrameFilter(nref, d->node, frameCtx);
-
-            vsapi->requestFrameFilter(n, d->node, frameCtx);
-
-            if (nref >= n)
+            } else {
                 vsapi->requestFrameFilter(nref, d->node, frameCtx);
-        } else {
-            vsapi->requestFrameFilter(n, d->node, frameCtx);
+                vsapi->requestFrameFilter(n, d->node, frameCtx);
+            }
         }
     } else if (activationReason == arAllFramesReady) {
 
@@ -127,17 +130,13 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         int nSrcPitchY, nSrcPitchUV;
         int nRefPitchY, nRefPitchUV;
 
-        int minframe, maxframe, nref;
+        int nref;
 
         if (d->analysisData.nDeltaFrame > 0) {
-            minframe = ( d->analysisData.isBackward ) ? 0 : d->analysisData.nDeltaFrame;
-            maxframe = ( d->analysisData.isBackward ) ? (d->vi.numFrames ? d->vi.numFrames - d->analysisData.nDeltaFrame : n + d->analysisData.nDeltaFrame + 1) : d->vi.numFrames;
             int offset = ( d->analysisData.isBackward ) ? d->analysisData.nDeltaFrame : -d->analysisData.nDeltaFrame;
             nref = n + offset;
         } else { // special static mode
             nref = - d->analysisData.nDeltaFrame; // positive fixed frame number
-            minframe = 0;
-            maxframe = d->vi.numFrames;
         }
 
         const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx);
@@ -182,7 +181,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         pDst += d->headerSize;
 
 
-        if (( n < maxframe ) && ( n >= minframe ))
+        if (nref >= 0 && (nref < d->vi.numFrames || !d->vi.numFrames))
         {
             const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->node, frameCtx);
             const VSMap *refprops = vsapi->getFramePropsRO(ref);
