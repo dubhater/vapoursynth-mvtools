@@ -146,10 +146,12 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
         }
 
         if ((nleft < d->vi.numFrames && nright < d->vi.numFrames) || !d->vi.numFrames) { // for the good estimation case
-            vsapi->requestFrameFilter(nleft, d->mvfw, frameCtx); // requests nleft - off, nleft
+            if (d->maskmode == 2)
+                vsapi->requestFrameFilter(nleft, d->mvfw, frameCtx); // requests nleft - off, nleft
             vsapi->requestFrameFilter(nright, d->mvfw, frameCtx); // requests nleft, nleft + off
             vsapi->requestFrameFilter(nleft, d->mvbw, frameCtx); // requests nleft, nleft + off
-            vsapi->requestFrameFilter(nright, d->mvbw, frameCtx); // requests nleft + off, nleft + off + off
+            if (d->maskmode == 2)
+                vsapi->requestFrameFilter(nright, d->mvbw, frameCtx); // requests nleft + off, nleft + off + off
 
             vsapi->requestFrameFilter(nleft, d->finest, frameCtx);
             vsapi->requestFrameFilter(nright, d->finest, frameCtx);
