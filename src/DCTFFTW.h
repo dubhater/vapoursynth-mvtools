@@ -29,9 +29,6 @@ class DCTFFTW : public DCTClass {
 	fftwf_plan dctplan;
 	float * fSrcDCT;
 
-//	int sizex;
-//	int sizey;
-//	int dctmode;
 	int dctshift;
 	int dctshift0;
 
@@ -44,7 +41,9 @@ public:
 
 	DCTFFTW(int _sizex, int _sizey, int _dctmode);
 	~DCTFFTW();
-	void DCTBytes2D(const unsigned char *srcp0, int _src_pitch, unsigned char *dctp, int _dct_pitch);
+
+	virtual void DCTBytes2D(const unsigned char *srcp0, int _src_pitch,
+		unsigned char *dctp, int _dct_pitch) override;
 
 };
 

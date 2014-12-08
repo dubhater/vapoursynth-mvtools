@@ -8,7 +8,7 @@
 #include <VSHelper.h>
 
 #include "CPU.h"
-#include "DCT.h"
+#include "DCTFFTW.h"
 #include "GroupOfPlanes.h"
 #include "MVInterface.h"
 
@@ -211,7 +211,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
                     DCTc = new DCTINT(d->blksize, d->blksizev, d->dctmode);
                 else
                 */
-                //DCTc = new DCTFFTW(d->blksize, d->blksizev, d->dctmode); // check order x,y
+                DCTc = new DCTFFTW(d->blksize, d->blksizev, d->dctmode); // check order x,y
             }
 
 
@@ -443,7 +443,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
         vsapi->freeNode(d.vectors);
         return;
     }
-    
+
     // XXX This really should be passed as a frame property.
     const MVAnalysisData *pAnalyseFilter = reinterpret_cast<const MVAnalysisData *>(vsapi->getReadPtr(evil, 0) + sizeof(int));
 
@@ -547,5 +547,6 @@ void mvrecalculateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "meander:int:opt;"
                  "fields:int:opt;"
                  "tff:int:opt;"
+                 "dct:int:opt;"
                  , mvrecalculateCreate, 0, plugin);
 }

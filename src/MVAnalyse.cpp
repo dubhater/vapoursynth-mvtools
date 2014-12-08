@@ -8,10 +8,9 @@
 #include <VSHelper.h>
 
 #include "CPU.h"
-#include "DCT.h"
+#include "DCTFFTW.h"
 #include "GroupOfPlanes.h"
 #include "MVInterface.h"
-
 
 // FIXME: Redundant members. A few can go straight in analysisData.
 typedef struct {
@@ -230,7 +229,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
                     DCTc = new DCTINT(d->blksize, d->blksizev, d->dctmode);
                 else
                 */
-                //DCTc = new DCTFFTW(d->blksize, d->blksizev, d->dctmode); // check order x,y
+                DCTc = new DCTFFTW(d->blksize, d->blksizev, d->dctmode); // check order x,y
             }
 
 
@@ -653,5 +652,6 @@ void mvanalyseRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "fields:int:opt;"
                  "tff:int:opt;"
                  "search_coarse:int:opt;"
+                 "dct:int:opt;"
                  , mvanalyseCreate, 0, plugin);
 }

@@ -19,21 +19,21 @@
 
 #include <algorithm>
 #include <cmath>
+#include <mutex>
 
 #include "DCTFFTW.h"
 
+std::mutex g_fftw_plans_mutex;
 
-DCTFFTW::DCTFFTW(int _sizex, int _sizey, int _dctmode) 
+
+DCTFFTW::DCTFFTW(int _sizex, int _sizey, int _dctmode) :
+	DCTClass(_sizex , _sizey, _dctmode)
 {
-    sizex = _sizex;
-    sizey = _sizey;
-    dctmode = _dctmode;
-
     int size2d = sizey*sizex;
 
     int cursize = 1;
     dctshift = 0;
-    while (cursize < size2d) 
+    while (cursize < size2d)
     {
         dctshift++;
         cursize = (cursize<<1);
@@ -44,7 +44,10 @@ DCTFFTW::DCTFFTW(int _sizex, int _sizey, int _dctmode)
     fSrc = (float *)fftwf_malloc(sizeof(float) * size2d );
     fSrcDCT = (float *)fftwf_malloc(sizeof(float) * size2d );
 
-    dctplan = fftwf_plan_r2r_2d(sizey, sizex, fSrc, fSrcDCT, FFTW_REDFT10, FFTW_REDFT10, FFTW_ESTIMATE); // direct fft 
+    g_fftw_plans_mutex.lock();
+    dctplan = fftwf_plan_r2r_2d(sizey, sizex, fSrc, fSrcDCT,
+		FFTW_REDFT10, FFTW_REDFT10, FFTW_ESTIMATE); // direct fft
+	g_fftw_plans_mutex.unlock();
 }
 
 
@@ -61,7 +64,7 @@ void DCTFFTW::Bytes2Float (const unsigned char * srcp, int src_pitch, float * re
 {
     int floatpitch = sizex;
     int i, j;
-    for (j = 0; j < sizey; j++) { 
+    for (j = 0; j < sizey; j++) {
         for (i = 0; i < sizex; i+=1) {
             realdata[i] = srcp[i];
         }
@@ -95,7 +98,7 @@ void DCTFFTW::Float2Bytes (unsigned char * dstp, int dst_pitch, float * realdata
     }
     dstp += dst_pitch;
     realdata += floatpitch;
-    for (j = 1; j < sizey; j++) { 
+    for (j = 1; j < sizey; j++) {
         for (i = 0; i < sizex; i+=1) {
             f = realdata[i]*0.707f; // to be compatible with integer DCTINT8
             /*
