@@ -11,7 +11,7 @@ inline void BitBlt(unsigned char* dstp, int dst_pitch, const unsigned char* srcp
 void MemZoneSet(unsigned char *ptr, unsigned char value, int width,
 				int height, int offsetX, int offsetY, int pitch);
 
-typedef void (COPYFunction)(unsigned char *pDst, intptr_t nDstPitch,
+typedef void (*COPYFunction)(unsigned char *pDst, intptr_t nDstPitch,
                             const unsigned char *pSrc, intptr_t nSrcPitch);
 
 template<int nBlkWidth, int nBlkHeight>

@@ -45,7 +45,7 @@ extern "C" unsigned int mvtools_Var8x4_sse2(const unsigned char *pSrc, intptr_t 
 extern "C" unsigned int mvtools_Var16x8_sse2(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma);
 extern "C" unsigned int mvtools_Var16x2_sse2(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma);
 
-typedef unsigned int (LUMAFunction)(const unsigned char *pSrc, intptr_t nSrcPitch);
+typedef unsigned int (*LUMAFunction)(const unsigned char *pSrc, intptr_t nSrcPitch);
 
 template<int nBlkWidth, int nBlkHeight>
 unsigned int Luma_C(const unsigned char *pSrc, intptr_t nSrcPitch)

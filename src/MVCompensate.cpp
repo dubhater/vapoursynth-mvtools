@@ -58,8 +58,8 @@ typedef struct {
 
     OverlapsFunction OVERSLUMA;
     OverlapsFunction OVERSCHROMA;
-    COPYFunction *BLITLUMA;
-    COPYFunction *BLITCHROMA;
+    COPYFunction BLITLUMA;
+    COPYFunction BLITCHROMA;
 } MVCompensateData;
 
 

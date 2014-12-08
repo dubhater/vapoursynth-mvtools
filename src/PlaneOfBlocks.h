@@ -45,16 +45,17 @@ class PlaneOfBlocks {
    int nFlags;                 /* additionnal flags */
    int nOverlapX; // overlap size
    int nOverlapY; // overlap size
+	int xRatioUV;
 	int yRatioUV;
 	int nLogyRatioUV;// log of yRatioUV (0 for 1 and 1 for 2)
 
-	SADFunction *SAD;           /* function which computes the sad */
-   LUMAFunction *LUMA;         /* function which computes the mean luma */
+	SADFunction SAD;           /* function which computes the sad */
+   LUMAFunction LUMA;         /* function which computes the mean luma */
    VARFunction *VAR;           /* function which computes the variance */
-   COPYFunction *BLITLUMA;
-   COPYFunction *BLITCHROMA;
-   SADFunction *SADCHROMA;
-   SADFunction *SATD;		/* SATD function, (similar to SAD), used as replacement to dct */
+   COPYFunction BLITLUMA;
+   COPYFunction BLITCHROMA;
+   SADFunction SADCHROMA;
+   SADFunction SATD;		/* SATD function, (similar to SAD), used as replacement to dct */
 
    VECTOR *vectors;            /* motion vectors of the blocks */
                                /* before the search, contains the hierachal predictor */

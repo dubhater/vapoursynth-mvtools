@@ -44,6 +44,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
    nBlkCount = nBlkX * nBlkY;
 
    nFlags = _nFlags;
+   xRatioUV = 2;
    yRatioUV = _yRatioUV;
    nLogyRatioUV = ilog2(yRatioUV);
 
@@ -66,255 +67,148 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 
 /* function's pointers initialization */
 
+    SADFunction sads[33][33];
+    LUMAFunction lumas[33][33];
+    COPYFunction blits[33][33];
+
+    // valid block sizes for luma: 4x4, 8x4, 8x8, 16x2, 16x8, 16x16, 32x16, 32x32.
+    // Chroma block sizes needed to support YUV440P8 (full width, half height): 16x1, 16x4, 32x8.
     if (isse) {
-        if (nBlkSizeX == 4) {
-            SAD = mvtools_pixel_sad_4x4_mmx2;
-            LUMA = mvtools_Luma4x4_sse2;
-            BLITLUMA = mvtools_Copy4x4_sse2;
+        sads[2][2] = Sad_C<2, 2>;
+        blits[2][2] = mvtools_Copy2x2_sse2;
 
-            if (yRatioUV == 2) {
-                BLITCHROMA = mvtools_Copy2x2_sse2;
-                SADCHROMA = Sad_C<2, 2>;
-            } else {
-                BLITCHROMA = mvtools_Copy2x4_sse2;
-                SADCHROMA = Sad_C<2, 4>;
-            }
-        } else if (nBlkSizeX == 8) {
-            if (nBlkSizeY == 4) {
-                SAD = mvtools_pixel_sad_8x4_mmx2;
-                if (cache64)
-                    SAD = mvtools_pixel_sad_8x4_cache64_mmx2;
+        sads[2][4] = Sad_C<2, 4>;
+        blits[2][4] = mvtools_Copy2x4_sse2;
 
-                LUMA = mvtools_Luma8x4_sse2;
-                BLITLUMA = mvtools_Copy8x4_sse2;
+        sads[4][2] = mvtools_sad_4x2_sse2;
+        blits[4][2] = mvtools_Copy4x2_sse2;
 
-                if (yRatioUV == 2) {
-                    BLITCHROMA = mvtools_Copy4x2_sse2;
-                    SADCHROMA = mvtools_sad_4x2_sse2;
-                } else {
-                    BLITCHROMA = mvtools_Copy4x4_sse2;
-                    SADCHROMA = mvtools_pixel_sad_4x4_mmx2;
-                }
-            } else if (nBlkSizeY == 8) {
-                SAD = mvtools_pixel_sad_8x8_mmx2;
-                if (cache64)
-                    SAD = mvtools_pixel_sad_8x8_cache64_mmx2;
+        sads[4][4] = mvtools_pixel_sad_4x4_mmx2;
+        lumas[4][4] = mvtools_Luma4x4_sse2;
+        blits[4][4] = mvtools_Copy4x4_sse2;
 
-                LUMA = mvtools_Luma8x8_sse2;
-                BLITLUMA = mvtools_Copy8x8_sse2;
+        sads[4][8] = mvtools_pixel_sad_4x8_mmx2;
+        blits[4][8] = mvtools_Copy4x8_sse2;
 
-                if (yRatioUV == 2) {
-                    BLITCHROMA = mvtools_Copy4x4_sse2;
-                    SADCHROMA = mvtools_pixel_sad_4x4_mmx2;
-                } else {
-                    BLITCHROMA = mvtools_Copy4x8_sse2;
-                    SADCHROMA = mvtools_pixel_sad_4x8_mmx2;
-                }
-            }
-        } else if (nBlkSizeX == 16) {
-            if (nBlkSizeY == 2) {
-                SAD = mvtools_sad_16x2_sse2;
-                LUMA = mvtools_Luma16x2_sse2;
-                BLITLUMA = mvtools_Copy16x2_sse2;
-                if (yRatioUV == 2) {
-                    BLITCHROMA = mvtools_Copy8x1_sse2;
-                    SADCHROMA = mvtools_sad_8x1_sse2;
-                } else {
-                    BLITCHROMA = mvtools_Copy8x2_sse2;
-                    SADCHROMA = mvtools_sad_8x2_sse2;
-                }
-            } else if (nBlkSizeY == 8) {
-                SAD = mvtools_pixel_sad_16x8_sse2;
-                if (sse3)
-                    SAD = mvtools_pixel_sad_16x8_sse3;
-                if (ssse3 && cache64)
-                    SAD = mvtools_pixel_sad_16x8_cache64_ssse3;
+        sads[8][1] = mvtools_sad_8x1_sse2;
+        blits[8][1] = mvtools_Copy8x1_sse2;
 
-                LUMA = mvtools_Luma16x8_sse2;
-                BLITLUMA = mvtools_Copy16x8_sse2;
+        sads[8][2] = mvtools_sad_8x2_sse2;
+        blits[8][2] = mvtools_Copy8x2_sse2;
 
-                if (yRatioUV == 2) {
-                    BLITCHROMA = mvtools_Copy8x4_sse2;
+        sads[8][4] = mvtools_pixel_sad_8x4_mmx2;
+        lumas[8][4] = mvtools_Luma8x4_sse2;
+        blits[8][4] = mvtools_Copy8x4_sse2;
 
-                    SADCHROMA = mvtools_pixel_sad_8x4_mmx2;
-                    if (cache64)
-                        SADCHROMA = mvtools_pixel_sad_8x4_cache64_mmx2;
-                } else {
-                    BLITCHROMA = mvtools_Copy8x8_sse2;
+        sads[8][8] = mvtools_pixel_sad_8x8_mmx2;
+        lumas[8][8] = mvtools_Luma8x8_sse2;
+        blits[8][8] = mvtools_Copy8x8_sse2;
 
-                    SADCHROMA = mvtools_pixel_sad_8x8_mmx2;
-                    if (cache64)
-                        SADCHROMA = mvtools_pixel_sad_8x8_cache64_mmx2;
-                }
-            } else if (nBlkSizeY == 16) {
-                SAD = mvtools_pixel_sad_16x16_sse2;
-                if (sse3)
-                    SAD = mvtools_pixel_sad_16x16_sse3;
-                if (ssse3 && cache64)
-                    SAD = mvtools_pixel_sad_16x16_cache64_ssse3;
+        sads[8][16] = mvtools_pixel_sad_8x16_sse2;
+        blits[8][16] = mvtools_Copy8x16_sse2;
 
-                LUMA = mvtools_Luma16x16_sse2;
-                BLITLUMA = mvtools_Copy16x16_sse2;
+        sads[16][2] = mvtools_sad_16x2_sse2;
+        lumas[16][2] = mvtools_Luma16x2_sse2;
+        blits[16][2] = mvtools_Copy16x2_sse2;
 
-                if (yRatioUV == 2) {
-                    BLITCHROMA = mvtools_Copy8x8_sse2;
+        sads[16][8] = mvtools_pixel_sad_16x8_sse2;
+        lumas[16][8] = mvtools_Luma16x8_sse2;
+        blits[16][8] = mvtools_Copy16x8_sse2;
 
-                    SADCHROMA = mvtools_pixel_sad_8x8_mmx2;
-                    if (cache64)
-                        SADCHROMA = mvtools_pixel_sad_8x8_cache64_mmx2;
-                } else {
-                    BLITCHROMA = mvtools_Copy8x16_sse2;
+        sads[16][16] = mvtools_pixel_sad_16x16_sse2;
+        lumas[16][16] = mvtools_Luma16x16_sse2;
+        blits[16][16] = mvtools_Copy16x16_sse2;
 
-                    SADCHROMA = mvtools_pixel_sad_8x16_sse2;
-                }
-            }
-        } else if (nBlkSizeX == 32) {
-            if (nBlkSizeY == 16) {
-                SAD = mvtools_sad_32x16_sse2;
-                LUMA = mvtools_Luma32x16_sse2;
-                BLITLUMA = mvtools_Copy32x16_sse2;
+        sads[16][32] = mvtools_sad_16x32_sse2;
+        blits[16][32] = mvtools_Copy16x32_sse2;
 
-                if (yRatioUV == 2) {
-                    BLITCHROMA = mvtools_Copy16x8_sse2;
+        sads[32][16] = mvtools_sad_32x16_sse2;
+        lumas[32][16] = mvtools_Luma32x16_sse2;
+        blits[32][16] = mvtools_Copy32x16_sse2;
 
-                    SADCHROMA = mvtools_pixel_sad_16x8_sse2;
-                    if (sse3)
-                        SADCHROMA = mvtools_pixel_sad_16x8_sse3;
-                    if (ssse3 && cache64)
-                        SADCHROMA = mvtools_pixel_sad_16x8_cache64_ssse3;
-                } else {
-                    BLITCHROMA = mvtools_Copy16x16_sse2;
+        sads[32][32] = mvtools_sad_32x32_sse2;
+        lumas[32][32] = mvtools_Luma32x32_sse2;
+        blits[32][32] = mvtools_Copy32x32_sse2;
 
-                    SADCHROMA = mvtools_pixel_sad_16x16_sse2;
-                    if (sse3)
-                        SADCHROMA = mvtools_pixel_sad_16x16_sse3;
-                    if (ssse3 && cache64)
-                        SADCHROMA = mvtools_pixel_sad_16x16_cache64_ssse3;
-                }
-            } else if (nBlkSizeY == 32) {
-                SAD = mvtools_sad_32x32_sse2;
-                LUMA = mvtools_Luma32x32_sse2;
-                BLITLUMA = mvtools_Copy32x32_sse2;
-
-                if (yRatioUV == 2) {
-                    BLITCHROMA = mvtools_Copy16x16_sse2;
-
-                    SADCHROMA = mvtools_pixel_sad_16x16_sse2;
-                    if (sse3)
-                        SADCHROMA = mvtools_pixel_sad_16x16_sse3;
-                    if (ssse3 && cache64)
-                        SADCHROMA = mvtools_pixel_sad_16x16_cache64_ssse3;
-                } else {
-                    BLITCHROMA = mvtools_Copy16x32_sse2;
-                    SADCHROMA = mvtools_sad_16x32_sse2;
-                }
-            }
+        if (cache64) {
+            sads[8][4] = mvtools_pixel_sad_8x4_cache64_mmx2;
+            sads[8][8] = mvtools_pixel_sad_8x8_cache64_mmx2;
         }
-    } else { // no isse
-        if (nBlkSizeX == 4) {
-            SAD = Sad_C<4, 4>;
-            LUMA = Luma_C<4, 4>;
-            BLITLUMA = Copy_C<4, 4>;
 
-            if (yRatioUV == 2) {
-                BLITCHROMA = Copy_C<2, 2>;
-                SADCHROMA = Sad_C<2, 2>;
-            } else {
-                BLITCHROMA = Copy_C<2, 4>;
-                SADCHROMA = Sad_C<2, 4>;
-            }
-        } else if (nBlkSizeX == 8) {
-            if (nBlkSizeY == 4) {
-                SAD = Sad_C<8, 4>;
-                LUMA = Luma_C<8, 4>;
-                BLITLUMA = Copy_C<8, 4>;
-
-                if (yRatioUV == 2) {
-                    BLITCHROMA = Copy_C<4, 2>;
-                    SADCHROMA = Sad_C<4, 2>;
-                } else {
-                    BLITCHROMA = Copy_C<4, 4>;
-                    SADCHROMA = Sad_C<4, 4>;
-                }
-            } else if (nBlkSizeY == 8) {
-                SAD = Sad_C<8, 8>;
-                LUMA = Luma_C<8, 8>;
-                BLITLUMA = Copy_C<8, 8>;
-
-                if (yRatioUV == 2) {
-                    BLITCHROMA = Copy_C<4, 4>;
-                    SADCHROMA = Sad_C<4, 4>;
-                } else {
-                    BLITCHROMA = Copy_C<4, 8>;
-                    SADCHROMA = Sad_C<4, 8>;
-                }
-            }
-        } else if (nBlkSizeX == 16) {
-            if (nBlkSizeY == 2) {
-                SAD = Sad_C<16, 2>;
-                LUMA = Luma_C<16, 2>;
-                BLITLUMA = Copy_C<16, 2>;
-
-                if (yRatioUV == 2) {
-                    BLITCHROMA = Copy_C<8, 1>;
-                    SADCHROMA = Sad_C<8, 1>;
-                } else {
-                    BLITCHROMA = Copy_C<8, 2>;
-                    SADCHROMA = Sad_C<8, 2>;
-                }
-            } else if (nBlkSizeY == 8) {
-                SAD = Sad_C<16, 8>;
-                LUMA = Luma_C<16, 8>;
-                BLITLUMA = Copy_C<16, 8>;
-
-                if (yRatioUV == 2) {
-                    BLITCHROMA = Copy_C<8, 4>;
-                    SADCHROMA = Sad_C<8, 4>;
-                } else {
-                    BLITCHROMA = Copy_C<8, 8>;
-                    SADCHROMA = Sad_C<8, 8>;
-                }
-            } else if (nBlkSizeY == 16) {
-                SAD = Sad_C<16, 16>;
-                LUMA = Luma_C<16, 16>;
-                BLITLUMA = Copy_C<16, 16>;
-
-                if (yRatioUV == 2) {
-                    BLITCHROMA = Copy_C<8, 4>;
-                    SADCHROMA = Sad_C<8, 4>;
-                } else {
-                    BLITCHROMA = Copy_C<8, 16>;
-                    SADCHROMA = Sad_C<8, 16>;
-                }
-            }
-        } else if (nBlkSizeX == 32) {
-            if (nBlkSizeY == 16) {
-                SAD = Sad_C<32, 16>;
-                LUMA = Luma_C<32, 16>;
-                BLITLUMA = Copy_C<32, 16>;
-
-                if (yRatioUV == 2) {
-                    BLITCHROMA = Copy_C<16, 8>;
-                    SADCHROMA = Sad_C<16, 8>;
-                } else {
-                    BLITCHROMA = Copy_C<16, 16>;
-                    SADCHROMA = Sad_C<16, 16>;
-                }
-            } else if (nBlkSizeY == 32) {
-                SAD = Sad_C<32, 32>;
-                LUMA = Luma_C<32, 32>;
-                BLITLUMA = Copy_C<32, 32>;
-
-                if (yRatioUV == 2) {
-                    BLITCHROMA = Copy_C<16, 16>;
-                    SADCHROMA = Sad_C<16, 16>;
-                } else {
-                    BLITCHROMA = Copy_C<16, 32>;
-                    SADCHROMA = Sad_C<16, 32>;
-                }
-            }
+        if (sse3) {
+            sads[16][8] = mvtools_pixel_sad_16x8_sse3;
+            sads[16][16] = mvtools_pixel_sad_16x16_sse3;
         }
+
+        if (ssse3 && cache64) {
+            sads[16][8] = mvtools_pixel_sad_16x8_cache64_ssse3;
+            sads[16][16] = mvtools_pixel_sad_16x16_cache64_ssse3;
+        }
+    } else {
+        sads[2][2] = Sad_C<2, 2>;
+        blits[2][2] = Copy_C<2, 2>;
+
+        sads[2][4] = Sad_C<2, 4>;
+        blits[2][4] = Copy_C<2, 4>;
+
+        sads[4][2] = Sad_C<4, 2>;
+        blits[4][2] = Copy_C<4, 2>;
+
+        sads[4][4] = Sad_C<4, 4>;
+        lumas[4][4] = Luma_C<4, 4>;
+        blits[4][4] = Copy_C<4, 4>;
+
+        sads[4][8] = Sad_C<4, 8>;
+        blits[4][8] = Copy_C<4, 8>;
+
+        sads[8][1] = Sad_C<8, 1>;
+        blits[8][1] = Copy_C<8, 1>;
+
+        sads[8][2] = Sad_C<8, 2>;
+        blits[8][2] = Copy_C<8, 2>;
+
+        sads[8][4] = Sad_C<8, 4>;
+        lumas[8][4] = Luma_C<8, 4>;
+        blits[8][4] = Copy_C<8, 4>;
+
+        sads[8][8] = Sad_C<8, 8>;
+        lumas[8][8] = Luma_C<8, 8>;
+        blits[8][8] = Copy_C<8, 8>;
+
+        sads[8][16] = Sad_C<8, 16>;
+        blits[8][16] = Copy_C<8, 16>;
+
+        sads[16][2] = Sad_C<16, 2>;
+        lumas[16][2] = Luma_C<16, 2>;
+        blits[16][2] = Copy_C<16, 2>;
+
+        sads[16][8] = Sad_C<16, 8>;
+        lumas[16][8] = Luma_C<16, 8>;
+        blits[16][8] = Copy_C<16, 8>;
+
+        sads[16][16] = Sad_C<16, 16>;
+        lumas[16][16] = Luma_C<16, 16>;
+        blits[16][16] = Copy_C<16, 16>;
+
+        sads[16][32] = Sad_C<16, 32>;
+        blits[16][32] = Copy_C<16, 32>;
+
+        sads[32][16] = Sad_C<32, 16>;
+        lumas[32][16] = Luma_C<32, 16>;
+        blits[32][16] = Copy_C<32, 16>;
+
+        sads[32][32] = Sad_C<32, 32>;
+        lumas[32][32] = Luma_C<32, 32>;
+        blits[32][32] = Copy_C<32, 32>;
     }
+
+    SAD = sads[nBlkSizeX][nBlkSizeY];
+    LUMA = lumas[nBlkSizeX][nBlkSizeY];
+    BLITLUMA = blits[nBlkSizeX][nBlkSizeY];
+
+    SADCHROMA = sads[nBlkSizeX / xRatioUV][nBlkSizeY / yRatioUV];
+    BLITCHROMA = blits[nBlkSizeX / xRatioUV][nBlkSizeY / yRatioUV];
+
 
 	SATD = SadDummy; //for now disable SATD if default functions are used
 

@@ -30,7 +30,7 @@
 
 #include "MVInterface.h"
 
-typedef unsigned int (SADFunction)(const uint8_t *pSrc, intptr_t nSrcPitch,
+typedef unsigned int (*SADFunction)(const uint8_t *pSrc, intptr_t nSrcPitch,
 								    const uint8_t *pRef, intptr_t nRefPitch);
 
 inline unsigned int SADABS(int x) {	return ( x < 0 ) ? -x : x; }
