@@ -70,6 +70,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
     SADFunction sads[33][33];
     LUMAFunction lumas[33][33];
     COPYFunction blits[33][33];
+    SADFunction satds[33][33];
 
     // valid block sizes for luma: 4x4, 8x4, 8x8, 16x2, 16x8, 16x16, 32x16, 32x32.
     // Chroma block sizes needed to support YUV440P8 (full width, half height): 16x1, 16x4, 32x8.
@@ -202,6 +203,21 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
         blits[32][32] = Copy_C<32, 32>;
     }
 
+    // There are no C versions for these, so use them irrespective of isse.
+    satds[4][4] = mvtools_pixel_satd_4x4_mmx2;
+    satds[8][4] = mvtools_pixel_satd_8x4_sse2;
+    satds[8][8] = mvtools_pixel_satd_8x8_sse2;
+    satds[16][8] = mvtools_pixel_satd_16x8_sse2;
+    satds[16][16] = mvtools_pixel_satd_16x16_sse2;
+
+    if (ssse3) {
+        satds[8][4] = mvtools_pixel_satd_8x4_ssse3;
+        satds[8][8] = mvtools_pixel_satd_8x8_ssse3;
+        satds[16][8] = mvtools_pixel_satd_16x8_ssse3;
+        satds[16][16] = mvtools_pixel_satd_16x16_ssse3;
+    }
+
+
     SAD = sads[nBlkSizeX][nBlkSizeY];
     LUMA = lumas[nBlkSizeX][nBlkSizeY];
     BLITLUMA = blits[nBlkSizeX][nBlkSizeY];
@@ -209,8 +225,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
     SADCHROMA = sads[nBlkSizeX / xRatioUV][nBlkSizeY / yRatioUV];
     BLITCHROMA = blits[nBlkSizeX / xRatioUV][nBlkSizeY / yRatioUV];
 
-
-	SATD = SadDummy; //for now disable SATD if default functions are used
+    SATD = satds[nBlkSizeX][nBlkSizeY];
 
 	if ( !chroma )
 		SADCHROMA = SadDummy;
