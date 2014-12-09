@@ -332,6 +332,20 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
         return;
     }
 
+    if (d.dctmode < 0 || d.dctmode > 10) {
+        vsapi->setError(out, "Recalculate: dct must be between 0 and 10 (inclusive).");
+        return;
+    }
+
+    if (d.dctmode >= 5 && !((d.blksize == 4 && d.blksizev == 4) ||
+                            (d.blksize == 8 && d.blksizev == 4) ||
+                            (d.blksize == 8 && d.blksizev == 8) ||
+                            (d.blksize == 16 && d.blksizev == 8) ||
+                            (d.blksize == 16 && d.blksizev == 16))) {
+        vsapi->setError(out, "Recalculate: dct 5..10 can only work with 4x4, 8x4, 8x8, 16x8, and 16x16 blocks.");
+        return;
+    }
+
     if (d.divideExtra < 0 || d.divideExtra > 2) {
         vsapi->setError(out, "Recalculate: divide must be between 0 and 2 (inclusive).");
         return;
