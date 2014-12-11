@@ -407,18 +407,18 @@ static void selectFunctions(MVDegrain1Data *d) {
                 }
                 break;
             case 4:
-                d->OVERS[0] = mvtools_Overlaps4x4_sse2;    d->DEGRAIN[0] = Degrain1_mmx<4,4>;
+                d->OVERS[0] = mvtools_Overlaps4x4_sse2;    d->DEGRAIN[0] = Degrain1_sse2<4,4>;
                 if (yRatioUV==2) {            d->OVERS[1] = Overlaps_C<2,2>;    d->DEGRAIN[1] = Degrain1_C<2,2>;         }
                 else {                        d->OVERS[1] = Overlaps_C<2,4>;    d->DEGRAIN[1] = Degrain1_C<2,4>;         }
                 break;
             case 8:
             default:
                 if (nBlkSizeY==8) {           d->OVERS[0] = mvtools_Overlaps8x8_sse2;    d->DEGRAIN[0] = Degrain1_sse2<8,8>;
-                    if (yRatioUV==2) {            d->OVERS[1] = mvtools_Overlaps4x4_sse2;  d->DEGRAIN[1] = Degrain1_mmx<4,4>;         }
-                    else {                        d->OVERS[1] = mvtools_Overlaps4x8_sse2;  d->DEGRAIN[1] = Degrain1_mmx<4,8>;         }
+                    if (yRatioUV==2) {            d->OVERS[1] = mvtools_Overlaps4x4_sse2;  d->DEGRAIN[1] = Degrain1_sse2<4,4>;         }
+                    else {                        d->OVERS[1] = mvtools_Overlaps4x8_sse2;  d->DEGRAIN[1] = Degrain1_sse2<4,8>;         }
                 }else if (nBlkSizeY==4) {     d->OVERS[0] = mvtools_Overlaps8x4_sse2;    d->DEGRAIN[0] = Degrain1_sse2<8,4>;
-                    if (yRatioUV==2) {            d->OVERS[1] = mvtools_Overlaps4x2_sse2;    d->DEGRAIN[1] = Degrain1_mmx<4,2>;         }
-                    else {                        d->OVERS[1] = mvtools_Overlaps4x4_sse2;  d->DEGRAIN[1] = Degrain1_mmx<4,4>;         }
+                    if (yRatioUV==2) {            d->OVERS[1] = mvtools_Overlaps4x2_sse2;    d->DEGRAIN[1] = Degrain1_sse2<4,2>;         }
+                    else {                        d->OVERS[1] = mvtools_Overlaps4x4_sse2;  d->DEGRAIN[1] = Degrain1_sse2<4,4>;         }
                 }
         }
     }
