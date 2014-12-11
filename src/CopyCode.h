@@ -26,12 +26,6 @@ void Copy_C(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSr
    }
 }
 
-template<int nBlkSize>
-void Copy_C(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch)
-{
-   Copy_C<nBlkSize, nBlkSize>(pDst, nDstPitch, pSrc, nSrcPitch);
-}
-
 //extern "C" void  Copy16x16_mmx(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch);
 #define MK_CFUNC(functionname) extern "C" void  functionname (uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch)
 //default functions

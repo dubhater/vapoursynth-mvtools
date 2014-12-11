@@ -29,11 +29,6 @@ unsigned int Var_C(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma)
    return meanVariance;
 }
 
-template<int nBlkSize>
-unsigned int Var_C(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma)
-{
-   return Var_C<nBlkSize, nBlkSize>(pSrc, nSrcPitch, pLuma);
-}
 
 extern "C" unsigned int mvtools_Var32x32_sse2(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma);
 extern "C" unsigned int mvtools_Var16x32_sse2(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma);
@@ -61,11 +56,6 @@ unsigned int Luma_C(const unsigned char *pSrc, intptr_t nSrcPitch)
    return meanLuma;
 }
 
-template<int nBlkSize>
-unsigned int Luma_C(const unsigned char *pSrc, intptr_t nSrcPitch)
-{
-   return Luma_C<nBlkSize, nBlkSize>(pSrc, nSrcPitch);
-}
 
 extern "C" unsigned int mvtools_Luma32x32_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
 extern "C" unsigned int mvtools_Luma16x32_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);

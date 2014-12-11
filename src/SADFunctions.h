@@ -50,12 +50,7 @@ unsigned int Sad_C(const uint8_t *pSrc, intptr_t nSrcPitch,const uint8_t *pRef,
 	}
 	return sum;
 }
-template<int nBlkSize>
-unsigned int Sad_C(const uint8_t *pSrc, intptr_t nSrcPitch,const uint8_t *pRef,
-                    intptr_t nRefPitch)
-{
-   return Sad_C<nBlkSize, nBlkSize>(pSrc, pRef, nSrcPitch, nRefPitch);
-}
+
 // a litle more fast unrolled (Fizick)
 /* //seems to be dead code (TSchniede)
 inline unsigned int Sad2_C(const uint8_t *pSrc, const uint8_t *pRef,int nSrcPitch,
