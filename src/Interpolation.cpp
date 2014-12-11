@@ -246,13 +246,13 @@ void RB2FilteredHorizontalInplace(unsigned char *pSrc, int nSrcPitch, int nWidth
         if (isse)
         {
             RB2FilteredHorizontalInplaceLine_SSE(pSrc, nWidthMMX); // very first is skipped
-            for ( int x = nWidthMMX; x < nWidth; x++ )
+            for ( x = nWidthMMX; x < nWidth; x++ )
                 pSrc[x] = (pSrc[x*2-1] + pSrc[x*2]*2 + pSrc[x*2+1] + 2) /4;
         }
         else
         */
         {
-            for ( int x = 1; x < nWidth; x++ )
+            for ( x = 1; x < nWidth; x++ )
                 pSrc[x] = (pSrc[x*2-1] + pSrc[x*2]*2 + pSrc[x*2+1] + 2) /4;
         }
         pSrc[0] = pSrc0;
@@ -330,17 +330,17 @@ void RB2BilinearFilteredHorizontalInplace(unsigned char *pSrc, int nSrcPitch, in
         if (isse)
         {
             mvtools_RB2BilinearFilteredHorizontalInplaceLine_sse2(pSrc, nWidthMMX); // very first is skipped
-            for ( int x = nWidthMMX; x < nWidth-1; x++ )
+            for ( x = nWidthMMX; x < nWidth-1; x++ )
                 pSrc[x] = (pSrc[x*2-1] + pSrc[x*2]*3 + pSrc[x*2+1]*3 + pSrc[x*2+2] + 4) /8;
         }
         else
         {
-            for ( int x = 1; x < nWidth-1; x++ )
+            for ( x = 1; x < nWidth-1; x++ )
                 pSrc[x] = (pSrc[x*2-1] + pSrc[x*2]*3 + pSrc[x*2+1]*3 + pSrc[x*2+2] + 4) /8;
         }
         pSrc[0] = pSrc0;
 
-		for ( int x = max(nWidth-1,1); x < nWidth; x++ )
+		for ( x = max(nWidth-1,1); x < nWidth; x++ )
            pSrc[x] = (pSrc[x*2] + pSrc[x*2+1] + 1) / 2;
 
 		pSrc += nSrcPitch;
@@ -418,17 +418,17 @@ void RB2QuadraticHorizontalInplace(unsigned char *pSrc, int nSrcPitch, int nWidt
         if (isse)
         {
             mvtools_RB2QuadraticHorizontalInplaceLine_sse2(pSrc, nWidthMMX);
-            for ( int x = nWidthMMX; x < nWidth-1; x++ )
+            for ( x = nWidthMMX; x < nWidth-1; x++ )
                 pSrc[x] = (pSrc[x*2-2] + pSrc[x*2-1]*9 + pSrc[x*2]*22 + pSrc[x*2+1]*22 + pSrc[x*2+2]*9 + pSrc[x*2+3] + 32) /64;
         }
         else
         {
-		for ( int x = 1; x < nWidth-1; x++ )
+		for ( x = 1; x < nWidth-1; x++ )
             pSrc[x] = (pSrc[x*2-2] + pSrc[x*2-1]*9 + pSrc[x*2]*22 + pSrc[x*2+1]*22 + pSrc[x*2+2]*9 + pSrc[x*2+3] + 32) /64;
         }
         pSrc[0] = pSrc0;
 
-		for ( int x = max(nWidth-1,1); x < nWidth; x++ )
+		for ( x = max(nWidth-1,1); x < nWidth; x++ )
            pSrc[x] = (pSrc[x*2] + pSrc[x*2+1] + 1) / 2;
 
 		pSrc += nSrcPitch;
@@ -503,17 +503,17 @@ void RB2CubicHorizontalInplace(unsigned char *pSrc, int nSrcPitch, int nWidth, i
         if (isse)
         {
             mvtools_RB2CubicHorizontalInplaceLine_sse2(pSrc, nWidthMMX);
-            for ( int x = nWidthMMX; x < nWidth-1; x++ )
+            for ( x = nWidthMMX; x < nWidth-1; x++ )
                 pSrc[x] = (pSrc[x*2-2] + pSrc[x*2-1]*5 + pSrc[x*2]*10 + pSrc[x*2+1]*10 + pSrc[x*2+2]*5 + pSrc[x*2+3] + 16) /32;
         }
         else
         {
-		for ( int x = 1; x < nWidth-1; x++ )
+		for ( x = 1; x < nWidth-1; x++ )
             pSrc[x] = (pSrc[x*2-2] + pSrc[x*2-1]*5 + pSrc[x*2]*10 + pSrc[x*2+1]*10 + pSrc[x*2+2]*5 + pSrc[x*2+3] + 16) /32;
         }
         pSrc[0] = pSrcw0;
 
-		for ( int x = max(nWidth-1,1); x < nWidth; x++ )
+		for ( x = max(nWidth-1,1); x < nWidth; x++ )
            pSrc[x] = (pSrc[x*2] + pSrc[x*2+1] + 1) / 2;
 
 		pSrc += nSrcPitch;

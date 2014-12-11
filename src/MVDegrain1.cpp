@@ -123,7 +123,6 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
         int nRefBPitches[3], nRefFPitches[3];
         bool isUsableB, isUsableF;
         int tmpPitch = d->bleh->nBlkSizeX;
-        int WSrc, WRefB, WRefF;
         unsigned short *pDstShort;
         int nLogPel = (d->bleh->nPel == 4) ? 2 : (d->bleh->nPel == 2) ? 1 : 0;
         // nLogPel=0 for nPel=1, 1 for nPel=2, 2 for nPel=4, i.e. (x*nPel) = (x<<nLogPel)
@@ -294,6 +293,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
                         int i = by * nBlkX + bx;
                         const uint8_t *pB, *pF;
                         int npB, npF;
+                        int WRefB, WRefF, WSrc;
 
                         useBlock(pB, npB, WRefB, isUsableB, ballsB, i, pPlanesB, pSrcCur, xx, nSrcPitches, nLogPel, plane, xSubUV, ySubUV, thSAD);
                         useBlock(pF, npF, WRefF, isUsableF, ballsF, i, pPlanesF, pSrcCur, xx, nSrcPitches, nLogPel, plane, xSubUV, ySubUV, thSAD);
