@@ -453,177 +453,67 @@ static void VS_CC mvcompensateFree(void *instanceData, VSCore *core, const VSAPI
 
 
 static void selectFunctions(MVCompensateData *d) {
+    const int xRatioUV = 2;
     const int yRatioUV = d->bleh->yRatioUV;
     const int nBlkSizeX = d->bleh->nBlkSizeX;
     const int nBlkSizeY = d->bleh->nBlkSizeY;
 
-    if (d->isse)
-    {
-        switch (nBlkSizeX)
-        {
-            case 32:
-                if (nBlkSizeY==16) {
-                    d->BLITLUMA = mvtools_Copy32x16_sse2;
-                    d->OVERSLUMA = mvtools_Overlaps32x16_sse2;
-                    if (yRatioUV==2) {
-                        d->BLITCHROMA = mvtools_Copy16x8_sse2;
-                        d->OVERSCHROMA = mvtools_Overlaps16x8_sse2;
-                    } else {
-                        d->BLITCHROMA = mvtools_Copy16x16_sse2;
-                        d->OVERSCHROMA = mvtools_Overlaps16x16_sse2;
-                    }
-                } else if (nBlkSizeY==32) {
-                    d->BLITLUMA = mvtools_Copy32x32_sse2;
-                    d->OVERSLUMA = mvtools_Overlaps32x32_sse2;
-                    if (yRatioUV==2) {
-                        d->BLITCHROMA = mvtools_Copy16x16_sse2;
-                        d->OVERSCHROMA = mvtools_Overlaps16x16_sse2;
-                    } else {
-                        d->BLITCHROMA = mvtools_Copy16x32_sse2;
-                        d->OVERSCHROMA = mvtools_Overlaps16x32_sse2;
-                    }
-                } break;
-            case 16:
-                if (nBlkSizeY==16) {
-                    d->BLITLUMA = mvtools_Copy16x16_sse2;
-                    d->OVERSLUMA = mvtools_Overlaps16x16_sse2;
-                    if (yRatioUV==2) {
-                        d->BLITCHROMA = mvtools_Copy8x8_sse2;
-                        d->OVERSCHROMA = mvtools_Overlaps8x8_sse2;
-                    } else {
-                        d->BLITCHROMA = mvtools_Copy8x16_sse2;
-                        d->OVERSCHROMA = mvtools_Overlaps8x16_sse2;
-                    }
-                } else if (nBlkSizeY==8) {
-                    d->BLITLUMA = mvtools_Copy16x8_sse2;
-                    d->OVERSLUMA = mvtools_Overlaps16x8_sse2;
-                    if (yRatioUV==2) {
-                        d->BLITCHROMA = mvtools_Copy8x4_sse2;
-                        d->OVERSCHROMA = mvtools_Overlaps8x4_sse2;
-                    } else {
-                        d->BLITCHROMA = mvtools_Copy8x8_sse2;
-                        d->OVERSCHROMA = mvtools_Overlaps8x8_sse2;
-                    }
-                } else if (nBlkSizeY==2) {
-                    d->BLITLUMA = mvtools_Copy16x2_sse2;
-                    d->OVERSLUMA = mvtools_Overlaps16x2_sse2;
-                    if (yRatioUV==2) {
-                        d->BLITCHROMA = mvtools_Copy8x1_sse2;
-                        d->OVERSCHROMA = mvtools_Overlaps8x1_sse2;
-                    } else {
-                        d->BLITCHROMA = mvtools_Copy8x2_sse2;
-                        d->OVERSCHROMA = mvtools_Overlaps8x2_sse2;
-                    }
-                }
-                break;
-            case 4:
-                d->BLITLUMA = mvtools_Copy4x4_sse2;
-                d->OVERSLUMA = mvtools_Overlaps4x4_sse2;
-                if (yRatioUV==2) {
-                    d->BLITCHROMA = mvtools_Copy2x2_sse2;
-                    d->OVERSCHROMA = Overlaps_C<2,2>;
-                } else {
-                    d->BLITCHROMA = mvtools_Copy2x4_sse2;
-                    d->OVERSCHROMA = Overlaps_C<2,4>;
-                }
-                break;
-            case 8:
-            default:
-                if (nBlkSizeY==8) {
-                    d->BLITLUMA = mvtools_Copy8x8_sse2;
-                    d->OVERSLUMA = mvtools_Overlaps8x8_sse2;
-                    if (yRatioUV==2) {
-                        d->BLITCHROMA = mvtools_Copy4x4_sse2;
-                        d->OVERSCHROMA = mvtools_Overlaps4x4_sse2;
-                    } else {
-                        d->BLITCHROMA = mvtools_Copy4x8_sse2;
-                        d->OVERSCHROMA = mvtools_Overlaps4x8_sse2;
-                    }
-                } else if (nBlkSizeY==4) { // 8x4
-                    d->BLITLUMA = mvtools_Copy8x4_sse2;
-                    d->OVERSLUMA = mvtools_Overlaps8x4_sse2;
-                    if (yRatioUV==2) {
-                        d->BLITCHROMA = mvtools_Copy4x2_sse2; // idem
-                        d->OVERSCHROMA = mvtools_Overlaps4x2_sse2;
-                    } else {
-                        d->BLITCHROMA = mvtools_Copy4x4_sse2; // idem
-                        d->OVERSCHROMA = mvtools_Overlaps4x4_sse2;
-                    }
-                }
-        }
-    }
-    else // pure C, no isse opimization ("mmx" version could be used, but it's more like a debugging version)
-    {
-        switch (nBlkSizeX)
-        {
-            case 32:
-                if (nBlkSizeY==16) {
-                    d->BLITLUMA = Copy_C<32,16>;         d->OVERSLUMA = Overlaps_C<32,16>;
-                    if (yRatioUV==2) {
-                        d->BLITCHROMA = Copy_C<16,8>;	         d->OVERSCHROMA = Overlaps_C<16,8>;
-                    } else {
-                        d->BLITCHROMA = Copy_C<16>;          d->OVERSCHROMA = Overlaps_C<16,16>;
-                    }
-                } else if (nBlkSizeY==32) {
-                    d->BLITLUMA = Copy_C<32,32>;         d->OVERSLUMA = Overlaps_C<32,32>;
-                    if (yRatioUV==2) {
-                        d->BLITCHROMA = Copy_C<16,16>;	         d->OVERSCHROMA = Overlaps_C<16,16>;
-                    } else {
-                        d->BLITCHROMA = Copy_C<16,32>;	         d->OVERSCHROMA = Overlaps_C<16,32>;
-                    }
-                } break;
-            case 16:
-                if (nBlkSizeY==16) {
-                    d->BLITLUMA = Copy_C<16>;         d->OVERSLUMA = Overlaps_C<16,16>;
-                    if (yRatioUV==2) {
-                        d->BLITCHROMA = Copy_C<8>;	         d->OVERSCHROMA = Overlaps_C<8,8>;
-                    } else {
-                        d->BLITCHROMA = Copy_C<8,16>;	         d->OVERSCHROMA = Overlaps_C<8,16>;
-                    }
-                } else if (nBlkSizeY==8) {
-                    d->BLITLUMA = Copy_C<16,8>;         d->OVERSLUMA = Overlaps_C<16,8>;
-                    if (yRatioUV==2) {
-                        d->BLITCHROMA = Copy_C<8,4>;	         d->OVERSCHROMA = Overlaps_C<8,4>;
-                    } else {
-                        d->BLITCHROMA = Copy_C<8>;	         d->OVERSCHROMA = Overlaps_C<8,8>;
-                    }
-                } else if (nBlkSizeY==2) {
-                    d->BLITLUMA = Copy_C<16,2>;         d->OVERSLUMA = Overlaps_C<16,2>;
-                    if (yRatioUV==2) {
-                        d->BLITCHROMA = Copy_C<8,1>;	         d->OVERSCHROMA = Overlaps_C<8,1>;
-                    } else {
-                        d->BLITCHROMA = Copy_C<8,2>;	         d->OVERSCHROMA = Overlaps_C<8,2>;
-                    }
-                }
-                break;
-            case 4:
-                d->BLITLUMA = Copy_C<4>;         d->OVERSLUMA = Overlaps_C<4,4>;
-                if (yRatioUV==2) {
-                    d->BLITCHROMA = Copy_C<2>;			 d->OVERSCHROMA = Overlaps_C<2,2>;
-                } else {
-                    d->BLITCHROMA = Copy_C<2,4>;			 d->OVERSCHROMA = Overlaps_C<2,4>;
-                }
-                break;
-            case 8:
-            default:
-                if (nBlkSizeY==8) {
-                    d->BLITLUMA = Copy_C<8>;         d->OVERSLUMA = Overlaps_C<8,8>;
-                    if (yRatioUV==2) {
-                        d->BLITCHROMA = Copy_C<4>;	         d->OVERSCHROMA = Overlaps_C<4,4>;
-                    }
-                    else {
-                        d->BLITCHROMA = Copy_C<4,8>;	         d->OVERSCHROMA = Overlaps_C<4,8>;
-                    }
-                } else if (nBlkSizeY==4) { // 8x4
-                    d->BLITLUMA = Copy_C<8,4>;         d->OVERSLUMA = Overlaps_C<8,4>;
-                    if (yRatioUV==2) {
-                        d->BLITCHROMA = Copy_C<4,2>;	         d->OVERSCHROMA = Overlaps_C<4,2>;
-                    } else {
-                        d->BLITCHROMA = Copy_C<4>;	         d->OVERSCHROMA = Overlaps_C<4,4>;
-                    }
-                }
-        }
-    }
+    OverlapsFunction overs[33][33];
+    COPYFunction copys[33][33];
+
+    overs[2][2] = Overlaps_C<2,2>;
+    copys[2][2] = d->isse ? mvtools_Copy2x2_sse2 : Copy_C<2,2>;
+
+    overs[2][4] = Overlaps_C<2,4>;
+    copys[2][4] = d->isse ? mvtools_Copy2x4_sse2 : Copy_C<2,4>;
+
+    overs[4][2] = d->isse ? mvtools_Overlaps4x2_sse2 : Overlaps_C<4,2>;
+    copys[4][2] = d->isse ? mvtools_Copy4x2_sse2 : Copy_C<4,2>;
+
+    overs[4][4] = d->isse ? mvtools_Overlaps4x4_sse2 : Overlaps_C<4,4>;
+    copys[4][4] = d->isse ? mvtools_Copy4x4_sse2 : Copy_C<4,4>;
+
+    overs[4][8] = d->isse ? mvtools_Overlaps4x8_sse2 : Overlaps_C<4,8>;
+    copys[4][8] = d->isse ? mvtools_Copy4x8_sse2 : Copy_C<4,8>;
+
+    overs[8][1] = d->isse ? mvtools_Overlaps8x1_sse2 : Overlaps_C<8,1>;
+    copys[8][1] = d->isse ? mvtools_Copy8x1_sse2 : Copy_C<8,1>;
+
+    overs[8][2] = d->isse ? mvtools_Overlaps8x2_sse2 : Overlaps_C<8,2>;
+    copys[8][2] = d->isse ? mvtools_Copy8x2_sse2 : Copy_C<8,2>;
+
+    overs[8][4] = d->isse ? mvtools_Overlaps8x4_sse2 : Overlaps_C<8,4>;
+    copys[8][4] = d->isse ? mvtools_Copy8x4_sse2 : Copy_C<8,4>;
+
+    overs[8][8] = d->isse ? mvtools_Overlaps8x8_sse2 : Overlaps_C<8,8>;
+    copys[8][8] = d->isse ? mvtools_Copy8x8_sse2 : Copy_C<8,8>;
+
+    overs[8][16] = d->isse ? mvtools_Overlaps8x16_sse2 : Overlaps_C<8,16>;
+    copys[8][16] = d->isse ? mvtools_Copy8x16_sse2 : Copy_C<8,16>;
+
+    overs[16][2] = d->isse ? mvtools_Overlaps16x2_sse2 : Overlaps_C<16,2>;
+    copys[16][2] = d->isse ? mvtools_Copy16x2_sse2 : Copy_C<16,2>;
+
+    overs[16][8] = d->isse ? mvtools_Overlaps16x8_sse2 : Overlaps_C<16,8>;
+    copys[16][8] = d->isse ? mvtools_Copy16x8_sse2 : Copy_C<16,8>;
+
+    overs[16][16] = d->isse ? mvtools_Overlaps16x16_sse2 : Overlaps_C<16,16>;
+    copys[16][16] = d->isse ? mvtools_Copy16x16_sse2 : Copy_C<16,16>;
+
+    overs[16][32] = d->isse ? mvtools_Overlaps16x32_sse2 : Overlaps_C<16,32>;
+    copys[16][32] = d->isse ? mvtools_Copy16x32_sse2 : Copy_C<16,32>;
+
+    overs[32][16] = d->isse ? mvtools_Overlaps32x16_sse2 : Overlaps_C<32,16>;
+    copys[32][16] = d->isse ? mvtools_Copy32x16_sse2 : Copy_C<32,16>;
+
+    overs[32][32] = d->isse ? mvtools_Overlaps32x32_sse2 : Overlaps_C<32,32>;
+    copys[32][32] = d->isse ? mvtools_Copy32x32_sse2 : Copy_C<32,32>;
+
+    d->OVERSLUMA = overs[nBlkSizeX][nBlkSizeY];
+    d->BLITLUMA = copys[nBlkSizeX][nBlkSizeY];
+
+    d->OVERSCHROMA = overs[nBlkSizeX / xRatioUV][nBlkSizeY / yRatioUV];
+    d->BLITCHROMA = copys[nBlkSizeX / xRatioUV][nBlkSizeY / yRatioUV];
 }
 
 
