@@ -1,6 +1,6 @@
 AC_INIT([MVTools], [1], [https://github.com/dubhater/vapoursynth-mvtools/issues], [MVTools], [https://github.com/dubhater/vapoursynth-mvtools/])
 
-: ${CXXFLAGS="-O2"}
+: ${CXXFLAGS=""}
 
 AM_INIT_AUTOMAKE([foreign no-dist-gzip dist-xz subdir-objects no-define])
 AM_SILENT_RULES([yes])
@@ -65,28 +65,19 @@ AS_CASE(
    [
       ASFLAGS="$ASFLAGS -f macho$BITS -DPREFIX"
    ],
-   [*linux*],
+   [*linux*|gnu*],
    [
       ASFLAGS="$ASFLAGS -f elf"
    ],
-   [gnu*],
-   [
-      ASFLAGS="$ASFLAGS -f elf"
-   ],
-   [cygwin*],
+   [cygwin*|mingw*],
    [
       ASFLAGS="$ASFLAGS -f win32"
       AS_IF(
          [test "x$BITS" = "x32"],
-         [ASFLAGS="$ASFLAGS -DPREFIX" LDFLAGS="-Wl,--kill-at"]
-      )
-   ],
-   [mingw*],
-   [
-      ASFLAGS="$ASFLAGS -f win32"
-      AS_IF(
-         [test "x$BITS" = "x32"],
-         [ASFLAGS="$ASFLAGS -DPREFIX" LDFLAGS="-Wl,--kill-at"]
+         [
+          ASFLAGS="$ASFLAGS -DPREFIX"
+          AC_SUBST([PLUGINLDFLAGS], ["-Wl,--kill-at"])
+         ]
       )
    ],
    [AC_MSG_ERROR([Unknown host OS])]

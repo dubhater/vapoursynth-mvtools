@@ -1,4 +1,4 @@
-AM_CXXFLAGS = -std=c++11 -msse2 -Wall -Wextra -Wno-unused-parameter -Wshadow
+AM_CXXFLAGS = -O2 -std=c++11 -msse2 -mfpmath=sse -Wall -Wextra -Wno-unused-parameter -Wshadow
 
 AM_CPPFLAGS = $(VapourSynth_CFLAGS) $(FFTW3F_CFLAGS)
 
@@ -54,6 +54,6 @@ libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/asm/SAD.asm \
 						src/asm/Variance.asm
 
-libmvtools_la_LDFLAGS = -no-undefined -avoid-version
+libmvtools_la_LDFLAGS = -no-undefined -avoid-version $(PLUGINLDFLAGS)
 
 libmvtools_la_LIBADD = $(FFTW3F_LIBS)
