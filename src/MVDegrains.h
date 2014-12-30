@@ -22,7 +22,7 @@ inline void LimitChanges_c(unsigned char *pDst, int nDstPitch, const unsigned ch
 inline int DegrainWeight(int thSAD, int blockSAD) {
     int a = ( (thSAD - blockSAD) > 0 ? (thSAD - blockSAD) : 0 ) * (thSAD + blockSAD);
     int b = a < (1 << 23) ? (a << 8) / (thSAD * thSAD + blockSAD * blockSAD)  // small a
-                        : a / ((thSAD * thSAD + blockSAD * blockSAD) >> 8); // very large a, prevent overflow
+                          : a / ((thSAD * thSAD + blockSAD * blockSAD) >> 8); // very large a, prevent overflow
     return b;
 }
 

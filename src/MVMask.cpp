@@ -343,13 +343,13 @@ static void VS_CC mvmaskCreate(const VSMap *in, VSMap *out, void *userData, VSCo
 
 void mvmaskRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Mask",
-                 "clip:clip;"
-                 "vectors:clip;"
-                 "ml:float:opt;"
-                 "gamma:float:opt;"
-                 "kind:int:opt;"
-                 "ysc:int:opt;"
-                 "thscd1:int:opt;"
-                 "thscd2:int:opt;"
-                 , mvmaskCreate, 0, plugin);
+            "clip:clip;"
+            "vectors:clip;"
+            "ml:float:opt;"
+            "gamma:float:opt;"
+            "kind:int:opt;"
+            "ysc:int:opt;"
+            "thscd1:int:opt;"
+            "thscd2:int:opt;"
+            , mvmaskCreate, 0, plugin);
 }

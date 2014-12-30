@@ -337,16 +337,16 @@ static const VSFrameRef *VS_CC mvdegrain2GetFrame(int n, int activationReason, v
 
                         if (bx == nBlkX - 1 && nWidth_B[0] < nWidth[0]) // right non-covered region
                             vs_bitblt(pDstCur[plane] + nWidth_B[plane], nDstPitches[plane],
-                                      pSrcCur[plane] + nWidth_B[plane], nSrcPitches[plane],
-                                      nWidth[plane] - nWidth_B[plane], nBlkSizeY[plane]);
+                                    pSrcCur[plane] + nWidth_B[plane], nSrcPitches[plane],
+                                    nWidth[plane] - nWidth_B[plane], nBlkSizeY[plane]);
                     }
                     pDstCur[plane] += nBlkSizeY[plane] * nDstPitches[plane];
                     pSrcCur[plane] += nBlkSizeY[plane] * nSrcPitches[plane];
 
                     if (by == nBlkY - 1 && nHeight_B[0] < nHeight[0]) // bottom uncovered region
                         vs_bitblt(pDstCur[plane], nDstPitches[plane],
-                                  pSrcCur[plane], nSrcPitches[plane],
-                                  nWidth[plane], nHeight[plane] - nHeight_B[plane]);
+                                pSrcCur[plane], nSrcPitches[plane],
+                                nWidth[plane], nHeight[plane] - nHeight_B[plane]);
                 }
             } else {// overlap
                 pDstShort = DstShort;
@@ -386,24 +386,24 @@ static const VSFrameRef *VS_CC mvdegrain2GetFrame(int n, int activationReason, v
 
                 if (nWidth_B[0] < nWidth[0])
                     vs_bitblt(pDst[plane] + nWidth_B[plane], nDstPitches[plane],
-                              pSrc[plane] + nWidth_B[plane], nSrcPitches[plane],
-                              nWidth[plane] - nWidth_B[plane], nHeight_B[plane]);
+                            pSrc[plane] + nWidth_B[plane], nSrcPitches[plane],
+                            nWidth[plane] - nWidth_B[plane], nHeight_B[plane]);
 
                 if (nHeight_B[0] < nHeight[0]) // bottom noncovered region
                     vs_bitblt(pDst[plane] + nDstPitches[plane] * nHeight_B[plane], nDstPitches[plane],
-                              pSrc[plane] + nSrcPitches[plane] * nHeight_B[plane], nSrcPitches[plane],
-                              nWidth[plane], nHeight[plane] - nHeight_B[plane]);
+                            pSrc[plane] + nSrcPitches[plane] * nHeight_B[plane], nSrcPitches[plane],
+                            nWidth[plane], nHeight[plane] - nHeight_B[plane]);
             }
 
             if (nLimit[plane] < 255) {
                 if (isse)
                     mvtools_LimitChanges_sse2(pDst[plane], nDstPitches[plane],
-                                              pSrc[plane], nSrcPitches[plane],
-                                              nWidth[plane], nHeight[plane], nLimit[plane]);
+                            pSrc[plane], nSrcPitches[plane],
+                            nWidth[plane], nHeight[plane], nLimit[plane]);
                 else
                     LimitChanges_c(pDst[plane], nDstPitches[plane],
-                                   pSrc[plane], nSrcPitches[plane],
-                                   nWidth[plane], nHeight[plane], nLimit[plane]);
+                            pSrc[plane], nSrcPitches[plane],
+                            nWidth[plane], nHeight[plane], nLimit[plane]);
             }
         }
 
@@ -688,7 +688,7 @@ static void VS_CC mvdegrain2Create(const VSMap *in, VSMap *out, void *userData, 
 
     // Make sure the motion vector clips are correct.
     if (!d.mvClipB2->IsBackward() || !d.mvClipB->IsBackward() ||
-        d.mvClipF->IsBackward() || d.mvClipF2->IsBackward()) {
+            d.mvClipF->IsBackward() || d.mvClipF2->IsBackward()) {
         if (!d.mvClipB2->IsBackward())
             vsapi->setError(out, "Degrain2: mvbw2 must be generated with isb=True.");
         else if (!d.mvClipB->IsBackward())
@@ -711,7 +711,7 @@ static void VS_CC mvdegrain2Create(const VSMap *in, VSMap *out, void *userData, 
     }
 
     if (d.mvClipB2->GetDeltaFrame() <= d.mvClipB->GetDeltaFrame() ||
-        d.mvClipF2->GetDeltaFrame() <= d.mvClipF->GetDeltaFrame()) {
+            d.mvClipF2->GetDeltaFrame() <= d.mvClipF->GetDeltaFrame()) {
         if (d.mvClipB2->GetDeltaFrame() <= d.mvClipB->GetDeltaFrame())
             vsapi->setError(out, "Degrain2: mvbw2 must have greater delta than mvbw.");
         else
@@ -841,19 +841,19 @@ static void VS_CC mvdegrain2Create(const VSMap *in, VSMap *out, void *userData, 
 
 void mvdegrain2Register(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Degrain2",
-                 "clip:clip;"
-                 "super:clip;"
-                 "mvbw:clip;"
-                 "mvfw:clip;"
-                 "mvbw2:clip;"
-                 "mvfw2:clip;"
-                 "thsad:int:opt;"
-                 "thsadc:int:opt;"
-                 "plane:int:opt;"
-                 "limit:int:opt;"
-                 "limitc:int:opt;"
-                 "thscd1:int:opt;"
-                 "thscd2:int:opt;"
-                 "isse:int:opt;"
-                 , mvdegrain2Create, 0, plugin);
+            "clip:clip;"
+            "super:clip;"
+            "mvbw:clip;"
+            "mvfw:clip;"
+            "mvbw2:clip;"
+            "mvfw2:clip;"
+            "thsad:int:opt;"
+            "thsadc:int:opt;"
+            "plane:int:opt;"
+            "limit:int:opt;"
+            "limitc:int:opt;"
+            "thscd1:int:opt;"
+            "thscd2:int:opt;"
+            "isse:int:opt;"
+            , mvdegrain2Create, 0, plugin);
 }

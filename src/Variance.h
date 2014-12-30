@@ -8,25 +8,25 @@ typedef unsigned int (VARFunction)(const unsigned char *pSrc, intptr_t nSrcPitch
 template<int nBlkWidth, int nBlkHeight>
 unsigned int Var_C(const unsigned char *pSrc, intptr_t nSrcPitch, int *pLuma)
 {
-   const unsigned char *s = pSrc;
-   int meanLuma = 0;
-   int meanVariance = 0;
-   for ( int j = 0; j < nBlkHeight; j++ )
-   {
-      for ( int i = 0; i < nBlkWidth; i++ )
-         meanLuma += s[i];
-      s += nSrcPitch;
-   }
-   *pLuma = meanLuma;
-   meanLuma = (meanLuma + ((nBlkWidth * nBlkHeight) >> 1)) / (nBlkWidth * nBlkHeight);
-   s = pSrc;
-   for ( int j = 0; j < nBlkHeight; j++ )
-   {
-      for ( int i = 0; i < nBlkWidth; i++ )
-         meanVariance += VARABS(s[i] - meanLuma);
-      s += nSrcPitch;
-   }
-   return meanVariance;
+    const unsigned char *s = pSrc;
+    int meanLuma = 0;
+    int meanVariance = 0;
+    for ( int j = 0; j < nBlkHeight; j++ )
+    {
+        for ( int i = 0; i < nBlkWidth; i++ )
+            meanLuma += s[i];
+        s += nSrcPitch;
+    }
+    *pLuma = meanLuma;
+    meanLuma = (meanLuma + ((nBlkWidth * nBlkHeight) >> 1)) / (nBlkWidth * nBlkHeight);
+    s = pSrc;
+    for ( int j = 0; j < nBlkHeight; j++ )
+    {
+        for ( int i = 0; i < nBlkWidth; i++ )
+            meanVariance += VARABS(s[i] - meanLuma);
+        s += nSrcPitch;
+    }
+    return meanVariance;
 }
 
 
@@ -45,15 +45,15 @@ typedef unsigned int (*LUMAFunction)(const unsigned char *pSrc, intptr_t nSrcPit
 template<int nBlkWidth, int nBlkHeight>
 unsigned int Luma_C(const unsigned char *pSrc, intptr_t nSrcPitch)
 {
-   const unsigned char *s = pSrc;
-   int meanLuma = 0;
-   for ( int j = 0; j < nBlkHeight; j++ )
-   {
-      for ( int i = 0; i < nBlkWidth; i++ )
-         meanLuma += s[i];
-      s += nSrcPitch;
-   }
-   return meanLuma;
+    const unsigned char *s = pSrc;
+    int meanLuma = 0;
+    for ( int j = 0; j < nBlkHeight; j++ )
+    {
+        for ( int i = 0; i < nBlkWidth; i++ )
+            meanLuma += s[i];
+        s += nSrcPitch;
+    }
+    return meanLuma;
 }
 
 

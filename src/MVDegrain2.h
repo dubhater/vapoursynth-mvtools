@@ -5,38 +5,38 @@
 
 
 typedef void (*Denoise2Function)(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch,
-						const uint8_t *pRefB, int BPitch, const uint8_t *pRefF, int FPitch,
-						const uint8_t *pRefB2, int B2Pitch, const uint8_t *pRefF2, int F2Pitch,
-						int WSrc, int WRefB, int WRefF, int WRefB2, int WRefF2);
+        const uint8_t *pRefB, int BPitch, const uint8_t *pRefF, int FPitch,
+        const uint8_t *pRefB2, int B2Pitch, const uint8_t *pRefF2, int F2Pitch,
+        int WSrc, int WRefB, int WRefF, int WRefB2, int WRefF2);
 
 
 template<int blockWidth, int blockHeight>
 void Degrain2_C(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch,
-						const uint8_t *pRefB, int BPitch, const uint8_t *pRefF, int FPitch,
-						const uint8_t *pRefB2, int B2Pitch, const uint8_t *pRefF2, int F2Pitch,
-						int WSrc, int WRefB, int WRefF, int WRefB2, int WRefF2)
+        const uint8_t *pRefB, int BPitch, const uint8_t *pRefF, int FPitch,
+        const uint8_t *pRefB2, int B2Pitch, const uint8_t *pRefF2, int F2Pitch,
+        int WSrc, int WRefB, int WRefF, int WRefB2, int WRefF2)
 {
-	for (int h=0; h<blockHeight; h++)
-	{
-		for (int x=0; x<blockWidth; x++)
-		{
-			 pDst[x] = (pRefF[x]*WRefF + pSrc[x]*WSrc + pRefB[x]*WRefB + pRefF2[x]*WRefF2 + pRefB2[x]*WRefB2 + 128)>>8;
-		}
-		pDst += nDstPitch;
-		pSrc += nSrcPitch;
-		pRefB += BPitch;
-		pRefF += FPitch;
-		pRefB2 += B2Pitch;
-		pRefF2 += F2Pitch;
-	}
+    for (int h=0; h<blockHeight; h++)
+    {
+        for (int x=0; x<blockWidth; x++)
+        {
+            pDst[x] = (pRefF[x]*WRefF + pSrc[x]*WSrc + pRefB[x]*WRefB + pRefF2[x]*WRefF2 + pRefB2[x]*WRefB2 + 128)>>8;
+        }
+        pDst += nDstPitch;
+        pSrc += nSrcPitch;
+        pRefB += BPitch;
+        pRefF += FPitch;
+        pRefB2 += B2Pitch;
+        pRefF2 += F2Pitch;
+    }
 }
 
 
 template<int blockWidth, int blockHeight>
 void Degrain2_sse2(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch,
-						const uint8_t *pRefB, int BPitch, const uint8_t *pRefF, int FPitch,
-						const uint8_t *pRefB2, int B2Pitch, const uint8_t *pRefF2, int F2Pitch,
-						int WSrc, int WRefB, int WRefF, int WRefB2, int WRefF2)
+        const uint8_t *pRefB, int BPitch, const uint8_t *pRefF, int FPitch,
+        const uint8_t *pRefB2, int B2Pitch, const uint8_t *pRefF2, int F2Pitch,
+        int WSrc, int WRefB, int WRefF, int WRefB2, int WRefF2)
 {
     __m128i zero = _mm_setzero_si128();
     __m128i wsrc = _mm_set1_epi16(WSrc);

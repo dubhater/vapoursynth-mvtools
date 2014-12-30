@@ -20,51 +20,51 @@
 
 class OverlapWindows
 {
-	int nx; // window sizes
-	int ny;
-	int ox; // overap sizes
-	int oy;
-	int size; // full window size= nx*ny
+    int nx; // window sizes
+    int ny;
+    int ox; // overap sizes
+    int oy;
+    int size; // full window size= nx*ny
 
-	short * Overlap9Windows;
+    short * Overlap9Windows;
 
-	float *fWin1UVx;
-	float *fWin1UVxfirst;
-	float *fWin1UVxlast;
-	float *fWin1UVy;
-	float *fWin1UVyfirst;
-	float *fWin1UVylast;
-public :
+    float *fWin1UVx;
+    float *fWin1UVxfirst;
+    float *fWin1UVxlast;
+    float *fWin1UVy;
+    float *fWin1UVyfirst;
+    float *fWin1UVylast;
+    public :
 
-	OverlapWindows(int _nx, int _ny, int _ox, int _oy);
-   ~OverlapWindows();
+    OverlapWindows(int _nx, int _ny, int _ox, int _oy);
+    ~OverlapWindows();
 
-   inline int Getnx() const { return nx; }
-   inline int Getny() const { return ny; }
-   inline int GetSize() const { return size; }
-   inline short *GetWindow(int i) const { return Overlap9Windows + size*i; }
+    inline int Getnx() const { return nx; }
+    inline int Getny() const { return ny; }
+    inline int GetSize() const { return size; }
+    inline short *GetWindow(int i) const { return Overlap9Windows + size*i; }
 };
 
 typedef void (*OverlapsFunction)(unsigned short *pDst, intptr_t nDstPitch,
-                            const unsigned char *pSrc, intptr_t nSrcPitch,
-							short *pWin, intptr_t nWinPitch);
+        const unsigned char *pSrc, intptr_t nSrcPitch,
+        short *pWin, intptr_t nWinPitch);
 
 //=============================================================
 // short
 template <int blockWidth, int blockHeight>
 void Overlaps_C(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch)
 {
-	// pWin from 0 to 2048
-	for (int j=0; j<blockHeight; j++)
-	{
-	    for (int i=0; i<blockWidth; i++)
-	    {
+    // pWin from 0 to 2048
+    for (int j=0; j<blockHeight; j++)
+    {
+        for (int i=0; i<blockWidth; i++)
+        {
             pDst[i] = ( pDst[i] + ((pSrc[i]*pWin[i]+256)>>6));
-	    }
-		pDst += nDstPitch;
-		pSrc += nSrcPitch;
-		pWin += nWinPitch;
-	}
+        }
+        pDst += nDstPitch;
+        pSrc += nSrcPitch;
+        pWin += nWinPitch;
+    }
 }
 
 extern "C" void mvtools_Overlaps32x32_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);

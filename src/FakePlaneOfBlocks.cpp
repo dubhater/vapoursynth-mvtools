@@ -21,52 +21,52 @@
 
 FakePlaneOfBlocks::FakePlaneOfBlocks(int sizeX, int sizeY, int lv, int pel, int _nOverlapX, int _nOverlapY, int _nBlkX, int _nBlkY)
 {
-   nBlkSizeX = sizeX;
-   nBlkSizeY = sizeY;
-   nOverlapX = _nOverlapX;
-   nOverlapY = _nOverlapY;
-   nBlkX = _nBlkX;
-   nBlkY = _nBlkY;
-	nWidth_Bi = nOverlapX + nBlkX*(nBlkSizeX - nOverlapX);//w;
-	nHeight_Bi = nOverlapY + nBlkY*(nBlkSizeY - nOverlapY);//h;
-//   nBlkX = (nWidth_Bi - nOverlapX) / (nBlkSizeX - nOverlapX); // without remainder
-//   nBlkY = (nHeight_Bi - nOverlapY) / (nBlkSizeY - nOverlapY); //
-   nBlkCount = nBlkX * nBlkY;
-   nPel = pel;
+    nBlkSizeX = sizeX;
+    nBlkSizeY = sizeY;
+    nOverlapX = _nOverlapX;
+    nOverlapY = _nOverlapY;
+    nBlkX = _nBlkX;
+    nBlkY = _nBlkY;
+    nWidth_Bi = nOverlapX + nBlkX*(nBlkSizeX - nOverlapX);//w;
+    nHeight_Bi = nOverlapY + nBlkY*(nBlkSizeY - nOverlapY);//h;
+    //   nBlkX = (nWidth_Bi - nOverlapX) / (nBlkSizeX - nOverlapX); // without remainder
+    //   nBlkY = (nHeight_Bi - nOverlapY) / (nBlkSizeY - nOverlapY); //
+    nBlkCount = nBlkX * nBlkY;
+    nPel = pel;
 
-	nLogPel = ilog2(nPel);
-	nLogScale = lv;
-	nScale = iexp2(nLogScale);
+    nLogPel = ilog2(nPel);
+    nLogScale = lv;
+    nScale = iexp2(nLogScale);
 
-	blocks = new FakeBlockData [nBlkCount];
-	for ( int j = 0, blkIdx = 0; j < nBlkY; j++ )
-		for ( int i = 0; i < nBlkX; i++, blkIdx++ )
-			blocks[blkIdx].Init(i * (nBlkSizeX - nOverlapX), j * (nBlkSizeY - nOverlapY));
+    blocks = new FakeBlockData [nBlkCount];
+    for ( int j = 0, blkIdx = 0; j < nBlkY; j++ )
+        for ( int i = 0; i < nBlkX; i++, blkIdx++ )
+            blocks[blkIdx].Init(i * (nBlkSizeX - nOverlapX), j * (nBlkSizeY - nOverlapY));
 }
 
 FakePlaneOfBlocks::~FakePlaneOfBlocks()
 {
-//	for ( int i = 0; i < nBlkCount; i++ )
-//		delete blocks[i];
+    //    for ( int i = 0; i < nBlkCount; i++ )
+    //        delete blocks[i];
 
-	delete[] blocks;
+    delete[] blocks;
 }
 
 void FakePlaneOfBlocks::Update(const int *array)
 {
-	array += 0;
-	for ( int i = 0; i < nBlkCount; i++ )
-	{
-		blocks[i].Update(array);
-		array += N_PER_BLOCK;
-	}
+    array += 0;
+    for ( int i = 0; i < nBlkCount; i++ )
+    {
+        blocks[i].Update(array);
+        array += N_PER_BLOCK;
+    }
 }
 
 bool FakePlaneOfBlocks::IsSceneChange(int nTh1, int nTh2) const
 {
-	int sum = 0;
-	for ( int i = 0; i < nBlkCount; i++ )
-		sum += ( blocks[i].GetSAD() > nTh1 ) ? 1 : 0;
+    int sum = 0;
+    for ( int i = 0; i < nBlkCount; i++ )
+        sum += ( blocks[i].GetSAD() > nTh1 ) ? 1 : 0;
 
-	return ( sum > nTh2 );
+    return ( sum > nTh2 );
 }

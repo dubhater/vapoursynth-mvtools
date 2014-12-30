@@ -156,7 +156,7 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
             vsapi->requestFrameFilter(nleft, d->finest, frameCtx);
             vsapi->requestFrameFilter(nright, d->finest, frameCtx);
         } 
-        
+
         vsapi->requestFrameFilter(d->vi.numFrames ? VSMIN(nleft, d->vi.numFrames - 1) : nleft, d->node, frameCtx);
 
         if (d->blend)
@@ -319,8 +319,8 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
                 upsizerUV->Resize(VYFullUVB, VPitchUV, VYSmallUVB, nBlkXP);
             }
             // analyse vectors field to detect occlusion
-            //		double occNormB = (256-time256)/(256*ml);
-            //		MakeVectorOcclusionMask(mvClipB, nBlkX, nBlkY, occNormB, 1.0, nPel, MaskSmallB, nBlkXP);
+            //        double occNormB = (256-time256)/(256*ml);
+            //        MakeVectorOcclusionMask(mvClipB, nBlkX, nBlkY, occNormB, 1.0, nPel, MaskSmallB, nBlkXP);
             MakeVectorOcclusionMaskTime(&ballsB, nBlkX, nBlkY, ml, 1.0, nPel, MaskSmallB, nBlkXP, (256-time256), nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY);
             if (nBlkXP > nBlkX) // fill right
                 for (int j=0; j<nBlkY; j++)
@@ -361,8 +361,8 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
                 upsizerUV->Resize(VYFullUVF, VPitchUV, VYSmallUVF, nBlkXP);
             }
             // analyse vectors field to detect occlusion
-            //		double occNormF = time256/(256*ml);
-            //		MakeVectorOcclusionMask(mvClipF, nBlkX, nBlkY, occNormF, 1.0, nPel, MaskSmallF, nBlkXP);
+            //        double occNormF = time256/(256*ml);
+            //        MakeVectorOcclusionMask(mvClipF, nBlkX, nBlkY, occNormF, 1.0, nPel, MaskSmallF, nBlkXP);
             MakeVectorOcclusionMaskTime(&ballsF, nBlkX, nBlkY, ml, 1.0, nPel, MaskSmallF, nBlkXP, time256, nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY);
             if (nBlkXP > nBlkX) // fill right
                 for (int j=0; j<nBlkY; j++)
@@ -800,8 +800,8 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
         return;
     }
 
-	int64_t numeratorOld = d.vi.fpsNum;
-	int64_t denominatorOld = d.vi.fpsDen;
+    int64_t numeratorOld = d.vi.fpsNum;
+    int64_t denominatorOld = d.vi.fpsDen;
     int64_t numerator, denominator;
 
     if (d.num != 0 && d.den != 0) {
@@ -819,10 +819,10 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
     d.fa /= fgcd;
     d.fb /= fgcd;
 
-	setFPS(&d.vi, numerator, denominator);
+    setFPS(&d.vi, numerator, denominator);
 
     if (d.vi.numFrames)
-    	d.vi.numFrames = (int)(1 + (d.vi.numFrames - 1) * d.fb / d.fa);
+        d.vi.numFrames = (int)(1 + (d.vi.numFrames - 1) * d.fb / d.fa);
 
 
     if (d.bleh->nWidth != d.vi.width || d.bleh->nHeight != d.vi.height) {
@@ -1007,17 +1007,17 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
 
 void mvflowfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("FlowFPS",
-                 "clip:clip;"
-                 "super:clip;"
-                 "mvbw:clip;"
-                 "mvfw:clip;"
-                 "num:int:opt;"
-                 "den:int:opt;"
-                 "mask:int:opt;"
-                 "ml:float:opt;"
-                 "blend:int:opt;"
-                 "thscd1:int:opt;"
-                 "thscd2:int:opt;"
-                 "isse:int:opt;"
-                 , mvflowfpsCreate, 0, plugin);
+            "clip:clip;"
+            "super:clip;"
+            "mvbw:clip;"
+            "mvfw:clip;"
+            "num:int:opt;"
+            "den:int:opt;"
+            "mask:int:opt;"
+            "ml:float:opt;"
+            "blend:int:opt;"
+            "thscd1:int:opt;"
+            "thscd2:int:opt;"
+            "isse:int:opt;"
+            , mvflowfpsCreate, 0, plugin);
 }

@@ -26,46 +26,46 @@ MVClipDicks::MVClipDicks(VSNodeRef *vectors, int _nSCD1, int _nSCD2, const VSAPI
     const VSFrameRef *evil = vsapi->getFrame(0, vectors, errorMsg, 1024);
     if (!evil)
         throw MVException(std::string("MVTools: failed to retrieve first frame from some motion clip. Error message: ").append(errorMsg).c_str());
-    
+
     // XXX This really should be passed as a frame property.
     const MVAnalysisData *pAnalyseFilter = reinterpret_cast<const MVAnalysisData *>(vsapi->getReadPtr(evil, 0) + sizeof(int));
 
-   // 'magic' key, just to check :
-   if ( pAnalyseFilter->GetMagicKey() != MOTION_MAGIC_KEY ) {
-       vsapi->freeFrame(evil);
+    // 'magic' key, just to check :
+    if ( pAnalyseFilter->GetMagicKey() != MOTION_MAGIC_KEY ) {
+        vsapi->freeFrame(evil);
         throw MVException("MVTools: invalid motion vector clip. Who knows where this error came from exactly?");
-   }
+    }
 
-   // MVAnalysisData
-   nBlkSizeX = pAnalyseFilter->GetBlkSizeX();
-   nBlkSizeY = pAnalyseFilter->GetBlkSizeY();
-   nPel = pAnalyseFilter->GetPel();
-   isBackward = pAnalyseFilter->IsBackward();
-   nLvCount = pAnalyseFilter->GetLevelCount();
-   nDeltaFrame = pAnalyseFilter->GetDeltaFrame();
-   nWidth = pAnalyseFilter->GetWidth();
-   nHeight = pAnalyseFilter->GetHeight();
-   nMagicKey = pAnalyseFilter->GetMagicKey();
-   nOverlapX = pAnalyseFilter->GetOverlapX();
-   nOverlapY = pAnalyseFilter->GetOverlapY();
-   yRatioUV = pAnalyseFilter->GetYRatioUV();
+    // MVAnalysisData
+    nBlkSizeX = pAnalyseFilter->GetBlkSizeX();
+    nBlkSizeY = pAnalyseFilter->GetBlkSizeY();
+    nPel = pAnalyseFilter->GetPel();
+    isBackward = pAnalyseFilter->IsBackward();
+    nLvCount = pAnalyseFilter->GetLevelCount();
+    nDeltaFrame = pAnalyseFilter->GetDeltaFrame();
+    nWidth = pAnalyseFilter->GetWidth();
+    nHeight = pAnalyseFilter->GetHeight();
+    nMagicKey = pAnalyseFilter->GetMagicKey();
+    nOverlapX = pAnalyseFilter->GetOverlapX();
+    nOverlapY = pAnalyseFilter->GetOverlapY();
+    yRatioUV = pAnalyseFilter->GetYRatioUV();
     nVPadding = pAnalyseFilter->GetVPadding();
     nHPadding = pAnalyseFilter->GetHPadding();
     nFlags = pAnalyseFilter->GetFlags();
 
-	nBlkX = pAnalyseFilter->GetBlkX();
-	nBlkY = pAnalyseFilter->GetBlkY();
-   nBlkCount = nBlkX * nBlkY;
+    nBlkX = pAnalyseFilter->GetBlkX();
+    nBlkY = pAnalyseFilter->GetBlkY();
+    nBlkCount = nBlkX * nBlkY;
 
-   // SCD thresholds
-   if ( pAnalyseFilter->IsChromaMotion() )
-      nSCD1 = _nSCD1 * (nBlkSizeX * nBlkSizeY) / (8 * 8) * (1 + yRatioUV) / yRatioUV;
-   else
-      nSCD1 = _nSCD1 * (nBlkSizeX * nBlkSizeY) / (8 * 8);
+    // SCD thresholds
+    if ( pAnalyseFilter->IsChromaMotion() )
+        nSCD1 = _nSCD1 * (nBlkSizeX * nBlkSizeY) / (8 * 8) * (1 + yRatioUV) / yRatioUV;
+    else
+        nSCD1 = _nSCD1 * (nBlkSizeX * nBlkSizeY) / (8 * 8);
 
-   nSCD2 = _nSCD2 * nBlkCount / 256;
+    nSCD2 = _nSCD2 * nBlkCount / 256;
 
-   vsapi->freeFrame(evil);
+    vsapi->freeFrame(evil);
 }
 
 MVClipDicks::~MVClipDicks()
@@ -77,8 +77,8 @@ MVClipBalls::MVClipBalls(MVClipDicks *_dicks, const VSAPI *_vsapi) :
     dicks(_dicks),
     vsapi(_vsapi)
 {
-   // FakeGroupOfPlane creation
-   FakeGroupOfPlanes::Create(dicks->GetBlkSizeX(), dicks->GetBlkSizeY(), dicks->GetLevelCount(), dicks->GetPel(), dicks->GetOverlapX(), dicks->GetOverlapY(), dicks->GetYRatioUV(), dicks->GetBlkX(), dicks->GetBlkY());
+    // FakeGroupOfPlane creation
+    FakeGroupOfPlanes::Create(dicks->GetBlkSizeX(), dicks->GetBlkSizeY(), dicks->GetLevelCount(), dicks->GetPel(), dicks->GetOverlapX(), dicks->GetOverlapY(), dicks->GetYRatioUV(), dicks->GetBlkX(), dicks->GetBlkY());
 }
 
 MVClipBalls::~MVClipBalls()
@@ -103,78 +103,78 @@ void MVClipBalls::Update(const VSFrameRef *fn)
 
     pMv += _headerSize/sizeof(int); // go to data - v1.8.1
 
-   FakeGroupOfPlanes::Update(pMv);// fixed a bug with lost frames
+    FakeGroupOfPlanes::Update(pMv);// fixed a bug with lost frames
 }
 
 
 bool  MVClipBalls::IsUsable() const
 {
-   return (!FakeGroupOfPlanes::IsSceneChange(dicks->GetThSCD1(), dicks->GetThSCD2())) && FakeGroupOfPlanes::IsValid();
+    return (!FakeGroupOfPlanes::IsSceneChange(dicks->GetThSCD1(), dicks->GetThSCD2())) && FakeGroupOfPlanes::IsValid();
 }
 
 
 #if 0
 MVClip::MVClip(const PClip &vectors, int _nSCD1, int _nSCD2, IScriptEnvironment *env) :
-GenericVideoFilter(vectors)
+    GenericVideoFilter(vectors)
 {
-   // we fetch the handle on the analyze filter
-   MVAnalysisData *pAnalyseFilter = reinterpret_cast<MVAnalysisData *>(vi.nchannels);
-	if (vi.nchannels >= 0 &&  vi.nchannels < 9) // seems some normal clip instead of vectors
-	     env->ThrowError("MVTools: invalid vectors stream");
+    // we fetch the handle on the analyze filter
+    MVAnalysisData *pAnalyseFilter = reinterpret_cast<MVAnalysisData *>(vi.nchannels);
+    if (vi.nchannels >= 0 &&  vi.nchannels < 9) // seems some normal clip instead of vectors
+        env->ThrowError("MVTools: invalid vectors stream");
 
-   // 'magic' key, just to check :
-   if ( pAnalyseFilter->GetMagicKey() != MOTION_MAGIC_KEY )
-      env->ThrowError("MVTools: invalid vectors stream");
+    // 'magic' key, just to check :
+    if ( pAnalyseFilter->GetMagicKey() != MOTION_MAGIC_KEY )
+        env->ThrowError("MVTools: invalid vectors stream");
 
-   // MVAnalysisData
-   nBlkSizeX = pAnalyseFilter->GetBlkSizeX();
-   nBlkSizeY = pAnalyseFilter->GetBlkSizeY();
-   nPel = pAnalyseFilter->GetPel();
-   isBackward = pAnalyseFilter->IsBackward();
-   nLvCount = pAnalyseFilter->GetLevelCount();
-   nDeltaFrame = pAnalyseFilter->GetDeltaFrame();
-   nWidth = pAnalyseFilter->GetWidth();
-   nHeight = pAnalyseFilter->GetHeight();
-   nMagicKey = pAnalyseFilter->GetMagicKey();
-//   nIdx = pAnalyseFilter->GetFramesIdx();
-   nOverlapX = pAnalyseFilter->GetOverlapX();
-   nOverlapY = pAnalyseFilter->GetOverlapY();
-   pixelType = pAnalyseFilter->GetPixelType();
-   yRatioUV = pAnalyseFilter->GetYRatioUV();
-//   sharp = pAnalyseFilter->GetSharp();
-//   usePelClip = pAnalyseFilter->UsePelClip();
+    // MVAnalysisData
+    nBlkSizeX = pAnalyseFilter->GetBlkSizeX();
+    nBlkSizeY = pAnalyseFilter->GetBlkSizeY();
+    nPel = pAnalyseFilter->GetPel();
+    isBackward = pAnalyseFilter->IsBackward();
+    nLvCount = pAnalyseFilter->GetLevelCount();
+    nDeltaFrame = pAnalyseFilter->GetDeltaFrame();
+    nWidth = pAnalyseFilter->GetWidth();
+    nHeight = pAnalyseFilter->GetHeight();
+    nMagicKey = pAnalyseFilter->GetMagicKey();
+    //   nIdx = pAnalyseFilter->GetFramesIdx();
+    nOverlapX = pAnalyseFilter->GetOverlapX();
+    nOverlapY = pAnalyseFilter->GetOverlapY();
+    pixelType = pAnalyseFilter->GetPixelType();
+    yRatioUV = pAnalyseFilter->GetYRatioUV();
+    //   sharp = pAnalyseFilter->GetSharp();
+    //   usePelClip = pAnalyseFilter->UsePelClip();
     nVPadding = pAnalyseFilter->GetVPadding();
     nHPadding = pAnalyseFilter->GetHPadding();
     nFlags = pAnalyseFilter->GetFlags();
 
-//   pmvCore = pAnalyseFilter->GetMVCore();
+    //   pmvCore = pAnalyseFilter->GetMVCore();
 
-   // MVClip
-//   nVPadding = nBlkSizeY;
-//   nHPadding = nBlkSizeX;
-	nBlkX = pAnalyseFilter->GetBlkX();
-	nBlkY = pAnalyseFilter->GetBlkY();
-   nBlkCount = nBlkX * nBlkY;
+    // MVClip
+    //   nVPadding = nBlkSizeY;
+    //   nHPadding = nBlkSizeX;
+    nBlkX = pAnalyseFilter->GetBlkX();
+    nBlkY = pAnalyseFilter->GetBlkY();
+    nBlkCount = nBlkX * nBlkY;
 
-   // SCD thresholds
-   if ( pAnalyseFilter->IsChromaMotion() )
-      nSCD1 = _nSCD1 * (nBlkSizeX * nBlkSizeY) / (8 * 8) * (1 + yRatioUV) / yRatioUV;
-   else
-      nSCD1 = _nSCD1 * (nBlkSizeX * nBlkSizeY) / (8 * 8);
+    // SCD thresholds
+    if ( pAnalyseFilter->IsChromaMotion() )
+        nSCD1 = _nSCD1 * (nBlkSizeX * nBlkSizeY) / (8 * 8) * (1 + yRatioUV) / yRatioUV;
+    else
+        nSCD1 = _nSCD1 * (nBlkSizeX * nBlkSizeY) / (8 * 8);
 
-   nSCD2 = _nSCD2 * nBlkCount / 256;
+    nSCD2 = _nSCD2 * nBlkCount / 256;
 
-   // FakeGroupOfPlane creation
-   FakeGroupOfPlanes::Create(nBlkSizeX, nBlkSizeY, nLvCount, nPel, nOverlapX, nOverlapY, yRatioUV, nBlkX, nBlkY);
+    // FakeGroupOfPlane creation
+    FakeGroupOfPlanes::Create(nBlkSizeX, nBlkSizeY, nLvCount, nPel, nOverlapX, nOverlapY, yRatioUV, nBlkX, nBlkY);
 }
 
 MVClip::~MVClip()
 {
 }
 /* disabled in v1.11.4
-void MVClip::SetVectorsNeed(bool srcluma, bool refluma, bool var,
-                            bool compy, bool compu, bool compv) const
-{
+   void MVClip::SetVectorsNeed(bool srcluma, bool refluma, bool var,
+   bool compy, bool compu, bool compv) const
+   {
    int nFlags = 0;
 
    nFlags |= srcluma ? MOTION_CALC_SRC_LUMA        : 0;
@@ -186,28 +186,28 @@ void MVClip::SetVectorsNeed(bool srcluma, bool refluma, bool var,
 
    MVAnalysisData *pAnalyseFilter = reinterpret_cast<MVAnalysisData *>(vi.nchannels);
    pAnalyseFilter->SetFlags(nFlags);
-}
-*/
+   }
+   */
 //void MVClip::Update(int n, IScriptEnvironment *env)
 void MVClip::Update(PVideoFrame &fn, IScriptEnvironment *env)
 
 {
-//	PVideoFrame fn = child->GetFrame(n, env);
+    //    PVideoFrame fn = child->GetFrame(n, env);
     const int *pMv = reinterpret_cast<const int*>(fn->GetReadPtr());
     int _headerSize = pMv[0];
     int nMagicKey1 = pMv[1];
     if (nMagicKey1 != MOTION_MAGIC_KEY)
-      env->ThrowError("MVTools: invalid vectors stream");
+        env->ThrowError("MVTools: invalid vectors stream");
     int nVersion1 = pMv[2];
     if (nVersion1 != MVANALYSIS_DATA_VERSION)
-      env->ThrowError("MVTools: incompatible version of vectors stream");
+        env->ThrowError("MVTools: incompatible version of vectors stream");
     pMv += _headerSize/sizeof(int); // go to data - v1.8.1
-//   FakeGroupOfPlanes::Update(reinterpret_cast<const int*>(fn->GetReadPtr()));// fixed a bug with lost frames
-   FakeGroupOfPlanes::Update(pMv);// fixed a bug with lost frames
+    //   FakeGroupOfPlanes::Update(reinterpret_cast<const int*>(fn->GetReadPtr()));// fixed a bug with lost frames
+    FakeGroupOfPlanes::Update(pMv);// fixed a bug with lost frames
 }
 
 bool  MVClip::IsUsable(int nSCD1_, int nSCD2_) const
 {
-   return (!FakeGroupOfPlanes::IsSceneChange(nSCD1_, nSCD2_)) && FakeGroupOfPlanes::IsValid();
+    return (!FakeGroupOfPlanes::IsSceneChange(nSCD1_, nSCD2_)) && FakeGroupOfPlanes::IsValid();
 }
 #endif // #if 0

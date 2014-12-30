@@ -208,7 +208,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
                 /*
                 // FIXME: deal with this inline asm shit
                 if (d->isse && (d->blksize == 8) && d->blksizev == 8)
-                    DCTc = new DCTINT(d->blksize, d->blksizev, d->dctmode);
+                DCTc = new DCTINT(d->blksize, d->blksizev, d->dctmode);
                 else
                 */
                 DCTc = new DCTFFTW(d->blksize, d->blksizev, d->dctmode); // check order x,y
@@ -338,10 +338,10 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     }
 
     if (d.dctmode >= 5 && !((d.blksize == 4 && d.blksizev == 4) ||
-                            (d.blksize == 8 && d.blksizev == 4) ||
-                            (d.blksize == 8 && d.blksizev == 8) ||
-                            (d.blksize == 16 && d.blksizev == 8) ||
-                            (d.blksize == 16 && d.blksizev == 16))) {
+                (d.blksize == 8 && d.blksizev == 4) ||
+                (d.blksize == 8 && d.blksizev == 8) ||
+                (d.blksize == 16 && d.blksizev == 8) ||
+                (d.blksize == 16 && d.blksizev == 16))) {
         vsapi->setError(out, "Recalculate: dct 5..10 can only work with 4x4, 8x4, 8x8, 16x8, and 16x16 blocks.");
         return;
     }
@@ -355,13 +355,13 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     d.analysisData.nBlkSizeX = d.blksize;
     d.analysisData.nBlkSizeY = d.blksizev;
     if ((d.analysisData.nBlkSizeX != 4  || d.analysisData.nBlkSizeY != 4) &&
-        (d.analysisData.nBlkSizeX != 8  || d.analysisData.nBlkSizeY != 4) &&
-        (d.analysisData.nBlkSizeX != 8  || d.analysisData.nBlkSizeY != 8) &&
-        (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 2) &&
-        (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 8) &&
-        (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 16) &&
-        (d.analysisData.nBlkSizeX != 32 || d.analysisData.nBlkSizeY != 32) &&
-        (d.analysisData.nBlkSizeX != 32 || d.analysisData.nBlkSizeY != 16)) {
+            (d.analysisData.nBlkSizeX != 8  || d.analysisData.nBlkSizeY != 4) &&
+            (d.analysisData.nBlkSizeX != 8  || d.analysisData.nBlkSizeY != 8) &&
+            (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 2) &&
+            (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 8) &&
+            (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 16) &&
+            (d.analysisData.nBlkSizeX != 32 || d.analysisData.nBlkSizeY != 32) &&
+            (d.analysisData.nBlkSizeX != 32 || d.analysisData.nBlkSizeY != 16)) {
 
         vsapi->setError(out, "Recalculate: the block size must be 4x4, 8x4, 8x8, 16x2, 16x8, 16x16, 32x16, or 32x32.");
         return;
@@ -369,7 +369,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
 
     if (d.overlap < 0 || d.overlap >= d.blksize ||
-        d.overlapv < 0 || d.overlapv >= d.blksizev) {
+            d.overlapv < 0 || d.overlapv >= d.blksizev) {
         vsapi->setError(out, "Recalculate: overlap must be less than blksize, and overlapv must be less than blksizev.");
         return;
     }
@@ -464,18 +464,18 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     d.analysisData.yRatioUV = pAnalyseFilter->GetYRatioUV();
     d.analysisData.xRatioUV = pAnalyseFilter->GetXRatioUV(); // for YV12 and YUY2, really do not used and assumed to 2
 
-	d.analysisData.nWidth = pAnalyseFilter->GetWidth();
-	d.analysisData.nHeight = pAnalyseFilter->GetHeight();
+    d.analysisData.nWidth = pAnalyseFilter->GetWidth();
+    d.analysisData.nHeight = pAnalyseFilter->GetHeight();
 
-   d.analysisData.nDeltaFrame = pAnalyseFilter->GetDeltaFrame();
+    d.analysisData.nDeltaFrame = pAnalyseFilter->GetDeltaFrame();
     d.analysisData.isBackward = pAnalyseFilter->IsBackward();
     vsapi->freeFrame(evil);
 
 
-   if (d.chroma) // normalize threshold to block size
-      d.thSAD = d.thSAD * (d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY) / (8 * 8) * (1 + d.analysisData.yRatioUV) / d.analysisData.yRatioUV;
-   else
-      d.thSAD = d.thSAD * (d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY) / (8 * 8);
+    if (d.chroma) // normalize threshold to block size
+        d.thSAD = d.thSAD * (d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY) / (8 * 8) * (1 + d.analysisData.yRatioUV) / d.analysisData.yRatioUV;
+    else
+        d.thSAD = d.thSAD * (d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY) / (8 * 8);
 
 
     d.analysisData.nFlags = 0;
@@ -542,25 +542,25 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
 void mvrecalculateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Recalculate",
-                 "super:clip;"
-                 "vectors:clip;"
-                 "thsad:int:opt;"
-                 "smooth:int:opt;"
-                 "blksize:int:opt;"
-                 "blksizev:int:opt;"
-                 "search:int:opt;"
-                 "searchparam:int:opt;"
-                 "lambda:int:opt;"
-                 "chroma:int:opt;"
-                 "truemotion:int:opt;"
-                 "pnew:int:opt;"
-                 "overlap:int:opt;"
-                 "overlapv:int:opt;"
-                 "divide:int:opt;"
-                 "isse:int:opt;"
-                 "meander:int:opt;"
-                 "fields:int:opt;"
-                 "tff:int:opt;"
-                 "dct:int:opt;"
-                 , mvrecalculateCreate, 0, plugin);
+            "super:clip;"
+            "vectors:clip;"
+            "thsad:int:opt;"
+            "smooth:int:opt;"
+            "blksize:int:opt;"
+            "blksizev:int:opt;"
+            "search:int:opt;"
+            "searchparam:int:opt;"
+            "lambda:int:opt;"
+            "chroma:int:opt;"
+            "truemotion:int:opt;"
+            "pnew:int:opt;"
+            "overlap:int:opt;"
+            "overlapv:int:opt;"
+            "divide:int:opt;"
+            "isse:int:opt;"
+            "meander:int:opt;"
+            "fields:int:opt;"
+            "tff:int:opt;"
+            "dct:int:opt;"
+            , mvrecalculateCreate, 0, plugin);
 }

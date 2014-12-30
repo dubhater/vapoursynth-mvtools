@@ -226,7 +226,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
                 /*
                 // FIXME: deal with this inline asm shit
                 if (d->isse && (d->blksize == 8) && d->blksizev == 8)
-                    DCTc = new DCTINT(d->blksize, d->blksizev, d->dctmode);
+                DCTc = new DCTINT(d->blksize, d->blksizev, d->dctmode);
                 else
                 */
                 DCTc = new DCTFFTW(d->blksize, d->blksizev, d->dctmode); // check order x,y
@@ -393,10 +393,10 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     }
 
     if (d.dctmode >= 5 && !((d.blksize == 4 && d.blksizev == 4) ||
-                            (d.blksize == 8 && d.blksizev == 4) ||
-                            (d.blksize == 8 && d.blksizev == 8) ||
-                            (d.blksize == 16 && d.blksizev == 8) ||
-                            (d.blksize == 16 && d.blksizev == 16))) {
+                (d.blksize == 8 && d.blksizev == 4) ||
+                (d.blksize == 8 && d.blksizev == 8) ||
+                (d.blksize == 16 && d.blksizev == 8) ||
+                (d.blksize == 16 && d.blksizev == 16))) {
         vsapi->setError(out, "Analyse: dct 5..10 can only work with 4x4, 8x4, 8x8, 16x8, and 16x16 blocks.");
         return;
     }
@@ -410,13 +410,13 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.analysisData.nBlkSizeX = d.blksize;
     d.analysisData.nBlkSizeY = d.blksizev;
     if ((d.analysisData.nBlkSizeX != 4  || d.analysisData.nBlkSizeY != 4) &&
-        (d.analysisData.nBlkSizeX != 8  || d.analysisData.nBlkSizeY != 4) &&
-        (d.analysisData.nBlkSizeX != 8  || d.analysisData.nBlkSizeY != 8) &&
-        (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 2) &&
-        (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 8) &&
-        (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 16) &&
-        (d.analysisData.nBlkSizeX != 32 || d.analysisData.nBlkSizeY != 32) &&
-        (d.analysisData.nBlkSizeX != 32 || d.analysisData.nBlkSizeY != 16)) {
+            (d.analysisData.nBlkSizeX != 8  || d.analysisData.nBlkSizeY != 4) &&
+            (d.analysisData.nBlkSizeX != 8  || d.analysisData.nBlkSizeY != 8) &&
+            (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 2) &&
+            (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 8) &&
+            (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 16) &&
+            (d.analysisData.nBlkSizeX != 32 || d.analysisData.nBlkSizeY != 32) &&
+            (d.analysisData.nBlkSizeX != 32 || d.analysisData.nBlkSizeY != 16)) {
 
         vsapi->setError(out, "Analyse: the block size must be 4x4, 8x4, 8x8, 16x2, 16x8, 16x16, 32x16, or 32x32.");
         return;
@@ -427,7 +427,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
 
     if (d.overlap < 0 || d.overlap >= d.blksize ||
-        d.overlapv < 0 || d.overlapv >= d.blksizev) {
+            d.overlapv < 0 || d.overlapv >= d.blksizev) {
         vsapi->setError(out, "Analyse: overlap must be less than blksize, and overlapv must be less than blksizev.");
         return;
     }
@@ -534,8 +534,8 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     // check sanity
     if (nHeight <= 0 || d.nSuperHPad < 0 || d.nSuperHPad >= d.vi.width / 2 ||
-        d.nSuperVPad < 0 || d.nSuperPel < 1 || d.nSuperPel > 4 ||
-        d.nSuperModeYUV < 0 || d.nSuperModeYUV > YUVPLANES || d.nSuperLevels < 1) {
+            d.nSuperVPad < 0 || d.nSuperPel < 1 || d.nSuperPel > 4 ||
+            d.nSuperModeYUV < 0 || d.nSuperModeYUV > YUVPLANES || d.nSuperLevels < 1) {
         vsapi->setError(out, "Analyse: parameters from super clip appear to be wrong.");
         vsapi->freeNode(d.node);
         return;
@@ -576,7 +576,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     // calculate valid levels
     int nLevelsMax = 0;
-    while (	((nWidth_B >> nLevelsMax) - d.analysisData.nOverlapX) / (d.analysisData.nBlkSizeX - d.analysisData.nOverlapX) > 0 &&
+    while (    ((nWidth_B >> nLevelsMax) - d.analysisData.nOverlapX) / (d.analysisData.nBlkSizeX - d.analysisData.nOverlapX) > 0 &&
             ((nHeight_B >> nLevelsMax) - d.analysisData.nOverlapY) / (d.analysisData.nBlkSizeY - d.analysisData.nOverlapY) > 0) // at last one block
     {
         nLevelsMax++;
@@ -637,35 +637,35 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
 void mvanalyseRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Analyse",
-                 "super:clip;"
-                 "blksize:int:opt;"
-                 "blksizev:int:opt;"
-                 "levels:int:opt;"
-                 "search:int:opt;"
-                 "searchparam:int:opt;"
-                 "pelsearch:int:opt;"
-                 "isb:int:opt;"
-                 "lambda:int:opt;"
-                 "chroma:int:opt;"
-                 "delta:int:opt;"
-                 "truemotion:int:opt;"
-                 "lsad:int:opt;"
-                 "plevel:int:opt;"
-                 "global:int:opt;"
-                 "pnew:int:opt;"
-                 "pzero:int:opt;"
-                 "pglobal:int:opt;"
-                 "overlap:int:opt;"
-                 "overlapv:int:opt;"
-                 "divide:int:opt;"
-                 "badsad:int:opt;"
-                 "badrange:int:opt;"
-                 "isse:int:opt;"
-                 "meander:int:opt;"
-                 "trymany:int:opt;"
-                 "fields:int:opt;"
-                 "tff:int:opt;"
-                 "search_coarse:int:opt;"
-                 "dct:int:opt;"
-                 , mvanalyseCreate, 0, plugin);
+            "super:clip;"
+            "blksize:int:opt;"
+            "blksizev:int:opt;"
+            "levels:int:opt;"
+            "search:int:opt;"
+            "searchparam:int:opt;"
+            "pelsearch:int:opt;"
+            "isb:int:opt;"
+            "lambda:int:opt;"
+            "chroma:int:opt;"
+            "delta:int:opt;"
+            "truemotion:int:opt;"
+            "lsad:int:opt;"
+            "plevel:int:opt;"
+            "global:int:opt;"
+            "pnew:int:opt;"
+            "pzero:int:opt;"
+            "pglobal:int:opt;"
+            "overlap:int:opt;"
+            "overlapv:int:opt;"
+            "divide:int:opt;"
+            "badsad:int:opt;"
+            "badrange:int:opt;"
+            "isse:int:opt;"
+            "meander:int:opt;"
+            "trymany:int:opt;"
+            "fields:int:opt;"
+            "tff:int:opt;"
+            "search_coarse:int:opt;"
+            "dct:int:opt;"
+            , mvanalyseCreate, 0, plugin);
 }

@@ -205,7 +205,7 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
 
     d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
 
-    
+
     d.node = vsapi->propGetNode(in, "clip", 0, 0);
     d.vi = *vsapi->getVideoInfo(d.node);
 
@@ -245,11 +245,11 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
     if (d.pelclip && (d.nPel >= 2))
     {
         if ((pelvi->width == d.vi.width * d.nPel) &&
-            (pelvi->height == d.vi.height * d.nPel)) {
+                (pelvi->height == d.vi.height * d.nPel)) {
             d.usePelClip = true;
             d.isPelClipPadded = false;
         } else if ((pelvi->width == (d.vi.width + d.nHPad * 2) * d.nPel) &&
-                   (pelvi->height == (d.vi.height + d.nVPad * 2) * d.nPel)) {
+                (pelvi->height == (d.vi.height + d.nVPad * 2) * d.nPel)) {
             d.usePelClip = true;
             d.isPelClipPadded = true;
         } else {
@@ -277,15 +277,15 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
 
 void mvsuperRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Super",
-                 "clip:clip;"
-                 "hpad:int:opt;"
-                 "vpad:int:opt;"
-                 "pel:int:opt;"
-                 "levels:int:opt;"
-                 "chroma:int:opt;"
-                 "sharp:int:opt;"
-                 "rfilter:int:opt;"
-                 "pelclip:clip:opt;"
-                 "isse:int:opt;"
-                 , mvsuperCreate, 0, plugin);
+            "clip:clip;"
+            "hpad:int:opt;"
+            "vpad:int:opt;"
+            "pel:int:opt;"
+            "levels:int:opt;"
+            "chroma:int:opt;"
+            "sharp:int:opt;"
+            "rfilter:int:opt;"
+            "pelclip:clip:opt;"
+            "isse:int:opt;"
+            , mvsuperCreate, 0, plugin);
 }

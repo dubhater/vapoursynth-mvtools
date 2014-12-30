@@ -5,33 +5,33 @@
 
 
 typedef void (*Denoise1Function)(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch,
-						const uint8_t *pRefB, int BPitch, const uint8_t *pRefF, int FPitch,
-						int WSrc, int WRefB, int WRefF);
+        const uint8_t *pRefB, int BPitch, const uint8_t *pRefF, int FPitch,
+        int WSrc, int WRefB, int WRefF);
 
 
 template <int width, int height>
 void Degrain1_C(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch,
-						const uint8_t *pRefB, int BPitch, const uint8_t *pRefF, int FPitch,
-						int WSrc, int WRefB, int WRefF)
+        const uint8_t *pRefB, int BPitch, const uint8_t *pRefF, int FPitch,
+        int WSrc, int WRefB, int WRefF)
 {
-	for (int h=0; h<height; h++)
-	{
-		for (int x=0; x<width; x++)
-		{
-			 pDst[x] = (pRefF[x]*WRefF + pSrc[x]*WSrc + pRefB[x]*WRefB + 128)>>8;// weighted (by SAD) average
-		}
-		pDst += nDstPitch;
-		pSrc += nSrcPitch;
-		pRefB += BPitch;
-		pRefF += FPitch;
-	}
+    for (int h=0; h<height; h++)
+    {
+        for (int x=0; x<width; x++)
+        {
+            pDst[x] = (pRefF[x]*WRefF + pSrc[x]*WSrc + pRefB[x]*WRefB + 128)>>8;// weighted (by SAD) average
+        }
+        pDst += nDstPitch;
+        pSrc += nSrcPitch;
+        pRefB += BPitch;
+        pRefF += FPitch;
+    }
 }
 
 
 template<int blockWidth, int blockHeight>
 void Degrain1_sse2(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch,
-						const uint8_t *pRefB, int BPitch, const uint8_t *pRefF, int FPitch,
-						int WSrc, int WRefB, int WRefF)
+        const uint8_t *pRefB, int BPitch, const uint8_t *pRefF, int FPitch,
+        int WSrc, int WRefB, int WRefF)
 {
     __m128i zero = _mm_setzero_si128();
     __m128i wsrc = _mm_set1_epi16(WSrc);

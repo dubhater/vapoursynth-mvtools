@@ -85,12 +85,12 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
         {
             nref = - d->mvClip->GetDeltaFrame(); // positive frame number (special static mode)
         }
-        
+
         vsapi->requestFrameFilter(n, d->vectors, frameCtx);
 
         if (nref < n && nref >= 0)
             vsapi->requestFrameFilter(nref, d->super, frameCtx);
-        
+
         vsapi->requestFrameFilter(n, d->super, frameCtx);
 
         if (nref >= n && (!d->vi->numFrames || nref < d->vi->numFrames))
@@ -654,15 +654,15 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
 
 void mvcompensateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Compensate",
-                 "clip:clip;"
-                 "super:clip;"
-                 "vectors:clip;"
-                 "scbehavior:int:opt;"
-                 "thsad:int:opt;"
-                 "fields:int:opt;"
-                 "thscd1:int:opt;"
-                 "thscd2:int:opt;"
-                 "isse:int:opt;"
-                 "tff:int:opt;"
-                 , mvcompensateCreate, 0, plugin);
+            "clip:clip;"
+            "super:clip;"
+            "vectors:clip;"
+            "scbehavior:int:opt;"
+            "thsad:int:opt;"
+            "fields:int:opt;"
+            "thscd1:int:opt;"
+            "thscd2:int:opt;"
+            "isse:int:opt;"
+            "tff:int:opt;"
+            , mvcompensateCreate, 0, plugin);
 }

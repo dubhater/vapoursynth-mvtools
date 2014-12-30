@@ -398,8 +398,8 @@ static const VSFrameRef *VS_CC mvdegrain3GetFrame(int n, int activationReason, v
 
                         if (bx == nBlkX - 1 && nWidth_B[0] < nWidth[0]) // right non-covered region
                             vs_bitblt(pDstCur[plane] + nWidth_B[plane], nDstPitches[plane],
-                                      pSrcCur[plane] + nWidth_B[plane], nSrcPitches[plane],
-                                      nWidth[plane] - nWidth_B[plane], nBlkSizeY[plane]);
+                                    pSrcCur[plane] + nWidth_B[plane], nSrcPitches[plane],
+                                    nWidth[plane] - nWidth_B[plane], nBlkSizeY[plane]);
                     }
                     pDstCur[plane] += nBlkSizeY[plane] * (nDstPitches[plane]);
                     pSrcCur[plane] += nBlkSizeY[plane] * (nSrcPitches[plane]);
@@ -407,8 +407,8 @@ static const VSFrameRef *VS_CC mvdegrain3GetFrame(int n, int activationReason, v
                     if (by == nBlkY - 1 && nHeight_B[0] < nHeight[0]) // bottom uncovered region
                         // chroma u
                         vs_bitblt(pDstCur[plane], nDstPitches[plane],
-                                  pSrcCur[plane], nSrcPitches[plane],
-                                  nWidth[plane], nHeight[plane] - nHeight_B[plane]);
+                                pSrcCur[plane], nSrcPitches[plane],
+                                nWidth[plane], nHeight[plane] - nHeight_B[plane]);
                 }
             } else {// overlap
                 pDstShort = DstShort;
@@ -451,23 +451,23 @@ static const VSFrameRef *VS_CC mvdegrain3GetFrame(int n, int activationReason, v
 
                 if (nWidth_B[0] < nWidth[0])
                     vs_bitblt(pDst[plane] + nWidth_B[plane], nDstPitches[plane],
-                              pSrc[plane] + nWidth_B[plane], nSrcPitches[plane],
-                              nWidth[plane] - nWidth_B[plane], nHeight_B[plane]);
+                            pSrc[plane] + nWidth_B[plane], nSrcPitches[plane],
+                            nWidth[plane] - nWidth_B[plane], nHeight_B[plane]);
 
                 if (nHeight_B < nHeight) // bottom noncovered region
                     vs_bitblt(pDst[plane] + nDstPitches[plane] * nHeight_B[plane], nDstPitches[plane],
-                              pSrc[plane] + nSrcPitches[plane] * nHeight_B[plane], nSrcPitches[plane],
-                              nWidth[plane], nHeight[plane] - nHeight_B[plane]);
+                            pSrc[plane] + nSrcPitches[plane] * nHeight_B[plane], nSrcPitches[plane],
+                            nWidth[plane], nHeight[plane] - nHeight_B[plane]);
             }
             if (nLimit[plane] < 255) {
                 if (isse)
                     mvtools_LimitChanges_sse2(pDst[plane], nDstPitches[plane],
-                                              pSrc[plane], nSrcPitches[plane],
-                                              nWidth[plane], nHeight[plane], nLimit[plane]);
+                            pSrc[plane], nSrcPitches[plane],
+                            nWidth[plane], nHeight[plane], nLimit[plane]);
                 else
                     LimitChanges_c(pDst[plane], nDstPitches[plane],
-                                   pSrc[plane], nSrcPitches[plane],
-                                   nWidth[plane], nHeight[plane], nLimit[plane]);
+                            pSrc[plane], nSrcPitches[plane],
+                            nWidth[plane], nHeight[plane], nLimit[plane]);
             }
         }
 
@@ -960,21 +960,21 @@ static void VS_CC mvdegrain3Create(const VSMap *in, VSMap *out, void *userData, 
 
 void mvdegrain3Register(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Degrain3",
-                 "clip:clip;"
-                 "super:clip;"
-                 "mvbw:clip;"
-                 "mvfw:clip;"
-                 "mvbw2:clip;"
-                 "mvfw2:clip;"
-                 "mvbw3:clip;"
-                 "mvfw3:clip;"
-                 "thsad:int:opt;"
-                 "thsadc:int:opt;"
-                 "plane:int:opt;"
-                 "limit:int:opt;"
-                 "limitc:int:opt;"
-                 "thscd1:int:opt;"
-                 "thscd2:int:opt;"
-                 "isse:int:opt;"
-                 , mvdegrain3Create, 0, plugin);
+            "clip:clip;"
+            "super:clip;"
+            "mvbw:clip;"
+            "mvfw:clip;"
+            "mvbw2:clip;"
+            "mvfw2:clip;"
+            "mvbw3:clip;"
+            "mvfw3:clip;"
+            "thsad:int:opt;"
+            "thsadc:int:opt;"
+            "plane:int:opt;"
+            "limit:int:opt;"
+            "limitc:int:opt;"
+            "thscd1:int:opt;"
+            "thscd2:int:opt;"
+            "isse:int:opt;"
+            , mvdegrain3Create, 0, plugin);
 }

@@ -35,7 +35,7 @@ extern "C" uint32_t mvtools_cpu_cpuid( uint32_t op, uint32_t *eax, uint32_t *ebx
 
 uint32_t cpu_detect( void )
 {
-	uint32_t cpu = 0;
+    uint32_t cpu = 0;
     uint32_t eax, ebx, ecx, edx;
     uint32_t vendor[4] = {0};
     uint32_t max_extended_cap;
@@ -97,7 +97,7 @@ uint32_t cpu_detect( void )
         if( family==6 && (model==9 || model==13 || model==14) )
         {
             cpu &= ~(CPU_SSE2|CPU_SSE3);
-			assert(!(cpu&(CPU_SSSE3|CPU_SSE4)));
+            assert(!(cpu&(CPU_SSSE3|CPU_SSE4)));
         }
     }
 
@@ -126,11 +126,11 @@ uint32_t cpu_detect( void )
                     if( !(buf[j]>>31) )
                         while( buf[j] )
                         {
-							if( strchr( (const char*)cache32_ids, buf[j]&0xff ) )
+                            if( strchr( (const char*)cache32_ids, buf[j]&0xff ) )
                                 cache = 32;
                             if( strchr( (const char*)cache64_ids, buf[j]&0xff ) )
                                 cache = 64;
-	                            buf[j] >>= 8;
+                            buf[j] >>= 8;
                         }
             } while( ++i < max );
         }
@@ -139,7 +139,7 @@ uint32_t cpu_detect( void )
             cpu |= CPU_CACHELINE_32;
         else if( cache == 64 )
             cpu |= CPU_CACHELINE_64;
-		}
+    }
 
     return cpu;
 }

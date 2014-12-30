@@ -46,12 +46,12 @@ void BitBlt(unsigned char* dstp, int dst_pitch, const unsigned char* srcp, int s
 #endif
 
 void MemZoneSet(unsigned char *ptr, unsigned char value, int width,
-				int height, int offsetX, int offsetY, int pitch)
+        int height, int offsetX, int offsetY, int pitch)
 {
-	ptr += offsetX + offsetY*pitch;
-	for (int y=offsetY; y<height+offsetY; y++)
-	{
-		memset(ptr, value, width);
-		ptr += pitch;
-	}
+    ptr += offsetX + offsetY*pitch;
+    for (int y=offsetY; y<height+offsetY; y++)
+    {
+        memset(ptr, value, width);
+        ptr += pitch;
+    }
 }

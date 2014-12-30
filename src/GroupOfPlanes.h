@@ -21,31 +21,31 @@
 #include "PlaneOfBlocks.h"
 
 class GroupOfPlanes {
-	int nBlkSizeX;
-	int nBlkSizeY;
-	int nLevelCount;
-	int nPel;
-   int nFlags;
-   int nOverlapX;
-   int nOverlapY;
-   int yRatioUV;
-   int divideExtra;
+    int nBlkSizeX;
+    int nBlkSizeY;
+    int nLevelCount;
+    int nPel;
+    int nFlags;
+    int nOverlapX;
+    int nOverlapY;
+    int yRatioUV;
+    int divideExtra;
 
-	PlaneOfBlocks **planes;
+    PlaneOfBlocks **planes;
 
-public :
-	GroupOfPlanes(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, int _nPel,
-		int _nFlags, int _nOverlapX, int _nOverlapY, int _nBlkX, int _nBlkY, int _yRatioUV, int _divideExtra);
-	~GroupOfPlanes();
-	void SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
-                  SearchType searchType, int nSearchParam, int _PelSearch, int _nLambda, int _lsad, int _pnew, int _plevel, bool _global,
-                  int flags, int *out, short * outfilebuf, int fieldShift, DCTClass * DCT, int _pzero, int _pglobal, int badSAD, int badrange, bool meander, int *vecPrev, bool tryMany, SearchType coarseSearchType);
-	void WriteDefaultToArray(int *array);
-	int GetArraySize();
+    public :
+    GroupOfPlanes(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, int _nPel,
+            int _nFlags, int _nOverlapX, int _nOverlapY, int _nBlkX, int _nBlkY, int _yRatioUV, int _divideExtra);
+    ~GroupOfPlanes();
+    void SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
+            SearchType searchType, int nSearchParam, int _PelSearch, int _nLambda, int _lsad, int _pnew, int _plevel, bool _global,
+            int flags, int *out, short * outfilebuf, int fieldShift, DCTClass * DCT, int _pzero, int _pglobal, int badSAD, int badrange, bool meander, int *vecPrev, bool tryMany, SearchType coarseSearchType);
+    void WriteDefaultToArray(int *array);
+    int GetArraySize();
     void ExtraDivide(int *out, int flags);
-	void RecalculateMVs(MVClipBalls &mvClip, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
-                  SearchType _searchType, int _nSearchParam, int _nLambda, int _pnew,
-                  int flags, int *out, short * outfilebuf, int fieldShift, int thSAD, DCTClass * DCT, int smooth, bool meander);
+    void RecalculateMVs(MVClipBalls &mvClip, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
+            SearchType _searchType, int _nSearchParam, int _nLambda, int _pnew,
+            int flags, int *out, short * outfilebuf, int fieldShift, int thSAD, DCTClass * DCT, int smooth, bool meander);
 };
 
 #endif

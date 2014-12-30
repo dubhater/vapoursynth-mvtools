@@ -20,8 +20,8 @@
 /*! \file SADFunctions.h
  *  \brief Calculate the sum of absolute differences between two blocks.
  *
- *	The sum of absolute differences between two blocks represents the distance
- *	between these two blocks. The lower this value, the closer the blocks will look like
+ *    The sum of absolute differences between two blocks represents the distance
+ *    between these two blocks. The lower this value, the closer the blocks will look like
  *  There are two versions, one in plain C, one in iSSE assembler.
  */
 
@@ -31,62 +31,62 @@
 #include "MVInterface.h"
 
 typedef unsigned int (*SADFunction)(const uint8_t *pSrc, intptr_t nSrcPitch,
-								    const uint8_t *pRef, intptr_t nRefPitch);
+        const uint8_t *pRef, intptr_t nRefPitch);
 
-inline unsigned int SADABS(int x) {	return ( x < 0 ) ? -x : x; }
-//inline unsigned int SADABS(int x) {	return ( x < -16 ) ? 16 : ( x < 0 ) ? -x : ( x > 16) ? 16 : x; }
+inline unsigned int SADABS(int x) {    return ( x < 0 ) ? -x : x; }
+//inline unsigned int SADABS(int x) {    return ( x < -16 ) ? 16 : ( x < 0 ) ? -x : ( x > 16) ? 16 : x; }
 
 template<int nBlkWidth, int nBlkHeight>
 unsigned int Sad_C(const uint8_t *pSrc, intptr_t nSrcPitch,const uint8_t *pRef,
-					     intptr_t nRefPitch)
+        intptr_t nRefPitch)
 {
-	unsigned int sum = 0;
-	for ( int y = 0; y < nBlkHeight; y++ )
-	{
-		for ( int x = 0; x < nBlkWidth; x++ )
-			sum += SADABS(pSrc[x] - pRef[x]);
-      pSrc += nSrcPitch;
-      pRef += nRefPitch;
-	}
-	return sum;
+    unsigned int sum = 0;
+    for ( int y = 0; y < nBlkHeight; y++ )
+    {
+        for ( int x = 0; x < nBlkWidth; x++ )
+            sum += SADABS(pSrc[x] - pRef[x]);
+        pSrc += nSrcPitch;
+        pRef += nRefPitch;
+    }
+    return sum;
 }
 
 // a litle more fast unrolled (Fizick)
 /* //seems to be dead code (TSchniede)
-inline unsigned int Sad2_C(const uint8_t *pSrc, const uint8_t *pRef,int nSrcPitch,
-					     int nRefPitch)
-{
-	unsigned int sum = 0;
-		sum += SADABS(pSrc[0] - pRef[0]);
-		sum += SADABS(pSrc[1] - pRef[1]);
-      pSrc += nSrcPitch;
-      pRef += nRefPitch;
-		sum += SADABS(pSrc[0] - pRef[0]);
-		sum += SADABS(pSrc[1] - pRef[1]);
-	return sum;
-}
+   inline unsigned int Sad2_C(const uint8_t *pSrc, const uint8_t *pRef,int nSrcPitch,
+   int nRefPitch)
+   {
+   unsigned int sum = 0;
+   sum += SADABS(pSrc[0] - pRef[0]);
+   sum += SADABS(pSrc[1] - pRef[1]);
+   pSrc += nSrcPitch;
+   pRef += nRefPitch;
+   sum += SADABS(pSrc[0] - pRef[0]);
+   sum += SADABS(pSrc[1] - pRef[1]);
+   return sum;
+   }
 
-inline unsigned int Sad2x4_C(const uint8_t *pSrc, const uint8_t *pRef,int nSrcPitch,
-					     int nRefPitch)
-{
-	unsigned int sum = 0;
-		sum += SADABS(pSrc[0] - pRef[0]);
-		sum += SADABS(pSrc[1] - pRef[1]);
-      pSrc += nSrcPitch;
-      pRef += nRefPitch;
-		sum += SADABS(pSrc[0] - pRef[0]);
-		sum += SADABS(pSrc[1] - pRef[1]);
-      pSrc += nSrcPitch;
-      pRef += nRefPitch;
-		sum += SADABS(pSrc[0] - pRef[0]);
-		sum += SADABS(pSrc[1] - pRef[1]);
-      pSrc += nSrcPitch;
-      pRef += nRefPitch;
-		sum += SADABS(pSrc[0] - pRef[0]);
-		sum += SADABS(pSrc[1] - pRef[1]);
-	return sum;
-}
-*/
+   inline unsigned int Sad2x4_C(const uint8_t *pSrc, const uint8_t *pRef,int nSrcPitch,
+   int nRefPitch)
+   {
+   unsigned int sum = 0;
+   sum += SADABS(pSrc[0] - pRef[0]);
+   sum += SADABS(pSrc[1] - pRef[1]);
+   pSrc += nSrcPitch;
+   pRef += nRefPitch;
+   sum += SADABS(pSrc[0] - pRef[0]);
+   sum += SADABS(pSrc[1] - pRef[1]);
+   pSrc += nSrcPitch;
+   pRef += nRefPitch;
+   sum += SADABS(pSrc[0] - pRef[0]);
+   sum += SADABS(pSrc[1] - pRef[1]);
+   pSrc += nSrcPitch;
+   pRef += nRefPitch;
+   sum += SADABS(pSrc[0] - pRef[0]);
+   sum += SADABS(pSrc[1] - pRef[1]);
+   return sum;
+   }
+   */
 #define MK_CFUNC(functionname) extern "C" unsigned int  functionname (const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch)
 
 // From SAD.asm
@@ -112,7 +112,7 @@ SAD_x264(4,4);
 //parameter is function name
 MK_CFUNC(mvtools_pixel_sad_8x16_sse2);
 MK_CFUNC(mvtools_pixel_sad_16x16_sse2); //non optimized cache access, for AMD?
-MK_CFUNC(mvtools_pixel_sad_16x8_sse2);	 //non optimized cache access, for AMD?
+MK_CFUNC(mvtools_pixel_sad_16x8_sse2);     //non optimized cache access, for AMD?
 MK_CFUNC(mvtools_pixel_sad_16x16_sse3); //LDDQU Pentium4E (Core1?), not for Core2!
 MK_CFUNC(mvtools_pixel_sad_16x8_sse3);  //LDDQU Pentium4E (Core1?), not for Core2!
 //MK_CFUNC(mvtools_pixel_sad_16x16_cache64_sse2);//core2 optimized

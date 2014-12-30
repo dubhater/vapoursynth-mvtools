@@ -750,15 +750,15 @@ static void VS_CC mvflowinterCreate(const VSMap *in, VSMap *out, void *userData,
 
 void mvflowinterRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("FlowInter",
-                 "clip:clip;"
-                 "super:clip;"
-                 "mvbw:clip;"
-                 "mvfw:clip;"
-                 "time:float:opt;"
-                 "ml:float:opt;"
-                 "blend:int:opt;"
-                 "thscd1:int:opt;"
-                 "thscd2:int:opt;"
-                 "isse:int:opt;"
-                 , mvflowinterCreate, 0, plugin);
+            "clip:clip;"
+            "super:clip;"
+            "mvbw:clip;"
+            "mvfw:clip;"
+            "time:float:opt;"
+            "ml:float:opt;"
+            "blend:int:opt;"
+            "thscd1:int:opt;"
+            "thscd2:int:opt;"
+            "isse:int:opt;"
+            , mvflowinterCreate, 0, plugin);
 }

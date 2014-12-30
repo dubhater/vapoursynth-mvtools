@@ -27,7 +27,7 @@ std::mutex g_fftw_plans_mutex;
 
 
 DCTFFTW::DCTFFTW(int _sizex, int _sizey, int _dctmode) :
-	DCTClass(_sizex , _sizey, _dctmode)
+    DCTClass(_sizex , _sizey, _dctmode)
 {
     int size2d = sizey*sizex;
 
@@ -46,8 +46,8 @@ DCTFFTW::DCTFFTW(int _sizex, int _sizey, int _dctmode) :
 
     g_fftw_plans_mutex.lock();
     dctplan = fftwf_plan_r2r_2d(sizey, sizex, fSrc, fSrcDCT,
-		FFTW_REDFT10, FFTW_REDFT10, FFTW_ESTIMATE); // direct fft
-	g_fftw_plans_mutex.unlock();
+            FFTW_REDFT10, FFTW_REDFT10, FFTW_ESTIMATE); // direct fft
+    g_fftw_plans_mutex.unlock();
 }
 
 
@@ -81,18 +81,18 @@ void DCTFFTW::Float2Bytes (unsigned char * dstp, int dst_pitch, float * realdata
     int integ;
     float f = realdata[0]*0.5f; // to be compatible with integer DCTINT8
     /*
-    _asm fld f;
-    _asm fistp integ;
-    */
+       _asm fld f;
+       _asm fistp integ;
+       */
     // XXX function call to nearbyintf can be avoided by using cvtss2si
     integ = (int)(nearbyintf(f));
     dstp[0] = std::min(255, std::max(0, (integ>>dctshift0) + 128)); // DC
     for (i = 1; i < sizex; i+=1) {
         f = realdata[i]*0.707f; // to be compatible with integer DCTINT8
         /*
-        _asm fld f;
-        _asm fistp integ;
-        */
+           _asm fld f;
+           _asm fistp integ;
+           */
         integ = (int)(nearbyintf(f));
         dstp[i] = std::min(255, std::max(0, (integ>>dctshift) + 128));
     }
@@ -102,9 +102,9 @@ void DCTFFTW::Float2Bytes (unsigned char * dstp, int dst_pitch, float * realdata
         for (i = 0; i < sizex; i+=1) {
             f = realdata[i]*0.707f; // to be compatible with integer DCTINT8
             /*
-            _asm fld f;
-            _asm fistp integ;
-            */
+               _asm fld f;
+               _asm fistp integ;
+               */
             integ = (int)(nearbyintf(f));
             dstp[i] = std::min(255, std::max(0, (integ>>dctshift) + 128));
         }

@@ -110,7 +110,7 @@ SAD_x264(4,4);
 #undef SAD_x264
 //parameter is function name
 MK_CFUNC(x264_pixel_sad_16x16_sse2); //non optimized cache access, for AMD?
-MK_CFUNC(x264_pixel_sad_16x8_sse2);	 //non optimized cache access, for AMD?
+MK_CFUNC(x264_pixel_sad_16x8_sse2);     //non optimized cache access, for AMD?
 MK_CFUNC(x264_pixel_sad_16x16_sse3); //LDDQU Pentium4E (Core1?), not for Core2!
 MK_CFUNC(x264_pixel_sad_16x8_sse3);  //LDDQU Pentium4E (Core1?), not for Core2!
 MK_CFUNC(x264_pixel_sad_16x16_cache64_sse2);//core2 optimized

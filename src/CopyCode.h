@@ -9,21 +9,21 @@ inline void BitBlt(unsigned char* dstp, int dst_pitch, const unsigned char* srcp
 }
 
 void MemZoneSet(unsigned char *ptr, unsigned char value, int width,
-				int height, int offsetX, int offsetY, int pitch);
+        int height, int offsetX, int offsetY, int pitch);
 
 typedef void (*COPYFunction)(unsigned char *pDst, intptr_t nDstPitch,
-                            const unsigned char *pSrc, intptr_t nSrcPitch);
+        const unsigned char *pSrc, intptr_t nSrcPitch);
 
 template<int nBlkWidth, int nBlkHeight>
 void Copy_C(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch)
 {
-   for ( int j = 0; j < nBlkHeight; j++ )
-   {
-//      for ( int i = 0; i < nBlkWidth; i++ )  //  waste cycles removed by Fizick in v1.2
-         memcpy(pDst, pSrc, nBlkWidth);
-      pDst += nDstPitch;
-      pSrc += nSrcPitch;
-   }
+    for ( int j = 0; j < nBlkHeight; j++ )
+    {
+        //      for ( int i = 0; i < nBlkWidth; i++ )  //  waste cycles removed by Fizick in v1.2
+        memcpy(pDst, pSrc, nBlkWidth);
+        pDst += nDstPitch;
+        pSrc += nSrcPitch;
+    }
 }
 
 //extern "C" void  Copy16x16_mmx(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch);

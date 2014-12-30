@@ -40,12 +40,12 @@
 
 
 #define ALIGN_PLANES 64 // all luma/chroma planes of all frames will have the effective frame area
-						// aligned to this (source plane can be accessed with aligned loads, 64 required for effective use of x264 sad on Core2) 1.9.5
-#define ALIGN_SOURCEBLOCK 16	// ALIGN_PLANES aligns the sourceblock UNLESS overlap != 0 OR special case: MMX function AND Block=16, Overlap = 8
-								// ALIGN_SOURCEBLOCK creates aligned copy of Source block
+// aligned to this (source plane can be accessed with aligned loads, 64 required for effective use of x264 sad on Core2) 1.9.5
+#define ALIGN_SOURCEBLOCK 16    // ALIGN_PLANES aligns the sourceblock UNLESS overlap != 0 OR special case: MMX function AND Block=16, Overlap = 8
+// ALIGN_SOURCEBLOCK creates aligned copy of Source block
 //this options make things usually slower
-#define ALLOW_DCT				// complex check in lumaSAD & DCT code in SearchMV / PseudoEPZ
-//#define	ONLY_CHECK_NONDEFAULT_MV // make the check if it is no default reference (zero, global,...)
+#define ALLOW_DCT                // complex check in lumaSAD & DCT code in SearchMV / PseudoEPZ
+//#define    ONLY_CHECK_NONDEFAULT_MV // make the check if it is no default reference (zero, global,...)
 
 
 //#define DEBUG_CLIENTBLOCK
@@ -63,9 +63,9 @@
 #define MOTION_MAGIC_KEY 0x564D //'MV' is IMHO better 31415926 :)
 
 struct VECTOR {
-	int x;
-	int y;
-   int sad;
+    int x;
+    int y;
+    int sad;
 };
 
 inline void CopyVector (VECTOR *destVector, const VECTOR *srcVector)
@@ -79,25 +79,25 @@ inline void CopyVector (VECTOR *destVector, const VECTOR *srcVector)
 
 
 enum MVPlaneSet {
-   YPLANE = 1,
-   UPLANE = 2,
-   VPLANE = 4,
-   YUPLANES = 3,
-   YVPLANES = 5,
-   UVPLANES = 6,
-   YUVPLANES = 7
+    YPLANE = 1,
+    UPLANE = 2,
+    VPLANE = 4,
+    YUPLANES = 3,
+    YVPLANES = 5,
+    UVPLANES = 6,
+    YUVPLANES = 7
 };
 
 /*! \brief Search type : defines the algorithm used for minimizing the SAD */
 enum SearchType {
-	ONETIME = 1,
-	NSTEP = 2,
-	LOGARITHMIC = 4,
-	EXHAUSTIVE = 8,
-	HEX2SEARCH = 16, // v.2
-	UMHSEARCH = 32,   // v.2
-	HSEARCH = 64,   // v.2.5.11
-	VSEARCH = 128   // v.2.5.11
+    ONETIME = 1,
+    NSTEP = 2,
+    LOGARITHMIC = 4,
+    EXHAUSTIVE = 8,
+    HEX2SEARCH = 16, // v.2
+    UMHSEARCH = 32,   // v.2
+    HSEARCH = 64,   // v.2.5.11
+    VSEARCH = 128   // v.2.5.11
 };
 
 #if 0
@@ -156,141 +156,141 @@ static const VECTOR zeroMV = { 0, 0, -1 };
 
 struct SuperParams64struct // MVSuper parameters packed to 64 bit num_audio_samples
 {
-  unsigned short nHeight;
-  unsigned char nHPad;
-  unsigned char nVPad;
-  unsigned char nPel;
-  unsigned char nModeYUV;
-  unsigned char nLevels;
-  unsigned char param;
+    unsigned short nHeight;
+    unsigned char nHPad;
+    unsigned char nVPad;
+    unsigned char nPel;
+    unsigned char nModeYUV;
+    unsigned char nLevels;
+    unsigned char param;
 };
 
 typedef SuperParams64struct SuperParams64Bits;
 
 
 class FakeBlockData {
-	int x;
-	int y;
-	VECTOR vector;
-//	int nSad;
-//	int nLength;
-//   int nVariance;
-//   int nLuma;
-//   int nRefLuma;
-//   int nPitch;
+    int x;
+    int y;
+    VECTOR vector;
+    //    int nSad;
+    //    int nLength;
+    //   int nVariance;
+    //   int nLuma;
+    //   int nRefLuma;
+    //   int nPitch;
 
-//   const unsigned char *pRef;
+    //   const unsigned char *pRef;
 
-//	inline static int SquareLength(const VECTOR& v)
-//	{ return v.x * v.x + v.y * v.y; }
+    //    inline static int SquareLength(const VECTOR& v)
+    //    { return v.x * v.x + v.y * v.y; }
 
-public :
+    public :
     FakeBlockData();
     FakeBlockData(int _x, int _y);
     ~FakeBlockData();
 
     void Init(int _x, int _y);
-	void Update(const int *array);
+    void Update(const int *array);
 
-	inline int GetX() const { return x; }
-	inline int GetY() const { return y; }
-	inline VECTOR GetMV() const { return vector; }
-	inline int GetSAD() const { return vector.sad; }
-//	inline int GetMVLength() const { return nLength; }
-//   inline int GetVariance() const { return nVariance; }
-//   inline int GetLuma() const { return nLuma; }
-//   inline int GetRefLuma() const { return nRefLuma; }
-//   inline const unsigned char *GetRef() const { return pRef; }
-//   inline int GetPitch() const { return nPitch; }
+    inline int GetX() const { return x; }
+    inline int GetY() const { return y; }
+    inline VECTOR GetMV() const { return vector; }
+    inline int GetSAD() const { return vector.sad; }
+    //    inline int GetMVLength() const { return nLength; }
+    //   inline int GetVariance() const { return nVariance; }
+    //   inline int GetLuma() const { return nLuma; }
+    //   inline int GetRefLuma() const { return nRefLuma; }
+    //   inline const unsigned char *GetRef() const { return pRef; }
+    //   inline int GetPitch() const { return nPitch; }
 };
 
 class FakePlaneOfBlocks {
 
-	int nWidth_Bi;
-	int nHeight_Bi;
-	int nBlkX;
-	int nBlkY;
-	int nBlkSizeX;
-	int nBlkSizeY;
-	int nBlkCount;
-	int nPel;
-	int nLogPel;
-	int nScale;
-	int nLogScale;
-	int nOverlapX;
-	int nOverlapY;
+    int nWidth_Bi;
+    int nHeight_Bi;
+    int nBlkX;
+    int nBlkY;
+    int nBlkSizeX;
+    int nBlkSizeY;
+    int nBlkCount;
+    int nPel;
+    int nLogPel;
+    int nScale;
+    int nLogScale;
+    int nOverlapX;
+    int nOverlapY;
 
-	FakeBlockData *blocks;
+    FakeBlockData *blocks;
 
-public :
+    public :
 
-	FakePlaneOfBlocks(int sizex,  int sizey, int lv, int pel, int overlapx, int overlapy, int nBlkX, int nBlkY);
-	~FakePlaneOfBlocks();
+    FakePlaneOfBlocks(int sizex,  int sizey, int lv, int pel, int overlapx, int overlapy, int nBlkX, int nBlkY);
+    ~FakePlaneOfBlocks();
 
-	void Update(const int *array);
-	bool IsSceneChange(int nTh1, int nTh2) const;
+    void Update(const int *array);
+    bool IsSceneChange(int nTh1, int nTh2) const;
 
-	inline bool IsInFrame(int i) const
-	{
-		return (( i >= 0 ) && ( i < nBlkCount ));
-	}
+    inline bool IsInFrame(int i) const
+    {
+        return (( i >= 0 ) && ( i < nBlkCount ));
+    }
 
-	inline const FakeBlockData& operator[](const int i) const {
-		return (blocks[i]);
-	}
+    inline const FakeBlockData& operator[](const int i) const {
+        return (blocks[i]);
+    }
 
-	inline int GetBlockCount() const { return nBlkCount; }
-	inline int GetReducedWidth() const { return nBlkX; }
-	inline int GetReducedHeight() const { return nBlkY; }
-	inline int GetWidth() const { return nWidth_Bi; }
-	inline int GetHeight() const { return nHeight_Bi; }
-	inline int GetScaleLevel() const { return nLogScale; }
-	inline int GetEffectiveScale() const { return nScale; }
-	inline int GetBlockSizeX() const { return nBlkSizeX; }
-	inline int GetBlockSizeY() const { return nBlkSizeY; }
-	inline int GetPel() const { return nPel; }
-   inline const FakeBlockData& GetBlock(int i) const { return (blocks[i]); }
-	inline int GetOverlapX() const { return nOverlapX; }
-	inline int GetOverlapY() const { return nOverlapY; }
+    inline int GetBlockCount() const { return nBlkCount; }
+    inline int GetReducedWidth() const { return nBlkX; }
+    inline int GetReducedHeight() const { return nBlkY; }
+    inline int GetWidth() const { return nWidth_Bi; }
+    inline int GetHeight() const { return nHeight_Bi; }
+    inline int GetScaleLevel() const { return nLogScale; }
+    inline int GetEffectiveScale() const { return nScale; }
+    inline int GetBlockSizeX() const { return nBlkSizeX; }
+    inline int GetBlockSizeY() const { return nBlkSizeY; }
+    inline int GetPel() const { return nPel; }
+    inline const FakeBlockData& GetBlock(int i) const { return (blocks[i]); }
+    inline int GetOverlapX() const { return nOverlapX; }
+    inline int GetOverlapY() const { return nOverlapY; }
 };
 
 class FakeGroupOfPlanes {
-	int nLvCount_;
-	bool validity;
-   int nWidth_B;
-   int nHeight_B;
-//   int nOverlap;
-   int yRatioUV_B;
-	FakePlaneOfBlocks **planes;
-//   const unsigned char *compensatedPlane;
-//   const unsigned char *compensatedPlaneU;
-//   const unsigned char *compensatedPlaneV;
-	inline static bool GetValidity(const int *array) { return (array[1] == 1); }
-   //CRITICAL_SECTION cs;
+    int nLvCount_;
+    bool validity;
+    int nWidth_B;
+    int nHeight_B;
+    //   int nOverlap;
+    int yRatioUV_B;
+    FakePlaneOfBlocks **planes;
+    //   const unsigned char *compensatedPlane;
+    //   const unsigned char *compensatedPlaneU;
+    //   const unsigned char *compensatedPlaneV;
+    inline static bool GetValidity(const int *array) { return (array[1] == 1); }
+    //CRITICAL_SECTION cs;
 
-public :
-   FakeGroupOfPlanes();
-//	FakeGroupOfPlanes(int w, int h, int size, int lv, int pel);
-	~FakeGroupOfPlanes();
+    public :
+    FakeGroupOfPlanes();
+    //    FakeGroupOfPlanes(int w, int h, int size, int lv, int pel);
+    ~FakeGroupOfPlanes();
 
-   void Create(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, int _nPel, int _nOverlapX, int _nOverlapY, int _yRatioUV, int _nBlkX, int _nBlkY);
+    void Create(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, int _nPel, int _nOverlapX, int _nOverlapY, int _yRatioUV, int _nBlkX, int _nBlkY);
 
-	void Update(const int *array);
-	bool IsSceneChange(int nThSCD1, int nThSCD2) const;
+    void Update(const int *array);
+    bool IsSceneChange(int nThSCD1, int nThSCD2) const;
 
-	inline const FakePlaneOfBlocks& operator[](const int i) const {
-		return *(planes[i]);
-	}
+    inline const FakePlaneOfBlocks& operator[](const int i) const {
+        return *(planes[i]);
+    }
 
 
-	inline bool IsValid() const { return validity; }
-//   inline const unsigned char *GetCompensatedPlane() const { return compensatedPlane; }
-//   inline const unsigned char *GetCompensatedPlaneU() const { return compensatedPlaneU; }
-//   inline const unsigned char *GetCompensatedPlaneV() const { return compensatedPlaneV; }
-   inline int GetPitch() const { return nWidth_B; }
-   inline int GetPitchUV() const { return nWidth_B / 2; } // FIXME: lol
+    inline bool IsValid() const { return validity; }
+    //   inline const unsigned char *GetCompensatedPlane() const { return compensatedPlane; }
+    //   inline const unsigned char *GetCompensatedPlaneU() const { return compensatedPlaneU; }
+    //   inline const unsigned char *GetCompensatedPlaneV() const { return compensatedPlaneV; }
+    inline int GetPitch() const { return nWidth_B; }
+    inline int GetPitchUV() const { return nWidth_B / 2; } // FIXME: lol
 
-	inline const FakePlaneOfBlocks& GetPlane(int i) const { return *(planes[i]); }
+    inline const FakePlaneOfBlocks& GetPlane(int i) const { return *(planes[i]); }
 };
 
 //class MVCore;
@@ -299,450 +299,450 @@ public :
 
 class MVAnalysisData
 {
-public:
-   /*! \brief Unique identifier, not very useful */
-   int nMagicKey; // placed to head in v.1.2.6
+    public:
+        /*! \brief Unique identifier, not very useful */
+        int nMagicKey; // placed to head in v.1.2.6
 
-   int nVersion; // MVAnalysisData and outfile format version - added in v1.2.6
+        int nVersion; // MVAnalysisData and outfile format version - added in v1.2.6
 
-   /*! \brief size of a block, in pixel */
-   int nBlkSizeX; // horizontal block size
+        /*! \brief size of a block, in pixel */
+        int nBlkSizeX; // horizontal block size
 
-	int nBlkSizeY; // vertical block size - v1.7
+        int nBlkSizeY; // vertical block size - v1.7
 
-   /*! \brief pixel refinement of the motion estimation */
-   int nPel;
+        /*! \brief pixel refinement of the motion estimation */
+        int nPel;
 
-   /*! \brief number of level for the hierarchal search */
-   int nLvCount;
+        /*! \brief number of level for the hierarchal search */
+        int nLvCount;
 
-   /*! \brief difference between the index of the reference and the index of the current frame */
-   int nDeltaFrame;
+        /*! \brief difference between the index of the reference and the index of the current frame */
+        int nDeltaFrame;
 
-   /*! \brief direction of the search ( forward / backward ) */
-	bool isBackward;
+        /*! \brief direction of the search ( forward / backward ) */
+        bool isBackward;
 
-   /*! \brief diverse flags to set up the search */
-   int nFlags;
+        /*! \brief diverse flags to set up the search */
+        int nFlags;
 
-	/*! \brief Width of the frame */
-	int nWidth;
+        /*! \brief Width of the frame */
+        int nWidth;
 
-	/*! \brief Height of the frame */
-	int nHeight;
+        /*! \brief Height of the frame */
+        int nHeight;
 
-   /*! \brief MVFrames idx */
-//   int nIdx;
+        /*! \brief MVFrames idx */
+        //   int nIdx;
 
-  int nOverlapX; // overlap block size - v1.1
+        int nOverlapX; // overlap block size - v1.1
 
-	int nOverlapY; // vertical overlap - v1.7
+        int nOverlapY; // vertical overlap - v1.7
 
-   int nBlkX; // number of blocks along X
+        int nBlkX; // number of blocks along X
 
-   int nBlkY; // number of blocks along Y
+        int nBlkY; // number of blocks along Y
 
-   int pixelType; // color format
+        int pixelType; // color format
 
-   int yRatioUV; // ratio of luma plane height to chroma plane height
+        int yRatioUV; // ratio of luma plane height to chroma plane height
 
-   int xRatioUV; // ratio of luma plane height to chroma plane width (fixed to 2 for YV12 and YUY2)
+        int xRatioUV; // ratio of luma plane height to chroma plane width (fixed to 2 for YV12 and YUY2)
 
-//	int sharp; // pel2 interpolation type
+        //    int sharp; // pel2 interpolation type
 
-//	bool usePelClip; // use extra clip with upsized 2x frame size
+        //    bool usePelClip; // use extra clip with upsized 2x frame size
 
-//	MVCore *pmvCore; // last (but is not really useful for written file)
+        //    MVCore *pmvCore; // last (but is not really useful for written file)
 
-	int nHPadding; // Horizontal padding - v1.8.1
+        int nHPadding; // Horizontal padding - v1.8.1
 
-	int nVPadding; // Vertical padding - v1.8.1
+        int nVPadding; // Vertical padding - v1.8.1
 
 
-public :
+    public :
 
-   inline void SetFlags(int _nFlags) { nFlags |= _nFlags; }
-   inline int GetFlags() const { return nFlags; }
-   inline int GetBlkSizeX() const { return nBlkSizeX; }
-   inline int GetPel() const { return nPel; }
-   inline int GetLevelCount() const { return nLvCount; }
-//   inline int GetFramesIdx() const { return nIdx; }
-   inline bool IsBackward() const { return isBackward; }
-   inline int GetMagicKey() const { return nMagicKey; }
-   inline int GetDeltaFrame() const { return nDeltaFrame; }
-   inline int GetWidth() const { return nWidth; }
-   inline int GetHeight() const { return nHeight; }
-   inline bool IsChromaMotion() const { return nFlags & MOTION_USE_CHROMA_MOTION; }
-//   inline MVCore *GetMVCore() const { return pmvCore; }
-   inline int GetOverlapX() const { return nOverlapX; }
-   inline int GetBlkX() const { return nBlkX; }
-   inline int GetBlkY() const { return nBlkY; }
-   inline int GetPixelType() const { return pixelType; }
-   inline int GetYRatioUV() const { return yRatioUV; }
-   inline int GetXRatioUV() const { return xRatioUV; }
-//   inline int GetSharp() const { return sharp; }
-//   inline bool UsePelClip() const { return usePelClip; }
-   inline int GetBlkSizeY() const { return nBlkSizeY; }
-   inline int GetOverlapY() const { return nOverlapY; }
-   inline int GetHPadding() const { return nHPadding; }
-   inline int GetVPadding() const { return nVPadding; }
+        inline void SetFlags(int _nFlags) { nFlags |= _nFlags; }
+        inline int GetFlags() const { return nFlags; }
+        inline int GetBlkSizeX() const { return nBlkSizeX; }
+        inline int GetPel() const { return nPel; }
+        inline int GetLevelCount() const { return nLvCount; }
+        //   inline int GetFramesIdx() const { return nIdx; }
+        inline bool IsBackward() const { return isBackward; }
+        inline int GetMagicKey() const { return nMagicKey; }
+        inline int GetDeltaFrame() const { return nDeltaFrame; }
+        inline int GetWidth() const { return nWidth; }
+        inline int GetHeight() const { return nHeight; }
+        inline bool IsChromaMotion() const { return nFlags & MOTION_USE_CHROMA_MOTION; }
+        //   inline MVCore *GetMVCore() const { return pmvCore; }
+        inline int GetOverlapX() const { return nOverlapX; }
+        inline int GetBlkX() const { return nBlkX; }
+        inline int GetBlkY() const { return nBlkY; }
+        inline int GetPixelType() const { return pixelType; }
+        inline int GetYRatioUV() const { return yRatioUV; }
+        inline int GetXRatioUV() const { return xRatioUV; }
+        //   inline int GetSharp() const { return sharp; }
+        //   inline bool UsePelClip() const { return usePelClip; }
+        inline int GetBlkSizeY() const { return nBlkSizeY; }
+        inline int GetOverlapY() const { return nOverlapY; }
+        inline int GetHPadding() const { return nHPadding; }
+        inline int GetVPadding() const { return nVPadding; }
 
 };
 
 
 class MVClipDicks : public MVAnalysisData {
-	/*! \brief Number of blocks at the first level */
-	int nBlkCount;
+    /*! \brief Number of blocks at the first level */
+    int nBlkCount;
 
-   /*! \brief First Scene Change Detection threshold ( compared against SAD value of the block ) */
-   int nSCD1;
+    /*! \brief First Scene Change Detection threshold ( compared against SAD value of the block ) */
+    int nSCD1;
 
-   /*! \brief Second Scene Change Detection threshold ( compared against the number of block over the first threshold */
-   int nSCD2;
+    /*! \brief Second Scene Change Detection threshold ( compared against the number of block over the first threshold */
+    int nSCD2;
 
-   //int nHeaderSize; // offset to data
+    //int nHeaderSize; // offset to data
 
     const VSAPI *vsapi;
 
-public:
+    public:
     MVClipDicks(VSNodeRef *vectors, int nSCD1, int nSCD2, const VSAPI *_vsapi);
     ~MVClipDicks();
 
-   inline int GetBlkCount() const { return nBlkCount; }
-   inline int GetThSCD1() const { return nSCD1; }
-   inline int GetThSCD2() const { return nSCD2; }
+    inline int GetBlkCount() const { return nBlkCount; }
+    inline int GetThSCD1() const { return nSCD1; }
+    inline int GetThSCD2() const { return nSCD2; }
 };
 
 
 class MVClipBalls : public FakeGroupOfPlanes {
     MVClipDicks *dicks;
     const VSAPI *vsapi;
-public:
+    public:
     MVClipBalls(MVClipDicks *_dicks, const VSAPI *_vsapi);
     ~MVClipBalls();
 
-   void Update(const VSFrameRef *fn); // v1.4.13
-   inline const FakeBlockData& GetBlock(int nLevel, int nBlk) const { return GetPlane(nLevel)[nBlk]; }
-   bool IsUsable() const;
-   bool IsSceneChange(int nSCD1, int nSCD2) const { return FakeGroupOfPlanes::IsSceneChange(nSCD1, nSCD2); }
+    void Update(const VSFrameRef *fn); // v1.4.13
+    inline const FakeBlockData& GetBlock(int nLevel, int nBlk) const { return GetPlane(nLevel)[nBlk]; }
+    bool IsUsable() const;
+    bool IsSceneChange(int nSCD1, int nSCD2) const { return FakeGroupOfPlanes::IsSceneChange(nSCD1, nSCD2); }
 };
 
 
 class MVException : public std::runtime_error {
-public:
-    MVException(const char *descr) : std::runtime_error(descr) {}
-    MVException(const std::string &descr) : std::runtime_error(descr) {}
+    public:
+        MVException(const char *descr) : std::runtime_error(descr) {}
+        MVException(const std::string &descr) : std::runtime_error(descr) {}
 };
 
 
 #if 0
 class MVClip : public GenericVideoFilter, public FakeGroupOfPlanes, public MVAnalysisData
 {
-	/*! \brief Number of blocks horizontaly, at the first level */
-//	int nBlkX;
+    /*! \brief Number of blocks horizontaly, at the first level */
+    //    int nBlkX;
 
-	/*! \brief Number of blocks verticaly, at the first level */
-//	int nBlkY;
+    /*! \brief Number of blocks verticaly, at the first level */
+    //    int nBlkY;
 
-	/*! \brief Number of blocks at the first level */
-	int nBlkCount;
+    /*! \brief Number of blocks at the first level */
+    int nBlkCount;
 
-   /*! \brief Horizontal padding */
-   int nHPadding;
+    /*! \brief Horizontal padding */
+    int nHPadding;
 
-   /*! \brief Vertical padding */
-   int nVPadding;
+    /*! \brief Vertical padding */
+    int nVPadding;
 
-   /*! \brief First Scene Change Detection threshold ( compared against SAD value of the block ) */
-   int nSCD1;
+    /*! \brief First Scene Change Detection threshold ( compared against SAD value of the block ) */
+    int nSCD1;
 
-   /*! \brief Second Scene Change Detection threshold ( compared against the number of block over the first threshold */
-   int nSCD2;
+    /*! \brief Second Scene Change Detection threshold ( compared against the number of block over the first threshold */
+    int nSCD2;
 
-   int nHeaderSize; // offset to data
+    int nHeaderSize; // offset to data
 
-public :
-   MVClip(const PClip &vectors, int nSCD1, int nSCD2, IScriptEnvironment *env);
-   ~MVClip();
+    public :
+    MVClip(const PClip &vectors, int nSCD1, int nSCD2, IScriptEnvironment *env);
+    ~MVClip();
 
-//   void SetVectorsNeed(bool srcluma, bool refluma, bool var,
-//                       bool compy, bool compu, bool compv) const;
+    //   void SetVectorsNeed(bool srcluma, bool refluma, bool var,
+    //                       bool compy, bool compu, bool compv) const;
 
-//   void Update(int n, IScriptEnvironment *env);
-   void Update(PVideoFrame &fn, IScriptEnvironment *env); // v1.4.13
+    //   void Update(int n, IScriptEnvironment *env);
+    void Update(PVideoFrame &fn, IScriptEnvironment *env); // v1.4.13
 
-   // encapsulation
-//   inline int GetBlkX() const { return nBlkX; }
-//   inline int GetBlkY() const { return nBlkY; }
-   inline int GetBlkCount() const { return nBlkCount; }
-   inline int GetHPadding() const { return nHPadding; }
-   inline int GetVPadding() const { return nVPadding; }
-   inline int GetThSCD1() const { return nSCD1; }
-   inline int GetThSCD2() const { return nSCD2; }
-   inline const FakeBlockData& GetBlock(int nLevel, int nBlk) const { return GetPlane(nLevel)[nBlk]; }
-   bool IsUsable(int nSCD1, int nSCD2) const;
-   bool IsUsable() const { return IsUsable(nSCD1, nSCD2); }
-   bool IsSceneChange() const { return FakeGroupOfPlanes::IsSceneChange(nSCD1, nSCD2); }
+    // encapsulation
+    //   inline int GetBlkX() const { return nBlkX; }
+    //   inline int GetBlkY() const { return nBlkY; }
+    inline int GetBlkCount() const { return nBlkCount; }
+    inline int GetHPadding() const { return nHPadding; }
+    inline int GetVPadding() const { return nVPadding; }
+    inline int GetThSCD1() const { return nSCD1; }
+    inline int GetThSCD2() const { return nSCD2; }
+    inline const FakeBlockData& GetBlock(int nLevel, int nBlk) const { return GetPlane(nLevel)[nBlk]; }
+    bool IsUsable(int nSCD1, int nSCD2) const;
+    bool IsUsable() const { return IsUsable(nSCD1, nSCD2); }
+    bool IsSceneChange() const { return FakeGroupOfPlanes::IsSceneChange(nSCD1, nSCD2); }
 };
 
 class MVClipArray
 {
-   int size_;
-   MVClip **pmvClips;
+    int size_;
+    MVClip **pmvClips;
 
-public :
-   MVClipArray(const AVSValue &vectors, int nSCD1, int nSCD2, IScriptEnvironment *env);
-   ~MVClipArray();
-//   void Update(int n, IScriptEnvironment *env); // excluded
+    public :
+    MVClipArray(const AVSValue &vectors, int nSCD1, int nSCD2, IScriptEnvironment *env);
+    ~MVClipArray();
+    //   void Update(int n, IScriptEnvironment *env); // excluded
 
-   inline int size() { return size_; }
-   inline MVClip &operator[](int i) { return *(pmvClips[i]); }
+    inline int size() { return size_; }
+    inline MVClip &operator[](int i) { return *(pmvClips[i]); }
 
 };
 #endif
 
 class MVFilter {
-public:
-	/*! \brief Number of blocks horizontaly, at the first level */
-	int nBlkX;
+    public:
+        /*! \brief Number of blocks horizontaly, at the first level */
+        int nBlkX;
 
-	/*! \brief Number of blocks verticaly, at the first level */
-	int nBlkY;
+        /*! \brief Number of blocks verticaly, at the first level */
+        int nBlkY;
 
-	/*! \brief Number of blocks at the first level */
-	int nBlkCount;
+        /*! \brief Number of blocks at the first level */
+        int nBlkCount;
 
-	/*! \brief Number of blocks at the first level */
-	int nBlkSizeX;
+        /*! \brief Number of blocks at the first level */
+        int nBlkSizeX;
 
-	int nBlkSizeY;
+        int nBlkSizeY;
 
-   /*! \brief Horizontal padding */
-   int nHPadding;
+        /*! \brief Horizontal padding */
+        int nHPadding;
 
-   /*! \brief Vertical padding */
-   int nVPadding;
+        /*! \brief Vertical padding */
+        int nVPadding;
 
-	/*! \brief Width of the frame */
-	int nWidth;
+        /*! \brief Width of the frame */
+        int nWidth;
 
-	/*! \brief Height of the frame */
-	int nHeight;
+        /*! \brief Height of the frame */
+        int nHeight;
 
-   /*! \brief MVFrames idx */
-   int nIdx;
+        /*! \brief MVFrames idx */
+        int nIdx;
 
-   /*! \brief pixel refinement of the motion estimation */
-   int nPel;
+        /*! \brief pixel refinement of the motion estimation */
+        int nPel;
 
-   int nOverlapX;
-   int nOverlapY;
+        int nOverlapX;
+        int nOverlapY;
 
-   int pixelType;
-   int yRatioUV;
-   int xRatioUV;
+        int pixelType;
+        int yRatioUV;
+        int xRatioUV;
 
-   /*! \brief Filter's name */
-//   std::string name;
-   const char * name; //v1.8 replaced std::string (why it was used?)
+        /*! \brief Filter's name */
+        //   std::string name;
+        const char * name; //v1.8 replaced std::string (why it was used?)
 
-   /*! \brief Pointer to the MVCore object */
-//   MVCore *mvCore;
+        /*! \brief Pointer to the MVCore object */
+        //   MVCore *mvCore;
 
-   MVFilter(VSNodeRef *vector, const char *filterName, const VSAPI *vsapi);
+        MVFilter(VSNodeRef *vector, const char *filterName, const VSAPI *vsapi);
 
-   void CheckSimilarity(const MVClipDicks *vector, const char *vectorName);
+        void CheckSimilarity(const MVClipDicks *vector, const char *vectorName);
 };
 
 
 //#define MOTION_DELTA_FRAME_BUFFER 5
 
 class MVPlane {
-   uint8_t **pPlane;
-   int nWidth;
-   int nHeight;
-   int nExtendedWidth;
-   int nExtendedHeight;
-   int nPitch;
-   int nHPadding;
-   int nVPadding;
-   int nOffsetPadding;
-   int nHPaddingPel;
-   int nVPaddingPel;
+    uint8_t **pPlane;
+    int nWidth;
+    int nHeight;
+    int nExtendedWidth;
+    int nExtendedHeight;
+    int nPitch;
+    int nHPadding;
+    int nVPadding;
+    int nOffsetPadding;
+    int nHPaddingPel;
+    int nVPaddingPel;
 
-   int nPel;
+    int nPel;
 
-   bool isse;
+    bool isse;
 
-   bool isPadded;
-   bool isRefined;
-   bool isFilled;
+    bool isPadded;
+    bool isRefined;
+    bool isFilled;
 
-   //CRITICAL_SECTION cs;
+    //CRITICAL_SECTION cs;
 
-public :
+    public :
 
-   MVPlane(int _nWidth, int _nHeight, int _nPel, int _nHPad, int _nVPad, bool _isse);
-   ~MVPlane();
+    MVPlane(int _nWidth, int _nHeight, int _nPel, int _nHPad, int _nVPad, bool _isse);
+    ~MVPlane();
 
-   void Update(uint8_t* pSrc, int _nPitch);
-   void ChangePlane(const uint8_t *pNewPlane, int nNewPitch);
-   void Pad();
-   void Refine(int interType);
-   void RefineExt(const uint8_t *pSrc2x, int nSrc2xPitch, bool isExtPadded); //2.0.08
-   void ReduceTo(MVPlane *pReducedPlane, int rfilter);
-   void WritePlane(FILE *pFile);
+    void Update(uint8_t* pSrc, int _nPitch);
+    void ChangePlane(const uint8_t *pNewPlane, int nNewPitch);
+    void Pad();
+    void Refine(int interType);
+    void RefineExt(const uint8_t *pSrc2x, int nSrc2xPitch, bool isExtPadded); //2.0.08
+    void ReduceTo(MVPlane *pReducedPlane, int rfilter);
+    void WritePlane(FILE *pFile);
 
-   inline const uint8_t *GetAbsolutePointer(int nX, int nY) const
-   {
-      if ( nPel == 1 )
-         return pPlane[0] + nX + nY * nPitch;
-      else if (nPel == 2) {
-      int idx = (nX&1) | ((nY&1)<<1);
+    inline const uint8_t *GetAbsolutePointer(int nX, int nY) const
+    {
+        if ( nPel == 1 )
+            return pPlane[0] + nX + nY * nPitch;
+        else if (nPel == 2) {
+            int idx = (nX&1) | ((nY&1)<<1);
 
-      nX >>= 1;
-      nY >>= 1;
+            nX >>= 1;
+            nY >>= 1;
 
-      return pPlane[idx] + nX + nY * nPitch;
-     }
-      else // nPel = 4
-      {
-      int idx = (nX&3) | ((nY&3)<<2);
+            return pPlane[idx] + nX + nY * nPitch;
+        }
+        else // nPel = 4
+        {
+            int idx = (nX&3) | ((nY&3)<<2);
 
-      nX >>= 2;
-      nY >>= 2;
+            nX >>= 2;
+            nY >>= 2;
 
-      return pPlane[idx] + nX + nY * nPitch;
-      }
-   }
+            return pPlane[idx] + nX + nY * nPitch;
+        }
+    }
 
-   inline const uint8_t *GetAbsolutePointerPel1(int nX, int nY) const
-   {
-         return pPlane[0] + nX + nY * nPitch;
-   }
+    inline const uint8_t *GetAbsolutePointerPel1(int nX, int nY) const
+    {
+        return pPlane[0] + nX + nY * nPitch;
+    }
 
-   inline const uint8_t *GetAbsolutePointerPel2(int nX, int nY) const
-   {
-      int idx = (nX&1) | ((nY&1)<<1);
+    inline const uint8_t *GetAbsolutePointerPel2(int nX, int nY) const
+    {
+        int idx = (nX&1) | ((nY&1)<<1);
 
-      nX >>= 1;
-      nY >>= 1;
+        nX >>= 1;
+        nY >>= 1;
 
-      return pPlane[idx] + nX + nY * nPitch;
-   }
+        return pPlane[idx] + nX + nY * nPitch;
+    }
 
-   inline const uint8_t *GetAbsolutePointerPel4(int nX, int nY) const
-   {
-      int idx = (nX&3) | ((nY&3)<<2);
+    inline const uint8_t *GetAbsolutePointerPel4(int nX, int nY) const
+    {
+        int idx = (nX&3) | ((nY&3)<<2);
 
-      nX >>= 2;
-      nY >>= 2;
+        nX >>= 2;
+        nY >>= 2;
 
-      return pPlane[idx] + nX + nY * nPitch;
-   }
+        return pPlane[idx] + nX + nY * nPitch;
+    }
 
-   inline const uint8_t *GetPointer(int nX, int nY) const
-   {
-      return GetAbsolutePointer(nX + nHPaddingPel, nY + nVPaddingPel);
-   }
+    inline const uint8_t *GetPointer(int nX, int nY) const
+    {
+        return GetAbsolutePointer(nX + nHPaddingPel, nY + nVPaddingPel);
+    }
 
-   inline const uint8_t *GetPointerPel1(int nX, int nY) const
-   {
-      return GetAbsolutePointerPel1(nX + nHPaddingPel, nY + nVPaddingPel);
-   }
+    inline const uint8_t *GetPointerPel1(int nX, int nY) const
+    {
+        return GetAbsolutePointerPel1(nX + nHPaddingPel, nY + nVPaddingPel);
+    }
 
-   inline const uint8_t *GetPointerPel2(int nX, int nY) const
-   {
-      return GetAbsolutePointerPel2(nX + nHPaddingPel, nY + nVPaddingPel);
-   }
+    inline const uint8_t *GetPointerPel2(int nX, int nY) const
+    {
+        return GetAbsolutePointerPel2(nX + nHPaddingPel, nY + nVPaddingPel);
+    }
 
-   inline const uint8_t *GetPointerPel4(int nX, int nY) const
-   {
-      return GetAbsolutePointerPel4(nX + nHPaddingPel, nY + nVPaddingPel);
-   }
+    inline const uint8_t *GetPointerPel4(int nX, int nY) const
+    {
+        return GetAbsolutePointerPel4(nX + nHPaddingPel, nY + nVPaddingPel);
+    }
 
-   inline const uint8_t *GetAbsolutePelPointer(int nX, int nY) const
-   {  return pPlane[0] + nX + nY * nPitch; }
+    inline const uint8_t *GetAbsolutePelPointer(int nX, int nY) const
+    {  return pPlane[0] + nX + nY * nPitch; }
 
-   inline int GetPitch() const { return nPitch; }
-   inline int GetWidth() const { return nWidth; }
-   inline int GetHeight() const { return nHeight; }
-   inline int GetExtendedWidth() const { return nExtendedWidth; }
-   inline int GetExtendedHeight() const { return nExtendedHeight; }
-   inline int GetHPadding() const { return nHPadding; }
-   inline int GetVPadding() const { return nVPadding; }
-   inline void ResetState() { isRefined = isFilled = isPadded = false; }
+    inline int GetPitch() const { return nPitch; }
+    inline int GetWidth() const { return nWidth; }
+    inline int GetHeight() const { return nHeight; }
+    inline int GetExtendedWidth() const { return nExtendedWidth; }
+    inline int GetExtendedHeight() const { return nExtendedHeight; }
+    inline int GetHPadding() const { return nHPadding; }
+    inline int GetVPadding() const { return nVPadding; }
+    inline void ResetState() { isRefined = isFilled = isPadded = false; }
 
 };
 
 class MVFrame {
 
-   MVPlane *pYPlane;
-   MVPlane *pUPlane;
-   MVPlane *pVPlane;
+    MVPlane *pYPlane;
+    MVPlane *pUPlane;
+    MVPlane *pVPlane;
 
-   int nMode;
-   bool isse;
-   int yRatioUV;
+    int nMode;
+    bool isse;
+    int yRatioUV;
 
-public:
-   MVFrame(int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int _nMode, bool _isse, int _yRatioUV);
-   ~MVFrame();
+    public:
+    MVFrame(int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int _nMode, bool _isse, int _yRatioUV);
+    ~MVFrame();
 
-   void Update(int _nMode, uint8_t * pSrcY, int pitchY, uint8_t * pSrcU, int pitchU, uint8_t *pSrcV, int pitchV);
-   void ChangePlane(const uint8_t *pNewSrc, int nNewPitch, MVPlaneSet _nMode);
-   void Refine(MVPlaneSet _nMode, int interType);
-   void Pad(MVPlaneSet _nMode);
-   void ReduceTo(MVFrame *pFrame, MVPlaneSet _nMode, int rfilter);
-   void ResetState();
-   void WriteFrame(FILE *pFile);
+    void Update(int _nMode, uint8_t * pSrcY, int pitchY, uint8_t * pSrcU, int pitchU, uint8_t *pSrcV, int pitchV);
+    void ChangePlane(const uint8_t *pNewSrc, int nNewPitch, MVPlaneSet _nMode);
+    void Refine(MVPlaneSet _nMode, int interType);
+    void Pad(MVPlaneSet _nMode);
+    void ReduceTo(MVFrame *pFrame, MVPlaneSet _nMode, int rfilter);
+    void ResetState();
+    void WriteFrame(FILE *pFile);
 
-   inline MVPlane *GetPlane(MVPlaneSet _nMode)
-   {
-      // no reason to test for nMode because returning NULL isn't expected in other parts
-      // assert(nMode & _nMode & (YPLANE | UPLANE | VPLANE));
+    inline MVPlane *GetPlane(MVPlaneSet _nMode)
+    {
+        // no reason to test for nMode because returning NULL isn't expected in other parts
+        // assert(nMode & _nMode & (YPLANE | UPLANE | VPLANE));
 
-      if ( _nMode & YPLANE ) // ( nMode & _nMode & YPLANE )
-         return pYPlane;
+        if ( _nMode & YPLANE ) // ( nMode & _nMode & YPLANE )
+            return pYPlane;
 
-      if ( _nMode & UPLANE ) // ( nMode & _nMode & UPLANE )
-         return pUPlane;
+        if ( _nMode & UPLANE ) // ( nMode & _nMode & UPLANE )
+            return pUPlane;
 
-      if ( _nMode & VPLANE ) // ( nMode & _nMode & VPLANE )
-         return pVPlane;
+        if ( _nMode & VPLANE ) // ( nMode & _nMode & VPLANE )
+            return pVPlane;
 
-      return 0;
-   }
+        return 0;
+    }
 
-   inline int GetMode() { return nMode; }
+    inline int GetMode() { return nMode; }
 
 };
 
 //class MVFrames;
 
 class MVGroupOfFrames {
-   int nLevelCount;
-   MVFrame **pFrames;
+    int nLevelCount;
+    MVFrame **pFrames;
 
-   int nWidth;
-   int nHeight;
-   int nPel;
-   int nHPad;
-   int nVPad;
-   int yRatioUV;
+    int nWidth;
+    int nHeight;
+    int nPel;
+    int nHPad;
+    int nVPad;
+    int yRatioUV;
 
-public :
+    public :
 
-   MVGroupOfFrames(int _nLevelCount, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int nMode, bool isse, int yRatioUV);
-   ~MVGroupOfFrames();
-   void Update(int nModeYUV, uint8_t * pSrcY, int pitchY, uint8_t * pSrcU, int pitchU, uint8_t *pSrcV, int pitchV);
+    MVGroupOfFrames(int _nLevelCount, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int nMode, bool isse, int yRatioUV);
+    ~MVGroupOfFrames();
+    void Update(int nModeYUV, uint8_t * pSrcY, int pitchY, uint8_t * pSrcU, int pitchU, uint8_t *pSrcV, int pitchV);
 
-   MVFrame *GetFrame(int nLevel);
-   void SetPlane(const uint8_t *pNewSrc, int nNewPitch, MVPlaneSet nMode);
-   void Refine(MVPlaneSet nMode, int interType);
-   void Pad(MVPlaneSet nMode);
-   void Reduce(MVPlaneSet nMode, int rfilter);
-   void ResetState();
+    MVFrame *GetFrame(int nLevel);
+    void SetPlane(const uint8_t *pNewSrc, int nNewPitch, MVPlaneSet nMode);
+    void Refine(MVPlaneSet nMode, int interType);
+    void Pad(MVPlaneSet nMode);
+    void Reduce(MVPlaneSet nMode, int rfilter);
+    void ResetState();
 };
 
 #endif
