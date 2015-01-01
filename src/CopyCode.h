@@ -8,9 +8,6 @@ inline void BitBlt(unsigned char* dstp, int dst_pitch, const unsigned char* srcp
     vs_bitblt(dstp, dst_pitch, srcp, src_pitch, row_size, height);
 }
 
-void MemZoneSet(unsigned char *ptr, unsigned char value, int width,
-        int height, int offsetX, int offsetY, int pitch);
-
 typedef void (*COPYFunction)(unsigned char *pDst, intptr_t nDstPitch,
         const unsigned char *pSrc, intptr_t nSrcPitch);
 

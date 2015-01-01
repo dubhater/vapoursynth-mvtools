@@ -279,11 +279,13 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                 unsigned short *DstShortV = new unsigned short[dstShortPitchUV*nHeight];
 
                 pDstShort = DstShort;
-                MemZoneSet(reinterpret_cast<unsigned char*>(DstShort), 0, nWidth_B*2, nHeight_B, 0, 0, dstShortPitch*2);
                 pDstShortU = DstShortU;
-                if(pPlanes[1]) MemZoneSet(reinterpret_cast<unsigned char*>(DstShortU), 0, nWidth_B, nHeight_B>>ySubUV, 0, 0, dstShortPitchUV*2);
                 pDstShortV = DstShortV;
-                if(pPlanes[2]) MemZoneSet(reinterpret_cast<unsigned char*>(DstShortV), 0, nWidth_B, nHeight_B>>ySubUV, 0, 0, dstShortPitchUV*2);
+                memset(DstShort, 0, nHeight_B * dstShortPitch * 2);
+                if (pPlanes[1])
+                    memset(DstShortU, 0, (nHeight_B >> ySubUV) * dstShortPitchUV * 2);
+                if (pPlanes[2])
+                    memset(DstShortV, 0, (nHeight_B >> ySubUV) * dstShortPitchUV * 2);
 
                 for (int by=0; by<nBlkY; by++)
                 {

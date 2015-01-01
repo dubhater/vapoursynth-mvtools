@@ -13,7 +13,6 @@ am__v_YASM_1 =
 	$(AM_V_YASM)$(LIBTOOL) $(AM_V_lt) --mode=compile --tag=CC $(AS) $(ASFLAGS) -o $@ $< -prefer-non-pic
 
 libmvtools_la_SOURCES = src/asm-placeholder.cpp \
-						src/CopyCode.cpp \
 						src/CPU.cpp \
 						src/DCT.cpp \
 						src/DCTFFTW.cpp \

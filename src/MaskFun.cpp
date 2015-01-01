@@ -36,7 +36,7 @@ inline void ByteOccMask(uint8_t *occMask, int occlusion, double occnorm, double 
 
 void MakeVectorOcclusionMaskTime(MVClipBalls *mvClip, int nBlkX, int nBlkY, double dMaskNormFactor, double fGamma, int nPel, uint8_t * occMask, int occMaskPitch, int time256, int blkSizeX, int blkSizeY)
 { // analyse vectors field to detect occlusion
-    MemZoneSet(occMask, 0, nBlkX, nBlkY, 0, 0, nBlkX);
+    memset(occMask, 0, nBlkX * nBlkY);
     int time4096X = time256*16/blkSizeX;
     int time4096Y = time256*16/blkSizeY;
     double occnorm = 10 / dMaskNormFactor/nPel;
@@ -80,7 +80,7 @@ void MakeVectorOcclusionMaskTime(MVClipBalls *mvClip, int nBlkX, int nBlkY, doub
 
 void VectorMasksToOcclusionMaskTime(uint8_t *VXMask, uint8_t *VYMask, int nBlkX, int nBlkY, double dMaskNormFactor, double fGamma, int nPel, uint8_t * occMask, int occMaskPitch, int time256, int blkSizeX, int blkSizeY)
 { // analyse vectors field to detect occlusion
-    MemZoneSet(occMask, 0, nBlkX, nBlkY, 0, 0, nBlkX);
+    memset(occMask, 0, nBlkX * nBlkY);
     int time4096X = time256*16/blkSizeX;
     int time4096Y = time256*16/blkSizeY;
     double occnorm = 10 / dMaskNormFactor/nPel;
