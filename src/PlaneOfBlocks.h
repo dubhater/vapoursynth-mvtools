@@ -19,7 +19,6 @@
 #define __POBLOCKS__
 
 #include "MVInterface.h"
-//#include "Resizer.h"
 #include "Interpolation.h"
 #include "CopyCode.h"
 #include "SADFunctions.h"
@@ -51,7 +50,6 @@ class PlaneOfBlocks {
 
     SADFunction SAD;           /* function which computes the sad */
     LUMAFunction LUMA;         /* function which computes the mean luma */
-    VARFunction *VAR;           /* function which computes the variance */
     COPYFunction BLITLUMA;
     COPYFunction BLITCHROMA;
     SADFunction SADCHROMA;
@@ -62,7 +60,6 @@ class PlaneOfBlocks {
     /* after the search, contains the best motion vector */
 
     bool smallestPlane;         /* say whether vectors can used predictors from a smaller plane */
-    //   bool mmx;                   /* can we use mmx asm code */
     bool isse;                  /* can we use isse asm code */
     bool chroma;                /* do we do chroma me */
 
@@ -142,7 +139,6 @@ class PlaneOfBlocks {
     /* fetch the block in the reference frame, which is pointed by the vector (vx, vy) */
     inline const uint8_t *GetRefBlock(int nVx, int nVy)
     {
-        //      return pRefFrame->GetPlane(YPLANE)->GetAbsolutePointer((x[0]<<nLogPel) + nVx, (y[0]<<nLogPel) + nVy);
         return (nPel==2) ? pRefFrame->GetPlane(YPLANE)->GetAbsolutePointerPel2((x[0]<<1) + nVx, (y[0]<<1) + nVy) :
             (nPel==1) ? pRefFrame->GetPlane(YPLANE)->GetAbsolutePointerPel1((x[0]) + nVx, (y[0]) + nVy) :
             pRefFrame->GetPlane(YPLANE)->GetAbsolutePointerPel4((x[0]<<2) + nVx, (y[0]<<2) + nVy);
@@ -150,7 +146,6 @@ class PlaneOfBlocks {
 
     inline const uint8_t *GetRefBlockU(int nVx, int nVy)
     {
-        //      return pRefFrame->GetPlane(UPLANE)->GetAbsolutePointer((x[1]<<nLogPel) + (nVx >> 1), (y[1]<<nLogPel) + (yRatioUV==1 ? nVy : nVy>>1) ); //v.1.2.1
         return (nPel==2) ? pRefFrame->GetPlane(UPLANE)->GetAbsolutePointerPel2((x[1]<<1) + (nVx >> 1), (y[1]<<1) + (yRatioUV==1 ? nVy : nVy>>1) ) :
             (nPel==1) ? pRefFrame->GetPlane(UPLANE)->GetAbsolutePointerPel1((x[1]) + (nVx >> 1), (y[1]) + (yRatioUV==1 ? nVy : nVy>>1) ) :
             pRefFrame->GetPlane(UPLANE)->GetAbsolutePointerPel4((x[1]<<2) + (nVx >> 1), (y[1]<<2) + (yRatioUV==1 ? nVy : nVy>>1) );
@@ -158,7 +153,6 @@ class PlaneOfBlocks {
 
     inline const uint8_t *GetRefBlockV(int nVx, int nVy)
     {
-        // return pRefFrame->GetPlane(VPLANE)->GetAbsolutePointer((x[2]<<nLogPel) + (nVx >> 1), (y[2]<<nLogPel) + (yRatioUV==1 ? nVy : nVy>>1) );
         return (nPel==2) ? pRefFrame->GetPlane(VPLANE)->GetAbsolutePointerPel2((x[2]<<1) + (nVx >> 1), (y[2]<<1) + (yRatioUV==1 ? nVy : nVy>>1) ) :
             (nPel==1) ? pRefFrame->GetPlane(VPLANE)->GetAbsolutePointerPel1((x[2]) + (nVx >> 1), (y[2]) + (yRatioUV==1 ? nVy : nVy>>1) ) :
             pRefFrame->GetPlane(VPLANE)->GetAbsolutePointerPel4((x[2]<<2) + (nVx >> 1), (y[2]<<2) + (yRatioUV==1 ? nVy : nVy>>1) );
@@ -175,13 +169,6 @@ class PlaneOfBlocks {
         int dist = SquareDifferenceNorm(predictor, vx, vy);
         return (nLambda * dist) >> 8;
     }
-
-    /* computes the length cost of a vector (vx, vy) */
-    //    inline int LengthPenalty(int vx, int vy)
-    //    {
-    //        return ( (vx*vx + vy*vy)*nLambdaLen) >> 8;
-    //    }
-
 
     int LumaSADx (const unsigned char *pRef0)
     {
@@ -276,9 +263,6 @@ class PlaneOfBlocks {
 
     inline int LumaSAD (const unsigned char *pRef0)
     {
-#ifdef MOTION_DEBUG
-        iter++;
-#endif
 #ifdef ALLOW_DCT
         // made simple SAD more prominent (~1% faster) while keeping DCT support (TSchniede)
         return !dctmode ? SAD(pSrc[0], nSrcPitch[0], pRef0, nRefPitch[0]) : LumaSADx(pRef0);
@@ -411,7 +395,6 @@ class PlaneOfBlocks {
     /* clip a vector to the horizontal boundaries */
     inline int ClipMVx(int vx)
     {
-        //        return imin(nDxMax - 1, imax(nDxMin, vx));
         if ( vx < nDxMin ) return nDxMin;
         else if ( vx >= nDxMax ) return nDxMax - 1;
         else return vx;
@@ -420,7 +403,6 @@ class PlaneOfBlocks {
     /* clip a vector to the vertical boundaries */
     inline int ClipMVy(int vy)
     {
-        //        return imin(nDyMax - 1, imax(nDyMin, vy));
         if ( vy < nDyMin ) return nDyMin;
         else if ( vy >= nDyMax ) return nDyMax - 1;
         else return vy;
@@ -440,7 +422,6 @@ class PlaneOfBlocks {
     /* find the median between a, b and c */
     inline static int Median(int a, int b, int c)
     {
-        //        return a + b + c - imax(a, imax(b, c)) - imin(c, imin(a, b));
         if ( a < b )
         {
             if ( b < c ) return b;
@@ -507,8 +488,6 @@ class PlaneOfBlocks {
 
     /* performs an epz search */
     void PseudoEPZSearch();
-
-    //    void PhaseShiftSearch(int vx, int vy);
 
     /* performs an exhaustive search */
     void ExpandingSearch(int radius, int step, int mvx, int mvy); // diameter = 2*radius + 1

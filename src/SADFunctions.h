@@ -17,14 +17,6 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html .
 
-/*! \file SADFunctions.h
- *  \brief Calculate the sum of absolute differences between two blocks.
- *
- *    The sum of absolute differences between two blocks represents the distance
- *    between these two blocks. The lower this value, the closer the blocks will look like
- *  There are two versions, one in plain C, one in iSSE assembler.
- */
-
 #ifndef __SAD_FUNC__
 #define __SAD_FUNC__
 
@@ -34,7 +26,6 @@ typedef unsigned int (*SADFunction)(const uint8_t *pSrc, intptr_t nSrcPitch,
         const uint8_t *pRef, intptr_t nRefPitch);
 
 inline unsigned int SADABS(int x) {    return ( x < 0 ) ? -x : x; }
-//inline unsigned int SADABS(int x) {    return ( x < -16 ) ? 16 : ( x < 0 ) ? -x : ( x > 16) ? 16 : x; }
 
 template<int nBlkWidth, int nBlkHeight>
 unsigned int Sad_C(const uint8_t *pSrc, intptr_t nSrcPitch,const uint8_t *pRef,
@@ -51,42 +42,6 @@ unsigned int Sad_C(const uint8_t *pSrc, intptr_t nSrcPitch,const uint8_t *pRef,
     return sum;
 }
 
-// a litle more fast unrolled (Fizick)
-/* //seems to be dead code (TSchniede)
-   inline unsigned int Sad2_C(const uint8_t *pSrc, const uint8_t *pRef,int nSrcPitch,
-   int nRefPitch)
-   {
-   unsigned int sum = 0;
-   sum += SADABS(pSrc[0] - pRef[0]);
-   sum += SADABS(pSrc[1] - pRef[1]);
-   pSrc += nSrcPitch;
-   pRef += nRefPitch;
-   sum += SADABS(pSrc[0] - pRef[0]);
-   sum += SADABS(pSrc[1] - pRef[1]);
-   return sum;
-   }
-
-   inline unsigned int Sad2x4_C(const uint8_t *pSrc, const uint8_t *pRef,int nSrcPitch,
-   int nRefPitch)
-   {
-   unsigned int sum = 0;
-   sum += SADABS(pSrc[0] - pRef[0]);
-   sum += SADABS(pSrc[1] - pRef[1]);
-   pSrc += nSrcPitch;
-   pRef += nRefPitch;
-   sum += SADABS(pSrc[0] - pRef[0]);
-   sum += SADABS(pSrc[1] - pRef[1]);
-   pSrc += nSrcPitch;
-   pRef += nRefPitch;
-   sum += SADABS(pSrc[0] - pRef[0]);
-   sum += SADABS(pSrc[1] - pRef[1]);
-   pSrc += nSrcPitch;
-   pRef += nRefPitch;
-   sum += SADABS(pSrc[0] - pRef[0]);
-   sum += SADABS(pSrc[1] - pRef[1]);
-   return sum;
-   }
-   */
 #define MK_CFUNC(functionname) extern "C" unsigned int  functionname (const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch)
 
 // From SAD.asm
@@ -115,18 +70,9 @@ MK_CFUNC(mvtools_pixel_sad_16x16_sse2); //non optimized cache access, for AMD?
 MK_CFUNC(mvtools_pixel_sad_16x8_sse2);     //non optimized cache access, for AMD?
 MK_CFUNC(mvtools_pixel_sad_16x16_sse3); //LDDQU Pentium4E (Core1?), not for Core2!
 MK_CFUNC(mvtools_pixel_sad_16x8_sse3);  //LDDQU Pentium4E (Core1?), not for Core2!
-//MK_CFUNC(mvtools_pixel_sad_16x16_cache64_sse2);//core2 optimized
-//MK_CFUNC(mvtools_pixel_sad_16x8_cache64_sse2);//core2 optimized
 MK_CFUNC(mvtools_pixel_sad_16x16_cache64_ssse3);//core2 optimized
 MK_CFUNC(mvtools_pixel_sad_16x8_cache64_ssse3); //core2 optimized
 
-//MK_CFUNC(mvtools_pixel_sad_16x16_cache32_mmx2);
-//MK_CFUNC(mvtools_pixel_sad_16x8_cache32_mmx2);
-//MK_CFUNC(mvtools_pixel_sad_16x16_cache64_mmx2);
-//MK_CFUNC(mvtools_pixel_sad_16x8_cache64_mmx2);
-//MK_CFUNC(mvtools_pixel_sad_8x16_cache32_mmx2);
-//MK_CFUNC(mvtools_pixel_sad_8x8_cache32_mmx2);
-//MK_CFUNC(mvtools_pixel_sad_8x4_cache32_mmx2);
 MK_CFUNC(mvtools_pixel_sad_8x16_cache64_mmx2);
 MK_CFUNC(mvtools_pixel_sad_8x8_cache64_mmx2);
 MK_CFUNC(mvtools_pixel_sad_8x4_cache64_mmx2);
@@ -152,7 +98,6 @@ MK_CFUNC(mvtools_pixel_satd_4x4_mmx2);
 
 #define SATD_SSE2(blsizex, blsizey) extern "C" unsigned int  mvtools_pixel_satd_##blsizex##x##blsizey##_sse2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch)
 #define SATD_SSSE3(blsizex, blsizey) extern "C" unsigned int  mvtools_pixel_satd_##blsizex##x##blsizey##_ssse3(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch)
-//#define SATD_SSSE3_PHADD(blsizex, blsizey) extern "C" unsigned int  mvtools_pixel_satd_##blsizex##x##blsizey##_ssse3_phadd(const uint8_t *pSrc, int nSrcPitch, const uint8_t *pRef, int nRefPitch)
 
 //mvtools_pixel_satd_16x16_%1
 SATD_SSE2(16, 16);
@@ -165,14 +110,8 @@ SATD_SSSE3(16,  8);
 SATD_SSSE3( 8, 16);
 SATD_SSSE3( 8,  8);
 SATD_SSSE3( 8,  4);
-//SATD_SSSE3_PHADD(16, 16); //identical to ssse3, for Penryn useful only?
-//SATD_SSSE3_PHADD(16,  8); //identical to ssse3
-//SATD_SSSE3_PHADD( 8, 16);
-//SATD_SSSE3_PHADD( 8,  8);
-//SATD_SSSE3_PHADD( 8,  4);
 #undef SATD_SSE2
 #undef SATD_SSSE3
-//#undef SATD_SSSE3_PHADD
 
 //dummy for testing and deactivate SAD
 MK_CFUNC(SadDummy);

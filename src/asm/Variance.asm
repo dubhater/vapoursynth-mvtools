@@ -25,34 +25,6 @@ SECTION_TEXT
 
 
 INIT_XMM
-cglobal Var4x4_sse2, 3, 5, 8, srcp, stride, lumap, stride3
-    lea stride3q, [strideq * 3]
-
-    pxor m6, m6
-    pxor m7, m7
-
-    VAR4x4
-
-    movd r4d, m0
-    mov [lumapq], r4d
-
-    ; divide by 4*4
-    add r4d, 8
-    shr r4d, 4
-
-    movd m6, r4d
-    punpcklbw m6, m6
-    punpcklwd m6, m6
-    movdqa m7, m6
-
-    VAR4x4
-
-    movd eax, m0
-
-    RET
-
-
-INIT_XMM
 cglobal Luma4x4_sse2, 2, 3, 8, srcp, stride, stride3
     lea stride3q, [strideq * 3]
 
@@ -85,35 +57,6 @@ cglobal Luma4x4_sse2, 2, 3, 8, srcp, stride, stride3
 
     paddw m0, m1
 %endmacro
-
-
-INIT_XMM
-cglobal Var8x4_sse2, 3, 5, 8, srcp, stride, lumap, stride3
-    lea stride3q, [strideq * 3]
-
-    pxor m6, m6
-    pxor m7, m7
-
-    VAR8x4
-
-    movd r4d, m0
-    mov [lumapq], r4d
-
-    ; divide by 8*4
-    add r4d, 16
-    shr r4d, 5
-
-    movd m6, r4d
-    punpcklbw m6, m6
-    punpcklwd m6, m6
-    punpckldq m6, m6
-    movdqa m7, m6
-
-    VAR8x4
-
-    movd eax, m0
-
-    RET
 
 
 INIT_XMM
@@ -172,39 +115,6 @@ cglobal Luma8x4_sse2, 2, 3, 8, srcp, stride, stride3
 
 
 INIT_XMM
-cglobal Var8x8_sse2, 3, 6, 8, srcp, stride, lumap, stride3, srcp_saved
-    lea stride3q, [strideq * 3]
-
-    pxor m6, m6
-    pxor m7, m7
-
-    mov srcp_savedq, srcpq
-
-    VAR8x8
-
-    movd r5d, m0
-    mov [lumapq], r5d
-
-    ; divide by 8*8
-    add r5d, 32
-    shr r5d, 6
-
-    movd m6, r5d
-    punpcklbw m6, m6
-    punpcklwd m6, m6
-    punpckldq m6, m6
-    movdqa m7, m6
-
-    mov srcpq, srcp_savedq
-
-    VAR8x8
-
-    movd eax, m0
-
-    RET
-
-
-INIT_XMM
 cglobal Luma8x8_sse2, 2, 3, 8, srcp, stride, stride3
     lea stride3q, [strideq * 3]
 
@@ -231,34 +141,6 @@ cglobal Luma8x8_sse2, 2, 3, 8, srcp, stride, stride3
     psrldq m1, 8
     paddd m0, m1
 %endmacro
-
-
-INIT_XMM
-cglobal Var16x2_sse2, 3, 4, 8, srcp, stride, lumap
-    pxor m6, m6
-    pxor m7, m7
-
-    VAR16x2
-
-    movd r3d, m0
-    mov [lumapq], r3d
-
-    ; divide by 16*2
-    add r3d, 16
-    shr r3d, 5
-
-    movd m6, r3d
-    punpcklbw m6, m6
-    punpcklwd m6, m6
-    punpckldq m6, m6
-    punpcklqdq m6, m6
-    movdqa m7, m6
-
-    VAR16x2
-
-    movd eax, m0
-
-    RET
 
 
 INIT_XMM
@@ -308,40 +190,6 @@ cglobal Luma16x2_sse2, 2, 2, 8, srcp, stride
 
 
 INIT_XMM
-cglobal Var16x8_sse2, 3, 6, 8, srcp, stride, lumap, stride3, srcp_saved
-    lea stride3q, [strideq * 3]
-
-    pxor m6, m6
-    pxor m7, m7
-
-    mov srcp_savedq, srcpq
-
-    VAR16x8
-
-    movd r5d, m0
-    mov [lumapq], r5d
-
-    ; divide by 16*8
-    add r5d, 64
-    shr r5d, 7
-
-    movd m6, r5d
-    punpcklbw m6, m6
-    punpcklwd m6, m6
-    punpckldq m6, m6
-    punpcklqdq m6, m6
-    movdqa m7, m6
-
-    mov srcpq, srcp_savedq
-
-    VAR16x8
-
-    movd eax, m0
-
-    RET
-
-
-INIT_XMM
 cglobal Luma16x8_sse2, 2, 3, 8, srcp, stride, stride3
     lea stride3q, [strideq * 3]
 
@@ -369,40 +217,6 @@ cglobal Luma16x8_sse2, 2, 3, 8, srcp, stride, stride3
     psrldq m1, 8
     paddd m0, m1
 %endmacro
-
-
-INIT_XMM
-cglobal Var16x16_sse2, 3, 6, 8, srcp, stride, lumap, stride3, srcp_saved
-    lea stride3q, [strideq * 3]
-
-    pxor m6, m6
-    pxor m7, m7
-
-    mov srcp_savedq, srcpq
-
-    VAR16x16
-
-    movd r5d, m0
-    mov [lumapq], r5d
-
-    ; divide by 16*16
-    add r5d, 128
-    shr r5d, 8
-
-    movd m6, r5d
-    punpcklbw m6, m6
-    punpcklwd m6, m6
-    punpckldq m6, m6
-    punpcklqdq m6, m6
-    movdqa m7, m6
-
-    mov srcpq, srcp_savedq
-
-    VAR16x16
-
-    movd eax, m0
-
-    RET
 
 
 INIT_XMM
@@ -438,40 +252,6 @@ cglobal Luma16x16_sse2, 2, 3, 8, srcp, stride, stride3
     psrldq m1, 8
     paddd m0, m1
 %endmacro
-
-
-INIT_XMM
-cglobal Var16x32_sse2, 3, 6, 8, srcp, stride, lumap, stride3, srcp_saved
-    lea stride3q, [strideq * 3]
-
-    pxor m6, m6
-    pxor m7, m7
-
-    mov srcp_savedq, srcpq
-
-    VAR16x32
-
-    movd r5d, m0
-    mov [lumapq], r5d
-
-    ; divide by 16*32
-    add r5d, 256
-    shr r5d, 9
-
-    movd m6, r5d
-    punpcklbw m6, m6
-    punpcklwd m6, m6
-    punpckldq m6, m6
-    punpcklqdq m6, m6
-    movdqa m7, m6
-
-    mov srcpq, srcp_savedq
-
-    VAR16x32
-
-    movd eax, m0
-
-    RET
 
 
 INIT_XMM
@@ -531,40 +311,6 @@ cglobal Luma16x32_sse2, 2, 3, 8, srcp, stride, stride3
 
 
 INIT_XMM
-cglobal Var32x16_sse2, 3, 6, 8, srcp, stride, lumap, stride3, srcp_saved
-    lea stride3q, [strideq * 3]
-
-    pxor m6, m6
-    pxor m7, m7
-
-    mov srcp_savedq, srcpq
-
-    VAR32x16
-
-    movd r5d, m0
-    mov [lumapq], r5d
-
-    ; divide by 32*16
-    add r5d, 256
-    shr r5d, 9
-
-    movd m6, r5d
-    punpcklbw m6, m6
-    punpcklwd m6, m6
-    punpckldq m6, m6
-    punpcklqdq m6, m6
-    movdqa m7, m6
-
-    mov srcpq, srcp_savedq
-
-    VAR32x16
-
-    movd eax, m0
-
-    RET
-
-
-INIT_XMM
 cglobal Luma32x16_sse2, 2, 3, 8, srcp, stride, stride3
     lea stride3q, [strideq * 3]
 
@@ -607,40 +353,6 @@ cglobal Luma32x16_sse2, 2, 3, 8, srcp, stride, stride3
     psrldq m1, 8
     paddd m0, m1
 %endmacro
-
-
-INIT_XMM
-cglobal Var32x32_sse2, 3, 6, 8, srcp, stride, lumap, stride3, srcp_saved
-    lea stride3q, [strideq * 3]
-
-    pxor m6, m6
-    pxor m7, m7
-
-    mov srcp_savedq, srcpq
-
-    VAR32x32
-
-    movd r5d, m0
-    mov [lumapq], r5d
-
-    ; divide by 32*32
-    add r5d, 512
-    shr r5d, 10
-
-    movd m6, r5d
-    punpcklbw m6, m6
-    punpcklwd m6, m6
-    punpckldq m6, m6
-    punpcklqdq m6, m6
-    movdqa m7, m6
-
-    mov srcpq, srcp_savedq
-
-    VAR32x32
-
-    movd eax, m0
-
-    RET
 
 
 INIT_XMM

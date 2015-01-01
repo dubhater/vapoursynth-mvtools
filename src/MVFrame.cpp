@@ -43,41 +43,12 @@ MVPlane::MVPlane(int _nWidth, int _nHeight, int _nPel, int _nHPad, int _nVPad, b
 
     nExtendedWidth = nWidth + 2 * nHPadding;
     nExtendedHeight = nHeight + 2 * nVPadding;
-    /*
-#ifdef    ALIGN_PLANES
-nPitch = (nExtendedWidth + ALIGN_PLANES-1) & (~(ALIGN_PLANES-1)); //ensure that each row gets aligned (ie. row length in memory is on a border)
-nOffsetPadding = nPitch * nVPadding + nHPadding;
-int numberOfPlanes = nPel * nPel;
-pPlane = new uint8_t *[numberOfPlanes * 2];    //add 2 second set of pointers, those point to the start of the memory (for freeing)
-for ( int i = 0; i < numberOfPlanes; i++ ){
-pPlane[numberOfPlanes+i] = new uint8_t[(nPitch * nExtendedHeight) + ALIGN_PLANES - 1];//add enough space for the shifted beginning (worst case)
-pPlane[i]=(uint8_t *)(((((int)pPlane[numberOfPlanes+i]) + nHPadding + ALIGN_PLANES - 1)&(~(ALIGN_PLANES - 1)))- nHPadding); //forces the pointer to the plane to be aligned relative to cache size
-}
-#else
-
-nPitch = _nPitch;
-nOffsetPadding = nPitch * nVPadding + nHPadding;
-*/
     pPlane = new uint8_t *[nPel * nPel];
-    //   for ( int i = 0; i < nPel * nPel; i++ )
-    //      pPlane[i] = new uint8_t[nPitch * nExtendedHeight];
-    //      pPlane[i] = pSrc + i*nPitch * nExtendedHeight;
-    //#endif
-    //    ResetState(); // 1.11.1
     //   InitializeCriticalSection(&cs);
     }
 
 MVPlane::~MVPlane()
 {
-    /*
-#ifdef    ALIGN_PLANES
-for ( int i = nPel * nPel; i < nPel * nPel * 2; i++ ) //use the real aress of the allocated memory
-delete[] pPlane[i];
-#else
-    //    for ( int i = 0; i < nPel * nPel; i++ )
-    //        delete[] pPlane[i];
-#endif
-*/
     delete[] pPlane;
 
     //    DeleteCriticalSection(&cs);
@@ -148,7 +119,6 @@ void MVPlane::Refine(int sharp)
                 HorizontalBicubic(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                 VerticalBicubic(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                 HorizontalBicubic(pPlane[3], pPlane[2], nPitch, nPitch, nExtendedWidth, nExtendedHeight); // faster from ready-made horizontal
-                //         DiagonalBicubic(pPlane[3], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
             }
         }
         else // Wiener
@@ -164,7 +134,6 @@ void MVPlane::Refine(int sharp)
                 HorizontalWiener(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                 VerticalWiener(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                 HorizontalWiener(pPlane[3], pPlane[2], nPitch, nPitch, nExtendedWidth, nExtendedHeight); // faster from ready-made horizontal
-                //         DiagonalWiener(pPlane[3], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
             }
         }
     }
@@ -200,7 +169,6 @@ void MVPlane::Refine(int sharp)
                 HorizontalBicubic(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                 VerticalBicubic(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                 HorizontalBicubic(pPlane[10], pPlane[8], nPitch, nPitch, nExtendedWidth, nExtendedHeight); // faster from ready-made horizontal
-                //         DiagonalBicubic(pPlane[3], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
             }
         }
         else // Wiener
@@ -435,8 +403,6 @@ MVFrame::MVFrame(int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int _n
 
 void MVFrame::Update(int _nMode, uint8_t * pSrcY, int pitchY, uint8_t * pSrcU, int pitchU, uint8_t *pSrcV, int pitchV)
 {
-    //   nMode = _nMode;
-
     if ( _nMode & nMode & YPLANE  ) //v2.0.8
         pYPlane->Update(pSrcY, pitchY);
 
@@ -540,8 +506,6 @@ void MVFrame::ReduceTo(MVFrame *pFrame, MVPlaneSet _nMode, int rfilter)
 MVGroupOfFrames::MVGroupOfFrames(int _nLevelCount, int _nWidth, int _nHeight, int _nPel, int _nHPad, int _nVPad, int nMode, bool isse, int _yRatioUV)
 {
     nLevelCount = _nLevelCount;
-    //   nRefCount = 0;
-    //   nFrameIdx = -1;
     nWidth = _nWidth;
     nHeight = _nHeight;
     nPel = _nPel;
@@ -588,12 +552,6 @@ void MVGroupOfFrames::SetPlane(const uint8_t *pNewSrc, int nNewPitch, MVPlaneSet
 {
     pFrames[0]->ChangePlane(pNewSrc, nNewPitch, nMode);
 }
-
-//void MVGroupOfFrames::SetFrameIdx(int _nFrameIdx)
-//{
-//   nRefCount = 0;
-//   nFrameIdx = _nFrameIdx;
-//}
 
 void MVGroupOfFrames::Refine(MVPlaneSet nMode, int sharp)
 {

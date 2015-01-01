@@ -21,9 +21,6 @@
 #ifndef __MV_SUPER__
 #define __MV_SUPER__
 
-//#include "MVInterface.h"
-//#include "GroupOfPlanes.h"
-//#include "CommonFunctions.h"
 
 inline int PlaneHeightLuma(int src_height, int level, int yRatioUV, int vpad)
 {
@@ -31,7 +28,6 @@ inline int PlaneHeightLuma(int src_height, int level, int yRatioUV, int vpad)
 
     for (int i=1; i<=level; i++)
     {
-        //                height = (height/2) - ((height/2) % yRatioUV) ;
         height = vpad >= yRatioUV ? ((height/yRatioUV + 1) / 2) * yRatioUV : ((height/yRatioUV) / 2) * yRatioUV;
     }
     return height;
@@ -43,7 +39,6 @@ inline int PlaneWidthLuma(int src_width, int level, int xRatioUV, int hpad)
 
     for (int i=1; i<=level; i++)
     {
-        //                width = (width/2) - ((width/2) % xRatioUV) ;
         width = hpad >= xRatioUV ? ((width/xRatioUV + 1) / 2) * xRatioUV : ((width/xRatioUV) / 2) * xRatioUV;
     }
     return width;

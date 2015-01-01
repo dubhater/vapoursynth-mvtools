@@ -33,11 +33,9 @@ MVFilter::MVFilter(VSNodeRef *vector, const char *filterName, const VSAPI *vsapi
     nBlkCount = mvClip.GetBlkCount();
     nBlkSizeX = mvClip.GetBlkSizeX();
     nBlkSizeY = mvClip.GetBlkSizeY();
-    //   nIdx = mvClip.GetFramesIdx();
     nBlkX = mvClip.GetBlkX();
     nBlkY = mvClip.GetBlkY();
     nPel = mvClip.GetPel();
-    //   mvCore = mvClip.GetMVCore();
     nOverlapX = mvClip.GetOverlapX();
     nOverlapY = mvClip.GetOverlapY();
     pixelType = mvClip.GetPixelType();

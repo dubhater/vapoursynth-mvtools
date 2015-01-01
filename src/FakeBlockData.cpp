@@ -46,8 +46,5 @@ void FakeBlockData::Update(const int *array)
     vector.x = array[0];
     vector.y = array[1];
     vector.sad = array[2];
-    //    nLength = SquareLength(vector);
-    //   nPitch = pitch;
-    //   pRef = ref + x + y * pitch;
 }
 

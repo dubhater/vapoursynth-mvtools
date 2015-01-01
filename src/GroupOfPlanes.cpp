@@ -51,20 +51,6 @@ GroupOfPlanes::GroupOfPlanes(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, i
         planes[i] = new PlaneOfBlocks(nBlkX, nBlkY, nBlkSizeX, nBlkSizeY, nPelCurrent, i, nFlagsCurrent, nOverlapX, nOverlapY, yRatioUV);
         nPelCurrent = 1;
     }
-
-    /*   planes[0] = new PlaneOfBlocks(nBlkX, nBlkY, nBlkSizeX, nBlkSizeY, nPel, 0, nFlags, nOverlapX, nOverlapY, yRatioUV);
-         nBlkX /= 2;
-         nBlkY /= 2;
-
-
-         for ( int i = 1; i < nLevelCount - 1; i++ )
-         {
-         planes[i] = new PlaneOfBlocks(nBlkX, nBlkY, nBlkSizeX, nBlkSizeY, 1, i, nFlags, nOverlapX, nOverlapY, yRatioUV);
-         nBlkX /= 2;
-         nBlkY /= 2;
-         }
-         planes[nLevelCount-1] = new PlaneOfBlocks(nBlkX, nBlkY, nBlkSizeX, nBlkSizeY, 1, nLevelCount - 1, nFlags | MOTION_SMALLEST_PLANE, nOverlapX, nOverlapY, yRatioUV);
-         */
 }
 
 GroupOfPlanes::~GroupOfPlanes()
@@ -127,11 +113,9 @@ void GroupOfPlanes::SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF
         if (global)
         {
             planes[i+1]->EstimateGlobalMVDoubled(&globalMV); // get updated global MV (doubled)
-            //        DebugPrintf("SearchMV globalMV %i, %i", globalMV.x, globalMV.y);
         }
         planes[i]->InterpolatePrediction(*(planes[i+1]));
         fieldShiftCur = (i == 0) ? fieldShift : 0; // may be non zero for finest level only
-        //        DebugPrintf("SearchMV level %i", i);
         tryManyLevel = tryMany && i>0; // not for finest level to not decrease speed
         planes[i]->SearchMVs(pSrcGOF->GetFrame(i), pRefGOF->GetFrame(i),
                 searchTypeLevel, nSearchParamLevel, nLambda, lsad, pnew, plevel, flags,
@@ -147,8 +131,6 @@ void GroupOfPlanes::RecalculateMVs(MVClipBalls &mvClip, MVGroupOfFrames *pSrcGOF
         int pnew, int flags,
         int *out, short *outfilebuf, int fieldShift, int thSAD, DCTClass * _DCT, int smooth, bool meander)
 {
-    //    int i;
-
     nFlags |= flags;
 
     // write group's size
@@ -161,7 +143,6 @@ void GroupOfPlanes::RecalculateMVs(MVClipBalls &mvClip, MVGroupOfFrames *pSrcGOF
 
     // Search the motion vectors, for the low details interpolations first
     // Refining the search until we reach the highest detail interpolation.
-    //         DebugPrintf("SearchMV level %i", nLevelCount-1);
     planes[0]->RecalculateMVs(mvClip, pSrcGOF->GetFrame(0),
             pRefGOF->GetFrame(0),
             searchType, nSearchParam, nLambda, pnew, flags,
@@ -191,7 +172,6 @@ void GroupOfPlanes::WriteDefaultToArray(int *array)
 int GroupOfPlanes::GetArraySize()
 {
     int size = 2; // size, validity
-    //    for ( int i = 0; i < nLevelCount; i++ )
     for (int i = nLevelCount - 1; i >= 0; i-- )
         size += planes[i]->GetArraySize(divideExtra);
 

@@ -29,8 +29,6 @@ FakePlaneOfBlocks::FakePlaneOfBlocks(int sizeX, int sizeY, int lv, int pel, int 
     nBlkY = _nBlkY;
     nWidth_Bi = nOverlapX + nBlkX*(nBlkSizeX - nOverlapX);//w;
     nHeight_Bi = nOverlapY + nBlkY*(nBlkSizeY - nOverlapY);//h;
-    //   nBlkX = (nWidth_Bi - nOverlapX) / (nBlkSizeX - nOverlapX); // without remainder
-    //   nBlkY = (nHeight_Bi - nOverlapY) / (nBlkSizeY - nOverlapY); //
     nBlkCount = nBlkX * nBlkY;
     nPel = pel;
 
@@ -46,9 +44,6 @@ FakePlaneOfBlocks::FakePlaneOfBlocks(int sizeX, int sizeY, int lv, int pel, int 
 
 FakePlaneOfBlocks::~FakePlaneOfBlocks()
 {
-    //    for ( int i = 0; i < nBlkCount; i++ )
-    //        delete blocks[i];
-
     delete[] blocks;
 }
 

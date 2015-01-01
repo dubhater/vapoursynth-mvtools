@@ -293,11 +293,6 @@ void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
     globalMVPredictor.x = nPel*globalMVec->x;// v1.8.2
     globalMVPredictor.y = nPel*globalMVec->y + fieldShift;
     globalMVPredictor.sad = globalMVec->sad;
-    //int nOutPitchY = nBlkX * (nBlkSizeX - nOverlapX) + nOverlapX;
-    //int nOutPitchUV = (nBlkX * (nBlkSizeX - nOverlapX) + nOverlapX) / 2; // xRatioUV=2
-    //  char debugbuf[128];
-    //   wsprintf(debugbuf,"MVCOMP1: nOutPitchUV=%d, nOverlap=%d, nBlkX=%d, nBlkSize=%d",nOutPitchUV, nOverlap, nBlkX, nBlkSize);
-    //   OutputDebugString(debugbuf);
 
     // write the plane's header
     WriteHeaderToArray(out);
@@ -312,17 +307,14 @@ void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
     pRefFrame = _pRefFrame;
 
 
-    //   x[0] = pSrcFrame->GetPlane(YPLANE)->GetHPadding();
     y[0] = pSrcFrame->GetPlane(YPLANE)->GetVPadding();
 
     if (pSrcFrame->GetMode() & UPLANE)
     {
-        //     x[1] = pSrcFrame->GetPlane(UPLANE)->GetHPadding();
         y[1] = pSrcFrame->GetPlane(UPLANE)->GetVPadding();
     }
     if (pSrcFrame->GetMode() & VPLANE)
     {
-        //    x[2] = pSrcFrame->GetPlane(VPLANE)->GetHPadding();
         y[2] = pSrcFrame->GetPlane(VPLANE)->GetVPadding();
     }
 
@@ -395,7 +387,6 @@ void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
             blkx = blkxStart + iblkx*blkScanDir;
             blkIdx = blky*nBlkX + blkx;
             iter=0;
-            //		DebugPrintf("BlkIdx = %d \n", blkIdx);
 
 #ifdef ALIGN_SOURCEBLOCK
             //store the pitch
@@ -448,7 +439,6 @@ void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
                 predictors[4] = ClipMV(zeroMV);
 
             PseudoEPZSearch();
-            //		bestMV = zeroMV; // debug
 
             if (outfilebuf != NULL) // write vector to outfile
             {
@@ -509,10 +499,6 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
     globalMVPredictor.y = fieldShift;//nPel*globalMVec->y + fieldShift;
     globalMVPredictor.sad = 9999999;//globalMVec->sad;
 
-    //  char debugbuf[128];
-    //   wsprintf(debugbuf,"MVCOMP1: nOutPitchUV=%d, nOverlap=%d, nBlkX=%d, nBlkSize=%d",nOutPitchUV, nOverlap, nBlkX, nBlkSize);
-    //   OutputDebugString(debugbuf);
-
     // write the plane's header
     WriteHeaderToArray(out);
 
@@ -532,9 +518,6 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
         y[1] = pSrcFrame->GetPlane(UPLANE)->GetVPadding();
         y[2] = pSrcFrame->GetPlane(VPLANE)->GetVPadding();
     }
-
-    //	blkx = 0;
-    //	blky = 0;
 
 #ifdef ALIGN_SOURCEBLOCK
     nSrcPitch_plane[0] = pSrcFrame->GetPlane(YPLANE)->GetPitch();
@@ -565,10 +548,6 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
     nSearchParam = stp;//*nPel; // v1.8.2 - redesigned in v1.8.5
 
     int nLambdaLevel = lambda / (nPel * nPel);
-    //   if (plevel==1)
-    //        nLambdaLevel = nLambdaLevel*nScale;// scale lambda - Fizick
-    //    else if (plevel==2)
-    //        nLambdaLevel = nLambdaLevel*nScale*nScale;
 
     // get old vectors plane
     const FakePlaneOfBlocks &plane = mvClip.GetPlane(0);
@@ -611,7 +590,6 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
         {
             blkx = blkxStart + iblkx*blkScanDir;
             blkIdx = blky*nBlkX + blkx;
-            //		DebugPrintf("BlkIdx = %d \n", blkIdx);
 
 #ifdef ALIGN_SOURCEBLOCK
             //store the pitch
@@ -709,7 +687,6 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
             predictor = ClipMV(vectorOld); // predictor
             predictor.sad =  vectorOld.sad * (nBlkSizeX*nBlkSizeY)/(nBlkSizeXold*nBlkSizeYold); // normalized to new block size
 
-            //        bestMV = predictor; // by pointer?
             bestMV.x = predictor.x;
             bestMV.y = predictor.y;
             bestMV.sad = predictor.sad;
@@ -736,10 +713,6 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
 
             if (bestMV.sad > thSAD)// if old interpolated vector is bad
             {
-                //          CheckMV(vectorOld1.x, vectorOld1.y);
-                //          CheckMV(vectorOld2.x, vectorOld2.y);
-                //          CheckMV(vectorOld3.x, vectorOld3.y);
-                //          CheckMV(vectorOld4.x, vectorOld4.y);
                 // then, we refine, according to the search type
                 if ( searchType & ONETIME )
                     for ( int i = nSearchParam; i > 0; i /= 2 )
@@ -754,7 +727,6 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
 
                 if ( searchType & EXHAUSTIVE )
                 {
-                    //       ExhaustiveSearch(nSearchParam);
                     int mvx = bestMV.x;
                     int mvy = bestMV.y;
                     for ( int i = 1; i <= nSearchParam; i++ )// region is same as exhaustive, but ordered by radius (from near to far)
@@ -917,7 +889,6 @@ void PlaneOfBlocks::WriteHeaderToArray(int *array)
 int PlaneOfBlocks::WriteDefaultToArray(int *array, int divideMode)
 {
     array[0] = nBlkCount * N_PER_BLOCK + 1;
-    //   int verybigSAD = nBlkSizeX*nBlkSizeY*256;
     for (int i=0; i<nBlkCount*N_PER_BLOCK; i+=N_PER_BLOCK)
     {
         array[i+1] = 0;
@@ -998,21 +969,7 @@ void PlaneOfBlocks::FetchPredictors()
 
     // if there are no other planes, predictor is the median
     if ( smallestPlane ) predictor = predictors[0];
-    /*   else
-         {
-         if ( predictors[0].sad < predictor.sad )// disabled by Fizick (hierarhy only!)
-         {
-         predictors[4] = predictor;
-         predictor = predictors[0];
-         predictors[0] = predictors[4];
-         }
-         }
-         */
-    //	if ( predictor.sad > LSAD ) nLambda = 0; // generalized (was LSAD=400) by Fizick
     nLambda = nLambda*LSAD/(LSAD + (predictor.sad>>1))*LSAD/(LSAD + (predictor.sad>>1));
-    // replaced hard threshold by soft in v1.10.2 by Fizick (a liitle complex expression to avoid overflow)
-    // 	int a = LSAD/(LSAD + (predictor.sad>>1));
-    // 	nLambda = nLambda*a*a;
 }
 
 
@@ -1032,15 +989,11 @@ void PlaneOfBlocks::Refine()
 
     if ( searchType & EXHAUSTIVE )
     {
-        //       ExhaustiveSearch(nSearchParam);
         int mvx = bestMV.x;
         int mvy = bestMV.y;
         for ( int i = 1; i <= nSearchParam; i++ )// region is same as enhausted, but ordered by radius (from near to far)
             ExpandingSearch(i, 1, mvx, mvy);
     }
-
-    //	if ( searchType & SQUARE )
-    //		SquareSearch();
 
     if ( searchType & HEX2SEARCH )
         Hex2Search(nSearchParam);
@@ -1113,8 +1066,6 @@ void PlaneOfBlocks::PseudoEPZSearch()
 
     // Global MV predictor  - added by Fizick
     globalMVPredictor = ClipMV(globalMVPredictor);
-    //	if ( IsVectorOK(globalMVPredictor.x, globalMVPredictor.y ) )
-    //	{
     saduv = (chroma) ? SADCHROMA(pSrc[1], nSrcPitch[1], GetRefBlockU(globalMVPredictor.x, globalMVPredictor.y), nRefPitch[1])
         + SADCHROMA(pSrc[2], nSrcPitch[2], GetRefBlockV(globalMVPredictor.x, globalMVPredictor.y), nRefPitch[2]) : 0;
     sad = LumaSAD(GetRefBlock(globalMVPredictor.x, globalMVPredictor.y));
@@ -1135,12 +1086,6 @@ void PlaneOfBlocks::PseudoEPZSearch()
         CopyVector(&bestMVMany[1], &bestMV);    // save bestMV
         nMinCostMany[1] = nMinCost;
     }
-    //	}
-    // Then, the predictor :
-    //	if (
-    //	(( predictor.x != zeroMVfieldShifted.x ) || ( predictor.y != zeroMVfieldShifted.y )) &&
-    //		 (( predictor.x != globalMVPredictor.x ) || ( predictor.y != globalMVPredictor.y )) &&
-    //	{
     saduv = (chroma) ? SADCHROMA(pSrc[1], nSrcPitch[1], GetRefBlockU(predictor.x, predictor.y), nRefPitch[1])
         + SADCHROMA(pSrc[2], nSrcPitch[2], GetRefBlockV(predictor.x, predictor.y), nRefPitch[2]) : 0;
     sad = LumaSAD(GetRefBlock(predictor.x, predictor.y));
@@ -1154,7 +1099,6 @@ void PlaneOfBlocks::PseudoEPZSearch()
         bestMV.sad = sad;
         nMinCost = cost;
     }
-    //	}
     if (tryMany)
     {
         // refine around predictor
@@ -1207,22 +1151,12 @@ void PlaneOfBlocks::PseudoEPZSearch()
     {// with some soft limit (BADCOUNT_LIMIT) of bad cured vectors (time consumed)
         badcount++;
 
-        //DebugPrintf("bad  blk=%d x=%d y=%d sad=%d mean=%d iter=%d", blkIdx, bestMV.x, bestMV.y, bestMV.sad, planeSAD/blkIdx, iter);
-        /*
-           int mvx0 = bestMV.x; // store for comparing
-           int mvy0 = bestMV.y;
-           int msad0 = bestMV.sad;
-           int mcost0 = nMinCost;
-           */
         if (badrange > 0) // UMH
         {
 
-            //			UMHSearch(badrange*nPel, bestMV.x, bestMV.y);
 
-            //			if (bestMV.sad > foundSAD/2)
             {
                 // rathe good is not found, lets try around zero
-                //            UMHSearch(badSADRadius, abs(mvx0)%4 - 2, abs(mvy0)%4 - 2);
                 UMHSearch(badrange*nPel, 0, 0);
             }
 
@@ -1230,27 +1164,6 @@ void PlaneOfBlocks::PseudoEPZSearch()
         else if (badrange<0) // ESA
         {
 
-            /*        bestMV.x = mvx0; // restore  for comparing
-                      bestMV.y = mvy0;
-                      bestMV.sad = msad0;
-                      nMinCost = mcost0;
-
-                      int mvx = bestMV.x; // store to not move the search center!
-                      int mvy = bestMV.y;
-                      int msad = bestMV.sad;
-
-                      for ( int i = 1; i < -badrange*nPel; i+=nPel )// at radius
-                      {
-                      ExpandingSearch(i, nPel, mvx, mvy);
-                      if (bestMV.sad < foundSAD/4) break; // stop search
-                      }
-
-                      if (bestMV.sad > foundSAD/2 && abs(mvx)+abs(mvy) > badSADRadius/2)
-                      {
-            // rathe good is not found, lets try around zero
-            mvx = 0; // store to not move the search center!
-            mvy = 0;
-            */
             for ( int i = 1; i < -badrange*nPel; i+=nPel )// at radius
             {
                 ExpandingSearch(i, nPel, 0, 0);
@@ -1264,7 +1177,6 @@ void PlaneOfBlocks::PseudoEPZSearch()
         {
             ExpandingSearch(i, 1, mvx, mvy);
         }
-        //DebugPrintf("best blk=%d x=%d y=%d sad=%d iter=%d", blkIdx, bestMV.x, bestMV.y, bestMV.sad, iter);
         }
 
 
@@ -1379,33 +1291,7 @@ void PlaneOfBlocks::PseudoEPZSearch()
             }
         }
     }
-    /*
-       void PlaneOfBlocks::SquareSearch()
-       {
-       ExhaustiveSearch(1);
-       }
 
-       void PlaneOfBlocks::ExhaustiveSearch(int s)// diameter = 2*s - 1
-       {
-       int i, j;
-       VECTOR mv = bestMV;
-
-       for ( i = -s + 1; i < 0; i++ )
-       for ( j = -s + 1; j < s; j++ )
-       CheckMV(mv.x + i, mv.y + j);
-
-       for ( i = 1; i < s; i++ )
-       for ( j = -s + 1; j < s; j++ )
-       CheckMV(mv.x + i, mv.y + j);
-
-       for ( j = -s + 1; j < 0; j++ )
-       CheckMV(mv.x, mv.y + j);
-
-       for ( j = 1; j < s; j++ )
-       CheckMV(mv.x, mv.y + j);
-
-       }
-       */
     void PlaneOfBlocks::NStepSearch(int stp)
     {
         int dx, dy;
@@ -1482,7 +1368,6 @@ void PlaneOfBlocks::PseudoEPZSearch()
     void PlaneOfBlocks::ExpandingSearch(int r, int s, int mvx, int mvy) // diameter = 2*r + 1, step=s
     { // part of true enhaustive search (thin expanding square) around mvx, mvy
         int i, j;
-        //	VECTOR mv = bestMV; // bug: it was pointer assignent, not values, so iterative! - v2.1
 
         // sides of square without corners
         for ( i = -r+s; i < r; i+=s ) // without corners! - v2.1
@@ -1718,9 +1603,4 @@ void PlaneOfBlocks::PseudoEPZSearch()
             globalMVec->x = 2*medianx;
             globalMVec->y = 2*mediany;
         }
-
-        // char debugbuf[100];
-        // sprintf(debugbuf,"MVAnalyse: nx=%d ny=%d next global vx=%d vy=%d", nBlkX, nBlkY, globalMVec->x, globalMVec->y);
-        // OutputDebugString(debugbuf);
-
     }

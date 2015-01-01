@@ -22,19 +22,11 @@
 void FakeGroupOfPlanes::Create(int nBlkSizeX, int nBlkSizeY, int nLevelCount, int nPel, int nOverlapX, int nOverlapY, int _yRatioUV, int _nBlkX, int _nBlkY)
 {
     nLvCount_ = nLevelCount;
-    //   nOverlap = 2;//_nOverlap;
-    int nBlkX1 = _nBlkX;//(nWidth - nOverlapX) / (nBlkSizeX - nOverlapX);
-    //   if ((nWidth - nOverlap) > (nBlkSize - nOverlap)*nBlkX )
-    //       nBlkX1++;
-    int nBlkY1 = _nBlkY;//(nHeight - nOverlapY)/ (nBlkSizeY - nOverlapY);
-    //   if ((nHeight - nOverlap) > (nBlkSize - nOverlap)*nBlkY )
-    //       nBlkY1++;
+    int nBlkX1 = _nBlkX;
+    int nBlkY1 = _nBlkY;
     nWidth_B = (nBlkSizeX - nOverlapX)*nBlkX1 + nOverlapX;
     nHeight_B = (nBlkSizeY - nOverlapY)*nBlkY1 + nOverlapY;
     yRatioUV_B = _yRatioUV;
-
-    //   nWidth_ = nWidth;
-    //   nHeight_ = nHeight;
 
     planes = new FakePlaneOfBlocks*[nLevelCount];
     planes[0] = new FakePlaneOfBlocks(nBlkSizeX, nBlkSizeY, 0, nPel, nOverlapX, nOverlapY, nBlkX1, nBlkY1);
@@ -72,10 +64,6 @@ void FakeGroupOfPlanes::Update(const int *array)
         pA += pA[0];
 
     pA++;
-
-    //   compensatedPlane = reinterpret_cast<const unsigned char *>(pA);
-    //   compensatedPlaneU = compensatedPlane + nWidth_B * nHeight_B;
-    //   compensatedPlaneV = compensatedPlaneU + nWidth_B * nHeight_B /(2*yRatioUV_B);
 
     pA = array;
     pA += 2;

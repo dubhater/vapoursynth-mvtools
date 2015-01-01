@@ -31,13 +31,6 @@
 
 #include <VapourSynth.h>
 
-//#define _STLP_USE_STATIC_LIB
-
-//#pragma pack(16)
-//#pragma warning(disable:4103) // disable pack to change alignment warning ( stlport related )
-//#pragma warning(disable:4800) // disable warning about bool to int unefficient conversion
-//#pragma warning(disable:4996) // disable warning about insecure deprecated string functions
-
 
 #define ALIGN_PLANES 64 // all luma/chroma planes of all frames will have the effective frame area
 // aligned to this (source plane can be accessed with aligned loads, 64 required for effective use of x264 sad on Core2) 1.9.5
@@ -47,18 +40,6 @@
 #define ALLOW_DCT                // complex check in lumaSAD & DCT code in SearchMV / PseudoEPZ
 //#define    ONLY_CHECK_NONDEFAULT_MV // make the check if it is no default reference (zero, global,...)
 
-
-//#define DEBUG_CLIENTBLOCK
-
-//#include "crtdbg.h"
-
-//#include "windows.h"
-//#include <vector>
-//#include <string>
-//#include "avisynth.h"
-
-//#define MOTION_DEBUG          // allows to output debug information to the debug output
-//#define MOTION_PROFILE        // allows to make a profiling of the motion estimation
 
 #define MOTION_MAGIC_KEY 0x564D //'MV' is IMHO better 31415926 :)
 
@@ -100,20 +81,6 @@ enum SearchType {
     VSEARCH = 128   // v.2.5.11
 };
 
-#if 0
-/*! \brief Macros for accessing easily frame pointers & pitch */
-#define YRPLAN(a) (a)->GetReadPtr(PLANAR_Y)
-#define YWPLAN(a) (a)->GetWritePtr(PLANAR_Y)
-#define URPLAN(a) (a)->GetReadPtr(PLANAR_U)
-#define UWPLAN(a) (a)->GetWritePtr(PLANAR_U)
-#define VRPLAN(a) (a)->GetReadPtr(PLANAR_V)
-#define VWPLAN(a) (a)->GetWritePtr(PLANAR_V)
-#define YPITCH(a) (a)->GetPitch(PLANAR_Y)
-#define UPITCH(a) (a)->GetPitch(PLANAR_U)
-#define VPITCH(a) (a)->GetPitch(PLANAR_V)
-#endif
-
-/*! \brief usefull macros */
 #define MAX(a,b) (((a) < (b)) ? (b) : (a))
 #define MIN(a,b) (((a) > (b)) ? (b) : (a))
 
@@ -154,35 +121,11 @@ enum SearchType {
 
 static const VECTOR zeroMV = { 0, 0, -1 };
 
-struct SuperParams64struct // MVSuper parameters packed to 64 bit num_audio_samples
-{
-    unsigned short nHeight;
-    unsigned char nHPad;
-    unsigned char nVPad;
-    unsigned char nPel;
-    unsigned char nModeYUV;
-    unsigned char nLevels;
-    unsigned char param;
-};
-
-typedef SuperParams64struct SuperParams64Bits;
-
 
 class FakeBlockData {
     int x;
     int y;
     VECTOR vector;
-    //    int nSad;
-    //    int nLength;
-    //   int nVariance;
-    //   int nLuma;
-    //   int nRefLuma;
-    //   int nPitch;
-
-    //   const unsigned char *pRef;
-
-    //    inline static int SquareLength(const VECTOR& v)
-    //    { return v.x * v.x + v.y * v.y; }
 
     public :
     FakeBlockData();
@@ -196,12 +139,6 @@ class FakeBlockData {
     inline int GetY() const { return y; }
     inline VECTOR GetMV() const { return vector; }
     inline int GetSAD() const { return vector.sad; }
-    //    inline int GetMVLength() const { return nLength; }
-    //   inline int GetVariance() const { return nVariance; }
-    //   inline int GetLuma() const { return nLuma; }
-    //   inline int GetRefLuma() const { return nRefLuma; }
-    //   inline const unsigned char *GetRef() const { return pRef; }
-    //   inline int GetPitch() const { return nPitch; }
 };
 
 class FakePlaneOfBlocks {
@@ -259,18 +196,13 @@ class FakeGroupOfPlanes {
     bool validity;
     int nWidth_B;
     int nHeight_B;
-    //   int nOverlap;
     int yRatioUV_B;
     FakePlaneOfBlocks **planes;
-    //   const unsigned char *compensatedPlane;
-    //   const unsigned char *compensatedPlaneU;
-    //   const unsigned char *compensatedPlaneV;
     inline static bool GetValidity(const int *array) { return (array[1] == 1); }
     //CRITICAL_SECTION cs;
 
     public :
     FakeGroupOfPlanes();
-    //    FakeGroupOfPlanes(int w, int h, int size, int lv, int pel);
     ~FakeGroupOfPlanes();
 
     void Create(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, int _nPel, int _nOverlapX, int _nOverlapY, int _yRatioUV, int _nBlkX, int _nBlkY);
@@ -284,16 +216,12 @@ class FakeGroupOfPlanes {
 
 
     inline bool IsValid() const { return validity; }
-    //   inline const unsigned char *GetCompensatedPlane() const { return compensatedPlane; }
-    //   inline const unsigned char *GetCompensatedPlaneU() const { return compensatedPlaneU; }
-    //   inline const unsigned char *GetCompensatedPlaneV() const { return compensatedPlaneV; }
     inline int GetPitch() const { return nWidth_B; }
     inline int GetPitchUV() const { return nWidth_B / 2; } // FIXME: lol
 
     inline const FakePlaneOfBlocks& GetPlane(int i) const { return *(planes[i]); }
 };
 
-//class MVCore;
 
 #define MVANALYSIS_DATA_VERSION 5
 
@@ -331,9 +259,6 @@ class MVAnalysisData
         /*! \brief Height of the frame */
         int nHeight;
 
-        /*! \brief MVFrames idx */
-        //   int nIdx;
-
         int nOverlapX; // overlap block size - v1.1
 
         int nOverlapY; // vertical overlap - v1.7
@@ -348,12 +273,6 @@ class MVAnalysisData
 
         int xRatioUV; // ratio of luma plane height to chroma plane width (fixed to 2 for YV12 and YUY2)
 
-        //    int sharp; // pel2 interpolation type
-
-        //    bool usePelClip; // use extra clip with upsized 2x frame size
-
-        //    MVCore *pmvCore; // last (but is not really useful for written file)
-
         int nHPadding; // Horizontal padding - v1.8.1
 
         int nVPadding; // Vertical padding - v1.8.1
@@ -366,22 +285,18 @@ class MVAnalysisData
         inline int GetBlkSizeX() const { return nBlkSizeX; }
         inline int GetPel() const { return nPel; }
         inline int GetLevelCount() const { return nLvCount; }
-        //   inline int GetFramesIdx() const { return nIdx; }
         inline bool IsBackward() const { return isBackward; }
         inline int GetMagicKey() const { return nMagicKey; }
         inline int GetDeltaFrame() const { return nDeltaFrame; }
         inline int GetWidth() const { return nWidth; }
         inline int GetHeight() const { return nHeight; }
         inline bool IsChromaMotion() const { return nFlags & MOTION_USE_CHROMA_MOTION; }
-        //   inline MVCore *GetMVCore() const { return pmvCore; }
         inline int GetOverlapX() const { return nOverlapX; }
         inline int GetBlkX() const { return nBlkX; }
         inline int GetBlkY() const { return nBlkY; }
         inline int GetPixelType() const { return pixelType; }
         inline int GetYRatioUV() const { return yRatioUV; }
         inline int GetXRatioUV() const { return xRatioUV; }
-        //   inline int GetSharp() const { return sharp; }
-        //   inline bool UsePelClip() const { return usePelClip; }
         inline int GetBlkSizeY() const { return nBlkSizeY; }
         inline int GetOverlapY() const { return nOverlapY; }
         inline int GetHPadding() const { return nHPadding; }
@@ -399,8 +314,6 @@ class MVClipDicks : public MVAnalysisData {
 
     /*! \brief Second Scene Change Detection threshold ( compared against the number of block over the first threshold */
     int nSCD2;
-
-    //int nHeaderSize; // offset to data
 
     const VSAPI *vsapi;
 
@@ -434,72 +347,6 @@ class MVException : public std::runtime_error {
         MVException(const std::string &descr) : std::runtime_error(descr) {}
 };
 
-
-#if 0
-class MVClip : public GenericVideoFilter, public FakeGroupOfPlanes, public MVAnalysisData
-{
-    /*! \brief Number of blocks horizontaly, at the first level */
-    //    int nBlkX;
-
-    /*! \brief Number of blocks verticaly, at the first level */
-    //    int nBlkY;
-
-    /*! \brief Number of blocks at the first level */
-    int nBlkCount;
-
-    /*! \brief Horizontal padding */
-    int nHPadding;
-
-    /*! \brief Vertical padding */
-    int nVPadding;
-
-    /*! \brief First Scene Change Detection threshold ( compared against SAD value of the block ) */
-    int nSCD1;
-
-    /*! \brief Second Scene Change Detection threshold ( compared against the number of block over the first threshold */
-    int nSCD2;
-
-    int nHeaderSize; // offset to data
-
-    public :
-    MVClip(const PClip &vectors, int nSCD1, int nSCD2, IScriptEnvironment *env);
-    ~MVClip();
-
-    //   void SetVectorsNeed(bool srcluma, bool refluma, bool var,
-    //                       bool compy, bool compu, bool compv) const;
-
-    //   void Update(int n, IScriptEnvironment *env);
-    void Update(PVideoFrame &fn, IScriptEnvironment *env); // v1.4.13
-
-    // encapsulation
-    //   inline int GetBlkX() const { return nBlkX; }
-    //   inline int GetBlkY() const { return nBlkY; }
-    inline int GetBlkCount() const { return nBlkCount; }
-    inline int GetHPadding() const { return nHPadding; }
-    inline int GetVPadding() const { return nVPadding; }
-    inline int GetThSCD1() const { return nSCD1; }
-    inline int GetThSCD2() const { return nSCD2; }
-    inline const FakeBlockData& GetBlock(int nLevel, int nBlk) const { return GetPlane(nLevel)[nBlk]; }
-    bool IsUsable(int nSCD1, int nSCD2) const;
-    bool IsUsable() const { return IsUsable(nSCD1, nSCD2); }
-    bool IsSceneChange() const { return FakeGroupOfPlanes::IsSceneChange(nSCD1, nSCD2); }
-};
-
-class MVClipArray
-{
-    int size_;
-    MVClip **pmvClips;
-
-    public :
-    MVClipArray(const AVSValue &vectors, int nSCD1, int nSCD2, IScriptEnvironment *env);
-    ~MVClipArray();
-    //   void Update(int n, IScriptEnvironment *env); // excluded
-
-    inline int size() { return size_; }
-    inline MVClip &operator[](int i) { return *(pmvClips[i]); }
-
-};
-#endif
 
 class MVFilter {
     public:
@@ -543,11 +390,7 @@ class MVFilter {
         int xRatioUV;
 
         /*! \brief Filter's name */
-        //   std::string name;
         const char * name; //v1.8 replaced std::string (why it was used?)
-
-        /*! \brief Pointer to the MVCore object */
-        //   MVCore *mvCore;
 
         MVFilter(VSNodeRef *vector, const char *filterName, const VSAPI *vsapi);
 
@@ -718,7 +561,6 @@ class MVFrame {
 
 };
 
-//class MVFrames;
 
 class MVGroupOfFrames {
     int nLevelCount;

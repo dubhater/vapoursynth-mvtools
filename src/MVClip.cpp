@@ -77,7 +77,6 @@ MVClipBalls::MVClipBalls(MVClipDicks *_dicks, const VSAPI *_vsapi) :
     dicks(_dicks),
     vsapi(_vsapi)
 {
-    // FakeGroupOfPlane creation
     FakeGroupOfPlanes::Create(dicks->GetBlkSizeX(), dicks->GetBlkSizeY(), dicks->GetLevelCount(), dicks->GetPel(), dicks->GetOverlapX(), dicks->GetOverlapY(), dicks->GetYRatioUV(), dicks->GetBlkX(), dicks->GetBlkY());
 }
 

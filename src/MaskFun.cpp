@@ -55,7 +55,6 @@ void MakeVectorOcclusionMaskTime(MVClipBalls *mvClip, int nBlkX, int nBlkY, doub
                 int i1 = i+1;
                 const FakeBlockData &block1 = mvClip->GetBlock(0, i1);
                 int vx1 = block1.GetMV().x;
-                //int vy1 = block1.GetMV().y;
                 if (vx1<vx) {
                     occlusion = vx-vx1;
                     for (int bxi=bx+vx1*time4096X/4096; bxi<=bx+vx*time4096X/4096+1 && bxi>=0 && bxi<nBlkX; bxi++)
@@ -66,7 +65,6 @@ void MakeVectorOcclusionMaskTime(MVClipBalls *mvClip, int nBlkX, int nBlkY, doub
             {
                 int i1 = i + nBlkX;
                 const FakeBlockData &block1 = mvClip->GetBlock(0, i1);
-                //int vx1 = block1.GetMV().x;
                 int vy1 = block1.GetMV().y;
                 if (vy1<vy) {
                     occlusion = vy-vy1;
@@ -138,7 +136,6 @@ void MakeVectorOcclusionMask(MVClipBalls *mvClip, int nBlkX, int nBlkY, double d
                 int i1 = i-1;
                 const FakeBlockData &block1 = mvClip->GetBlock(0, i1);
                 int vx1 = block1.GetMV().x;
-                //int vy1 = block1.GetMV().y;
                 if (vx1>vx) occlusion += (vx1-vx); // only positive (abs)
             }
             if (bx < nBlkX-1) // right neighbor
@@ -146,14 +143,12 @@ void MakeVectorOcclusionMask(MVClipBalls *mvClip, int nBlkX, int nBlkY, double d
                 int i1 = i+1;
                 const FakeBlockData &block1 = mvClip->GetBlock(0, i1);
                 int vx1 = block1.GetMV().x;
-                //int vy1 = block1.GetMV().y;
                 if (vx1<vx) occlusion += vx-vx1;
             }
             if (by > 0) // top neighbor
             {
                 int i1 = i - nBlkX;
                 const FakeBlockData &block1 = mvClip->GetBlock(0, i1);
-                //int vx1 = block1.GetMV().x;
                 int vy1 = block1.GetMV().y;
                 if (vy1>vy) occlusion += vy1-vy;
             }
@@ -161,7 +156,6 @@ void MakeVectorOcclusionMask(MVClipBalls *mvClip, int nBlkX, int nBlkY, double d
             {
                 int i1 = i + nBlkX;
                 const FakeBlockData &block1 = mvClip->GetBlock(0, i1);
-                //int vx1 = block1.GetMV().x;
                 int vy1 = block1.GetMV().y;
                 if (vy1<vy) occlusion += vy-vy1;
             }
@@ -191,27 +185,23 @@ void VectorMasksToOcclusionMask(uint8_t *VXMask, uint8_t *VYMask, int nBlkX, int
             {
                 int i1 = i-1;
                 int vx1 = VXMask[i1];
-                //                            int vy1 = VYMask[i1];
                 if (vx1>vx) occlusion += (vx1-vx); // only positive (abs)
             }
             if (bx < nBlkX-1) // right neighbor
             {
                 int i1 = i+1;
                 int vx1 = VXMask[i1];
-                //                            int vy1 = VYMask[i1];
                 if (vx1<vx) occlusion += vx-vx1;
             }
             if (by > 0) // top neighbor
             {
                 int i1 = i - nBlkX;
-                //                            int vx1 = VXMask[i1];
                 int vy1 = VYMask[i1];
                 if (vy1>vy) occlusion += vy1-vy;
             }
             if (by < nBlkY-1) // bottom neighbor
             {
                 int i1 = i + nBlkX;
-                //                            int vx1 = VXMask[i1];
                 int vy1 = VYMask[i1];
                 if (vy1<vy) occlusion += vy-vy1;
             }
@@ -496,22 +486,16 @@ void FlowInter(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const uint8_
         {
             for (int w=0; w<width; w++)
             {
-                //                int vxF = ((VXFullF[w]-128)*time256)/256;
-                //                int vyF = ((VYFullF[w]-128)*time256)/256;
                 int vxF = LUTVF[VXFullF[w]];
                 int vyF = LUTVF[VYFullF[w]];
                 int dstF = prefF[vyF*ref_pitch + vxF + w];
                 int dstF0 = prefF[w]; // zero
-                //                int vxB = ((VXFullB[w]-128)*(256-time256))/256;
-                //                int vyB = ((VYFullB[w]-128)*(256-time256))/256;
                 int vxB = LUTVB[VXFullB[w]];
                 int vyB = LUTVB[VYFullB[w]];
                 int dstB = prefB[vyB*ref_pitch + vxB + w];
                 int dstB0 = prefB[w]; // zero
                 pdst[w] = ( ( (dstF*(255-MaskF[w]) + ((MaskF[w]*(dstB*(255-MaskB[w])+MaskB[w]*dstF0)+255)>>8) + 255)>>8 )*(256-time256) +
                         ( (dstB*(255-MaskB[w]) + ((MaskB[w]*(dstF*(255-MaskF[w])+MaskF[w]*dstB0)+255)>>8) + 255)>>8 )*time256 )>>8;
-                //                pdst[w] = ( ( (dstF*(255-MaskF[w]) + dstB*MaskF[w] + 255)>>8 )*(256-time256) +
-                //                            ( (dstB*(255-MaskB[w]) + dstF*MaskB[w] + 255)>>8 )*time256 )>>8;
             }
             pdst += dst_pitch;
             prefB += ref_pitch;
@@ -530,22 +514,16 @@ void FlowInter(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const uint8_
         {
             for (int w=0; w<width; w++)
             {
-                //                int vxF = ((VXFullF[w]-128)*time256)/256;
-                //                int vyF = ((VYFullF[w]-128)*time256)/256;
                 int vxF = LUTVF[VXFullF[w]];
                 int vyF = LUTVF[VYFullF[w]];
                 int dstF = prefF[vyF*ref_pitch + vxF + (w<<1)];
                 int dstF0 = prefF[(w<<1)]; // zero
-                //                int vxB = ((VXFullB[w]-128)*(256-time256))/256;
-                //                int vyB = ((VYFullB[w]-128)*(256-time256))/256;
                 int vxB = LUTVB[VXFullB[w]];
                 int vyB = LUTVB[VYFullB[w]];
                 int dstB = prefB[vyB*ref_pitch + vxB + (w<<1)];
                 int dstB0 = prefB[(w<<1)]; // zero
                 pdst[w] = ( ( (dstF*(255-MaskF[w]) + ((MaskF[w]*(dstB*(255-MaskB[w])+MaskB[w]*dstF0)+255)>>8) + 255)>>8 )*(256-time256) +
                         ( (dstB*(255-MaskB[w]) + ((MaskB[w]*(dstF*(255-MaskF[w])+MaskF[w]*dstB0)+255)>>8) + 255)>>8 )*time256 )>>8;
-                //                pdst[w] = ( ( (dstF*(255-MaskF[w]) + dstB*MaskF[w] + 255)>>8 )*(256-time256) +
-                //                            ( (dstB*(255-MaskB[w]) + dstF*MaskB[w] + 255)>>8 )*time256 )>>8;
             }
             pdst += dst_pitch;
             prefB += ref_pitch<<1;
@@ -564,22 +542,16 @@ void FlowInter(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const uint8_
         {
             for (int w=0; w<width; w++)
             {
-                //                int vxF = ((VXFullF[w]-128)*time256)/256;
-                //                int vyF = ((VYFullF[w]-128)*time256)/256;
                 int vxF = LUTVF[VXFullF[w]];
                 int vyF = LUTVF[VYFullF[w]];
                 int dstF = prefF[vyF*ref_pitch + vxF + (w<<2)];
                 int dstF0 = prefF[(w<<2)]; // zero
-                //                int vxB = ((VXFullB[w]-128)*(256-time256))/256;
-                //                int vyB = ((VYFullB[w]-128)*(256-time256))/256;
                 int vxB = LUTVB[VXFullB[w]];
                 int vyB = LUTVB[VYFullB[w]];
                 int dstB = prefB[vyB*ref_pitch + vxB + (w<<2)];
                 int dstB0 = prefB[(w<<2)]; // zero
                 pdst[w] = ( ( (dstF*(255-MaskF[w]) + ((MaskF[w]*(dstB*(255-MaskB[w])+MaskB[w]*dstF0)+255)>>8) + 255)>>8 )*(256-time256) +
                         ( (dstB*(255-MaskB[w]) + ((MaskB[w]*(dstF*(255-MaskF[w])+MaskF[w]*dstB0)+255)>>8) + 255)>>8 )*time256 )>>8;
-                //                pdst[w] = ( ( (dstF*(255-MaskF[w]) + dstB*MaskF[w] + 255)>>8 )*(256-time256) +
-                //                            ( (dstB*(255-MaskB[w]) + dstF*MaskB[w] + 255)>>8 )*time256 )>>8;
             }
             pdst += dst_pitch;
             prefB += ref_pitch<<2;
@@ -637,7 +609,6 @@ void FlowInterExtra(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const u
                 int vyF = LUTVF[VYFullF[w]];
                 int adrF = vyF*ref_pitch + vxF + w;
                 int dstF = prefF[adrF];
-                //                int dstF0 = prefF[w]; // zero vector
 
                 int vxFF = LUTVF[VXFullFF[w]];
                 int vyFF = LUTVF[VYFullFF[w]];
@@ -648,7 +619,6 @@ void FlowInterExtra(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const u
                 int vyB = LUTVB[VYFullB[w]];
                 int adrB = vyB*ref_pitch + vxB + w;
                 int dstB = prefB[adrB];
-                //                int dstB0 = prefB[w]; // zero vector
 
                 int vxBB = LUTVB[VXFullBB[w]];
                 int vyBB = LUTVB[VYFullBB[w]];
@@ -720,35 +690,20 @@ void FlowInterExtra(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const u
                 pdst[w] = (((Median3r(minfb, dstBB, maxfb)*MaskF[w] + dstF*(255-MaskF[w])+255)>>8)*(256-time256) +
                         ((Median3r(minfb, dstFF, maxfb)*MaskB[w] + dstB*(255-MaskB[w])+255)>>8)*time256)>>8;
 
-                /*                dstF = prefF[adrF+2]; // approximation for speed
-                                dstFF = prefF[adrFF+2];
-                                dstB = prefB[adrB+2];
-                                dstBB = prefB[adrBB+2];
-                // use median, firsly get min max of compensations
-                if (dstF > dstB) {
-                minfb = dstB;
-                maxfb = dstF;
-                } else {
-                maxfb = dstB;
-                minfb = dstF;
-                }
-
-                pdst[w+1] = (((Median3r(minfb, dstBB, maxfb)*MaskF[w] + dstF*(255-MaskF[w])+255)>>8)*(256-time256) +
-                ((Median3r(minfb, dstFF, maxfb)*MaskB[w] + dstB*(255-MaskB[w])+255)>>8)*time256)>>8;
-                */            }
-                pdst += dst_pitch;
-                prefB += ref_pitch<<1;
-                prefF += ref_pitch<<1;
-                VXFullB += VPitch;
-                VYFullB += VPitch;
-                VXFullF += VPitch;
-                VYFullF += VPitch;
-                MaskB += VPitch;
-                MaskF += VPitch;
-                VXFullBB += VPitch;
-                VYFullBB += VPitch;
-                VXFullFF += VPitch;
-                VYFullFF += VPitch;
+            }
+            pdst += dst_pitch;
+            prefB += ref_pitch<<1;
+            prefF += ref_pitch<<1;
+            VXFullB += VPitch;
+            VYFullB += VPitch;
+            VXFullF += VPitch;
+            VYFullF += VPitch;
+            MaskB += VPitch;
+            MaskF += VPitch;
+            VXFullBB += VPitch;
+            VYFullBB += VPitch;
+            VXFullFF += VPitch;
+            VYFullFF += VPitch;
         }
     }
     else if (nPel==4)
@@ -760,19 +715,15 @@ void FlowInterExtra(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const u
                 int vxF = LUTVF[VXFullF[w]];
                 int vyF = LUTVF[VYFullF[w]];
                 int dstF = prefF[vyF*ref_pitch + vxF + (w<<2)];
-                //                int dstF0 = prefF[(w<<2)]; // zero
                 int vxFF = LUTVF[VXFullFF[w]];
                 int vyFF = LUTVF[VYFullFF[w]];
                 int dstFF = prefF[vyFF*ref_pitch + vxFF + (w<<2)];
                 int vxB = LUTVB[VXFullB[w]];
                 int vyB = LUTVB[VYFullB[w]];
                 int dstB = prefB[vyB*ref_pitch + vxB + (w<<2)];
-                //                int dstB0 = prefB[(w<<2)]; // zero
                 int vxBB = LUTVB[VXFullBB[w]];
                 int vyBB = LUTVB[VYFullBB[w]];
                 int dstBB = prefB[vyBB*ref_pitch + vxBB + (w<<2)];
-                //                pdst[w] = ( ( (dstF*(255-MaskF[w]) + ((MaskF[w]*(dstB*(255-MaskB[w])+MaskB[w]*dstF0)+255)>>8) + 255)>>8 )*(256-time256) +
-                //                            ( (dstB*(255-MaskB[w]) + ((MaskB[w]*(dstF*(255-MaskF[w])+MaskF[w]*dstB0)+255)>>8) + 255)>>8 )*time256 )>>8;
                 // use median, firsly get min max of compensations
                 int minfb;
                 int maxfb;
@@ -849,13 +800,9 @@ void FlowInterSimple(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const 
                 {
                     int vxF = (VXFullF[w]-128)>>1;
                     int vyF = (VYFullF[w]-128)>>1;
-                    //                    int vxF = LUTVF[VXFullF[w]];
-                    //                    int vyF = LUTVF[VYFullF[w]];
                     int dstF = prefF[vyF*ref_pitch + vxF + (w<<1)];
                     int vxB = (VXFullB[w]-128)>>1;
                     int vyB = (VYFullB[w]-128)>>1;
-                    //                    int vxB = LUTVB[VXFullB[w]];
-                    //                    int vyB = LUTVB[VYFullB[w]];
                     int dstB = prefB[vyB*ref_pitch + vxB + (w<<1)];
                     pdst[w] = ( ((dstF + dstB)<<8) + (dstB - dstF)*(MaskF[w] - MaskB[w]) )>>9;
                 }
@@ -878,13 +825,9 @@ void FlowInterSimple(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const 
                 {
                     int vxF = (VXFullF[w]-128)>>1;
                     int vyF = (VYFullF[w]-128)>>1;
-                    //                    int vxF = LUTVF[VXFullF[w]];
-                    //                    int vyF = LUTVF[VYFullF[w]];
                     int dstF = prefF[vyF*ref_pitch + vxF + (w<<2)];
                     int vxB = (VXFullB[w]-128)>>1;
                     int vyB = (VYFullB[w]-128)>>1;
-                    //                    int vxB = LUTVB[VXFullB[w]];
-                    //                    int vyB = LUTVB[VYFullB[w]];
                     int dstB = prefB[vyB*ref_pitch + vxB + (w<<2)];
                     pdst[w] = ( ((dstF + dstB)<<8) + (dstB - dstF)*(MaskF[w] - MaskB[w]) )>>9;
                 }
@@ -940,8 +883,6 @@ void FlowInterSimple(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const 
             {
                 for (int w=0; w<width; w+=1)
                 {
-                    //                int vxF = ((VXFullF[w]-128)*time256)/256;
-                    //                int vyF = ((VYFullF[w]-128)*time256)/256;
                     int vxF = LUTVF[VXFullF[w]];
                     int vyF = LUTVF[VYFullF[w]];
                     int dstF = prefF[vyF*ref_pitch + vxF + (w<<1)];
@@ -968,8 +909,6 @@ void FlowInterSimple(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const 
             {
                 for (int w=0; w<width; w+=1)
                 {
-                    //                int vxF = ((VXFullF[w]-128)*time256)/256;
-                    //                int vyF = ((VYFullF[w]-128)*time256)/256;
                     int vxF = LUTVF[VXFullF[w]];
                     int vyF = LUTVF[VYFullF[w]];
                     int dstF = prefF[vyF*ref_pitch + vxF + (w<<2)];
@@ -1003,30 +942,18 @@ void FlowInterPel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *prefF,
         {
             for (int w=0; w<width; w++)
             {
-                //                int vxF = ((VXFullF[w]-128)*time256)/256;
-                //                int vyF = ((VYFullF[w]-128)*time256)/256;
                 int vxF = LUTVF[VXFullF[w]];
                 int vyF = LUTVF[VYFullF[w]];
-                //                int dstF = prefF[vyF*ref_pitch + vxF + w];
                 int dstF = *prefF->GetPointer(vxF + w, vyF + h); // v2.0.0.6
-                //                int dstF0 = prefF[w]; // zero
                 int dstF0 = *prefF->GetPointer(w, h); // v2.0.0.6
-                //                int vxB = ((VXFullB[w]-128)*(256-time256))/256;
-                //                int vyB = ((VYFullB[w]-128)*(256-time256))/256;
                 int vxB = LUTVB[VXFullB[w]];
                 int vyB = LUTVB[VYFullB[w]];
-                //                int dstB = prefB[vyB*ref_pitch + vxB + w];
                 int dstB = *prefB->GetPointer(vxB + w, vyB + h); // v2.0.0.6
-                //                int dstB0 = prefB[w]; // zero
                 int dstB0 = *prefF->GetPointer(w, h); // v2.0.0.6
                 pdst[w] = ( ( (dstF*(255-MaskF[w]) + ((MaskF[w]*(dstB*(255-MaskB[w])+MaskB[w]*dstF0)+255)>>8) + 255)>>8 )*(256-time256) +
                         ( (dstB*(255-MaskB[w]) + ((MaskB[w]*(dstF*(255-MaskF[w])+MaskF[w]*dstB0)+255)>>8) + 255)>>8 )*time256 )>>8;
-                //                pdst[w] = ( ( (dstF*(255-MaskF[w]) + dstB*MaskF[w] + 255)>>8 )*(256-time256) +
-                //                            ( (dstB*(255-MaskB[w]) + dstF*MaskB[w] + 255)>>8 )*time256 )>>8;
             }
             pdst += dst_pitch;
-            //            prefB += ref_pitch;
-            //            prefF += ref_pitch;
             VXFullB += VPitch;
             VYFullB += VPitch;
             VXFullF += VPitch;
@@ -1041,30 +968,18 @@ void FlowInterPel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *prefF,
         {
             for (int w=0; w<width; w++)
             {
-                //                int vxF = ((VXFullF[w]-128)*time256)/256;
-                //                int vyF = ((VYFullF[w]-128)*time256)/256;
                 int vxF = LUTVF[VXFullF[w]];
                 int vyF = LUTVF[VYFullF[w]];
-                //                int dstF = prefF[vyF*ref_pitch + vxF + (w<<1)];
                 int dstF = *prefF->GetPointer(vxF + w, vyF + h); // v2.0.0.6
-                //                int dstF0 = prefF[(w<<1)]; // zero
                 int dstF0 = *prefF->GetPointer(w, h); // v2.0.0.6
-                //                int vxB = ((VXFullB[w]-128)*(256-time256))/256;
-                //                int vyB = ((VYFullB[w]-128)*(256-time256))/256;
                 int vxB = LUTVB[VXFullB[w]];
                 int vyB = LUTVB[VYFullB[w]];
-                //                int dstB = prefB[vyB*ref_pitch + vxB + (w<<1)];
                 int dstB = *prefB->GetPointer(vxB + w, vyB + h); // v2.0.0.6
-                //                int dstB0 = prefB[(w<<1)]; // zero
                 int dstB0 = *prefB->GetPointer(w, h); // v2.0.0.6
                 pdst[w] = ( ( (dstF*(255-MaskF[w]) + ((MaskF[w]*(dstB*(255-MaskB[w])+MaskB[w]*dstF0)+255)>>8) + 255)>>8 )*(256-time256) +
                         ( (dstB*(255-MaskB[w]) + ((MaskB[w]*(dstF*(255-MaskF[w])+MaskF[w]*dstB0)+255)>>8) + 255)>>8 )*time256 )>>8;
-                //                pdst[w] = ( ( (dstF*(255-MaskF[w]) + dstB*MaskF[w] + 255)>>8 )*(256-time256) +
-                //                            ( (dstB*(255-MaskB[w]) + dstF*MaskB[w] + 255)>>8 )*time256 )>>8;
             }
             pdst += dst_pitch;
-            //            prefB += ref_pitch<<1;
-            //            prefF += ref_pitch<<1;
             VXFullB += VPitch;
             VYFullB += VPitch;
             VXFullF += VPitch;
@@ -1079,30 +994,18 @@ void FlowInterPel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *prefF,
         {
             for (int w=0; w<width; w++)
             {
-                //                int vxF = ((VXFullF[w]-128)*time256)/256;
-                //                int vyF = ((VYFullF[w]-128)*time256)/256;
                 int vxF = LUTVF[VXFullF[w]];
                 int vyF = LUTVF[VYFullF[w]];
-                //                int dstF = prefF[vyF*ref_pitch + vxF + (w<<2)];
                 int dstF = *prefF->GetPointer(vxF + w, vyF + h); // v2.0.0.6
-                //                int dstF0 = prefF[(w<<2)]; // zero
                 int dstF0 = *prefF->GetPointer(w, h); // v2.0.0.6
-                //                int vxB = ((VXFullB[w]-128)*(256-time256))/256;
-                //                int vyB = ((VYFullB[w]-128)*(256-time256))/256;
                 int vxB = LUTVB[VXFullB[w]];
                 int vyB = LUTVB[VYFullB[w]];
-                //                int dstB = prefB[vyB*ref_pitch + vxB + (w<<2)];
                 int dstB = *prefB->GetPointer(vxB + w, vyB + h); // v2.0.0.6
-                //                int dstB0 = prefB[(w<<2)]; // zero
                 int dstB0 = *prefB->GetPointer(w, h); // v2.0.0.6
                 pdst[w] = ( ( (dstF*(255-MaskF[w]) + ((MaskF[w]*(dstB*(255-MaskB[w])+MaskB[w]*dstF0)+255)>>8) + 255)>>8 )*(256-time256) +
                         ( (dstB*(255-MaskB[w]) + ((MaskB[w]*(dstF*(255-MaskF[w])+MaskF[w]*dstB0)+255)>>8) + 255)>>8 )*time256 )>>8;
-                //                pdst[w] = ( ( (dstF*(255-MaskF[w]) + dstB*MaskF[w] + 255)>>8 )*(256-time256) +
-                //                            ( (dstB*(255-MaskB[w]) + dstF*MaskB[w] + 255)>>8 )*time256 )>>8;
             }
             pdst += dst_pitch;
-            //            prefB += ref_pitch<<2;
-            //            prefF += ref_pitch<<2;
             VXFullB += VPitch;
             VYFullB += VPitch;
             VXFullF += VPitch;
@@ -1159,8 +1062,6 @@ void FlowInterExtraPel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *p
                         ((Median3r(minfb,dstFF,maxfb)*MaskB[w] + dstB*(255-MaskB[w])+255)>>8)*time256)>>8;
             }
             pdst += dst_pitch;
-            //            prefB += ref_pitch;
-            //            prefF += ref_pitch;
             VXFullB += VPitch;
             VYFullB += VPitch;
             VXFullF += VPitch;
@@ -1212,36 +1113,18 @@ void FlowInterExtraPel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *p
 
                 pdst[w] = (((Median3r(minfb, dstBB, maxfb)*MaskF[w] + dstF*(255-MaskF[w])+255)>>8)*(256-time256) +
                         ((Median3r(minfb, dstFF, maxfb)*MaskB[w] + dstB*(255-MaskB[w])+255)>>8)*time256)>>8;
-                /*
-                   dstF = *(adrF+1);
-                   dstFF = *(adrFF+1);
-                   dstB = *(adrB+1);
-                   dstBB = *(adrBB+1);
-
-                   if (dstF > dstB) {
-                   minfb = dstB;
-                   maxfb = dstF;
-                   } else {
-                   maxfb = dstB;
-                   minfb = dstF;
-                   }
-
-                   pdst[w+1] = (((Median3r(minfb, dstBB, maxfb)*MaskF[w] + dstF*(255-MaskF[w])+255)>>8)*(256-time256) +
-                   ((Median3r(minfb, dstFF, maxfb)*MaskB[w] + dstB*(255-MaskB[w])+255)>>8)*time256)>>8;
-                   */            }
-                pdst += dst_pitch;
-                //            prefB += ref_pitch<<1;
-                //            prefF += ref_pitch<<1;
-                VXFullB += VPitch;
-                VYFullB += VPitch;
-                VXFullF += VPitch;
-                VYFullF += VPitch;
-                MaskB += VPitch;
-                MaskF += VPitch;
-                VXFullBB += VPitch;
-                VYFullBB += VPitch;
-                VXFullFF += VPitch;
-                VYFullFF += VPitch;
+            }
+            pdst += dst_pitch;
+            VXFullB += VPitch;
+            VYFullB += VPitch;
+            VXFullF += VPitch;
+            VYFullF += VPitch;
+            MaskB += VPitch;
+            MaskF += VPitch;
+            VXFullBB += VPitch;
+            VYFullBB += VPitch;
+            VXFullFF += VPitch;
+            VYFullFF += VPitch;
         }
     }
     else if (nPel==4)
@@ -1252,24 +1135,16 @@ void FlowInterExtraPel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *p
             {
                 int vxF = LUTVF[VXFullF[w]];
                 int vyF = LUTVF[VYFullF[w]];
-                //                int dstF = prefF[vyF*ref_pitch + vxF + (w<<2)];
                 int dstF = *prefF->GetPointerPel4(vxF + (w<<2), vyF + (h<<2)); // v2.0.0.6
-                //                int dstF0 = prefF[(w<<2)]; // zero
                 int vxFF = LUTVF[VXFullFF[w]];
                 int vyFF = LUTVF[VYFullFF[w]];
-                //                int dstFF = prefF[vyFF*ref_pitch + vxFF + (w<<2)];
                 int dstFF = *prefF->GetPointerPel4(vxFF + (w<<2), vyFF + (h<<2)); // v2.0.0.6
                 int vxB = LUTVB[VXFullB[w]];
                 int vyB = LUTVB[VYFullB[w]];
-                //                int dstB = prefB[vyB*ref_pitch + vxB + (w<<2)];
                 int dstB = *prefB->GetPointerPel4(vxB + (w<<2), vyB + (h<<2)); // v2.0.0.6
-                //                int dstB0 = prefB[(w<<2)]; // zero
                 int vxBB = LUTVB[VXFullBB[w]];
                 int vyBB = LUTVB[VYFullBB[w]];
-                //                int dstBB = prefB[vyBB*ref_pitch + vxBB + (w<<2)];
                 int dstBB = *prefB->GetPointerPel4(vxBB + (w<<2), vyBB + (h<<2)); // v2.0.0.6
-                //                pdst[w] = ( ( (dstF*(255-MaskF[w]) + ((MaskF[w]*(dstB*(255-MaskB[w])+MaskB[w]*dstF0)+255)>>8) + 255)>>8 )*(256-time256) +
-                //                            ( (dstB*(255-MaskB[w]) + ((MaskB[w]*(dstF*(255-MaskF[w])+MaskF[w]*dstB0)+255)>>8) + 255)>>8 )*time256 )>>8;
                 // use median, firsly get min max of compensations
                 int minfb;
                 int maxfb;
@@ -1285,8 +1160,6 @@ void FlowInterExtraPel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *p
                         ((Median3r(minfb, dstFF, maxfb)*MaskB[w] + dstB*(255-MaskB[w])+255)>>8)*time256)>>8;
             }
             pdst += dst_pitch;
-            //            prefB += ref_pitch<<2;
-            //            prefF += ref_pitch<<2;
             VXFullB += VPitch;
             VYFullB += VPitch;
             VXFullF += VPitch;
@@ -1317,15 +1190,11 @@ void FlowInterSimplePel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *
                 {
                     int vxF = (VXFullF[w]-128)>>1;
                     int vyF = (VYFullF[w]-128)>>1;
-                    //                    int addrF = vyF*ref_pitch + vxF + w;
-                    //                    int dstF = prefF[addrF];
-                    //                    int dstF1 = prefF[addrF+1]; // approximation for speed
                     const uint8_t * addrF = prefF->GetPointerPel1(vxF + w, vyF + h); // v2.0.0.6
                     int dstF = *addrF;
                     int dstF1 = *(addrF+1); // v2.0.0.6
                     int vxB = (VXFullB[w]-128)>>1;
                     int vyB = (VYFullB[w]-128)>>1;
-                    //                    int addrB = vyB*ref_pitch + vxB + w;
                     const uint8_t * addrB = prefB->GetPointerPel1(vxB + w, vyB + h); // v2.0.0.6
                     int dstB = *addrB;
                     int dstB1 = *(addrB+1);
@@ -1333,8 +1202,6 @@ void FlowInterSimplePel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *
                     pdst[w+1] = ( ((dstF1 + dstB1)<<8) + (dstB1 - dstF1)*(MaskF[w+1] - MaskB[w+1]) )>>9;
                 }
                 pdst += dst_pitch;
-                //                prefB += ref_pitch;
-                //                prefF += ref_pitch;
                 VXFullB += VPitch;
                 VYFullB += VPitch;
                 VXFullF += VPitch;
@@ -1351,21 +1218,13 @@ void FlowInterSimplePel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *
                 {
                     int vxF = (VXFullF[w]-128)>>1;
                     int vyF = (VYFullF[w]-128)>>1;
-                    //                    int vxF = LUTVF[VXFullF[w]];
-                    //                    int vyF = LUTVF[VYFullF[w]];
-                    //                    int dstF = prefF[vyF*ref_pitch + vxF + (w<<1)];
                     int dstF  = *prefF->GetPointerPel2(vxF + (w<<1), vyF + (h<<1)); // v2.0.0.6
                     int vxB = (VXFullB[w]-128)>>1;
                     int vyB = (VYFullB[w]-128)>>1;
-                    //                    int vxB = LUTVB[VXFullB[w]];
-                    //                    int vyB = LUTVB[VYFullB[w]];
-                    //                    int dstB = prefB[vyB*ref_pitch + vxB + (w<<1)];
                     int dstB = *prefB->GetPointerPel2(vxB + (w<<1), vyB + (h<<1)); // v2.0.0.6
                     pdst[w] = ( ((dstF + dstB)<<8) + (dstB - dstF)*(MaskF[w] - MaskB[w]) )>>9;
                 }
                 pdst += dst_pitch;
-                //                prefB += ref_pitch<<1;
-                //                prefF += ref_pitch<<1;
                 VXFullB += VPitch;
                 VYFullB += VPitch;
                 VXFullF += VPitch;
@@ -1382,21 +1241,13 @@ void FlowInterSimplePel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *
                 {
                     int vxF = (VXFullF[w]-128)>>1;
                     int vyF = (VYFullF[w]-128)>>1;
-                    //                    int vxF = LUTVF[VXFullF[w]];
-                    //                    int vyF = LUTVF[VYFullF[w]];
-                    //                    int dstF = prefF[vyF*ref_pitch + vxF + (w<<2)];
                     int dstF = *prefF->GetPointerPel4(vxF + (w<<2), vyF + (h<<2)); // v2.0.0.6
                     int vxB = (VXFullB[w]-128)>>1;
                     int vyB = (VYFullB[w]-128)>>1;
-                    //                    int vxB = LUTVB[VXFullB[w]];
-                    //                    int vyB = LUTVB[VYFullB[w]];
-                    //                    int dstB = prefB[vyB*ref_pitch + vxB + (w<<2)];
                     int dstB = *prefB->GetPointerPel4(vxB + (w<<2), vyB + (h<<2)); // v2.0.0.6
                     pdst[w] = ( ((dstF + dstB)<<8) + (dstB - dstF)*(MaskF[w] - MaskB[w]) )>>9;
                 }
                 pdst += dst_pitch;
-                //                prefB += ref_pitch<<2;
-                //                prefF += ref_pitch<<2;
                 VXFullB += VPitch;
                 VYFullB += VPitch;
                 VXFullF += VPitch;
@@ -1416,17 +1267,11 @@ void FlowInterSimplePel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *
                 {
                     int vxF = LUTVF[VXFullF[w]];
                     int vyF = LUTVF[VYFullF[w]];
-                    //                    int addrF = vyF*ref_pitch + vxF + w;
-                    //                    int dstF = prefF[addrF];
-                    //                    int dstF1 = prefF[addrF+1]; // approximation for speed
                     const uint8_t * addrF = prefF->GetPointerPel1(vxF + w, vyF + h); // v2.0.0.6
                     int dstF = *addrF;
                     int dstF1 = *(addrF+1); // v2.0.0.6
                     int vxB = LUTVB[VXFullB[w]];
                     int vyB = LUTVB[VYFullB[w]];
-                    //                    int addrB = vyB*ref_pitch + vxB + w;
-                    //                    int dstB = prefB[addrB];
-                    //                    int dstB1 = prefB[addrB+1];
                     const uint8_t * addrB = prefB->GetPointerPel1(vxB + w, vyB + h); // v2.0.0.6
                     int dstB = *addrB;
                     int dstB1 = *(addrB+1);
@@ -1436,8 +1281,6 @@ void FlowInterSimplePel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *
                             ( (dstB1*255 - (dstB1-dstF1)*MaskB[w+1] + 255) )*time256 )>>16;
                 }
                 pdst += dst_pitch;
-                //                prefB += ref_pitch;
-                //                prefF += ref_pitch;
                 VXFullB += VPitch;
                 VYFullB += VPitch;
                 VXFullF += VPitch;
@@ -1452,22 +1295,16 @@ void FlowInterSimplePel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *
             {
                 for (int w=0; w<width; w+=1)
                 {
-                    //                int vxF = ((VXFullF[w]-128)*time256)/256;
-                    //                int vyF = ((VYFullF[w]-128)*time256)/256;
                     int vxF = LUTVF[VXFullF[w]];
                     int vyF = LUTVF[VYFullF[w]];
-                    //                    int dstF = prefF[vyF*ref_pitch + vxF + (w<<1)];
                     int dstF  = *prefF->GetPointerPel2(vxF + (w<<1), vyF + (h<<1)); // v2.0.0.6
                     int vxB = LUTVB[VXFullB[w]];
                     int vyB = LUTVB[VYFullB[w]];
-                    //                    int dstB = prefB[vyB*ref_pitch + vxB + (w<<1)];
                     int dstB = *prefB->GetPointerPel2(vxB + (w<<1), vyB + (h<<1)); // v2.0.0.6
                     pdst[w] = ( ( (dstF*(255-MaskF[w]) + dstB*MaskF[w] + 255)>>8 )*(256-time256) +
                             ( (dstB*(255-MaskB[w]) + dstF*MaskB[w] + 255)>>8 )*time256 )>>8;
                 }
                 pdst += dst_pitch;
-                //                prefB += ref_pitch<<1;
-                //                prefF += ref_pitch<<1;
                 VXFullB += VPitch;
                 VYFullB += VPitch;
                 VXFullF += VPitch;
@@ -1482,22 +1319,16 @@ void FlowInterSimplePel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *
             {
                 for (int w=0; w<width; w+=1)
                 {
-                    //                int vxF = ((VXFullF[w]-128)*time256)/256;
-                    //                int vyF = ((VYFullF[w]-128)*time256)/256;
                     int vxF = LUTVF[VXFullF[w]];
                     int vyF = LUTVF[VYFullF[w]];
-                    //                    int dstF = prefF[vyF*ref_pitch + vxF + (w<<2)];
                     int dstF  = *prefF->GetPointerPel4(vxF + (w<<2), vyF + (h<<2)); // v2.0.0.6
                     int vxB = LUTVB[VXFullB[w]];
                     int vyB = LUTVB[VYFullB[w]];
-                    //                    int dstB = prefB[vyB*ref_pitch + vxB + (w<<2)];
                     int dstB = *prefB->GetPointerPel4(vxB + (w<<2), vyB + (h<<2)); // v2.0.0.6
                     pdst[w] = ( ( (dstF*(255-MaskF[w]) + dstB*MaskF[w] + 255)>>8 )*(256-time256) +
                             ( (dstB*(255-MaskB[w]) + dstF*MaskB[w] + 255)>>8 )*time256 )>>8;
                 }
                 pdst += dst_pitch;
-                //                prefB += ref_pitch<<2;
-                //                prefF += ref_pitch<<2;
                 VXFullB += VPitch;
                 VYFullB += VPitch;
                 VXFullF += VPitch;
