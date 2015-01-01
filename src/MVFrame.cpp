@@ -17,9 +17,10 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html .
 
+#include <VSHelper.h>
+
 #include "MVInterface.h"
 #include "Padding.h"
-#include "CopyCode.h"
 #include "Interpolation.h"
 #include "MVSuper.h"
 
@@ -98,7 +99,7 @@ void MVPlane::ChangePlane(const uint8_t *pNewPlane, int nNewPitch)
 {
     //    EnterCriticalSection(&cs);
     if ( !isFilled )
-        BitBlt(pPlane[0] + nOffsetPadding, nPitch, pNewPlane, nNewPitch, nWidth, nHeight, isse);
+        vs_bitblt(pPlane[0] + nOffsetPadding, nPitch, pNewPlane, nNewPitch, nWidth, nHeight);
     isFilled = true;
     //   LeaveCriticalSection(&cs);
 }

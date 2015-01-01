@@ -355,24 +355,36 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
             {
                 // luma
                 if (scBehavior)
-                    BitBlt(pDst[0] + nWidth_B, nDstPitches[0], pSrc[0] + nWidth_B + nHPadding + nVPadding * nSrcPitches[0], nSrcPitches[0], nWidth-nWidth_B, nHeight_B, isse);
+                    vs_bitblt(pDst[0] + nWidth_B, nDstPitches[0],
+                              pSrc[0] + nWidth_B + nHPadding + nVPadding * nSrcPitches[0], nSrcPitches[0],
+                              nWidth - nWidth_B, nHeight_B);
                 else
-                    BitBlt(pDst[0] + nWidth_B, nDstPitches[0], pRef[0] + nWidth_B + nHPadding + nVPadding * nRefPitches[0], nRefPitches[0], nWidth-nWidth_B, nHeight_B, isse);
+                    vs_bitblt(pDst[0] + nWidth_B, nDstPitches[0],
+                              pRef[0] + nWidth_B + nHPadding + nVPadding * nRefPitches[0], nRefPitches[0],
+                              nWidth - nWidth_B, nHeight_B);
                 // chroma u
                 if(pPlanes[1])
                 {
                     if (scBehavior)
-                        BitBlt(pDst[1] + (nWidth_B>>1), nDstPitches[1], pSrc[1] + (nWidth_B>>1) + (nHPadding>>1) + (nVPadding>>ySubUV) * nSrcPitches[1], nSrcPitches[1], (nWidth-nWidth_B)>>1, nHeight_B>>ySubUV, isse);
+                        vs_bitblt(pDst[1] + (nWidth_B >> 1), nDstPitches[1],
+                                  pSrc[1] + (nWidth_B >> 1) + (nHPadding >> 1) + (nVPadding >> ySubUV) * nSrcPitches[1], nSrcPitches[1],
+                                  (nWidth - nWidth_B) >> 1, nHeight_B >> ySubUV);
                     else
-                        BitBlt(pDst[1] + (nWidth_B>>1), nDstPitches[1], pRef[1] + (nWidth_B>>1) + (nHPadding>>1) + (nVPadding>>ySubUV) * nRefPitches[1], nRefPitches[1], (nWidth-nWidth_B)>>1, nHeight_B>>ySubUV, isse);
+                        vs_bitblt(pDst[1] + (nWidth_B >> 1), nDstPitches[1],
+                                  pRef[1] + (nWidth_B >> 1) + (nHPadding >> 1) + (nVPadding >> ySubUV) * nRefPitches[1], nRefPitches[1],
+                                  (nWidth - nWidth_B) >> 1, nHeight_B >> ySubUV);
                 }
                 // chroma v
                 if(pPlanes[2])
                 {
                     if (scBehavior)
-                        BitBlt(pDst[2] + (nWidth_B>>1), nDstPitches[2], pSrc[2] + (nWidth_B>>1) + (nHPadding>>1) + (nVPadding>>ySubUV) * nSrcPitches[2], nSrcPitches[2], (nWidth-nWidth_B)>>1, nHeight_B>>ySubUV, isse);
+                        vs_bitblt(pDst[2] + (nWidth_B >> 1), nDstPitches[2],
+                                  pSrc[2] + (nWidth_B >> 1) + (nHPadding >> 1) + (nVPadding >> ySubUV) * nSrcPitches[2], nSrcPitches[2],
+                                  (nWidth - nWidth_B) >> 1, nHeight_B >> ySubUV);
                     else
-                        BitBlt(pDst[2] + (nWidth_B>>1), nDstPitches[2], pRef[2] + (nWidth_B>>1) + (nHPadding>>1) + (nVPadding>>ySubUV) * nRefPitches[2], nRefPitches[2], (nWidth-nWidth_B)>>1, nHeight_B>>ySubUV, isse);
+                        vs_bitblt(pDst[2] + (nWidth_B >> 1), nDstPitches[2],
+                                  pRef[2] + (nWidth_B >> 1) + (nHPadding >> 1) + (nVPadding >> ySubUV) * nRefPitches[2], nRefPitches[2],
+                                  (nWidth - nWidth_B) >> 1, nHeight_B >> ySubUV);
                 }
             }
 
@@ -380,24 +392,36 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
             {
                 // luma
                 if (scBehavior)
-                    BitBlt(pDst[0] + nHeight_B*nDstPitches[0], nDstPitches[0], pSrc[0] + nHPadding + (nHeight_B + nVPadding) * nSrcPitches[0], nSrcPitches[0], nWidth, nHeight-nHeight_B, isse);
+                    vs_bitblt(pDst[0] + nHeight_B * nDstPitches[0], nDstPitches[0],
+                              pSrc[0] + nHPadding + (nHeight_B + nVPadding) * nSrcPitches[0], nSrcPitches[0],
+                              nWidth, nHeight - nHeight_B);
                 else
-                    BitBlt(pDst[0] + nHeight_B*nDstPitches[0], nDstPitches[0], pRef[0] + nHPadding + (nHeight_B + nVPadding) * nRefPitches[0], nRefPitches[0], nWidth, nHeight-nHeight_B, isse);
+                    vs_bitblt(pDst[0] + nHeight_B * nDstPitches[0], nDstPitches[0],
+                              pRef[0] + nHPadding + (nHeight_B + nVPadding) * nRefPitches[0], nRefPitches[0],
+                              nWidth, nHeight - nHeight_B);
                 // chroma u
                 if(pPlanes[1])
                 {
                     if (scBehavior)
-                        BitBlt(pDst[1] + (nHeight_B>>ySubUV)*nDstPitches[1], nDstPitches[1], pSrc[1] + nHPadding + ((nHeight_B + nVPadding)>>ySubUV) * nSrcPitches[1], nSrcPitches[1], nWidth>>1, (nHeight-nHeight_B)>>ySubUV, isse);
+                        vs_bitblt(pDst[1] + (nHeight_B >> ySubUV) * nDstPitches[1], nDstPitches[1],
+                                  pSrc[1] + nHPadding + ((nHeight_B + nVPadding) >> ySubUV) * nSrcPitches[1], nSrcPitches[1],
+                                  nWidth >> 1, (nHeight - nHeight_B) >> ySubUV);
                     else
-                        BitBlt(pDst[1] + (nHeight_B>>ySubUV)*nDstPitches[1], nDstPitches[1], pRef[1] + nHPadding + ((nHeight_B + nVPadding)>>ySubUV) * nRefPitches[1], nRefPitches[1], nWidth>>1, (nHeight-nHeight_B)>>ySubUV, isse);
+                        vs_bitblt(pDst[1] + (nHeight_B >> ySubUV) * nDstPitches[1], nDstPitches[1],
+                                  pRef[1] + nHPadding + ((nHeight_B + nVPadding) >> ySubUV) * nRefPitches[1], nRefPitches[1],
+                                  nWidth >> 1, (nHeight - nHeight_B) >> ySubUV);
                 }
                 // chroma v
                 if(pPlanes[2])
                 {
                     if (scBehavior)
-                        BitBlt(pDst[2] + (nHeight_B>>ySubUV)*nDstPitches[2], nDstPitches[2], pSrc[2] + nHPadding + ((nHeight_B + nVPadding)>>ySubUV) * nSrcPitches[2], nSrcPitches[2], nWidth>>1, (nHeight-nHeight_B)>>ySubUV, isse);
+                        vs_bitblt(pDst[2] + (nHeight_B >> ySubUV) * nDstPitches[2], nDstPitches[2],
+                                  pSrc[2] + nHPadding + ((nHeight_B + nVPadding) >> ySubUV) * nSrcPitches[2], nSrcPitches[2],
+                                  nWidth >> 1, (nHeight - nHeight_B) >> ySubUV);
                     else
-                        BitBlt(pDst[2] + (nHeight_B>>ySubUV)*nDstPitches[2], nDstPitches[2], pRef[2] + nHPadding + ((nHeight_B + nVPadding)>>ySubUV) * nRefPitches[2], nRefPitches[2], nWidth>>1, (nHeight-nHeight_B)>>ySubUV, isse);
+                        vs_bitblt(pDst[2] + (nHeight_B >> ySubUV) * nDstPitches[2], nDstPitches[2],
+                                  pRef[2] + nHPadding + ((nHeight_B + nVPadding) >> ySubUV) * nRefPitches[2], nRefPitches[2],
+                                  nWidth >> 1, (nHeight - nHeight_B) >> ySubUV);
                 }
             }
 

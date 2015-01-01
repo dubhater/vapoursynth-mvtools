@@ -21,7 +21,6 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-//#include "CopyCode.h"
 #include "MaskFun.h"
 
 

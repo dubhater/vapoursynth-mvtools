@@ -28,7 +28,6 @@
 #include "MVDegrain1.h"
 #include "MVDegrains.h"
 #include "MVInterface.h"
-#include "CopyCode.h"
 #include "Overlap.h"
 
 

@@ -1,12 +1,8 @@
 #ifndef __COPYCODE_H__
 #define __COPYCODE_H__
 
+#include <cstring>
 
-#include <VSHelper.h>
-
-inline void BitBlt(unsigned char* dstp, int dst_pitch, const unsigned char* srcp, int src_pitch, int row_size, int height, bool isse) {
-    vs_bitblt(dstp, dst_pitch, srcp, src_pitch, row_size, height);
-}
 
 typedef void (*COPYFunction)(unsigned char *pDst, intptr_t nDstPitch,
         const unsigned char *pSrc, intptr_t nSrcPitch);
