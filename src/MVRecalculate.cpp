@@ -83,21 +83,18 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
     if (activationReason == arInitial) {
         vsapi->requestFrameFilter(n, d->vectors, frameCtx);
 
-        // FIXME: make it less ugly
-        int minframe = ( d->analysisData.isBackward ) ? 0 : d->analysisData.nDeltaFrame;
-        int maxframe = ( d->analysisData.isBackward ) ? (d->vi->numFrames ? d->vi->numFrames - d->analysisData.nDeltaFrame : n + d->analysisData.nDeltaFrame + 1) : d->vi->numFrames;
         int offset = ( d->analysisData.isBackward ) ? d->analysisData.nDeltaFrame : -d->analysisData.nDeltaFrame;
         int nref = n + offset;
 
-        if (( n < maxframe ) && ( n >= minframe )) {
-            if (nref < n)
+        if (nref >= 0 && (nref < d->vi->numFrames || !d->vi->numFrames)) {
+            if (n < nref) {
+                vsapi->requestFrameFilter(n, d->node, frameCtx);
                 vsapi->requestFrameFilter(nref, d->node, frameCtx);
-
-            vsapi->requestFrameFilter(n, d->node, frameCtx);
-
-            if (nref >= n)
+            } else {
                 vsapi->requestFrameFilter(nref, d->node, frameCtx);
-        } else {
+                vsapi->requestFrameFilter(n, d->node, frameCtx);
+            }
+        } else { // too close to beginning/end of clip
             vsapi->requestFrameFilter(n, d->node, frameCtx);
         }
     } else if (activationReason == arAllFramesReady) {
@@ -111,8 +108,6 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
         int nSrcPitchY, nSrcPitchUV;
         int nRefPitchY, nRefPitchUV;
 
-        int minframe = ( d->analysisData.isBackward ) ? 0 : d->analysisData.nDeltaFrame;
-        int maxframe = ( d->analysisData.isBackward ) ? (d->vi->numFrames ? d->vi->numFrames - d->analysisData.nDeltaFrame : n + d->analysisData.nDeltaFrame + 1) : d->vi->numFrames;
         int offset = ( d->analysisData.isBackward ) ? d->analysisData.nDeltaFrame : -d->analysisData.nDeltaFrame;
         int nref = n + offset;
 
@@ -162,7 +157,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
         balls.Update(mvn);
         vsapi->freeFrame(mvn);
 
-        if (balls.IsUsable() && ( n < maxframe ) && ( n >= minframe ))
+        if (balls.IsUsable() && nref >= 0 && (nref < d->vi->numFrames || !d->vi->numFrames))
         {
             const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->node, frameCtx);
             const VSMap *refprops = vsapi->getFramePropsRO(ref);
