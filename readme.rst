@@ -27,8 +27,6 @@ Differences
 
     * No "outfile" parameter.
 
-    * No "dct" parameter, because fftw3 likes to crash, and the special code for 8x8 blocks is a pile of inline and standalone asm that may take a while to decipher.
-
     * No "sadx264" parameter. If isse is True, the best functions imported from x264 will be selected automatically. Otherwise, only C functions will be used.
 
     * New parameters "fields" and "tff".
@@ -53,9 +51,9 @@ Usage
 
     mv.Super(clip clip[, int hpad=8, int vpad=8, int pel=2, int levels=0, bint chroma=True, int sharp=2, int rfilter=2, clip pelclip=None, bint isse=True])
 
-    mv.Analyse(clip super[, int blksize=8, int blksizev=blksize, int levels=0, int search=4, int searchparam=2, int pelsearch=0, bint isb=False, int lambda, bint chroma=True, int delta=1, bint truemotion=True, int lsad, int plevel, int global, int pnew, int pzero=pnew, int pglobal=0, int overlap=0, int overlapv=overlap, bint divide=False, int badsad=10000, int badrange=24, bint isse=True, bint meander=True, bint trymany=False, bint fields=False, bint tff, int search_coarse=3])
+    mv.Analyse(clip super[, int blksize=8, int blksizev=blksize, int levels=0, int search=4, int searchparam=2, int pelsearch=0, bint isb=False, int lambda, bint chroma=True, int delta=1, bint truemotion=True, int lsad, int plevel, int global, int pnew, int pzero=pnew, int pglobal=0, int overlap=0, int overlapv=overlap, bint divide=False, int badsad=10000, int badrange=24, bint isse=True, bint meander=True, bint trymany=False, bint fields=False, bint tff, int search_coarse=3, int dct=0])
 
-    mv.Recalculate(clip super, clip vectors[, int blksize=8, int blksizev=blksize, int search=4, int searchparam=2, int lambda, bint chroma=True, bint truemotion=True, int pnew, int overlap=0, int overlapv=overlap, bint divide=False, bint isse=True, bint meander=True, bint fields=False, bint tff])
+    mv.Recalculate(clip super, clip vectors[, int blksize=8, int blksizev=blksize, int search=4, int searchparam=2, int lambda, bint chroma=True, bint truemotion=True, int pnew, int overlap=0, int overlapv=overlap, bint divide=False, bint isse=True, bint meander=True, bint fields=False, bint tff, int dct=0])
 
     mv.Compensate(clip clip, clip super, clip vectors[, int scbehavior=1, int thsad=10000, bint fields=False, int thscd1=400, int thscd2=130, bint isse=True, bint tff])
 
@@ -75,6 +73,8 @@ Usage
 
     mv.FlowFPS(clip clip, clip super, clip mvbw, clip mvfw[, int num=25, int den=1, int mask=2, float ml=100.0, bint blend=True, int thscd1=400, int thscd2=130, bint isse=True])
 
+    mv.BlockFPS(clip clip, clip super, clip mvbw, clip mvfw[, int num=25, int den=1, int mode=0, int thres, bint blend=True, int thscd1=400, int thscd2=130, bint isse=True])
+
 
 If *fields* is True, it is assumed that the clip named *clip* first went through std.SeparateFields.
 
@@ -93,6 +93,8 @@ Things that may happen soon™
 
 Compilation
 ===========
+
+FFTW3 configured for 32 bit floats is required ("fftw3f").
 
 ::
 
