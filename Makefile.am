@@ -24,6 +24,7 @@ libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/Interpolation.cpp \
 						src/MaskFun.cpp \
 						src/MVAnalyse.cpp \
+						src/MVBlockFPS.cpp \
 						src/MVClip.cpp \
 						src/MVCompensate.cpp \
 						src/MVDegrain1.cpp \
