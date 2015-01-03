@@ -49,6 +49,20 @@ cglobal sad_8x2_sse2, 4, 4, 2, srcp1, stride1, srcp2, stride2
 
 
 INIT_XMM
+cglobal sad_16x1_sse2, 4, 4, 2, srcp1, stride1, srcp2, stride2
+    movdqu m0, [srcp1q]
+    movdqu m1, [srcp2q]
+
+    psadbw m0, m1
+
+    movhlps m1, m0
+    paddw m0, m1
+    movd eax, m0
+
+    RET
+
+
+INIT_XMM
 cglobal sad_16x2_sse2, 4, 4, 4, srcp1, stride1, srcp2, stride2
     movdqu m0, [srcp1q]
     movdqu m1, [srcp1q + stride1q]
@@ -79,6 +93,20 @@ cglobal sad_16x2_sse2, 4, 4, 4, srcp1, stride1, srcp2, stride2
     paddd m0, m2
     lea srcp2q, [srcp2q + stride2q * 2]
 %endmacro
+
+
+INIT_XMM
+cglobal sad_16x4_sse2, 4, 4, 5, srcp1, stride1, srcp2, stride2
+    pxor m0, m0
+
+    SAD16x2
+    SAD16x2
+
+    movhlps m1, m0
+    paddd m0, m1
+    movd eax, m0
+
+    RET
 
 
 INIT_XMM
@@ -136,6 +164,22 @@ cglobal sad_16x32_sse2, 4, 4, 5, srcp1, stride1, srcp2, stride2
     paddd m0, m1
     paddd m0, m3
 %endmacro
+
+
+INIT_XMM
+cglobal sad_32x8_sse2, 4, 4, 7, srcp1, stride1, srcp2, stride2
+    pxor m0, m0
+
+    SAD32x2
+    SAD32x2
+    SAD32x2
+    SAD32x2
+
+    movhlps m1, m0
+    paddd m0, m1
+    movd eax, m0
+
+    RET
 
 
 INIT_XMM

@@ -30,10 +30,13 @@ MK_CFUNC(mvtools_Copy8x2_sse2);
 MK_CFUNC(mvtools_Copy8x4_sse2);
 MK_CFUNC(mvtools_Copy8x8_sse2);
 MK_CFUNC(mvtools_Copy8x16_sse2);
+MK_CFUNC(mvtools_Copy16x1_sse2);
 MK_CFUNC(mvtools_Copy16x2_sse2);
+MK_CFUNC(mvtools_Copy16x4_sse2);
 MK_CFUNC(mvtools_Copy16x8_sse2);
 MK_CFUNC(mvtools_Copy16x16_sse2);
 MK_CFUNC(mvtools_Copy16x32_sse2);
+MK_CFUNC(mvtools_Copy32x8_sse2);
 MK_CFUNC(mvtools_Copy32x16_sse2);
 MK_CFUNC(mvtools_Copy32x32_sse2);
 #undef MK_CFUNC

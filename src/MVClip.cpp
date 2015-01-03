@@ -48,6 +48,7 @@ MVClipDicks::MVClipDicks(VSNodeRef *vectors, int _nSCD1, int _nSCD2, const VSAPI
     nMagicKey = pAnalyseFilter->GetMagicKey();
     nOverlapX = pAnalyseFilter->GetOverlapX();
     nOverlapY = pAnalyseFilter->GetOverlapY();
+    xRatioUV = pAnalyseFilter->GetXRatioUV();
     yRatioUV = pAnalyseFilter->GetYRatioUV();
     nVPadding = pAnalyseFilter->GetVPadding();
     nHPadding = pAnalyseFilter->GetHPadding();
@@ -58,10 +59,10 @@ MVClipDicks::MVClipDicks(VSNodeRef *vectors, int _nSCD1, int _nSCD2, const VSAPI
     nBlkCount = nBlkX * nBlkY;
 
     // SCD thresholds
+    int referenceBlockSize = 8 * 8;
+    nSCD1 = _nSCD1 * (nBlkSizeX * nBlkSizeY) / referenceBlockSize;
     if ( pAnalyseFilter->IsChromaMotion() )
-        nSCD1 = _nSCD1 * (nBlkSizeX * nBlkSizeY) / (8 * 8) * (1 + yRatioUV) / yRatioUV;
-    else
-        nSCD1 = _nSCD1 * (nBlkSizeX * nBlkSizeY) / (8 * 8);
+        nSCD1 += nSCD1 / (xRatioUV * yRatioUV) * 2;
 
     nSCD2 = _nSCD2 * nBlkCount / 256;
 

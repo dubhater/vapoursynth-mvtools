@@ -198,12 +198,31 @@ cglobal Copy8x16_sse2, 4, 6, 4, dstp, dst_stride, srcp, src_stride, dst_stride3,
 
 
 INIT_XMM
+cglobal Copy16x1_sse2, 4, 4, 1, dstp, dst_stride, srcp, src_stride
+    movdqu m0, [srcpq]
+
+    movdqu [dstpq], m0
+
+    RET
+
+
+INIT_XMM
 cglobal Copy16x2_sse2, 4, 4, 2, dstp, dst_stride, srcp, src_stride
     movdqu m0, [srcpq]
     movdqu m1, [srcpq + src_strideq]
 
     movdqu [dstpq], m0
     movdqu [dstpq + dst_strideq], m1
+
+    RET
+
+
+INIT_XMM
+cglobal Copy16x4_sse2, 4, 6, 4, dstp, dst_stride, srcp, src_stride, dst_stride3, src_stride3
+    lea dst_stride3q, [dst_strideq * 3] ; yasm is smart and turns it into [dst_strideq + dst_strideq * 2]
+    lea src_stride3q, [src_strideq * 3]
+
+    MOV16x4
 
     RET
 
@@ -313,6 +332,21 @@ cglobal Copy16x32_sse2, 4, 6, 4, dstp, dst_stride, srcp, src_stride, dst_stride3
     movdqu [dstpq + dst_stride3q], m6
     movdqu [dstpq + dst_stride3q + 16], m7
 %endmacro
+
+
+INIT_XMM
+cglobal Copy32x8_sse2, 4, 6, 8, dstp, dst_stride, srcp, src_stride, dst_stride3, src_stride3
+    lea dst_stride3q, [dst_strideq * 3] ; yasm is smart and turns it into [dst_strideq + dst_strideq * 2]
+    lea src_stride3q, [src_strideq * 3]
+
+    MOV32x4
+
+    lea srcpq, [srcpq + src_strideq * 4]
+    lea dstpq, [dstpq + dst_strideq * 4]
+
+    MOV32x4
+
+    RET
 
 
 INIT_XMM

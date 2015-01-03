@@ -39,6 +39,7 @@ MVFilter::MVFilter(VSNodeRef *vector, const char *filterName, const VSAPI *vsapi
     nOverlapX = mvClip.GetOverlapX();
     nOverlapY = mvClip.GetOverlapY();
     pixelType = mvClip.GetPixelType();
+    xRatioUV = mvClip.GetXRatioUV();
     yRatioUV = mvClip.GetYRatioUV();
 
     name = filterName;

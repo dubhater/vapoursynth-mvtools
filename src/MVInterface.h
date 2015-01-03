@@ -271,7 +271,7 @@ class MVAnalysisData
 
         int yRatioUV; // ratio of luma plane height to chroma plane height
 
-        int xRatioUV; // ratio of luma plane height to chroma plane width (fixed to 2 for YV12 and YUY2)
+        int xRatioUV; // ratio of luma plane width to chroma plane width
 
         int nHPadding; // Horizontal padding - v1.8.1
 
@@ -526,10 +526,11 @@ class MVFrame {
 
     int nMode;
     bool isse;
+    int xRatioUV;
     int yRatioUV;
 
     public:
-    MVFrame(int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int _nMode, bool _isse, int _yRatioUV);
+    MVFrame(int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int _nMode, bool _isse, int _xRatioUV, int _yRatioUV);
     ~MVFrame();
 
     void Update(int _nMode, uint8_t * pSrcY, int pitchY, uint8_t * pSrcU, int pitchU, uint8_t *pSrcV, int pitchV);
@@ -571,11 +572,12 @@ class MVGroupOfFrames {
     int nPel;
     int nHPad;
     int nVPad;
+    int xRatioUV;
     int yRatioUV;
 
     public :
 
-    MVGroupOfFrames(int _nLevelCount, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int nMode, bool isse, int yRatioUV);
+    MVGroupOfFrames(int _nLevelCount, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int nMode, bool isse, int _xRatioUV, int yRatioUV);
     ~MVGroupOfFrames();
     void Update(int nModeYUV, uint8_t * pSrcY, int pitchY, uint8_t * pSrcU, int pitchU, uint8_t *pSrcV, int pitchV);
 

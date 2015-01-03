@@ -28,6 +28,7 @@ class GroupOfPlanes {
     int nFlags;
     int nOverlapX;
     int nOverlapY;
+    int xRatioUV;
     int yRatioUV;
     int divideExtra;
 
@@ -35,7 +36,7 @@ class GroupOfPlanes {
 
     public :
     GroupOfPlanes(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, int _nPel,
-            int _nFlags, int _nOverlapX, int _nOverlapY, int _nBlkX, int _nBlkY, int _yRatioUV, int _divideExtra);
+            int _nFlags, int _nOverlapX, int _nOverlapY, int _nBlkX, int _nBlkY, int _xRatioUV, int _yRatioUV, int _divideExtra);
     ~GroupOfPlanes();
     void SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
             SearchType searchType, int nSearchParam, int _PelSearch, int _nLambda, int _lsad, int _pnew, int _plevel, bool _global,

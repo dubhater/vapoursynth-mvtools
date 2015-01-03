@@ -379,10 +379,11 @@ void MVPlane::WritePlane(FILE *pFile)
  *                                                                             *
  ******************************************************************************/
 
-MVFrame::MVFrame(int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int _nMode, bool _isse, int _yRatioUV)
+MVFrame::MVFrame(int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int _nMode, bool _isse, int _xRatioUV, int _yRatioUV)
 {
     nMode = _nMode;
     isse = _isse;
+    xRatioUV = _xRatioUV;
     yRatioUV = _yRatioUV;
 
     if ( nMode & YPLANE )
@@ -391,12 +392,12 @@ MVFrame::MVFrame(int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int _n
         pYPlane = 0;
 
     if ( nMode & UPLANE )
-        pUPlane = new MVPlane(nWidth / 2, nHeight / yRatioUV, nPel, nHPad / 2, nVPad / yRatioUV, isse);
+        pUPlane = new MVPlane(nWidth / xRatioUV, nHeight / yRatioUV, nPel, nHPad / xRatioUV, nVPad / yRatioUV, isse);
     else
         pUPlane = 0;
 
     if ( nMode & VPLANE )
-        pVPlane = new MVPlane(nWidth / 2, nHeight / yRatioUV, nPel, nHPad / 2, nVPad / yRatioUV, isse);
+        pVPlane = new MVPlane(nWidth / xRatioUV, nHeight / yRatioUV, nPel, nHPad / xRatioUV, nVPad / yRatioUV, isse);
     else
         pVPlane = 0;
 }
@@ -503,7 +504,7 @@ void MVFrame::ReduceTo(MVFrame *pFrame, MVPlaneSet _nMode, int rfilter)
  *                                                                             *
  ******************************************************************************/
 
-MVGroupOfFrames::MVGroupOfFrames(int _nLevelCount, int _nWidth, int _nHeight, int _nPel, int _nHPad, int _nVPad, int nMode, bool isse, int _yRatioUV)
+MVGroupOfFrames::MVGroupOfFrames(int _nLevelCount, int _nWidth, int _nHeight, int _nPel, int _nHPad, int _nVPad, int nMode, bool isse, int _xRatioUV, int _yRatioUV)
 {
     nLevelCount = _nLevelCount;
     nWidth = _nWidth;
@@ -511,15 +512,16 @@ MVGroupOfFrames::MVGroupOfFrames(int _nLevelCount, int _nWidth, int _nHeight, in
     nPel = _nPel;
     nHPad = _nHPad;
     nVPad = _nVPad;
+    xRatioUV = _xRatioUV;
     yRatioUV = _yRatioUV;
     pFrames = new MVFrame *[nLevelCount];
 
-    pFrames[0] = new MVFrame(nWidth, nHeight, nPel, nHPad, nVPad, nMode, isse, yRatioUV);
+    pFrames[0] = new MVFrame(nWidth, nHeight, nPel, nHPad, nVPad, nMode, isse, xRatioUV, yRatioUV);
     for ( int i = 1; i < nLevelCount; i++ )
     {
-        int nWidthi = PlaneWidthLuma(nWidth, i, 2, nHPad);//(nWidthi / 2) - ((nWidthi / 2) % 2); //  even for YV12, YUY2
+        int nWidthi = PlaneWidthLuma(nWidth, i, xRatioUV, nHPad);//(nWidthi / 2) - ((nWidthi / 2) % xRatioUV); //  even for YV12
         int nHeighti = PlaneHeightLuma(nHeight, i, yRatioUV, nVPad);//(nHeighti / 2) - ((nHeighti / 2) % yRatioUV); // even for YV12
-        pFrames[i] = new MVFrame(nWidthi, nHeighti, 1, nHPad, nVPad, nMode, isse, yRatioUV);
+        pFrames[i] = new MVFrame(nWidthi, nHeighti, 1, nHPad, nVPad, nMode, isse, xRatioUV, yRatioUV);
     }
 }
 

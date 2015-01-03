@@ -328,6 +328,7 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
         const int thres = d->thres;
         const int blend = d->blend;
         const int isse = d->isse;
+        const int xRatioUV = d->bleh->xRatioUV;
         const int yRatioUV = d->bleh->yRatioUV;
         const int nBlkX = d->bleh->nBlkX;
         const int nBlkY = d->bleh->nBlkY;
@@ -369,8 +370,8 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
                 nSrcPitches[i] = vsapi->getStride(src, i);
             }
 
-            MVGroupOfFrames *pRefBGOF = new MVGroupOfFrames(nSuperLevels, nWidth, nHeight, nSuperPel, nSuperHPad, nSuperVPad, nSuperModeYUV, isse, yRatioUV);
-            MVGroupOfFrames *pRefFGOF = new MVGroupOfFrames(nSuperLevels, nWidth, nHeight, nSuperPel, nSuperHPad, nSuperVPad, nSuperModeYUV, isse, yRatioUV);
+            MVGroupOfFrames *pRefBGOF = new MVGroupOfFrames(nSuperLevels, nWidth, nHeight, nSuperPel, nSuperHPad, nSuperVPad, nSuperModeYUV, isse, xRatioUV, yRatioUV);
+            MVGroupOfFrames *pRefFGOF = new MVGroupOfFrames(nSuperLevels, nWidth, nHeight, nSuperPel, nSuperHPad, nSuperVPad, nSuperModeYUV, isse, xRatioUV, yRatioUV);
 
             pRefBGOF->Update(YUVPLANES, (uint8_t*)pRef[0], nRefPitches[0], (uint8_t*)pRef[1], nRefPitches[1], (uint8_t*)pRef[2], nRefPitches[2]);// v2.0
             pRefFGOF->Update(YUVPLANES, (uint8_t*)pSrc[0], nSrcPitches[0], (uint8_t*)pSrc[1], nSrcPitches[1], (uint8_t*)pSrc[2], nSrcPitches[2]);
@@ -484,70 +485,70 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
                 // chroma u
                 if (nSuperModeYUV & UPLANE)
                     ResultBlock(pDst[1], nDstPitches[1],
-                            pPlanesB[1]->GetPointer((blockB.GetX() * nPel + ((blockB.GetMV().x * (256 - time256)) >> 8)) >> 1, (blockB.GetY() * nPel + ((blockB.GetMV().y * (256 - time256)) >> 8)) / yRatioUV),
+                            pPlanesB[1]->GetPointer((blockB.GetX() * nPel + ((blockB.GetMV().x * (256 - time256)) >> 8)) / xRatioUV, (blockB.GetY() * nPel + ((blockB.GetMV().y * (256 - time256)) >> 8)) / yRatioUV),
                             pPlanesB[1]->GetPitch(),
-                            pPlanesF[1]->GetPointer((blockF.GetX() * nPel + ((blockF.GetMV().x * time256) >> 8)) >> 1, (blockF.GetY() * nPel + ((blockF.GetMV().y * time256) >> 8)) / yRatioUV),
+                            pPlanesF[1]->GetPointer((blockF.GetX() * nPel + ((blockF.GetMV().x * time256) >> 8)) / xRatioUV, (blockF.GetY() * nPel + ((blockF.GetMV().y * time256) >> 8)) / yRatioUV),
                             pPlanesF[1]->GetPitch(),
                             pRef[1], nRefPitches[1],
                             pSrc[1], nSrcPitches[1],
                             pMaskFullUVB, nPitchUV,
                             pMaskFullUVF, pMaskOccUV,
-                            nBlkSizeX >> 1, nBlkSizeY / yRatioUV, time256, mode);
+                            nBlkSizeX / xRatioUV, nBlkSizeY / yRatioUV, time256, mode);
                 // chroma v
                 if (nSuperModeYUV & VPLANE)
                     ResultBlock(pDst[2], nDstPitches[2],
-                            pPlanesB[2]->GetPointer((blockB.GetX() * nPel + ((blockB.GetMV().x * (256 - time256)) >> 8)) >> 1, (blockB.GetY() * nPel + ((blockB.GetMV().y * (256 - time256)) >> 8)) / yRatioUV),
+                            pPlanesB[2]->GetPointer((blockB.GetX() * nPel + ((blockB.GetMV().x * (256 - time256)) >> 8)) / xRatioUV, (blockB.GetY() * nPel + ((blockB.GetMV().y * (256 - time256)) >> 8)) / yRatioUV),
                             pPlanesB[2]->GetPitch(),
-                            pPlanesF[2]->GetPointer((blockF.GetX() * nPel + ((blockF.GetMV().x * time256) >> 8)) >> 1, (blockF.GetY() * nPel + ((blockF.GetMV().y * time256) >> 8)) / yRatioUV),
+                            pPlanesF[2]->GetPointer((blockF.GetX() * nPel + ((blockF.GetMV().x * time256) >> 8)) / xRatioUV, (blockF.GetY() * nPel + ((blockF.GetMV().y * time256) >> 8)) / yRatioUV),
                             pPlanesF[2]->GetPitch(),
                             pRef[2], nRefPitches[2],
                             pSrc[2], nSrcPitches[2],
                             pMaskFullUVB, nPitchUV,
                             pMaskFullUVF, pMaskOccUV,
-                            nBlkSizeX >> 1, nBlkSizeY / yRatioUV, time256, mode);
+                            nBlkSizeX / xRatioUV, nBlkSizeY / yRatioUV, time256, mode);
 
 
                 // update pDsts
                 pDst[0] += nBlkSizeX;
-                pDst[1] += nBlkSizeX >> 1;
-                pDst[2] += nBlkSizeX >> 1;
+                pDst[1] += nBlkSizeX / xRatioUV;
+                pDst[2] += nBlkSizeX / xRatioUV;
                 pRef[0] += nBlkSizeX;
-                pRef[1] += nBlkSizeX >> 1;
-                pRef[2] += nBlkSizeX >> 1;
+                pRef[1] += nBlkSizeX / xRatioUV;
+                pRef[2] += nBlkSizeX / xRatioUV;
                 pSrc[0] += nBlkSizeX;
-                pSrc[1] += nBlkSizeX >> 1;
-                pSrc[2] += nBlkSizeX >> 1;
+                pSrc[1] += nBlkSizeX / xRatioUV;
+                pSrc[2] += nBlkSizeX / xRatioUV;
                 pMaskFullYB += nBlkSizeX;
-                pMaskFullUVB += nBlkSizeX >> 1;
+                pMaskFullUVB += nBlkSizeX / xRatioUV;
                 pMaskFullYF += nBlkSizeX;
-                pMaskFullUVF += nBlkSizeX >> 1;
+                pMaskFullUVF += nBlkSizeX / xRatioUV;
                 pMaskOccY += nBlkSizeX;
-                pMaskOccUV += nBlkSizeX >> 1;
+                pMaskOccUV += nBlkSizeX / xRatioUV;
 
 
                 if ( !((i + 1) % nBlkX)  ) {
                     // blend rest right with time weight
                     Blend(pDst[0], pSrc[0], pRef[0], nBlkSizeY, nWidth - nBlkSizeX * nBlkX, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, isse);
                     if (nSuperModeYUV & UPLANE)
-                        Blend(pDst[1], pSrc[1], pRef[1], nBlkSizeY / yRatioUV, nWidthUV - (nBlkSizeX >> 1) * nBlkX, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, isse);
+                        Blend(pDst[1], pSrc[1], pRef[1], nBlkSizeY / yRatioUV, nWidthUV - (nBlkSizeX / xRatioUV) * nBlkX, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, isse);
                     if (nSuperModeYUV & VPLANE)
-                        Blend(pDst[2], pSrc[2], pRef[2], nBlkSizeY / yRatioUV, nWidthUV - (nBlkSizeX >> 1) * nBlkX, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, isse);
+                        Blend(pDst[2], pSrc[2], pRef[2], nBlkSizeY / yRatioUV, nWidthUV - (nBlkSizeX / xRatioUV) * nBlkX, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, isse);
 
                     pDst[0] += nBlkSizeY * nDstPitches[0] - nBlkSizeX * nBlkX;
-                    pDst[1] += ( nBlkSizeY / yRatioUV ) * nDstPitches[1] - (nBlkSizeX >> 1) * nBlkX;
-                    pDst[2] += ( nBlkSizeY / yRatioUV ) * nDstPitches[2] - (nBlkSizeX >> 1) * nBlkX;
+                    pDst[1] += ( nBlkSizeY / yRatioUV ) * nDstPitches[1] - (nBlkSizeX / xRatioUV) * nBlkX;
+                    pDst[2] += ( nBlkSizeY / yRatioUV ) * nDstPitches[2] - (nBlkSizeX / xRatioUV) * nBlkX;
                     pRef[0] += nBlkSizeY * nRefPitches[0] - nBlkSizeX * nBlkX;
-                    pRef[1] += ( nBlkSizeY / yRatioUV ) * nRefPitches[1] - (nBlkSizeX >> 1) * nBlkX;
-                    pRef[2] += ( nBlkSizeY / yRatioUV ) * nRefPitches[2] - (nBlkSizeX >> 1) * nBlkX;
+                    pRef[1] += ( nBlkSizeY / yRatioUV ) * nRefPitches[1] - (nBlkSizeX / xRatioUV) * nBlkX;
+                    pRef[2] += ( nBlkSizeY / yRatioUV ) * nRefPitches[2] - (nBlkSizeX / xRatioUV) * nBlkX;
                     pSrc[0] += nBlkSizeY * nSrcPitches[0] - nBlkSizeX * nBlkX;
-                    pSrc[1] += ( nBlkSizeY / yRatioUV ) * nSrcPitches[1] - (nBlkSizeX >> 1) * nBlkX;
-                    pSrc[2] += ( nBlkSizeY / yRatioUV ) * nSrcPitches[2] - (nBlkSizeX >> 1) * nBlkX;
+                    pSrc[1] += ( nBlkSizeY / yRatioUV ) * nSrcPitches[1] - (nBlkSizeX / xRatioUV) * nBlkX;
+                    pSrc[2] += ( nBlkSizeY / yRatioUV ) * nSrcPitches[2] - (nBlkSizeX / xRatioUV) * nBlkX;
                     pMaskFullYB += nBlkSizeY * nPitchY - nBlkSizeX * nBlkX;
-                    pMaskFullUVB += (nBlkSizeY / yRatioUV) * nPitchUV - (nBlkSizeX >> 1) * nBlkX;
+                    pMaskFullUVB += (nBlkSizeY / yRatioUV) * nPitchUV - (nBlkSizeX / xRatioUV) * nBlkX;
                     pMaskFullYF += nBlkSizeY * nPitchY - nBlkSizeX * nBlkX;
-                    pMaskFullUVF += (nBlkSizeY / yRatioUV) * nPitchUV - (nBlkSizeX >> 1) * nBlkX;
+                    pMaskFullUVF += (nBlkSizeY / yRatioUV) * nPitchUV - (nBlkSizeX / xRatioUV) * nBlkX;
                     pMaskOccY += nBlkSizeY * nPitchY - nBlkSizeX * nBlkX;
-                    pMaskOccUV += (nBlkSizeY / yRatioUV) * nPitchUV - (nBlkSizeX >> 1) * nBlkX;
+                    pMaskOccUV += (nBlkSizeY / yRatioUV) * nPitchUV - (nBlkSizeX / xRatioUV) * nBlkX;
                 }
             }
             // blend rest bottom with time weight
@@ -672,10 +673,13 @@ static void selectFunctions(MVBlockFPSData *d) {
     copys[8][4] = d->isse ? mvtools_Copy8x4_sse2 : Copy_C<8,4>;
     copys[8][8] = d->isse ? mvtools_Copy8x8_sse2 : Copy_C<8,8>;
     copys[8][16] = d->isse ? mvtools_Copy8x16_sse2 : Copy_C<8,16>;
+    copys[16][1] = d->isse ? mvtools_Copy16x1_sse2 : Copy_C<16,1>;
     copys[16][2] = d->isse ? mvtools_Copy16x2_sse2 : Copy_C<16,2>;
+    copys[16][4] = d->isse ? mvtools_Copy16x4_sse2 : Copy_C<16,4>;
     copys[16][8] = d->isse ? mvtools_Copy16x8_sse2 : Copy_C<16,8>;
     copys[16][16] = d->isse ? mvtools_Copy16x16_sse2 : Copy_C<16,16>;
     copys[16][32] = d->isse ? mvtools_Copy16x32_sse2 : Copy_C<16,32>;
+    copys[32][8] = d->isse ? mvtools_Copy32x8_sse2 : Copy_C<32,8>;
     copys[32][16] = d->isse ? mvtools_Copy32x16_sse2 : Copy_C<32,16>;
     copys[32][32] = d->isse ? mvtools_Copy32x32_sse2 : Copy_C<32,32>;
 
@@ -903,9 +907,8 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
         return;
     }
 
-    int id = d.vi.format->id;
-    if (!isConstantFormat(&d.vi) || (id != pfYUV420P8 && id != pfYUV422P8)) {
-        vsapi->setError(out, "BlockFPS: input clip must be YUV420P8 or YUV422P8, with constant dimensions.");
+    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 8 || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || d.vi.format->colorFamily != cmYUV) {
+        vsapi->setError(out, "BlockFPS: input clip must be YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -922,10 +925,10 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     d.nWidthP = d.nBlkXP * (d.bleh->nBlkSizeX - d.bleh->nOverlapX) + d.bleh->nOverlapX;
     d.nHeightP = d.nBlkYP * (d.bleh->nBlkSizeY - d.bleh->nOverlapY) + d.bleh->nOverlapY;
 
-    d.nWidthPUV = d.nWidthP / 2;
+    d.nWidthPUV = d.nWidthP / d.bleh->xRatioUV;
     d.nHeightPUV = d.nHeightP / d.bleh->yRatioUV;
     d.nHeightUV = d.bleh->nHeight / d.bleh->yRatioUV;
-    d.nWidthUV = d.bleh->nWidth / 2; // for YV12
+    d.nWidthUV = d.bleh->nWidth / d.bleh->xRatioUV;
 
     d.nPitchY = (d.nWidthP + 15) & (~15);
     d.nPitchUV = (d.nWidthPUV + 15) & (~15);

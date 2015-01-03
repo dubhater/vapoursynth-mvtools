@@ -23,7 +23,7 @@
 #define max(a,b) ((a) > (b) ? (a) : (b))
 #define min(a,b) ((a) > (b) ? (b) : (a))
 
-PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int _nFlags, int _nOverlapX, int _nOverlapY, int _yRatioUV)
+PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int _nFlags, int _nOverlapX, int _nOverlapY, int _xRatioUV, int _yRatioUV)
 {
 
     /* constant fields */
@@ -44,8 +44,9 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
     nBlkCount = nBlkX * nBlkY;
 
     nFlags = _nFlags;
-    xRatioUV = 2;
+    xRatioUV = _xRatioUV;
     yRatioUV = _yRatioUV;
+    nLogxRatioUV = ilog2(xRatioUV);
     nLogyRatioUV = ilog2(yRatioUV);
 
     smallestPlane = (bool)(nFlags & MOTION_SMALLEST_PLANE);
@@ -73,7 +74,6 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
     SADFunction satds[33][33];
 
     // valid block sizes for luma: 4x4, 8x4, 8x8, 16x2, 16x8, 16x16, 32x16, 32x32.
-    // Chroma block sizes needed to support YUV440P8 (full width, half height): 16x1, 16x4, 32x8.
     if (isse) {
         sads[2][2] = Sad_C<2, 2>;
         blits[2][2] = mvtools_Copy2x2_sse2;
@@ -108,9 +108,15 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
         sads[8][16] = mvtools_pixel_sad_8x16_sse2;
         blits[8][16] = mvtools_Copy8x16_sse2;
 
+        sads[16][1] = mvtools_sad_16x1_sse2;
+        blits[16][1] = mvtools_Copy16x1_sse2;
+
         sads[16][2] = mvtools_sad_16x2_sse2;
         lumas[16][2] = mvtools_Luma16x2_sse2;
         blits[16][2] = mvtools_Copy16x2_sse2;
+
+        sads[16][4] = mvtools_sad_16x4_sse2;
+        blits[16][4] = mvtools_Copy16x4_sse2;
 
         sads[16][8] = mvtools_pixel_sad_16x8_sse2;
         lumas[16][8] = mvtools_Luma16x8_sse2;
@@ -122,6 +128,9 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 
         sads[16][32] = mvtools_sad_16x32_sse2;
         blits[16][32] = mvtools_Copy16x32_sse2;
+
+        sads[32][8] = mvtools_sad_32x8_sse2;
+        blits[32][8] = mvtools_Copy32x8_sse2;
 
         sads[32][16] = mvtools_sad_32x16_sse2;
         lumas[32][16] = mvtools_Luma32x16_sse2;
@@ -179,9 +188,15 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
         sads[8][16] = Sad_C<8, 16>;
         blits[8][16] = Copy_C<8, 16>;
 
+        sads[16][1] = Sad_C<16, 1>;
+        blits[16][1] = Copy_C<16, 1>;
+
         sads[16][2] = Sad_C<16, 2>;
         lumas[16][2] = Luma_C<16, 2>;
         blits[16][2] = Copy_C<16, 2>;
+
+        sads[16][4] = Sad_C<16, 4>;
+        blits[16][4] = Copy_C<16, 4>;
 
         sads[16][8] = Sad_C<16, 8>;
         lumas[16][8] = Luma_C<16, 8>;
@@ -193,6 +208,9 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 
         sads[16][32] = Sad_C<16, 32>;
         blits[16][32] = Copy_C<16, 32>;
+
+        sads[32][8] = Sad_C<32, 8>;
+        blits[32][8] = Copy_C<32, 8>;
 
         sads[32][16] = Sad_C<32, 16>;
         lumas[32][16] = Luma_C<32, 16>;
@@ -238,12 +256,15 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
     dctSrc = (uint8_t *)(((((intptr_t)dctSrc_base) + ALIGN_PLANES - 1)&(~(ALIGN_PLANES - 1))));//aligned like this means, that it will have optimum fit in the cache
     dctRef = (uint8_t *)(((((intptr_t)dctRef_base) + ALIGN_PLANES - 1)&(~(ALIGN_PLANES - 1))));
 
-    int blocksize=nBlkSizeX*nBlkSizeY;
-    int sizeAlignedBlock=blocksize+(ALIGN_SOURCEBLOCK-(blocksize%ALIGN_SOURCEBLOCK))+2*((blocksize/2)>>nLogyRatioUV)+(ALIGN_SOURCEBLOCK-(((blocksize/2)/yRatioUV)%ALIGN_SOURCEBLOCK));
-    pSrc_temp_base=new uint8_t[sizeAlignedBlock+ALIGN_PLANES-1];
-    pSrc_temp[0]=(uint8_t *)((((intptr_t)pSrc_temp_base) + ALIGN_PLANES - 1)&(~(ALIGN_PLANES - 1)));
-    pSrc_temp[1]=(uint8_t *)((((intptr_t)pSrc_temp[0]) + blocksize + ALIGN_SOURCEBLOCK - 1)&(~(ALIGN_SOURCEBLOCK - 1)));
-    pSrc_temp[2]=(uint8_t *)(((((intptr_t)pSrc_temp[1]) + ((blocksize/2)>>nLogyRatioUV) + ALIGN_SOURCEBLOCK - 1)&(~(ALIGN_SOURCEBLOCK - 1))));
+    int blocksize = nBlkSizeX * nBlkSizeY;
+    int blocksizeUV = blocksize >> (nLogxRatioUV + nLogyRatioUV);
+    int sizeAlignedBlock = blocksize + (ALIGN_SOURCEBLOCK - (blocksize % ALIGN_SOURCEBLOCK))
+                         + 2 * blocksizeUV + (ALIGN_SOURCEBLOCK - (blocksizeUV % ALIGN_SOURCEBLOCK));
+
+    pSrc_temp_base = new uint8_t[sizeAlignedBlock + ALIGN_PLANES - 1];
+    pSrc_temp[0] = (uint8_t *)(((intptr_t)pSrc_temp_base + ALIGN_PLANES - 1) & (~(ALIGN_PLANES - 1)));
+    pSrc_temp[1] = (uint8_t *)(((intptr_t)pSrc_temp[0] + blocksize + ALIGN_SOURCEBLOCK - 1) & (~(ALIGN_SOURCEBLOCK - 1)));
+    pSrc_temp[2] = (uint8_t *)(((intptr_t)pSrc_temp[1] + blocksizeUV + ALIGN_SOURCEBLOCK - 1) & (~(ALIGN_SOURCEBLOCK - 1)));
 #else
     dctpitch = max(nBlkSizeX, 16);
     dctSrc = new uint8_t[nBlkSizeY*dctpitch];
@@ -326,8 +347,8 @@ void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
         nSrcPitch_plane[2] = pSrcFrame->GetPlane(VPLANE)->GetPitch();
     }
     nSrcPitch[0] = nBlkSizeX;
-    nSrcPitch[1] = nBlkSizeX/2;
-    nSrcPitch[2] = nBlkSizeX/2;
+    nSrcPitch[1] = nBlkSizeX / xRatioUV;
+    nSrcPitch[2] = nBlkSizeX / xRatioUV;
 #else
     nSrcPitch[0] = pSrcFrame->GetPlane(YPLANE)->GetPitch();
     if (chroma)
@@ -378,8 +399,8 @@ void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
             x[0] = pSrcFrame->GetPlane(YPLANE)->GetHPadding() + (nBlkSizeX-nOverlapX)*(nBlkX-1);
             if (chroma)
             {
-                x[1] = pSrcFrame->GetPlane(UPLANE)->GetHPadding()+ ((nBlkSizeX-nOverlapX)/2)*(nBlkX-1);
-                x[2] = pSrcFrame->GetPlane(VPLANE)->GetHPadding()+ ((nBlkSizeX-nOverlapX)/2)*(nBlkX-1);
+                x[1] = pSrcFrame->GetPlane(UPLANE)->GetHPadding()+ ((nBlkSizeX-nOverlapX) / xRatioUV)*(nBlkX-1);
+                x[2] = pSrcFrame->GetPlane(VPLANE)->GetHPadding()+ ((nBlkSizeX-nOverlapX) / xRatioUV)*(nBlkX-1);
             }
         }
         for ( int iblkx = 0; iblkx < nBlkX; iblkx++ )
@@ -461,9 +482,9 @@ void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
             /* increment indexes & pointers */
             if ( iblkx < nBlkX-1 )
             {
-                x[0] += (nBlkSizeX - nOverlapX)*blkScanDir;
-                x[1] += ((nBlkSizeX - nOverlapX)*blkScanDir /2);
-                x[2] += ((nBlkSizeX - nOverlapX)*blkScanDir /2);
+                x[0] += (nBlkSizeX - nOverlapX) * blkScanDir;
+                x[1] += ((nBlkSizeX - nOverlapX) >> nLogxRatioUV) * blkScanDir;
+                x[2] += ((nBlkSizeX - nOverlapX) >> nLogxRatioUV) * blkScanDir;
             }
         }
         pBlkData += nBlkX*N_PER_BLOCK;
@@ -788,9 +809,9 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
 
             if ( iblkx < nBlkX-1 )
             {
-                x[0] += (nBlkSizeX - nOverlapX)*blkScanDir;
-                x[1] += ((nBlkSizeX - nOverlapX)*blkScanDir /2);
-                x[2] += ((nBlkSizeX - nOverlapX)*blkScanDir /2);
+                x[0] += (nBlkSizeX - nOverlapX) * blkScanDir;
+                x[1] += ((nBlkSizeX - nOverlapX) >> nLogxRatioUV) * blkScanDir;
+                x[2] += ((nBlkSizeX - nOverlapX) >> nLogxRatioUV) * blkScanDir;
             }
         }
         pBlkData += nBlkX*N_PER_BLOCK;

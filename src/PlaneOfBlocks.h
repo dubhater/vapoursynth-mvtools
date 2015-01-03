@@ -46,6 +46,7 @@ class PlaneOfBlocks {
     int nOverlapY; // overlap size
     int xRatioUV;
     int yRatioUV;
+    int nLogxRatioUV;// log of xRatioUV (0 for 1 and 1 for 2)
     int nLogyRatioUV;// log of yRatioUV (0 for 1 and 1 for 2)
 
     SADFunction SAD;           /* function which computes the sad */
@@ -139,23 +140,50 @@ class PlaneOfBlocks {
     /* fetch the block in the reference frame, which is pointed by the vector (vx, vy) */
     inline const uint8_t *GetRefBlock(int nVx, int nVy)
     {
-        return (nPel==2) ? pRefFrame->GetPlane(YPLANE)->GetAbsolutePointerPel2((x[0]<<1) + nVx, (y[0]<<1) + nVy) :
-            (nPel==1) ? pRefFrame->GetPlane(YPLANE)->GetAbsolutePointerPel1((x[0]) + nVx, (y[0]) + nVy) :
-            pRefFrame->GetPlane(YPLANE)->GetAbsolutePointerPel4((x[0]<<2) + nVx, (y[0]<<2) + nVy);
+        if (nPel == 2)
+            return pRefFrame->GetPlane(YPLANE)->GetAbsolutePointerPel2(
+                    x[0] * 2 + nVx,
+                    y[0] * 2 + nVy);
+        else if (nPel == 1)
+            return pRefFrame->GetPlane(YPLANE)->GetAbsolutePointerPel1(
+                    x[0] + nVx,
+                    y[0] + nVy);
+        else
+            return pRefFrame->GetPlane(YPLANE)->GetAbsolutePointerPel4(
+                    x[0] * 4 + nVx,
+                    y[0] * 4 + nVy);
     }
 
     inline const uint8_t *GetRefBlockU(int nVx, int nVy)
     {
-        return (nPel==2) ? pRefFrame->GetPlane(UPLANE)->GetAbsolutePointerPel2((x[1]<<1) + (nVx >> 1), (y[1]<<1) + (yRatioUV==1 ? nVy : nVy>>1) ) :
-            (nPel==1) ? pRefFrame->GetPlane(UPLANE)->GetAbsolutePointerPel1((x[1]) + (nVx >> 1), (y[1]) + (yRatioUV==1 ? nVy : nVy>>1) ) :
-            pRefFrame->GetPlane(UPLANE)->GetAbsolutePointerPel4((x[1]<<2) + (nVx >> 1), (y[1]<<2) + (yRatioUV==1 ? nVy : nVy>>1) );
+        if (nPel == 2)
+            return pRefFrame->GetPlane(UPLANE)->GetAbsolutePointerPel2(
+                    x[1] * 2 + nVx / xRatioUV,
+                    y[1] * 2 + nVy / yRatioUV );
+        else if (nPel == 1)
+            return pRefFrame->GetPlane(UPLANE)->GetAbsolutePointerPel1(
+                    x[1] + nVx / xRatioUV,
+                    y[1] + nVy / yRatioUV );
+        else
+            return pRefFrame->GetPlane(UPLANE)->GetAbsolutePointerPel4(
+                    x[1] * 4 + nVx / xRatioUV,
+                    y[1] * 4 + nVy / yRatioUV );
     }
 
     inline const uint8_t *GetRefBlockV(int nVx, int nVy)
     {
-        return (nPel==2) ? pRefFrame->GetPlane(VPLANE)->GetAbsolutePointerPel2((x[2]<<1) + (nVx >> 1), (y[2]<<1) + (yRatioUV==1 ? nVy : nVy>>1) ) :
-            (nPel==1) ? pRefFrame->GetPlane(VPLANE)->GetAbsolutePointerPel1((x[2]) + (nVx >> 1), (y[2]) + (yRatioUV==1 ? nVy : nVy>>1) ) :
-            pRefFrame->GetPlane(VPLANE)->GetAbsolutePointerPel4((x[2]<<2) + (nVx >> 1), (y[2]<<2) + (yRatioUV==1 ? nVy : nVy>>1) );
+        if (nPel == 2)
+            return pRefFrame->GetPlane(VPLANE)->GetAbsolutePointerPel2(
+                    x[1] * 2 + nVx / xRatioUV,
+                    y[1] * 2 + nVy / yRatioUV );
+        else if (nPel == 1)
+            return pRefFrame->GetPlane(VPLANE)->GetAbsolutePointerPel1(
+                    x[1] + nVx / xRatioUV,
+                    y[1] + nVy / yRatioUV );
+        else
+            return pRefFrame->GetPlane(VPLANE)->GetAbsolutePointerPel4(
+                    x[1] * 4 + nVx / xRatioUV,
+                    y[1] * 4 + nVy / yRatioUV );
     }
 
     inline const uint8_t *GetSrcBlock(int nX, int nY)
@@ -462,7 +490,7 @@ class PlaneOfBlocks {
 
     public :
 
-    PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int _nFlags, int _nOverlapX, int _nOverlapY, int _yRatioUV);
+    PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int _nFlags, int _nOverlapX, int _nOverlapY, int _xRatioUV, int _yRatioUV);
 
     ~PlaneOfBlocks();
 

@@ -48,8 +48,11 @@ unsigned int Sad_C(const uint8_t *pSrc, intptr_t nSrcPitch,const uint8_t *pRef,
 MK_CFUNC(mvtools_sad_4x2_sse2);
 MK_CFUNC(mvtools_sad_8x1_sse2);
 MK_CFUNC(mvtools_sad_8x2_sse2);
+MK_CFUNC(mvtools_sad_16x1_sse2);
 MK_CFUNC(mvtools_sad_16x2_sse2);
+MK_CFUNC(mvtools_sad_16x4_sse2);
 MK_CFUNC(mvtools_sad_16x32_sse2);
+MK_CFUNC(mvtools_sad_32x8_sse2);
 MK_CFUNC(mvtools_sad_32x16_sse2);
 MK_CFUNC(mvtools_sad_32x32_sse2);
 

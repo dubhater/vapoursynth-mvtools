@@ -170,6 +170,7 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
 
         const int xSubUV = d->xSubUV;
         const int ySubUV = d->ySubUV;
+        const int xRatioUV = d->bleh->xRatioUV;
         const int yRatioUV = d->bleh->yRatioUV;
         const int nBlkX = d->bleh->nBlkX;
         const int nBlkY = d->bleh->nBlkY;
@@ -188,8 +189,8 @@ static const VSFrameRef *VS_CC mvdegrain1GetFrame(int n, int activationReason, v
         const int *nLimit = d->nLimit;
 
 
-        MVGroupOfFrames *pRefBGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, isse, yRatioUV);
-        MVGroupOfFrames *pRefFGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, isse, yRatioUV);
+        MVGroupOfFrames *pRefBGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, isse, xRatioUV, yRatioUV);
+        MVGroupOfFrames *pRefFGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, isse, xRatioUV, yRatioUV);
 
 
         short *winOver;
@@ -377,7 +378,7 @@ static void VS_CC mvdegrain1Free(void *instanceData, VSCore *core, const VSAPI *
 
 
 static void selectFunctions(MVDegrain1Data *d) {
-    const int xRatioUV = 2;
+    const int xRatioUV = d->bleh->xRatioUV;
     const int yRatioUV = d->bleh->yRatioUV;
     const int nBlkSizeX = d->bleh->nBlkSizeX;
     const int nBlkSizeY = d->bleh->nBlkSizeY;
@@ -415,8 +416,14 @@ static void selectFunctions(MVDegrain1Data *d) {
     overs[8][16] = d->isse ? mvtools_Overlaps8x16_sse2 : Overlaps_C<8,16>;
     degs[8][16] = d->isse ? Degrain1_sse2<8,16> : Degrain1_C<8,16>;
 
+    overs[16][1] = d->isse ? mvtools_Overlaps16x1_sse2 : Overlaps_C<16,1>;
+    degs[16][1] = d->isse ? Degrain1_sse2<16,1> : Degrain1_C<16,1>;
+
     overs[16][2] = d->isse ? mvtools_Overlaps16x2_sse2 : Overlaps_C<16,2>;
     degs[16][2] = d->isse ? Degrain1_sse2<16,2> : Degrain1_C<16,2>;
+
+    overs[16][4] = d->isse ? mvtools_Overlaps16x4_sse2 : Overlaps_C<16,4>;
+    degs[16][4] = d->isse ? Degrain1_sse2<16,4> : Degrain1_C<16,4>;
 
     overs[16][8] = d->isse ? mvtools_Overlaps16x8_sse2 : Overlaps_C<16,8>;
     degs[16][8] = d->isse ? Degrain1_sse2<16,8> : Degrain1_C<16,8>;
@@ -426,6 +433,9 @@ static void selectFunctions(MVDegrain1Data *d) {
 
     overs[16][32] = d->isse ? mvtools_Overlaps16x32_sse2 : Overlaps_C<16,32>;
     degs[16][32] = d->isse ? Degrain1_sse2<16,32> : Degrain1_C<16,32>;
+
+    overs[32][8] = d->isse ? mvtools_Overlaps32x8_sse2 : Overlaps_C<32,8>;
+    degs[32][8] = d->isse ? Degrain1_sse2<32,8> : Degrain1_C<32,8>;
 
     overs[32][16] = d->isse ? mvtools_Overlaps32x16_sse2 : Overlaps_C<32,16>;
     degs[32][16] = d->isse ? Degrain1_sse2<32,16> : Degrain1_C<32,16>;
@@ -622,9 +632,8 @@ static void VS_CC mvdegrain1Create(const VSMap *in, VSMap *out, void *userData, 
         return;
     }
 
-    int id = d.vi->format->id;
-    if (!isConstantFormat(d.vi) || (id != pfYUV420P8 && id != pfYUV422P8)) {
-        vsapi->setError(out, "Degrain1: input clip must be YUV420P8 or YUV422P8, with constant dimensions.");
+    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 8 || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || d.vi->format->colorFamily != cmYUV) {
+        vsapi->setError(out, "Degrain1: input clip must be YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);

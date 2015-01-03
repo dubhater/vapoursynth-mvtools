@@ -130,6 +130,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
         const int nWidth = d->bleh->nWidth;
         const int nHeight = d->bleh->nHeight;
+        const int xRatioUV = d->bleh->xRatioUV;
         const int yRatioUV = d->bleh->yRatioUV;
         const int nOverlapX = d->bleh->nOverlapX;
         const int nOverlapY = d->bleh->nOverlapY;
@@ -153,6 +154,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
         int nHeight_B = nBlkY*(nBlkSizeY - nOverlapY) + nOverlapY;
 
         int ySubUV = (yRatioUV == 2) ? 1 : 0;
+        int xSubUV = (xRatioUV == 2) ? 1 : 0;
 
         if ( balls.IsUsable() )
         {
@@ -166,8 +168,8 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                 nRefPitches[i] = vsapi->getStride(ref, i);
             }
 
-            MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth, nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, nSuperModeYUV, isse, yRatioUV);
-            MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth, nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, nSuperModeYUV, isse, yRatioUV);
+            MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth, nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, nSuperModeYUV, isse, xRatioUV, yRatioUV);
+            MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth, nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, nSuperModeYUV, isse, xRatioUV, yRatioUV);
 
             pRefGOF->Update(YUVPLANES, (uint8_t*)pRef[0], nRefPitches[0], (uint8_t*)pRef[1], nRefPitches[1], (uint8_t*)pRef[2], nRefPitches[2]);// v2.0
 
@@ -240,9 +242,9 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                             // luma
                             d->BLITLUMA(pDstCur[0] + xx, nDstPitches[0], pPlanes[0]->GetPointer(blx, bly), pPlanes[0]->GetPitch());
                             // chroma u
-                            if(pPlanes[1]) d->BLITCHROMA(pDstCur[1] + (xx>>1), nDstPitches[1], pPlanes[1]->GetPointer(blx>>1, bly>>ySubUV), pPlanes[1]->GetPitch());
+                            if(pPlanes[1]) d->BLITCHROMA(pDstCur[1] + (xx >> xSubUV), nDstPitches[1], pPlanes[1]->GetPointer(blx >> xSubUV, bly>>ySubUV), pPlanes[1]->GetPitch());
                             // chroma v
-                            if(pPlanes[2]) d->BLITCHROMA(pDstCur[2] + (xx>>1), nDstPitches[2], pPlanes[2]->GetPointer(blx>>1, bly>>ySubUV), pPlanes[2]->GetPitch());
+                            if(pPlanes[2]) d->BLITCHROMA(pDstCur[2] + (xx >> xSubUV), nDstPitches[2], pPlanes[2]->GetPointer(blx >> xSubUV, bly>>ySubUV), pPlanes[2]->GetPitch());
                         }
                         else
                         {
@@ -251,9 +253,9 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
                             d->BLITLUMA(pDstCur[0] + xx, nDstPitches[0], pSrcPlanes[0]->GetPointer(blxsrc, blysrc), pSrcPlanes[0]->GetPitch());
                             // chroma u
-                            if(pSrcPlanes[1]) d->BLITCHROMA(pDstCur[1] + (xx>>1), nDstPitches[1], pSrcPlanes[1]->GetPointer(blxsrc>>1, blysrc>>ySubUV), pSrcPlanes[1]->GetPitch());
+                            if(pSrcPlanes[1]) d->BLITCHROMA(pDstCur[1] + (xx >> xSubUV), nDstPitches[1], pSrcPlanes[1]->GetPointer(blxsrc >> xSubUV, blysrc>>ySubUV), pSrcPlanes[1]->GetPitch());
                             // chroma v
-                            if(pSrcPlanes[2]) d->BLITCHROMA(pDstCur[2] + (xx>>1), nDstPitches[2], pSrcPlanes[2]->GetPointer(blxsrc>>1, blysrc>>ySubUV), pSrcPlanes[2]->GetPitch());
+                            if(pSrcPlanes[2]) d->BLITCHROMA(pDstCur[2] + (xx >> xSubUV), nDstPitches[2], pSrcPlanes[2]->GetPointer(blxsrc >> xSubUV, blysrc>>ySubUV), pSrcPlanes[2]->GetPitch());
                         }
 
 
@@ -273,7 +275,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
             else // overlap
             {
                 OverlapWindows *OverWins = new OverlapWindows(nBlkSizeX, nBlkSizeY, nOverlapX, nOverlapY);
-                OverlapWindows *OverWinsUV = new OverlapWindows(nBlkSizeX/2, nBlkSizeY/yRatioUV, nOverlapX/2, nOverlapY/yRatioUV);
+                OverlapWindows *OverWinsUV = new OverlapWindows(nBlkSizeX/xRatioUV, nBlkSizeY/yRatioUV, nOverlapX/xRatioUV, nOverlapY/yRatioUV);
                 unsigned short *DstShort = new unsigned short[dstShortPitch*nHeight];
                 unsigned short *DstShortU = new unsigned short[dstShortPitchUV*nHeight];
                 unsigned short *DstShortV = new unsigned short[dstShortPitchUV*nHeight];
@@ -309,9 +311,9 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                             // luma
                             d->OVERSLUMA(pDstShort + xx, dstShortPitch, pPlanes[0]->GetPointer(blx, bly), pPlanes[0]->GetPitch(), winOver, nBlkSizeX);
                             // chroma u
-                            if(pPlanes[1]) d->OVERSCHROMA(pDstShortU + (xx>>1), dstShortPitchUV, pPlanes[1]->GetPointer(blx>>1, bly>>ySubUV), pPlanes[1]->GetPitch(), winOverUV, nBlkSizeX/2);
+                            if(pPlanes[1]) d->OVERSCHROMA(pDstShortU + (xx >> xSubUV), dstShortPitchUV, pPlanes[1]->GetPointer(blx >> xSubUV, bly>>ySubUV), pPlanes[1]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
                             // chroma v
-                            if(pPlanes[2]) d->OVERSCHROMA(pDstShortV + (xx>>1), dstShortPitchUV, pPlanes[2]->GetPointer(blx>>1, bly>>ySubUV), pPlanes[2]->GetPitch(), winOverUV, nBlkSizeX/2);
+                            if(pPlanes[2]) d->OVERSCHROMA(pDstShortV + (xx >> xSubUV), dstShortPitchUV, pPlanes[2]->GetPointer(blx >> xSubUV, bly>>ySubUV), pPlanes[2]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
                         }
                         else // bad compensation, use src
                         {
@@ -320,9 +322,9 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
                             d->OVERSLUMA(pDstShort + xx, dstShortPitch, pSrcPlanes[0]->GetPointer(blxsrc, blysrc), pSrcPlanes[0]->GetPitch(), winOver, nBlkSizeX);
                             // chroma u
-                            if(pSrcPlanes[1]) d->OVERSCHROMA(pDstShortU + (xx>>1), dstShortPitchUV, pSrcPlanes[1]->GetPointer(blxsrc>>1, blysrc>>ySubUV), pSrcPlanes[1]->GetPitch(), winOverUV, nBlkSizeX/2);
+                            if(pSrcPlanes[1]) d->OVERSCHROMA(pDstShortU + (xx >> xSubUV), dstShortPitchUV, pSrcPlanes[1]->GetPointer(blxsrc >> xSubUV, blysrc>>ySubUV), pSrcPlanes[1]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
                             // chroma v
-                            if(pSrcPlanes[2]) d->OVERSCHROMA(pDstShortV + (xx>>1), dstShortPitchUV, pSrcPlanes[2]->GetPointer(blxsrc>>1, blysrc>>ySubUV), pSrcPlanes[2]->GetPitch(), winOverUV, nBlkSizeX/2);
+                            if(pSrcPlanes[2]) d->OVERSCHROMA(pDstShortV + (xx >> xSubUV), dstShortPitchUV, pSrcPlanes[2]->GetPointer(blxsrc >> xSubUV, blysrc>>ySubUV), pSrcPlanes[2]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
                         }
 
                         xx += (nBlkSizeX - nOverlapX);
@@ -341,8 +343,8 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
                 }
                 Short2Bytes(pDst[0], nDstPitches[0], DstShort, dstShortPitch, nWidth_B, nHeight_B);
-                if(pPlanes[1]) Short2Bytes(pDst[1], nDstPitches[1], DstShortU, dstShortPitchUV, nWidth_B>>1, nHeight_B>>ySubUV);
-                if(pPlanes[2]) Short2Bytes(pDst[2], nDstPitches[2], DstShortV, dstShortPitchUV, nWidth_B>>1, nHeight_B>>ySubUV);
+                if(pPlanes[1]) Short2Bytes(pDst[1], nDstPitches[1], DstShortU, dstShortPitchUV, nWidth_B >> xSubUV, nHeight_B>>ySubUV);
+                if(pPlanes[2]) Short2Bytes(pDst[2], nDstPitches[2], DstShortV, dstShortPitchUV, nWidth_B >> xSubUV, nHeight_B>>ySubUV);
 
                 delete OverWins;
                 delete OverWinsUV;
@@ -366,25 +368,25 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                 if(pPlanes[1])
                 {
                     if (scBehavior)
-                        vs_bitblt(pDst[1] + (nWidth_B >> 1), nDstPitches[1],
-                                  pSrc[1] + (nWidth_B >> 1) + (nHPadding >> 1) + (nVPadding >> ySubUV) * nSrcPitches[1], nSrcPitches[1],
-                                  (nWidth - nWidth_B) >> 1, nHeight_B >> ySubUV);
+                        vs_bitblt(pDst[1] + (nWidth_B >> xSubUV), nDstPitches[1],
+                                  pSrc[1] + (nWidth_B >> xSubUV) + (nHPadding >> xSubUV) + (nVPadding >> ySubUV) * nSrcPitches[1], nSrcPitches[1],
+                                  (nWidth - nWidth_B) >> xSubUV, nHeight_B >> ySubUV);
                     else
-                        vs_bitblt(pDst[1] + (nWidth_B >> 1), nDstPitches[1],
-                                  pRef[1] + (nWidth_B >> 1) + (nHPadding >> 1) + (nVPadding >> ySubUV) * nRefPitches[1], nRefPitches[1],
-                                  (nWidth - nWidth_B) >> 1, nHeight_B >> ySubUV);
+                        vs_bitblt(pDst[1] + (nWidth_B >> xSubUV), nDstPitches[1],
+                                  pRef[1] + (nWidth_B >> xSubUV) + (nHPadding >> xSubUV) + (nVPadding >> ySubUV) * nRefPitches[1], nRefPitches[1],
+                                  (nWidth - nWidth_B) >> xSubUV, nHeight_B >> ySubUV);
                 }
                 // chroma v
                 if(pPlanes[2])
                 {
                     if (scBehavior)
-                        vs_bitblt(pDst[2] + (nWidth_B >> 1), nDstPitches[2],
-                                  pSrc[2] + (nWidth_B >> 1) + (nHPadding >> 1) + (nVPadding >> ySubUV) * nSrcPitches[2], nSrcPitches[2],
-                                  (nWidth - nWidth_B) >> 1, nHeight_B >> ySubUV);
+                        vs_bitblt(pDst[2] + (nWidth_B >> xSubUV), nDstPitches[2],
+                                  pSrc[2] + (nWidth_B >> xSubUV) + (nHPadding >> xSubUV) + (nVPadding >> ySubUV) * nSrcPitches[2], nSrcPitches[2],
+                                  (nWidth - nWidth_B) >> xSubUV, nHeight_B >> ySubUV);
                     else
-                        vs_bitblt(pDst[2] + (nWidth_B >> 1), nDstPitches[2],
-                                  pRef[2] + (nWidth_B >> 1) + (nHPadding >> 1) + (nVPadding >> ySubUV) * nRefPitches[2], nRefPitches[2],
-                                  (nWidth - nWidth_B) >> 1, nHeight_B >> ySubUV);
+                        vs_bitblt(pDst[2] + (nWidth_B >> xSubUV), nDstPitches[2],
+                                  pRef[2] + (nWidth_B >> xSubUV) + (nHPadding >> xSubUV) + (nVPadding >> ySubUV) * nRefPitches[2], nRefPitches[2],
+                                  (nWidth - nWidth_B) >> xSubUV, nHeight_B >> ySubUV);
                 }
             }
 
@@ -405,11 +407,11 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                     if (scBehavior)
                         vs_bitblt(pDst[1] + (nHeight_B >> ySubUV) * nDstPitches[1], nDstPitches[1],
                                   pSrc[1] + nHPadding + ((nHeight_B + nVPadding) >> ySubUV) * nSrcPitches[1], nSrcPitches[1],
-                                  nWidth >> 1, (nHeight - nHeight_B) >> ySubUV);
+                                  nWidth >> xSubUV, (nHeight - nHeight_B) >> ySubUV);
                     else
                         vs_bitblt(pDst[1] + (nHeight_B >> ySubUV) * nDstPitches[1], nDstPitches[1],
                                   pRef[1] + nHPadding + ((nHeight_B + nVPadding) >> ySubUV) * nRefPitches[1], nRefPitches[1],
-                                  nWidth >> 1, (nHeight - nHeight_B) >> ySubUV);
+                                  nWidth >> xSubUV, (nHeight - nHeight_B) >> ySubUV);
                 }
                 // chroma v
                 if(pPlanes[2])
@@ -417,11 +419,11 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                     if (scBehavior)
                         vs_bitblt(pDst[2] + (nHeight_B >> ySubUV) * nDstPitches[2], nDstPitches[2],
                                   pSrc[2] + nHPadding + ((nHeight_B + nVPadding) >> ySubUV) * nSrcPitches[2], nSrcPitches[2],
-                                  nWidth >> 1, (nHeight - nHeight_B) >> ySubUV);
+                                  nWidth >> xSubUV, (nHeight - nHeight_B) >> ySubUV);
                     else
                         vs_bitblt(pDst[2] + (nHeight_B >> ySubUV) * nDstPitches[2], nDstPitches[2],
                                   pRef[2] + nHPadding + ((nHeight_B + nVPadding) >> ySubUV) * nRefPitches[2], nRefPitches[2],
-                                  nWidth >> 1, (nHeight - nHeight_B) >> ySubUV);
+                                  nWidth >> xSubUV, (nHeight - nHeight_B) >> ySubUV);
                 }
             }
 
@@ -446,12 +448,12 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
             int nOffset[3];
 
             nOffset[0] = nHPadding + nVPadding * nSrcPitches[0];
-            nOffset[1] = nHPadding / 2 + (nVPadding / yRatioUV) * nSrcPitches[1];
+            nOffset[1] = nHPadding / xRatioUV + (nVPadding / yRatioUV) * nSrcPitches[1];
             nOffset[2] = nOffset[1];
 
             vs_bitblt(pDst[0], nDstPitches[0], pSrc[0] + nOffset[0], nSrcPitches[0], nWidth, nHeight);
-            vs_bitblt(pDst[1], nDstPitches[1], pSrc[1] + nOffset[1], nSrcPitches[1], nWidth / 2, nHeight / yRatioUV);
-            vs_bitblt(pDst[2], nDstPitches[2], pSrc[2] + nOffset[2], nSrcPitches[2], nWidth / 2, nHeight / yRatioUV);
+            vs_bitblt(pDst[1], nDstPitches[1], pSrc[1] + nOffset[1], nSrcPitches[1], nWidth / xRatioUV, nHeight / yRatioUV);
+            vs_bitblt(pDst[2], nDstPitches[2], pSrc[2] + nOffset[2], nSrcPitches[2], nWidth / xRatioUV, nHeight / yRatioUV);
         }
 
 
@@ -479,7 +481,7 @@ static void VS_CC mvcompensateFree(void *instanceData, VSCore *core, const VSAPI
 
 
 static void selectFunctions(MVCompensateData *d) {
-    const int xRatioUV = 2;
+    const int xRatioUV = d->bleh->xRatioUV;
     const int yRatioUV = d->bleh->yRatioUV;
     const int nBlkSizeX = d->bleh->nBlkSizeX;
     const int nBlkSizeY = d->bleh->nBlkSizeY;
@@ -517,8 +519,14 @@ static void selectFunctions(MVCompensateData *d) {
     overs[8][16] = d->isse ? mvtools_Overlaps8x16_sse2 : Overlaps_C<8,16>;
     copys[8][16] = d->isse ? mvtools_Copy8x16_sse2 : Copy_C<8,16>;
 
+    overs[16][1] = d->isse ? mvtools_Overlaps16x1_sse2 : Overlaps_C<16,1>;
+    copys[16][1] = d->isse ? mvtools_Copy16x1_sse2 : Copy_C<16,1>;
+
     overs[16][2] = d->isse ? mvtools_Overlaps16x2_sse2 : Overlaps_C<16,2>;
     copys[16][2] = d->isse ? mvtools_Copy16x2_sse2 : Copy_C<16,2>;
+
+    overs[16][4] = d->isse ? mvtools_Overlaps16x4_sse2 : Overlaps_C<16,4>;
+    copys[16][4] = d->isse ? mvtools_Copy16x4_sse2 : Copy_C<16,4>;
 
     overs[16][8] = d->isse ? mvtools_Overlaps16x8_sse2 : Overlaps_C<16,8>;
     copys[16][8] = d->isse ? mvtools_Copy16x8_sse2 : Copy_C<16,8>;
@@ -528,6 +536,9 @@ static void selectFunctions(MVCompensateData *d) {
 
     overs[16][32] = d->isse ? mvtools_Overlaps16x32_sse2 : Overlaps_C<16,32>;
     copys[16][32] = d->isse ? mvtools_Copy16x32_sse2 : Copy_C<16,32>;
+
+    overs[32][8] = d->isse ? mvtools_Overlaps32x8_sse2 : Overlaps_C<32,8>;
+    copys[32][8] = d->isse ? mvtools_Copy32x8_sse2 : Copy_C<32,8>;
 
     overs[32][16] = d->isse ? mvtools_Overlaps32x16_sse2 : Overlaps_C<32,16>;
     copys[32][16] = d->isse ? mvtools_Copy32x16_sse2 : Copy_C<32,16>;
@@ -637,7 +648,7 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
 
 
     d.dstShortPitch = ((d.bleh->nWidth + 15)/16)*16;
-    d.dstShortPitchUV = (((d.bleh->nWidth / 2) + 15)/16)*16;
+    d.dstShortPitchUV = (((d.bleh->nWidth / d.bleh->xRatioUV) + 15)/16)*16;
 
 
     selectFunctions(&d);
@@ -659,9 +670,8 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
         return;
     }
 
-    int id = d.vi->format->id;
-    if (!isConstantFormat(d.vi) || (id != pfYUV420P8 && id != pfYUV422P8)) {
-        vsapi->setError(out, "Compensate: input clip must be YUV420P8 or YUV422P8, with constant dimensions.");
+    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 8 || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || d.vi->format->colorFamily != cmYUV) {
+        vsapi->setError(out, "Compensate: input clip must be YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.vectors);
         vsapi->freeNode(d.node);

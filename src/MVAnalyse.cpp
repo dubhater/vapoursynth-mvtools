@@ -120,7 +120,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         }
     } else if (activationReason == arAllFramesReady) {
 
-        GroupOfPlanes *vectorFields = new GroupOfPlanes(d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.yRatioUV, d->divideExtra);
+        GroupOfPlanes *vectorFields = new GroupOfPlanes(d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra);
 
 
         const unsigned char *pSrcY, *pSrcU, *pSrcV;
@@ -213,8 +213,8 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             nRefPitchUV = vsapi->getStride(ref, 1);
 
 
-            MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.yRatioUV);
-            MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.yRatioUV);
+            MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV);
+            MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV);
 
             // cast away the const, because why not.
             pSrcGOF->Update(d->nModeYUV, (uint8_t *)pSrcY, nSrcPitchY, (uint8_t *)pSrcU, nSrcPitchUV, (uint8_t *)pSrcV, nSrcPitchUV); // v2.0
@@ -432,18 +432,8 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         return;
     }
 
-    if (d.overlap % 2 || d.overlapv % 2) { // subsampling
-        vsapi->setError(out, "Analyse: overlap and overlapv must be multiples of 2.");
-        return;
-    }
-
     if (d.divideExtra && (d.blksize < 8 && d.blksizev < 8) ) {
         vsapi->setError(out, "Analyse: blksize and blksizev must be at least 8 when divide=True.");
-        return;
-    }
-
-    if (d.divideExtra && (d.overlap % 4 || d.overlapv % 4)) { // subsampling times 2
-        vsapi->setError(out, "Analyse: overlap and overlapv must be multiples of 4 when divide=True.");
         return;
     }
 
@@ -491,9 +481,22 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.node = vsapi->propGetNode(in, "super", 0, 0);
     d.vi = *vsapi->getVideoInfo(d.node);
 
-    int id = d.vi.format->id;
-    if (!isConstantFormat(&d.vi) || (id != pfYUV420P8 && id != pfYUV422P8)) {
-        vsapi->setError(out, "Analyse: Input clip must be YUV420P8 or YUV422P8, with constant format and dimensions.");
+    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 8 || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || d.vi.format->colorFamily != cmYUV) {
+        vsapi->setError(out, "Analyse: Input clip must be YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant format and dimensions.");
+        vsapi->freeNode(d.node);
+        return;
+    }
+
+    if (d.overlap % (1 << d.vi.format->subSamplingW) ||
+        d.overlapv % (1 << d.vi.format->subSamplingH)) {
+        vsapi->setError(out, "Analyse: The requested overlap is incompatible with the super clip's subsampling.");
+        vsapi->freeNode(d.node);
+        return;
+    }
+
+    if (d.divideExtra && (d.overlap % (2 << d.vi.format->subSamplingW) ||
+                          d.overlapv % (2 << d.vi.format->subSamplingH))) { // subsampling times 2
+        vsapi->setError(out, "Analyse: overlap and overlapv must be multiples of 2 or 4 when divide=True, depending on the super clip's subsampling.");
         vsapi->freeNode(d.node);
         return;
     }
@@ -505,7 +508,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     }
 
     d.analysisData.yRatioUV = 1 << d.vi.format->subSamplingH;
-    d.analysisData.xRatioUV = 2; // for YV12 and YUY2, really do not used and assumed to 2
+    d.analysisData.xRatioUV = 1 << d.vi.format->subSamplingW;
 
 
     char errorMsg[1024];

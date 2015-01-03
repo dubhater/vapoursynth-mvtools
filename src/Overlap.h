@@ -79,10 +79,13 @@ MK_CFUNC(mvtools_Overlaps8x2_sse2);
 MK_CFUNC(mvtools_Overlaps8x4_sse2);
 MK_CFUNC(mvtools_Overlaps8x8_sse2);
 MK_CFUNC(mvtools_Overlaps8x16_sse2);
+MK_CFUNC(mvtools_Overlaps16x1_sse2);
 MK_CFUNC(mvtools_Overlaps16x2_sse2);
+MK_CFUNC(mvtools_Overlaps16x4_sse2);
 MK_CFUNC(mvtools_Overlaps16x8_sse2);
 MK_CFUNC(mvtools_Overlaps16x16_sse2);
 MK_CFUNC(mvtools_Overlaps16x32_sse2);
+MK_CFUNC(mvtools_Overlaps32x8_sse2);
 MK_CFUNC(mvtools_Overlaps32x16_sse2);
 MK_CFUNC(mvtools_Overlaps32x32_sse2);
 

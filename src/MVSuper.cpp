@@ -84,7 +84,7 @@ static const VSFrameRef *VS_CC mvsuperGetFrame(int n, int activationReason, void
         memset(pDstU, 0, nDstPitchUV * (d->vi.height >> d->vi.format->subSamplingH));
         memset(pDstV, 0, nDstPitchUV * (d->vi.height >> d->vi.format->subSamplingH));
 
-        MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nLevels, d->nWidth, d->nHeight, d->nPel, d->nHPad, d->nVPad, YUVPLANES, d->isse, d->yRatioUV);
+        MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nLevels, d->nWidth, d->nHeight, d->nPel, d->nHPad, d->nVPad, YUVPLANES, d->isse, d->xRatioUV, d->yRatioUV);
 
         pSrcGOF->Update(YUVPLANES, pDstY, nDstPitchY, pDstU, nDstPitchUV, pDstV, nDstPitchUV);
 
@@ -212,15 +212,14 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
     d.nWidth = d.vi.width;
     d.nHeight = d.vi.height;
 
-    int id = d.vi.format->id;
-    if (!isConstantFormat(&d.vi) || (id != pfYUV420P8 && id != pfYUV422P8)) {
-        vsapi->setError(out, "Super: input clip must be YUV420P8 or YUV422P8, with constant dimensions.");
+    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 8 || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || d.vi.format->colorFamily != cmYUV) {
+        vsapi->setError(out, "Super: input clip must be YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
         vsapi->freeNode(d.node);
         return;
     }
 
+    d.xRatioUV = 1 << d.vi.format->subSamplingW;
     d.yRatioUV = 1 << d.vi.format->subSamplingH;
-    d.xRatioUV = 2; // for YV12 and YUY2, really do not used and assumed to 2
 
     int nLevelsMax = 0;
     while (PlaneHeightLuma(d.vi.height, nLevelsMax, d.yRatioUV, d.nVPad) >= d.yRatioUV*2 &&
@@ -234,8 +233,8 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
     d.pelclip = vsapi->propGetNode(in, "pelclip", 0, &err);
     const VSVideoInfo *pelvi = d.pelclip ? vsapi->getVideoInfo(d.pelclip) : NULL;
 
-    if (d.pelclip && (!isConstantFormat(pelvi) || pelvi->format->id != pfYUV420P8)) {
-        vsapi->setError(out, "Super: pelclip must be YUV420P8 with constant dimensions.");
+    if (d.pelclip && (!isConstantFormat(pelvi) || pelvi->format != d.vi.format)) {
+        vsapi->setError(out, "Super: pelclip must have the same format as the input clip, and it must have constant dimensions.");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.pelclip);
         return;
@@ -264,6 +263,8 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
     d.nSuperHeight = PlaneSuperOffset(false, d.nHeight, d.nLevels, d.nPel, d.nVPad, d.nSuperWidth, d.yRatioUV) / d.nSuperWidth;
     if (d.yRatioUV == 2 && d.nSuperHeight & 1)
         d.nSuperHeight++; // even
+    if (d.xRatioUV == 2 && d.nSuperWidth & 1)
+        d.nSuperWidth++;
     d.vi.width = d.nSuperWidth;
     d.vi.height = d.nSuperHeight;
 

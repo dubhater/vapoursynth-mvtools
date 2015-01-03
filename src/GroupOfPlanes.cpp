@@ -19,7 +19,7 @@
 
 #include "GroupOfPlanes.h"
 
-GroupOfPlanes::GroupOfPlanes(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, int _nPel, int _nFlags, int _nOverlapX, int _nOverlapY, int _nBlkX, int _nBlkY, int _yRatioUV, int _divideExtra)
+GroupOfPlanes::GroupOfPlanes(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, int _nPel, int _nFlags, int _nOverlapX, int _nOverlapY, int _nBlkX, int _nBlkY, int _xRatioUV, int _yRatioUV, int _divideExtra)
 {
     nBlkSizeX = _nBlkSizeX;
     nBlkSizeY = _nBlkSizeY;
@@ -28,6 +28,7 @@ GroupOfPlanes::GroupOfPlanes(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, i
     nFlags = _nFlags;
     nOverlapX = _nOverlapX;
     nOverlapY = _nOverlapY;
+    xRatioUV = _xRatioUV;
     yRatioUV = _yRatioUV;
     divideExtra = _divideExtra;
 
@@ -48,7 +49,7 @@ GroupOfPlanes::GroupOfPlanes(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, i
             nFlagsCurrent |= MOTION_SMALLEST_PLANE;
         nBlkX = ((nWidth_B>>i) - nOverlapX)/(nBlkSizeX-nOverlapX);
         nBlkY = ((nHeight_B>>i) - nOverlapY)/(nBlkSizeY-nOverlapY);
-        planes[i] = new PlaneOfBlocks(nBlkX, nBlkY, nBlkSizeX, nBlkSizeY, nPelCurrent, i, nFlagsCurrent, nOverlapX, nOverlapY, yRatioUV);
+        planes[i] = new PlaneOfBlocks(nBlkX, nBlkY, nBlkSizeX, nBlkSizeY, nPelCurrent, i, nFlagsCurrent, nOverlapX, nOverlapY, xRatioUV, yRatioUV);
         nPelCurrent = 1;
     }
 }

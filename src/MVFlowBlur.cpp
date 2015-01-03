@@ -290,6 +290,7 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
             const int nHeight = d->bleh->nHeight;
             const int nWidthUV = d->nWidthUV;
             const int nHeightUV = d->nHeightUV;
+            const int xRatioUV = d->bleh->xRatioUV;
             const int yRatioUV = d->bleh->yRatioUV;
             const int nBlkX = d->bleh->nBlkX;
             const int nBlkY = d->bleh->nBlkY;
@@ -340,11 +341,11 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
             // 2. they will be zeroed if not
             // 3. added 128 to all values
             MakeVectorSmallMasks(&ballsB, nBlkX, nBlkY, VXSmallYB, nBlkX, VYSmallYB, nBlkX);
-            VectorSmallMaskYToHalfUV(VXSmallYB, nBlkX, nBlkY, VXSmallUVB, 2);
+            VectorSmallMaskYToHalfUV(VXSmallYB, nBlkX, nBlkY, VXSmallUVB, xRatioUV);
             VectorSmallMaskYToHalfUV(VYSmallYB, nBlkX, nBlkY, VYSmallUVB, yRatioUV);
 
             MakeVectorSmallMasks(&ballsF, nBlkX, nBlkY, VXSmallYF, nBlkX, VYSmallYF, nBlkX);
-            VectorSmallMaskYToHalfUV(VXSmallYF, nBlkX, nBlkY, VXSmallUVF, 2);
+            VectorSmallMaskYToHalfUV(VXSmallYF, nBlkX, nBlkY, VXSmallUVF, xRatioUV);
             VectorSmallMaskYToHalfUV(VYSmallYF, nBlkX, nBlkY, VYSmallUVF, yRatioUV);
 
             // analyse vectors field to detect occlusion
@@ -640,9 +641,8 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
         return;
     }
 
-    int id = d.vi->format->id;
-    if (!isConstantFormat(d.vi) || (id != pfYUV420P8 && id != pfYUV422P8)) {
-        vsapi->setError(out, "FlowBlur: input clip must be YUV420P8 or YUV422P8, with constant dimensions.");
+    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 8 || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || d.vi->format->colorFamily != cmYUV) {
+        vsapi->setError(out, "FlowBlur: input clip must be YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.finest);
         vsapi->freeNode(d.mvfw);
@@ -656,8 +656,8 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
 
 
     d.nHeightUV = d.bleh->nHeight / d.bleh->yRatioUV;
-    d.nWidthUV = d.bleh->nWidth / 2; // for YV12
-    d.nHPaddingUV = d.bleh->nHPadding / 2;
+    d.nWidthUV = d.bleh->nWidth / d.bleh->xRatioUV;
+    d.nHPaddingUV = d.bleh->nHPadding / d.bleh->xRatioUV;
     //d.nVPaddingUV = d.bleh->nHPadding / d.bleh->yRatioUV; // original looks wrong
     d.nVPaddingUV = d.bleh->nVPadding / d.bleh->yRatioUV;
 

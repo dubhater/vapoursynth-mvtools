@@ -38,6 +38,7 @@ typedef struct {
     int nSuperModeYUV;
     int nSuperLevels;
     int nPel;
+    int xRatioUV;
     int yRatioUV;
 } MVFinestData;
 
@@ -75,7 +76,7 @@ static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, voi
         }
         else
         {
-            MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, d->nWidth, d->nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->yRatioUV);
+            MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, d->nWidth, d->nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->xRatioUV, d->yRatioUV);
 
             pRefGOF->Update(YUVPLANES, (uint8_t*)pRef[0], nRefPitches[0], (uint8_t*)pRef[1], nRefPitches[1], (uint8_t*)pRef[2], nRefPitches[2]);// v2.0
 
@@ -175,9 +176,8 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
     d.super = vsapi->propGetNode(in, "super", 0, 0);
     d.vi = *vsapi->getVideoInfo(d.super);
 
-    int id = d.vi.format->id;
-    if (!isConstantFormat(&d.vi) || (id != pfYUV420P8 && id != pfYUV422P8)) {
-        vsapi->setError(out, "Finest: input clip must be YUV420P8 or YUV422P8, with constant dimensions.");
+    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 8 || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || d.vi.format->colorFamily != cmYUV) {
+        vsapi->setError(out, "Finest: input clip must be YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
         vsapi->freeNode(d.super);
         return;
     }
@@ -210,6 +210,7 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
     int nSuperWidth = d.vi.width;
     d.nWidth = nSuperWidth - 2 * d.nSuperHPad;
 
+    d.xRatioUV = 1 << d.vi.format->subSamplingW;
     d.yRatioUV = 1 << d.vi.format->subSamplingH;
 
     d.vi.width = (d.nWidth + 2 * d.nSuperHPad) * d.nSuperPel;

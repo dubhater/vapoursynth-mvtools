@@ -16,7 +16,9 @@ Differences
 
     * Parameters are all lowercase now.
 
-    * YUY2 is not supported, only YV12 and YV16 (named YUV420P8 and YUV422P8 in VapourSynth).
+    * YUY2 is not supported.
+
+    * YUV420P8, YUV422P8, YUV440P8, and YUV444P8 are supported.
 
     * The audio is definitely not killed.
 
@@ -83,8 +85,6 @@ For information about the other parameters, consult the Avisynth plugin's docume
 
 Things that may happen soon™
 ============================
-
-  * Support for any subsampling
 
   * Support for up to 16 bits per sample
 
