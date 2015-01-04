@@ -363,9 +363,9 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     }
 
 
-    if (d.overlap < 0 || d.overlap >= d.blksize ||
-            d.overlapv < 0 || d.overlapv >= d.blksizev) {
-        vsapi->setError(out, "Recalculate: overlap must be less than blksize, and overlapv must be less than blksizev.");
+    if (d.overlap < 0 || d.overlap > d.blksize / 2 ||
+        d.overlapv < 0 || d.overlapv > d.blksizev / 2) {
+        vsapi->setError(out, "Recalculate: overlap must be at most half of blksize, overlapv must be at most half of blksizev, and they both need to be at least 0.");
         return;
     }
 
