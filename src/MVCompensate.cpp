@@ -158,6 +158,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
         if ( balls.IsUsable() )
         {
+            // No need to check nref because nref is always in range when balls is usable.
             const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->super, frameCtx);
             for (int i = 0; i < 3; i++) {
                 pDst[i] = vsapi->getWritePtr(dst, i);
@@ -433,7 +434,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
             vsapi->freeFrame(ref);
         }
         else { // balls.IsUsable()
-            if ( !scBehavior && ( nref < d->vi->numFrames ) && ( nref >= 0 )) {
+            if ( !scBehavior && ( nref < d->vi->numFrames || !d->vi->numFrames ) && ( nref >= 0 )) {
                 vsapi->freeFrame(src);
                 src = vsapi->getFrameFilter(nref, d->super, frameCtx);
             }
