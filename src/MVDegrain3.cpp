@@ -453,7 +453,7 @@ static const VSFrameRef *VS_CC mvdegrain3GetFrame(int n, int activationReason, v
                             pSrc[plane] + nWidth_B[plane], nSrcPitches[plane],
                             nWidth[plane] - nWidth_B[plane], nHeight_B[plane]);
 
-                if (nHeight_B < nHeight) // bottom noncovered region
+                if (nHeight_B[0] < nHeight[0]) // bottom noncovered region
                     vs_bitblt(pDst[plane] + nDstPitches[plane] * nHeight_B[plane], nDstPitches[plane],
                             pSrc[plane] + nSrcPitches[plane] * nHeight_B[plane], nSrcPitches[plane],
                             nWidth[plane], nHeight[plane] - nHeight_B[plane]);
