@@ -30,7 +30,7 @@
 
 typedef struct {
     VSNodeRef *node;
-    const VSVideoInfo *vi;
+    VSVideoInfo vi;
 
     VSNodeRef *vectors;
     int ml;
@@ -62,7 +62,7 @@ typedef struct {
 
 static void VS_CC mvmaskInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
     MVMaskData *d = (MVMaskData *) * instanceData;
-    vsapi->setVideoInfo(d->vi, 1, node);
+    vsapi->setVideoInfo(&d->vi, 1, node);
 }
 
 
@@ -90,17 +90,18 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
         vsapi->requestFrameFilter(n, d->node, frameCtx);
     } else if (activationReason == arAllFramesReady) {
         const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx);
-        VSFrameRef *dst = vsapi->newVideoFrame(d->vi->format, d->vi->width, d->vi->height, src, core);
+        VSFrameRef *dst = vsapi->newVideoFrame(d->vi.format, d->vi.width, d->vi.height, src, core);
 
         const uint8_t *pSrc[3];
         uint8_t *pDst[3];
         int nDstPitches[3];
         int nSrcPitches[3];
 
+        pSrc[0] = vsapi->getReadPtr(src, 0);
+        nSrcPitches[0] = vsapi->getStride(src, 0);
+
         for (int i = 0; i < 3; i++) {
-            pSrc[i] = vsapi->getReadPtr(src, i);
             pDst[i] = vsapi->getWritePtr(dst, i);
-            nSrcPitches[i] = vsapi->getStride(src, i);
             nDstPitches[i] = vsapi->getStride(dst, i);
         }
 
@@ -318,16 +319,19 @@ static void VS_CC mvmaskCreate(const VSMap *in, VSMap *out, void *userData, VSCo
 
 
     d.node = vsapi->propGetNode(in, "clip", 0, NULL);
-    d.vi = vsapi->getVideoInfo(d.node);
+    d.vi = *vsapi->getVideoInfo(d.node);
 
-    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 8 || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || d.vi->format->colorFamily != cmYUV) {
-        vsapi->setError(out, "Mask: input clip must be YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
+    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 8 || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || (d.vi.format->colorFamily != cmYUV && d.vi.format->colorFamily != cmGray)) {
+        vsapi->setError(out, "Mask: input clip must be GRAY8, YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.vectors);
         delete d.mvClip;
         delete d.bleh;
         return;
     }
+
+    if (d.vi.format->colorFamily == cmGray)
+        d.vi.format = vsapi->getFormatPreset(pfYUV444P8, core);
 
     d.upsizer = new SimpleResize(d.nWidthB, d.nHeightB, d.bleh->nBlkX, d.bleh->nBlkY);
     d.upsizerUV = new SimpleResize(d.nWidthBUV, d.nHeightBUV, d.bleh->nBlkX, d.bleh->nBlkY);

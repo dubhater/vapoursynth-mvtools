@@ -18,7 +18,7 @@ Differences
 
     * YUY2 is not supported.
 
-    * YUV420P8, YUV422P8, YUV440P8, and YUV444P8 are supported.
+    * GRAY8, YUV420P8, YUV422P8, YUV440P8, and YUV444P8 are supported.
 
     * The audio is definitely not killed.
 

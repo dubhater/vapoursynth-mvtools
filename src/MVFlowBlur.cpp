@@ -279,7 +279,7 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
             const VSFrameRef *ref = vsapi->getFrameFilter(n, d->finest, frameCtx); //  ref for  compensation
             VSFrameRef *dst = vsapi->newVideoFrame(d->vi->format, d->vi->width, d->vi->height, ref, core);
 
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < d->vi->format->numPlanes; i++) {
                 pDst[i] = vsapi->getWritePtr(dst, i);
                 pRef[i] = vsapi->getReadPtr(ref, i);
                 nDstPitches[i] = vsapi->getStride(dst, i);
@@ -309,44 +309,20 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
 
 
             uint8_t *VXFullYB = new uint8_t [nHeight * VPitchY];
-            uint8_t *VXFullUVB = new uint8_t [nHeightUV * VPitchUV];
             uint8_t *VYFullYB = new uint8_t [nHeight * VPitchY];
-            uint8_t *VYFullUVB = new uint8_t [nHeightUV * VPitchUV];
-
             uint8_t *VXFullYF = new uint8_t [nHeight * VPitchY];
-            uint8_t *VXFullUVF = new uint8_t [nHeightUV * VPitchUV];
             uint8_t *VYFullYF = new uint8_t [nHeight * VPitchY];
-            uint8_t *VYFullUVF = new uint8_t [nHeightUV * VPitchUV];
-
             uint8_t *VXSmallYB = new uint8_t [nBlkX * nBlkY];
             uint8_t *VYSmallYB = new uint8_t [nBlkX * nBlkY];
-            uint8_t *VXSmallUVB = new uint8_t [nBlkX * nBlkY];
-            uint8_t *VYSmallUVB = new uint8_t [nBlkX * nBlkY];
-
             uint8_t *VXSmallYF = new uint8_t [nBlkX * nBlkY];
             uint8_t *VYSmallYF = new uint8_t [nBlkX * nBlkY];
-            uint8_t *VXSmallUVF = new uint8_t [nBlkX * nBlkY];
-            uint8_t *VYSmallUVF = new uint8_t [nBlkX * nBlkY];
-
-            uint8_t *MaskSmallB = new uint8_t [nBlkX * nBlkY];
-            uint8_t *MaskFullYB = new uint8_t [nHeight * VPitchY];
-            uint8_t *MaskFullUVB = new uint8_t [nHeightUV * VPitchUV];
-
-            uint8_t *MaskSmallF = new uint8_t [nBlkX * nBlkY];
-            uint8_t *MaskFullYF = new uint8_t [nHeight * VPitchY];
-            uint8_t *MaskFullUVF = new uint8_t [nHeightUV * VPitchUV];
 
             // make  vector vx and vy small masks
             // 1. ATTENTION: vectors are assumed SHORT (|vx|, |vy| < 127) !
             // 2. they will be zeroed if not
             // 3. added 128 to all values
             MakeVectorSmallMasks(&ballsB, nBlkX, nBlkY, VXSmallYB, nBlkX, VYSmallYB, nBlkX);
-            VectorSmallMaskYToHalfUV(VXSmallYB, nBlkX, nBlkY, VXSmallUVB, xRatioUV);
-            VectorSmallMaskYToHalfUV(VYSmallYB, nBlkX, nBlkY, VYSmallUVB, yRatioUV);
-
             MakeVectorSmallMasks(&ballsF, nBlkX, nBlkY, VXSmallYF, nBlkX, VYSmallYF, nBlkX);
-            VectorSmallMaskYToHalfUV(VXSmallYF, nBlkX, nBlkY, VXSmallUVF, xRatioUV);
-            VectorSmallMaskYToHalfUV(VYSmallYF, nBlkX, nBlkY, VYSmallUVF, yRatioUV);
 
             // analyse vectors field to detect occlusion
 
@@ -355,48 +331,69 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
 
             d->upsizer->Resize(VXFullYB, VPitchY, VXSmallYB, nBlkX);
             d->upsizer->Resize(VYFullYB, VPitchY, VYSmallYB, nBlkX);
-            d->upsizerUV->Resize(VXFullUVB, VPitchUV, VXSmallUVB, nBlkX);
-            d->upsizerUV->Resize(VYFullUVB, VPitchUV, VYSmallUVB, nBlkX);
-
             d->upsizer->Resize(VXFullYF, VPitchY, VXSmallYF, nBlkX);
             d->upsizer->Resize(VYFullYF, VPitchY, VYSmallYF, nBlkX);
-            d->upsizerUV->Resize(VXFullUVF, VPitchUV, VXSmallUVF, nBlkX);
-            d->upsizerUV->Resize(VYFullUVF, VPitchUV, VYSmallUVF, nBlkX);
-
 
             FlowBlur(pDst[0], nDstPitches[0], pRef[0] + nOffsetY, nRefPitches[0],
                     VXFullYB, VXFullYF, VYFullYB, VYFullYF, VPitchY,
                     nWidth, nHeight, blur256, prec, nPel);
-            FlowBlur(pDst[1], nDstPitches[1], pRef[1] + nOffsetUV, nRefPitches[1],
-                    VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, VPitchUV,
-                    nWidthUV, nHeightUV, blur256, prec, nPel);
-            FlowBlur(pDst[2], nDstPitches[2], pRef[2] + nOffsetUV, nRefPitches[2],
-                    VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, VPitchUV,
-                    nWidthUV, nHeightUV, blur256, prec, nPel);
+
+            if (d->vi->format->colorFamily != cmGray) {
+                uint8_t *VXFullUVB = new uint8_t [nHeightUV * VPitchUV];
+                uint8_t *VYFullUVB = new uint8_t [nHeightUV * VPitchUV];
+
+                uint8_t *VXFullUVF = new uint8_t [nHeightUV * VPitchUV];
+                uint8_t *VYFullUVF = new uint8_t [nHeightUV * VPitchUV];
+
+                uint8_t *VXSmallUVB = new uint8_t [nBlkX * nBlkY];
+                uint8_t *VYSmallUVB = new uint8_t [nBlkX * nBlkY];
+
+                uint8_t *VXSmallUVF = new uint8_t [nBlkX * nBlkY];
+                uint8_t *VYSmallUVF = new uint8_t [nBlkX * nBlkY];
+
+                uint8_t *MaskFullUVB = new uint8_t [nHeightUV * VPitchUV];
+                uint8_t *MaskFullUVF = new uint8_t [nHeightUV * VPitchUV];
+
+                VectorSmallMaskYToHalfUV(VXSmallYB, nBlkX, nBlkY, VXSmallUVB, xRatioUV);
+                VectorSmallMaskYToHalfUV(VYSmallYB, nBlkX, nBlkY, VYSmallUVB, yRatioUV);
+
+                VectorSmallMaskYToHalfUV(VXSmallYF, nBlkX, nBlkY, VXSmallUVF, xRatioUV);
+                VectorSmallMaskYToHalfUV(VYSmallYF, nBlkX, nBlkY, VYSmallUVF, yRatioUV);
+
+                d->upsizerUV->Resize(VXFullUVB, VPitchUV, VXSmallUVB, nBlkX);
+                d->upsizerUV->Resize(VYFullUVB, VPitchUV, VYSmallUVB, nBlkX);
+
+                d->upsizerUV->Resize(VXFullUVF, VPitchUV, VXSmallUVF, nBlkX);
+                d->upsizerUV->Resize(VYFullUVF, VPitchUV, VYSmallUVF, nBlkX);
+
+
+                FlowBlur(pDst[1], nDstPitches[1], pRef[1] + nOffsetUV, nRefPitches[1],
+                        VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, VPitchUV,
+                        nWidthUV, nHeightUV, blur256, prec, nPel);
+                FlowBlur(pDst[2], nDstPitches[2], pRef[2] + nOffsetUV, nRefPitches[2],
+                        VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, VPitchUV,
+                        nWidthUV, nHeightUV, blur256, prec, nPel);
+
+                delete [] VXFullUVB;
+                delete [] VYFullUVB;
+                delete [] VXSmallUVB;
+                delete [] VYSmallUVB;
+                delete [] VXFullUVF;
+                delete [] VYFullUVF;
+                delete [] VXSmallUVF;
+                delete [] VYSmallUVF;
+                delete [] MaskFullUVB;
+                delete [] MaskFullUVF;
+            }
 
             delete [] VXFullYB;
-            delete [] VXFullUVB;
             delete [] VYFullYB;
-            delete [] VYFullUVB;
             delete [] VXSmallYB;
             delete [] VYSmallYB;
-            delete [] VXSmallUVB;
-            delete [] VYSmallUVB;
             delete [] VXFullYF;
-            delete [] VXFullUVF;
             delete [] VYFullYF;
-            delete [] VYFullUVF;
             delete [] VXSmallYF;
             delete [] VYSmallYF;
-            delete [] VXSmallUVF;
-            delete [] VYSmallUVF;
-
-            delete [] MaskSmallB;
-            delete [] MaskFullYB;
-            delete [] MaskFullUVB;
-            delete [] MaskSmallF;
-            delete [] MaskFullYF;
-            delete [] MaskFullUVF;
 
             vsapi->freeFrame(ref);
 
@@ -421,7 +418,8 @@ static void VS_CC mvflowblurFree(void *instanceData, VSCore *core, const VSAPI *
     delete d->bleh;
 
     delete d->upsizer;
-    delete d->upsizerUV;
+    if (d->vi->format->colorFamily != cmGray)
+        delete d->upsizerUV;
 
     vsapi->freeNode(d->finest);
     vsapi->freeNode(d->super);
@@ -641,8 +639,8 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
         return;
     }
 
-    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 8 || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || d.vi->format->colorFamily != cmYUV) {
-        vsapi->setError(out, "FlowBlur: input clip must be YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
+    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 8 || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || (d.vi->format->colorFamily != cmYUV && d.vi->format->colorFamily != cmGray)) {
+        vsapi->setError(out, "FlowBlur: input clip must be GRAY8, YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.finest);
         vsapi->freeNode(d.mvfw);
@@ -665,7 +663,8 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
     d.VPitchUV= d.nWidthUV;
 
     d.upsizer = new SimpleResize(d.bleh->nWidth, d.bleh->nHeight, d.bleh->nBlkX, d.bleh->nBlkY);
-    d.upsizerUV = new SimpleResize(d.nWidthUV, d.nHeightUV, d.bleh->nBlkX, d.bleh->nBlkY);
+    if (d.vi->format->colorFamily != cmGray)
+        d.upsizerUV = new SimpleResize(d.nWidthUV, d.nHeightUV, d.bleh->nBlkX, d.bleh->nBlkY);
 
 
     data = (MVFlowBlurData *)malloc(sizeof(d));

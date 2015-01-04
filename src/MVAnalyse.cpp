@@ -16,6 +16,7 @@
 typedef struct {
     VSNodeRef *node;
     VSVideoInfo vi;
+    const VSVideoInfo *supervi;
 
     MVAnalysisData analysisData;
     MVAnalysisData analysisDataDivided;
@@ -123,11 +124,11 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         GroupOfPlanes *vectorFields = new GroupOfPlanes(d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra);
 
 
-        const unsigned char *pSrcY, *pSrcU, *pSrcV;
-        const unsigned char *pRefY, *pRefU, *pRefV;
-        unsigned char *pDst;
-        int nSrcPitchY, nSrcPitchUV;
-        int nRefPitchY, nRefPitchUV;
+        const uint8_t *pSrc[3];
+        const uint8_t *pRef[3];
+        uint8_t *pDst;
+        int nSrcPitch[3];
+        int nRefPitch[3];
 
         int nref;
 
@@ -154,11 +155,10 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         if (d->tffexists)
             srctff = d->tff && (n % 2 == 0); //child->GetParity(n); // bool tff;
 
-        pSrcY = vsapi->getReadPtr(src, 0);
-        pSrcU = vsapi->getReadPtr(src, 1);
-        pSrcV = vsapi->getReadPtr(src, 2);
-        nSrcPitchY = vsapi->getStride(src, 0);
-        nSrcPitchUV = vsapi->getStride(src, 1);
+        for (int plane = 0; plane < d->supervi->format->numPlanes; plane++) {
+            pSrc[plane] = vsapi->getReadPtr(src, plane);
+            nSrcPitch[plane] = vsapi->getStride(src, plane);
+        }
 
         int dst_height = 1;
         int dst_width = d->headerSize / sizeof(int) + vectorFields->GetArraySize(); //v1.8.1
@@ -206,19 +206,18 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
                 // vertical shift of fields for fieldbased video at finest level pel2
             }
 
-            pRefY = vsapi->getReadPtr(ref, 0);
-            pRefU = vsapi->getReadPtr(ref, 1);
-            pRefV = vsapi->getReadPtr(ref, 2);
-            nRefPitchY = vsapi->getStride(ref, 0);
-            nRefPitchUV = vsapi->getStride(ref, 1);
+            for (int plane = 0; plane < d->supervi->format->numPlanes; plane++) {
+                pRef[plane] = vsapi->getReadPtr(ref, plane);
+                nRefPitch[plane] = vsapi->getStride(ref, plane);
+            }
 
 
             MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV);
             MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV);
 
             // cast away the const, because why not.
-            pSrcGOF->Update(d->nModeYUV, (uint8_t *)pSrcY, nSrcPitchY, (uint8_t *)pSrcU, nSrcPitchUV, (uint8_t *)pSrcV, nSrcPitchUV); // v2.0
-            pRefGOF->Update(d->nModeYUV, (uint8_t *)pRefY, nRefPitchY, (uint8_t *)pRefU, nRefPitchUV, (uint8_t *)pRefV, nRefPitchUV); // v2.0
+            pSrcGOF->Update(d->nModeYUV, (uint8_t *)pSrc[0], nSrcPitch[0], (uint8_t *)pSrc[1], nSrcPitch[1], (uint8_t *)pSrc[2], nSrcPitch[2]); // v2.0
+            pRefGOF->Update(d->nModeYUV, (uint8_t *)pRef[0], nRefPitch[0], (uint8_t *)pRef[1], nRefPitch[1], (uint8_t *)pRef[2], nRefPitch[2]); // v2.0
 
 
             DCTClass *DCTc = NULL;
@@ -456,19 +455,6 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         d.nSearchParam = ( d.searchparam < 1 ) ? 1 : d.searchparam;
 
 
-    d.analysisData.nFlags = 0;
-    d.analysisData.nFlags |= d.isse ? MOTION_USE_ISSE : 0;
-    d.analysisData.nFlags |= d.analysisData.isBackward ? MOTION_IS_BACKWARD : 0;
-    d.analysisData.nFlags |= d.chroma ? MOTION_USE_CHROMA_MOTION : 0;
-
-
-    if (d.isse)
-    {
-        d.analysisData.nFlags |= cpu_detect();
-    }
-
-    d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
-
     // XXX maybe get rid of these two
     // Bleh, they're checked by client filters. Though it's kind of pointless.
     d.analysisData.nMagicKey = MOTION_MAGIC_KEY;
@@ -479,12 +465,29 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
 
     d.node = vsapi->propGetNode(in, "super", 0, 0);
-    d.vi = *vsapi->getVideoInfo(d.node);
+    d.supervi = vsapi->getVideoInfo(d.node);
+    d.vi = *d.supervi;
 
-    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 8 || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || d.vi.format->colorFamily != cmYUV) {
-        vsapi->setError(out, "Analyse: Input clip must be YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant format and dimensions.");
+    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 8 || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || (d.vi.format->colorFamily != cmYUV && d.vi.format->colorFamily != cmGray)) {
+        vsapi->setError(out, "Analyse: Input clip must be GRAY8, YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant format and dimensions.");
         vsapi->freeNode(d.node);
         return;
+    }
+
+    if (d.vi.format->colorFamily == cmGray)
+        d.chroma = 0;
+
+    d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
+
+    d.analysisData.nFlags = 0;
+    d.analysisData.nFlags |= d.isse ? MOTION_USE_ISSE : 0;
+    d.analysisData.nFlags |= d.analysisData.isBackward ? MOTION_IS_BACKWARD : 0;
+    d.analysisData.nFlags |= d.chroma ? MOTION_USE_CHROMA_MOTION : 0;
+
+
+    if (d.isse)
+    {
+        d.analysisData.nFlags |= cpu_detect();
     }
 
     if (d.overlap % (1 << d.vi.format->subSamplingW) ||

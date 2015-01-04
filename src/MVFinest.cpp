@@ -62,7 +62,7 @@ static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, voi
         const uint8_t *pRef[3];
         int nDstPitches[3], nRefPitches[3];
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < d->vi.format->numPlanes; i++) {
             pDst[i] = vsapi->getWritePtr(dst, i);
             pRef[i] = vsapi->getReadPtr(ref, i);
             nDstPitches[i] = vsapi->getStride(dst, i);
@@ -71,14 +71,14 @@ static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, voi
 
         if (d->nPel == 1) // simply copy top lines
         {
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < d->vi.format->numPlanes; i++)
                 vs_bitblt(pDst[i], nDstPitches[i], pRef[i], nRefPitches[i], d->vi.width, d->vi.height);
         }
         else
         {
             MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, d->nWidth, d->nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->xRatioUV, d->yRatioUV);
 
-            pRefGOF->Update(YUVPLANES, (uint8_t*)pRef[0], nRefPitches[0], (uint8_t*)pRef[1], nRefPitches[1], (uint8_t*)pRef[2], nRefPitches[2]);// v2.0
+            pRefGOF->Update(d->nSuperModeYUV, (uint8_t*)pRef[0], nRefPitches[0], (uint8_t*)pRef[1], nRefPitches[1], (uint8_t*)pRef[2], nRefPitches[2]);// v2.0
 
             MVPlane *pPlanes[3];
 
@@ -176,8 +176,8 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
     d.super = vsapi->propGetNode(in, "super", 0, 0);
     d.vi = *vsapi->getVideoInfo(d.super);
 
-    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 8 || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || d.vi.format->colorFamily != cmYUV) {
-        vsapi->setError(out, "Finest: input clip must be YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
+    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 8 || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || (d.vi.format->colorFamily != cmYUV && d.vi.format->colorFamily != cmGray)) {
+        vsapi->setError(out, "Finest: input clip must be GRAY8, YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
         vsapi->freeNode(d.super);
         return;
     }

@@ -289,8 +289,10 @@ static const VSFrameRef *VS_CC mvdegrain3GetFrame(int n, int activationReason, v
         unsigned short *DstShort = NULL;
         if (nOverlapX[0] > 0 || nOverlapY[0] > 0) {
             OverWins[0] = new OverlapWindows(nBlkSizeX[0], nBlkSizeY[0], nOverlapX[0], nOverlapY[0]);
-            OverWins[1] = new OverlapWindows(nBlkSizeX[1], nBlkSizeY[1], nOverlapX[1], nOverlapY[1]);
-            OverWins[2] = OverWins[1];
+            if (d->vi->format->colorFamily != cmGray) {
+                OverWins[1] = new OverlapWindows(nBlkSizeX[1], nBlkSizeY[1], nOverlapX[1], nOverlapY[1]);
+                OverWins[2] = OverWins[1];
+            }
             DstShort = new unsigned short[d->dstShortPitch * nHeight[0]];
         }
 
@@ -303,59 +305,43 @@ static const VSFrameRef *VS_CC mvdegrain3GetFrame(int n, int activationReason, v
         MVPlane *pPlanesB3[3] = { };
         MVPlane *pPlanesF3[3] = { };
 
+        MVPlaneSet planes[3] = { YPLANE, UPLANE, VPLANE };
+
         if (isUsableF3) {
             pRefF3GOF->Update(YUVplanes, (uint8_t*)pRefF3[0], nRefF3Pitches[0], (uint8_t*)pRefF3[1], nRefF3Pitches[1], (uint8_t*)pRefF3[2], nRefF3Pitches[2]);
-            if (YUVplanes & YPLANE)
-                pPlanesF3[0] = pRefF3GOF->GetFrame(0)->GetPlane(YPLANE);
-            if (YUVplanes & UPLANE)
-                pPlanesF3[1] = pRefF3GOF->GetFrame(0)->GetPlane(UPLANE);
-            if (YUVplanes & VPLANE)
-                pPlanesF3[2] = pRefF3GOF->GetFrame(0)->GetPlane(VPLANE);
+            for (int plane = 0; plane < d->vi->format->numPlanes; plane++)
+                if (YUVplanes & planes[plane])
+                    pPlanesF3[plane] = pRefF3GOF->GetFrame(0)->GetPlane(planes[plane]);
         }
         if (isUsableF2) {
             pRefF2GOF->Update(YUVplanes, (uint8_t*)pRefF2[0], nRefF2Pitches[0], (uint8_t*)pRefF2[1], nRefF2Pitches[1], (uint8_t*)pRefF2[2], nRefF2Pitches[2]);
-            if (YUVplanes & YPLANE)
-                pPlanesF2[0] = pRefF2GOF->GetFrame(0)->GetPlane(YPLANE);
-            if (YUVplanes & UPLANE)
-                pPlanesF2[1] = pRefF2GOF->GetFrame(0)->GetPlane(UPLANE);
-            if (YUVplanes & VPLANE)
-                pPlanesF2[2] = pRefF2GOF->GetFrame(0)->GetPlane(VPLANE);
+            for (int plane = 0; plane < d->vi->format->numPlanes; plane++)
+                if (YUVplanes & planes[plane])
+                    pPlanesF2[plane] = pRefF2GOF->GetFrame(0)->GetPlane(planes[plane]);
         }
         if (isUsableF) {
             pRefFGOF->Update(YUVplanes, (uint8_t*)pRefF[0], nRefFPitches[0], (uint8_t*)pRefF[1], nRefFPitches[1], (uint8_t*)pRefF[2], nRefFPitches[2]);
-            if (YUVplanes & YPLANE)
-                pPlanesF[0] = pRefFGOF->GetFrame(0)->GetPlane(YPLANE);
-            if (YUVplanes & UPLANE)
-                pPlanesF[1] = pRefFGOF->GetFrame(0)->GetPlane(UPLANE);
-            if (YUVplanes & VPLANE)
-                pPlanesF[2] = pRefFGOF->GetFrame(0)->GetPlane(VPLANE);
+            for (int plane = 0; plane < d->vi->format->numPlanes; plane++)
+                if (YUVplanes & planes[plane])
+                    pPlanesF[plane] = pRefFGOF->GetFrame(0)->GetPlane(planes[plane]);
         }
         if (isUsableB) {
             pRefBGOF->Update(YUVplanes, (uint8_t*)pRefB[0], nRefBPitches[0], (uint8_t*)pRefB[1], nRefBPitches[1], (uint8_t*)pRefB[2], nRefBPitches[2]);// v2.0
-            if (YUVplanes & YPLANE)
-                pPlanesB[0] = pRefBGOF->GetFrame(0)->GetPlane(YPLANE);
-            if (YUVplanes & UPLANE)
-                pPlanesB[1] = pRefBGOF->GetFrame(0)->GetPlane(UPLANE);
-            if (YUVplanes & VPLANE)
-                pPlanesB[2] = pRefBGOF->GetFrame(0)->GetPlane(VPLANE);
+            for (int plane = 0; plane < d->vi->format->numPlanes; plane++)
+                if (YUVplanes & planes[plane])
+                    pPlanesB[plane] = pRefBGOF->GetFrame(0)->GetPlane(planes[plane]);
         }
         if (isUsableB2) {
             pRefB2GOF->Update(YUVplanes, (uint8_t*)pRefB2[0], nRefB2Pitches[0], (uint8_t*)pRefB2[1], nRefB2Pitches[1], (uint8_t*)pRefB2[2], nRefB2Pitches[2]);// v2.0
-            if (YUVplanes & YPLANE)
-                pPlanesB2[0] = pRefB2GOF->GetFrame(0)->GetPlane(YPLANE);
-            if (YUVplanes & UPLANE)
-                pPlanesB2[1] = pRefB2GOF->GetFrame(0)->GetPlane(UPLANE);
-            if (YUVplanes & VPLANE)
-                pPlanesB2[2] = pRefB2GOF->GetFrame(0)->GetPlane(VPLANE);
+            for (int plane = 0; plane < d->vi->format->numPlanes; plane++)
+                if (YUVplanes & planes[plane])
+                    pPlanesB2[plane] = pRefB2GOF->GetFrame(0)->GetPlane(planes[plane]);
         }
         if (isUsableB3) {
             pRefB3GOF->Update(YUVplanes, (uint8_t*)pRefB3[0], nRefB3Pitches[0], (uint8_t*)pRefB3[1], nRefB3Pitches[1], (uint8_t*)pRefB3[2], nRefB3Pitches[2]);// v2.0
-            if (YUVplanes & YPLANE)
-                pPlanesB3[0] = pRefB3GOF->GetFrame(0)->GetPlane(YPLANE);
-            if (YUVplanes & UPLANE)
-                pPlanesB3[1] = pRefB3GOF->GetFrame(0)->GetPlane(UPLANE);
-            if (YUVplanes & VPLANE)
-                pPlanesB3[2] = pRefB3GOF->GetFrame(0)->GetPlane(VPLANE);
+            for (int plane = 0; plane < d->vi->format->numPlanes; plane++)
+                if (YUVplanes & planes[plane])
+                    pPlanesB3[plane] = pRefB3GOF->GetFrame(0)->GetPlane(planes[plane]);
         }
 
 
@@ -474,10 +460,11 @@ static const VSFrameRef *VS_CC mvdegrain3GetFrame(int n, int activationReason, v
 
         delete[] tmpBlock;
 
-        if (OverWins[0]) {
+        if (OverWins[0])
             delete OverWins[0];
+        if (OverWins[1])
             delete OverWins[1];
-        }
+
         if (DstShort)
             delete[] DstShort;
 
@@ -907,8 +894,8 @@ static void VS_CC mvdegrain3Create(const VSMap *in, VSMap *out, void *userData, 
         return;
     }
 
-    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 8 || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || d.vi->format->colorFamily != cmYUV) {
-        vsapi->setError(out, "Degrain3: input clip must be YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
+    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 8 || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || (d.vi->format->colorFamily != cmYUV && d.vi->format->colorFamily != cmGray)) {
+        vsapi->setError(out, "Degrain3: input clip must be GRAY8, YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);

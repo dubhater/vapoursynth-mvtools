@@ -17,6 +17,7 @@
 typedef struct {
     VSNodeRef *node;
     const VSVideoInfo *vi;
+    const VSVideoInfo *supervi;
 
     MVClipDicks *mvClip;
 
@@ -102,11 +103,11 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
         GroupOfPlanes *vectorFields = new GroupOfPlanes(d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra);
 
 
-        const unsigned char *pSrcY, *pSrcU, *pSrcV;
-        const unsigned char *pRefY, *pRefU, *pRefV;
-        unsigned char *pDst;
-        int nSrcPitchY, nSrcPitchUV;
-        int nRefPitchY, nRefPitchUV;
+        const uint8_t *pSrc[3];
+        const uint8_t *pRef[3];
+        uint8_t *pDst;
+        int nSrcPitch[3];
+        int nRefPitch[3];
 
         int offset = ( d->analysisData.isBackward ) ? d->analysisData.nDeltaFrame : -d->analysisData.nDeltaFrame;
         int nref = n + offset;
@@ -127,11 +128,10 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
         if (d->tffexists)
             srctff = d->tff && (n % 2 == 0); //child->GetParity(n); // bool tff;
 
-        pSrcY = vsapi->getReadPtr(src, 0);
-        pSrcU = vsapi->getReadPtr(src, 1);
-        pSrcV = vsapi->getReadPtr(src, 2);
-        nSrcPitchY = vsapi->getStride(src, 0);
-        nSrcPitchUV = vsapi->getStride(src, 1);
+        for (int plane = 0; plane < d->supervi->format->numPlanes; plane++) {
+            pSrc[plane] = vsapi->getReadPtr(src, plane);
+            nSrcPitch[plane] = vsapi->getStride(src, plane);
+        }
 
         int dst_height = 1;
         int dst_width = d->headerSize / sizeof(int) + vectorFields->GetArraySize(); //v1.8.1
@@ -183,19 +183,19 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
                 // vertical shift of fields for fieldbased video at finest level pel2
             }
 
-            pRefY = vsapi->getReadPtr(ref, 0);
-            pRefU = vsapi->getReadPtr(ref, 1);
-            pRefV = vsapi->getReadPtr(ref, 2);
-            nRefPitchY = vsapi->getStride(ref, 0);
-            nRefPitchUV = vsapi->getStride(ref, 1);
+
+            for (int plane = 0; plane < d->supervi->format->numPlanes; plane++) {
+                pRef[plane] = vsapi->getReadPtr(ref, plane);
+                nRefPitch[plane] = vsapi->getStride(ref, plane);
+            }
 
 
             MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV);
             MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV);
 
             // cast away the const, because why not.
-            pSrcGOF->Update(d->nModeYUV, (uint8_t *)pSrcY, nSrcPitchY, (uint8_t *)pSrcU, nSrcPitchUV, (uint8_t *)pSrcV, nSrcPitchUV); // v2.0
-            pRefGOF->Update(d->nModeYUV, (uint8_t *)pRefY, nRefPitchY, (uint8_t *)pRefU, nRefPitchUV, (uint8_t *)pRefV, nRefPitchUV); // v2.0
+            pSrcGOF->Update(d->nModeYUV, (uint8_t *)pSrc[0], nSrcPitch[0], (uint8_t *)pSrc[1], nSrcPitch[1], (uint8_t *)pSrc[2], nSrcPitch[2]); // v2.0
+            pRefGOF->Update(d->nModeYUV, (uint8_t *)pRef[0], nRefPitch[0], (uint8_t *)pRef[1], nRefPitch[1], (uint8_t *)pRef[2], nRefPitch[2]); // v2.0
 
 
             DCTClass *DCTc = NULL;
@@ -386,8 +386,6 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
         d.nSearchParam = ( d.searchparam < 1 ) ? 1 : d.searchparam;
 
 
-    d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
-
     // XXX maybe get rid of these two
     // Bleh, they're checked by client filters. Though it's kind of pointless.
     d.analysisData.nMagicKey = MOTION_MAGIC_KEY;
@@ -398,17 +396,17 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
 
     d.node = vsapi->propGetNode(in, "super", 0, 0);
-    const VSVideoInfo *supervi = vsapi->getVideoInfo(d.node);
+    d.supervi = vsapi->getVideoInfo(d.node);
 
-    if (d.overlap % (1 << supervi->format->subSamplingW) ||
-        d.overlapv % (1 << supervi->format->subSamplingH)) {
+    if (d.overlap % (1 << d.supervi->format->subSamplingW) ||
+        d.overlapv % (1 << d.supervi->format->subSamplingH)) {
         vsapi->setError(out, "Recalculate: The requested overlap is incompatible with the super clip's subsampling.");
         vsapi->freeNode(d.node);
         return;
     }
 
-    if (d.divideExtra && (d.overlap % (2 << supervi->format->subSamplingW) ||
-                          d.overlapv % (2 << supervi->format->subSamplingH))) { // subsampling times 2
+    if (d.divideExtra && (d.overlap % (2 << d.supervi->format->subSamplingW) ||
+                          d.overlapv % (2 << d.supervi->format->subSamplingH))) { // subsampling times 2
         vsapi->setError(out, "Recalculate: overlap and overlapv must be multiples of 2 or 4 when divide=True, depending on the super clip's subsampling.");
         vsapi->freeNode(d.node);
         return;
@@ -439,6 +437,11 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
             return;
         }
 
+
+    if (d.supervi->format->colorFamily == cmGray)
+        d.chroma = 0;
+
+    d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
 
     if ((d.nModeYUV & d.nSuperModeYUV) != d.nModeYUV) { //x
         vsapi->setError(out, "Recalculate: super clip does not contain needed colour data.");
@@ -491,7 +494,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
     d.analysisData.nPel = d.nSuperPel;//x
 
-    int nSuperWidth = supervi->width;
+    int nSuperWidth = d.supervi->width;
     if (nHeight != d.analysisData.nHeight || nSuperWidth - 2 * d.nSuperHPad != d.analysisData.nWidth) {
         vsapi->setError(out, "Recalculate: wrong frame size.");
         vsapi->freeNode(d.node);

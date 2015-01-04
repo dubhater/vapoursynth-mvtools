@@ -30,6 +30,7 @@
 typedef struct {
     VSNodeRef *node;
     const VSVideoInfo *vi;
+    const VSVideoInfo *supervi;
 
     VSNodeRef *super;
     VSNodeRef *vectors;
@@ -160,7 +161,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
         {
             // No need to check nref because nref is always in range when balls is usable.
             const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->super, frameCtx);
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < d->supervi->format->numPlanes; i++) {
                 pDst[i] = vsapi->getWritePtr(dst, i);
                 nDstPitches[i] = vsapi->getStride(dst, i);
                 pSrc[i] = vsapi->getReadPtr(src, i);
@@ -172,29 +173,23 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
             MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth, nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, nSuperModeYUV, isse, xRatioUV, yRatioUV);
             MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth, nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, nSuperModeYUV, isse, xRatioUV, yRatioUV);
 
-            pRefGOF->Update(YUVPLANES, (uint8_t*)pRef[0], nRefPitches[0], (uint8_t*)pRef[1], nRefPitches[1], (uint8_t*)pRef[2], nRefPitches[2]);// v2.0
+            pRefGOF->Update(nSuperModeYUV, (uint8_t*)pRef[0], nRefPitches[0], (uint8_t*)pRef[1], nRefPitches[1], (uint8_t*)pRef[2], nRefPitches[2]);// v2.0
 
-            pSrcGOF->Update(YUVPLANES, (uint8_t*)pSrc[0], nSrcPitches[0], (uint8_t*)pSrc[1], nSrcPitches[1], (uint8_t*)pSrc[2], nSrcPitches[2]);
+            pSrcGOF->Update(nSuperModeYUV, (uint8_t*)pSrc[0], nSrcPitches[0], (uint8_t*)pSrc[1], nSrcPitches[1], (uint8_t*)pSrc[2], nSrcPitches[2]);
 
+
+            MVPlaneSet planes[3] = { YPLANE, UPLANE, VPLANE };
 
             MVPlane *pPlanes[3];
-
-            pPlanes[0] = pRefGOF->GetFrame(0)->GetPlane(YPLANE);
-            pPlanes[1] = pRefGOF->GetFrame(0)->GetPlane(UPLANE);
-            pPlanes[2] = pRefGOF->GetFrame(0)->GetPlane(VPLANE);
-
             MVPlane *pSrcPlanes[3];
 
-            pSrcPlanes[0] = pSrcGOF->GetFrame(0)->GetPlane(YPLANE);
-            pSrcPlanes[1] = pSrcGOF->GetFrame(0)->GetPlane(UPLANE);
-            pSrcPlanes[2] = pSrcGOF->GetFrame(0)->GetPlane(VPLANE);
+            for (int plane = 0; plane < d->supervi->format->numPlanes; plane++) {
+                pPlanes[plane] = pRefGOF->GetFrame(0)->GetPlane(planes[plane]);
+                pSrcPlanes[plane] = pSrcGOF->GetFrame(0)->GetPlane(planes[plane]);
 
-            pDstCur[0] = pDst[0];
-            pDstCur[1] = pDst[1];
-            pDstCur[2] = pDst[2];
-            pSrcCur[0] = pSrc[0];
-            pSrcCur[1] = pSrc[1];
-            pSrcCur[2] = pSrc[2];
+                pDstCur[plane] = pDst[plane];
+                pSrcCur[plane] = pSrc[plane];
+            }
 
             int fieldShift = 0;
             if (fields && nPel > 1 && ((nref-n) %2 != 0))
@@ -264,11 +259,13 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
                     }
                     pDstCur[0] += (nBlkSizeY) * (nDstPitches[0]);
-                    pDstCur[1] += ( nBlkSizeY>>ySubUV) * (nDstPitches[1]);
-                    pDstCur[2] += ( nBlkSizeY>>ySubUV) * (nDstPitches[2]) ;
                     pSrcCur[0] += (nBlkSizeY) * (nSrcPitches[0]);
-                    pSrcCur[1] += ( nBlkSizeY>>ySubUV) * (nSrcPitches[1]);
-                    pSrcCur[2] += ( nBlkSizeY>>ySubUV) * (nSrcPitches[2]) ;
+                    if (nSuperModeYUV & UVPLANES) {
+                        pDstCur[1] += ( nBlkSizeY>>ySubUV) * (nDstPitches[1]);
+                        pDstCur[2] += ( nBlkSizeY>>ySubUV) * (nDstPitches[2]) ;
+                        pSrcCur[1] += ( nBlkSizeY>>ySubUV) * (nSrcPitches[1]);
+                        pSrcCur[2] += ( nBlkSizeY>>ySubUV) * (nSrcPitches[2]) ;
+                    }
 
                 }
             }
@@ -276,10 +273,15 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
             else // overlap
             {
                 OverlapWindows *OverWins = new OverlapWindows(nBlkSizeX, nBlkSizeY, nOverlapX, nOverlapY);
-                OverlapWindows *OverWinsUV = new OverlapWindows(nBlkSizeX/xRatioUV, nBlkSizeY/yRatioUV, nOverlapX/xRatioUV, nOverlapY/yRatioUV);
                 unsigned short *DstShort = new unsigned short[dstShortPitch*nHeight];
-                unsigned short *DstShortU = new unsigned short[dstShortPitchUV*nHeight];
-                unsigned short *DstShortV = new unsigned short[dstShortPitchUV*nHeight];
+                OverlapWindows *OverWinsUV = NULL;
+                unsigned short *DstShortU = NULL;
+                unsigned short *DstShortV = NULL;
+                if (nSuperModeYUV & UVPLANES) {
+                    OverWinsUV = new OverlapWindows(nBlkSizeX/xRatioUV, nBlkSizeY/yRatioUV, nOverlapX/xRatioUV, nOverlapY/yRatioUV);
+                    DstShortU = new unsigned short[dstShortPitchUV*nHeight];
+                    DstShortV = new unsigned short[dstShortPitchUV*nHeight];
+                }
 
                 pDstShort = DstShort;
                 pDstShortU = DstShortU;
@@ -299,7 +301,9 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                         // select window
                         int wbx = (bx + nBlkX - 3)/(nBlkX - 2);
                         short *winOver = OverWins->GetWindow(wby + wbx);
-                        short *winOverUV = OverWinsUV->GetWindow(wby + wbx);
+                        short *winOverUV = NULL;
+                        if (nSuperModeYUV & UVPLANES)
+                            winOverUV = OverWinsUV->GetWindow(wby + wbx);
 
                         int i = by*nBlkX + bx;
                         const FakeBlockData &block = balls.GetBlock(0, i);
@@ -332,14 +336,16 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
                     }
                     pDstShort += dstShortPitch*(nBlkSizeY - nOverlapY);
-                    pDstShortU += dstShortPitchUV*((nBlkSizeY - nOverlapY)>>ySubUV);
-                    pDstShortV += dstShortPitchUV*((nBlkSizeY - nOverlapY)>>ySubUV);
                     pDstCur[0] += (nBlkSizeY - nOverlapY) * (nDstPitches[0]);
-                    pDstCur[1] += ((nBlkSizeY - nOverlapY)>>ySubUV) * (nDstPitches[1]);
-                    pDstCur[2] += ((nBlkSizeY - nOverlapY)>>ySubUV) * (nDstPitches[2]);
                     pSrcCur[0] += (nBlkSizeY - nOverlapY) * (nSrcPitches[0]);
-                    pSrcCur[1] += ((nBlkSizeY - nOverlapY)>>ySubUV) * (nSrcPitches[1]);
-                    pSrcCur[2] += ((nBlkSizeY - nOverlapY)>>ySubUV) * (nSrcPitches[2]) ;
+                    if (nSuperModeYUV & UVPLANES) {
+                        pDstShortU += dstShortPitchUV*((nBlkSizeY - nOverlapY)>>ySubUV);
+                        pDstShortV += dstShortPitchUV*((nBlkSizeY - nOverlapY)>>ySubUV);
+                        pDstCur[1] += ((nBlkSizeY - nOverlapY)>>ySubUV) * (nDstPitches[1]);
+                        pDstCur[2] += ((nBlkSizeY - nOverlapY)>>ySubUV) * (nDstPitches[2]);
+                        pSrcCur[1] += ((nBlkSizeY - nOverlapY)>>ySubUV) * (nSrcPitches[1]);
+                        pSrcCur[2] += ((nBlkSizeY - nOverlapY)>>ySubUV) * (nSrcPitches[2]);
+                    }
 
 
                 }
@@ -348,10 +354,12 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                 if(pPlanes[2]) Short2Bytes(pDst[2], nDstPitches[2], DstShortV, dstShortPitchUV, nWidth_B >> xSubUV, nHeight_B>>ySubUV);
 
                 delete OverWins;
-                delete OverWinsUV;
                 delete[] DstShort;
-                delete[] DstShortU;
-                delete[] DstShortV;
+                if (nSuperModeYUV & UVPLANES) {
+                    delete OverWinsUV;
+                    delete[] DstShortU;
+                    delete[] DstShortV;
+                }
             }
 
             if (nWidth_B < nWidth) // padding of right non-covered region
@@ -439,7 +447,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                 src = vsapi->getFrameFilter(nref, d->super, frameCtx);
             }
 
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < d->supervi->format->numPlanes; i++) {
                 pDst[i] = vsapi->getWritePtr(dst, i);
                 nDstPitches[i] = vsapi->getStride(dst, i);
                 pSrc[i] = vsapi->getReadPtr(src, i);
@@ -453,8 +461,10 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
             nOffset[2] = nOffset[1];
 
             vs_bitblt(pDst[0], nDstPitches[0], pSrc[0] + nOffset[0], nSrcPitches[0], nWidth, nHeight);
-            vs_bitblt(pDst[1], nDstPitches[1], pSrc[1] + nOffset[1], nSrcPitches[1], nWidth / xRatioUV, nHeight / yRatioUV);
-            vs_bitblt(pDst[2], nDstPitches[2], pSrc[2] + nOffset[2], nSrcPitches[2], nWidth / xRatioUV, nHeight / yRatioUV);
+            if (nSuperModeYUV & UVPLANES) {
+                vs_bitblt(pDst[1], nDstPitches[1], pSrc[1] + nOffset[1], nSrcPitches[1], nWidth / xRatioUV, nHeight / yRatioUV);
+                vs_bitblt(pDst[2], nDstPitches[2], pSrc[2] + nOffset[2], nSrcPitches[2], nWidth / xRatioUV, nHeight / yRatioUV);
+            }
         }
 
 
@@ -658,8 +668,8 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
     d.node = vsapi->propGetNode(in, "clip", 0, 0);
     d.vi = vsapi->getVideoInfo(d.node);
 
-    const VSVideoInfo *supervi = vsapi->getVideoInfo(d.super);
-    int nSuperWidth = supervi->width;
+    d.supervi = vsapi->getVideoInfo(d.super);
+    int nSuperWidth = d.supervi->width;
 
     if (d.bleh->nHeight != nHeightS || d.bleh->nHeight != d.vi->height || d.bleh->nWidth != nSuperWidth - d.nSuperHPad * 2 || d.bleh->nWidth != d.vi->width) {
         vsapi->setError(out, "Compensate: wrong source or super clip frame size.");
@@ -671,8 +681,8 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
         return;
     }
 
-    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 8 || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || d.vi->format->colorFamily != cmYUV) {
-        vsapi->setError(out, "Compensate: input clip must be YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
+    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 8 || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || (d.vi->format->colorFamily != cmYUV && d.vi->format->colorFamily != cmGray)) {
+        vsapi->setError(out, "Compensate: input clip must be GRAY8, YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.vectors);
         vsapi->freeNode(d.node);
