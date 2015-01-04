@@ -67,22 +67,26 @@ void Overlaps_C(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *p
     }
 }
 
-extern "C" void mvtools_Overlaps32x32_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
-extern "C" void mvtools_Overlaps16x32_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
-extern "C" void mvtools_Overlaps32x16_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
-extern "C" void mvtools_Overlaps16x16_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
-extern "C" void mvtools_Overlaps8x16_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
-extern "C" void mvtools_Overlaps8x8_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
-extern "C" void mvtools_Overlaps4x8_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
-extern "C" void mvtools_Overlaps4x4_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
-extern "C" void mvtools_Overlaps2x4_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
-extern "C" void mvtools_Overlaps2x2_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
-extern "C" void mvtools_Overlaps8x4_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
-extern "C" void mvtools_Overlaps4x2_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
-extern "C" void mvtools_Overlaps16x8_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
-extern "C" void mvtools_Overlaps16x2_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
-extern "C" void mvtools_Overlaps8x2_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
-extern "C" void mvtools_Overlaps8x1_sse2(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch);
+#define MK_CFUNC(functionname) extern "C" void functionname (unsigned short *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch)
+
+MK_CFUNC(mvtools_Overlaps2x2_sse2);
+MK_CFUNC(mvtools_Overlaps2x4_sse2);
+MK_CFUNC(mvtools_Overlaps4x2_sse2);
+MK_CFUNC(mvtools_Overlaps4x4_sse2);
+MK_CFUNC(mvtools_Overlaps4x8_sse2);
+MK_CFUNC(mvtools_Overlaps8x1_sse2);
+MK_CFUNC(mvtools_Overlaps8x2_sse2);
+MK_CFUNC(mvtools_Overlaps8x4_sse2);
+MK_CFUNC(mvtools_Overlaps8x8_sse2);
+MK_CFUNC(mvtools_Overlaps8x16_sse2);
+MK_CFUNC(mvtools_Overlaps16x2_sse2);
+MK_CFUNC(mvtools_Overlaps16x8_sse2);
+MK_CFUNC(mvtools_Overlaps16x16_sse2);
+MK_CFUNC(mvtools_Overlaps16x32_sse2);
+MK_CFUNC(mvtools_Overlaps32x16_sse2);
+MK_CFUNC(mvtools_Overlaps32x32_sse2);
+
+#undef MK_CFUNC
 
 void Short2Bytes(unsigned char *pDst, int nDstPitch, unsigned short *pDstShort, int dstShortPitch, int nWidth, int nHeight);
 
