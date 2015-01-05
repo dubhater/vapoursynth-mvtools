@@ -46,6 +46,11 @@ Differences
 * Mask:
     * No "isse" parameter, because there is no asm in Mask anymore.
 
+* SCDetection:
+    * No "ysc" parameter. The input frames are returned unchanged, with the ``_SceneChangePrev`` or ``_SceneChangeNext`` property attached.
+
+    * No "isse" parameter. It wasn't used.
+
 
 Usage
 =====
@@ -76,6 +81,8 @@ Usage
     mv.FlowFPS(clip clip, clip super, clip mvbw, clip mvfw[, int num=25, int den=1, int mask=2, float ml=100.0, bint blend=True, int thscd1=400, int thscd2=130, bint isse=True])
 
     mv.BlockFPS(clip clip, clip super, clip mvbw, clip mvfw[, int num=25, int den=1, int mode=0, int thres, bint blend=True, int thscd1=400, int thscd2=130, bint isse=True])
+
+    mv.SCDetection(clip clip, clip vectors[, int thscd1=400, int thscd2=130])
 
 
 If *fields* is True, it is assumed that the clip named *clip* first went through std.SeparateFields.

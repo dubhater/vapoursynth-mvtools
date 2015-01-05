@@ -38,6 +38,7 @@ libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/MVFrame.cpp \
 						src/MVMask.cpp \
 						src/MVRecalculate.cpp \
+						src/MVSCDetection.cpp \
 						src/MVSuper.cpp \
 						src/Overlap.cpp \
 						src/Padding.cpp \
