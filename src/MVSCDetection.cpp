@@ -132,10 +132,6 @@ void mvscdetectionRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("SCDetection",
             "clip:clip;"
             "vectors:clip;"
-            "ml:float:opt;"
-            "gamma:float:opt;"
-            "kind:int:opt;"
-            "ysc:int:opt;"
             "thscd1:int:opt;"
             "thscd2:int:opt;"
             , mvscdetectionCreate, 0, plugin);
