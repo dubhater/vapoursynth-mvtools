@@ -548,8 +548,8 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
         nSrcPitch_plane[2] = pSrcFrame->GetPlane(VPLANE)->GetPitch();
     }
     nSrcPitch[0] = nBlkSizeX;
-    nSrcPitch[1] = nBlkSizeX/2;
-    nSrcPitch[2] = nBlkSizeX/2;
+    nSrcPitch[1] = nBlkSizeX / xRatioUV;
+    nSrcPitch[2] = nBlkSizeX / xRatioUV;
 #else
     nSrcPitch[0] = pSrcFrame->GetPlane(YPLANE)->GetPitch();
     if (chroma)
@@ -603,8 +603,8 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
             x[0] = pSrcFrame->GetPlane(YPLANE)->GetHPadding() + (nBlkSizeX-nOverlapX)*(nBlkX-1);
             if (chroma)
             {
-                x[1] = pSrcFrame->GetPlane(UPLANE)->GetHPadding()+ ((nBlkSizeX-nOverlapX)/2)*(nBlkX-1);
-                x[2] = pSrcFrame->GetPlane(VPLANE)->GetHPadding()+ ((nBlkSizeX-nOverlapX)/2)*(nBlkX-1);
+                x[1] = pSrcFrame->GetPlane(UPLANE)->GetHPadding()+ ((nBlkSizeX-nOverlapX)/xRatioUV)*(nBlkX-1);
+                x[2] = pSrcFrame->GetPlane(VPLANE)->GetHPadding()+ ((nBlkSizeX-nOverlapX)/xRatioUV)*(nBlkX-1);
             }
         }
         for ( int iblkx = 0; iblkx < nBlkX; iblkx++ )
