@@ -18,6 +18,8 @@
 #ifndef __POBLOCKS__
 #define __POBLOCKS__
 
+#include <cstdlib>
+
 #include "MVInterface.h"
 #include "Interpolation.h"
 #include "CopyCode.h"
