@@ -62,6 +62,9 @@ void MVFilter::CheckSimilarity(const MVClipDicks *vector, const char *vectorName
     if ( nOverlapX != vector->GetOverlapX() ||  nOverlapY != vector->GetOverlapY())
         throw MVException(std::string(name).append(": ").append(vectorName).append("'s overlap size is incorrect."));
 
+    if ( xRatioUV != vector->GetXRatioUV() )
+        throw MVException(std::string(name).append(": ").append(vectorName).append("'s horizontal subsampling is incorrect."));
+
     if ( yRatioUV != vector->GetYRatioUV() )
-        throw MVException(std::string(name).append(": ").append(vectorName).append("'s subsampling is incorrect."));
+        throw MVException(std::string(name).append(": ").append(vectorName).append("'s vertical subsampling is incorrect."));
 }
