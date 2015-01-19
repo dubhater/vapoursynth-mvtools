@@ -25,7 +25,7 @@ MVClipDicks::MVClipDicks(VSNodeRef *vectors, int _nSCD1, int _nSCD2, const VSAPI
     char errorMsg[1024];
     const VSFrameRef *evil = vsapi->getFrame(0, vectors, errorMsg, 1024);
     if (!evil)
-        throw MVException(std::string("MVTools: failed to retrieve first frame from some motion clip. Error message: ").append(errorMsg).c_str());
+        throw MVException(std::string("Failed to retrieve first frame from some motion clip. Error message: ").append(errorMsg).c_str());
 
     // XXX This really should be passed as a frame property.
     const MVAnalysisData *pAnalyseFilter = reinterpret_cast<const MVAnalysisData *>(vsapi->getReadPtr(evil, 0) + sizeof(int));
@@ -33,7 +33,7 @@ MVClipDicks::MVClipDicks(VSNodeRef *vectors, int _nSCD1, int _nSCD2, const VSAPI
     // 'magic' key, just to check :
     if ( pAnalyseFilter->GetMagicKey() != MOTION_MAGIC_KEY ) {
         vsapi->freeFrame(evil);
-        throw MVException("MVTools: invalid motion vector clip. Who knows where this error came from exactly?");
+        throw MVException("Invalid motion vector clip.");
     }
 
     // MVAnalysisData

@@ -27,9 +27,7 @@ libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/MVBlockFPS.cpp \
 						src/MVClip.cpp \
 						src/MVCompensate.cpp \
-						src/MVDegrain1.cpp \
-						src/MVDegrain2.cpp \
-						src/MVDegrain3.cpp \
+						src/MVDegrains.cpp \
 						src/MVFilter.cpp \
 						src/MVFinest.cpp \
 						src/MVFlowBlur.cpp \
