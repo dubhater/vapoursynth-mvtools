@@ -77,6 +77,7 @@ AS_CASE(
          [
           ASFLAGS="$ASFLAGS -DPREFIX"
           AC_SUBST([PLUGINLDFLAGS], ["-Wl,--kill-at"])
+          AC_SUBST([STACKREALIGN], ["-mstackrealign"])
          ]
       )
    ],
