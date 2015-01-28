@@ -37,8 +37,7 @@ cglobal Overlaps2x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
     movdqa m6, [dword256]
     pxor m7, m7    ; =0
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS2
@@ -54,8 +53,7 @@ cglobal Overlaps2x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
     movdqa m6, [dword256]
     pxor m7, m7    ; =0
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS2
@@ -94,8 +92,7 @@ cglobal Overlaps4x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
     movdqa m6, [dword256]
     pxor m7, m7    ; =0
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS4
@@ -111,8 +108,7 @@ cglobal Overlaps4x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
     movdqa m6, [dword256]
     pxor m7, m7    ; =0
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS4
@@ -130,8 +126,7 @@ cglobal Overlaps4x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
     movdqa m6, [dword256]
     pxor m7, m7    ; =0
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS4
@@ -203,8 +198,7 @@ cglobal Overlaps8x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
     movdqa m6, [dword256]
     pxor m7, m7
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS8
@@ -220,8 +214,7 @@ cglobal Overlaps8x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
     movdqa m6, [dword256]
     pxor m7, m7
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS8
@@ -239,8 +232,7 @@ cglobal Overlaps8x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
     movdqa m6, [dword256]
     pxor m7, m7
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS8
@@ -263,8 +255,7 @@ cglobal Overlaps8x16_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, wi
     movdqa m6, [dword256]
     pxor m7, m7
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS8
@@ -308,8 +299,7 @@ cglobal Overlaps16x1_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, wi
     movdqa m6, [dword256]
     pxor m7, m7
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS16
@@ -324,8 +314,7 @@ cglobal Overlaps16x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, wi
     movdqa m6, [dword256]
     pxor m7, m7
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS16
@@ -341,8 +330,7 @@ cglobal Overlaps16x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, wi
     movdqa m6, [dword256]
     pxor m7, m7
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS16
@@ -360,8 +348,7 @@ cglobal Overlaps16x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, wi
     movdqa m6, [dword256]
     pxor m7, m7
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS16
@@ -384,8 +371,7 @@ cglobal Overlaps16x16_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, w
     movdqa m6, [dword256]
     pxor m7, m7
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS16
@@ -418,8 +404,7 @@ cglobal Overlaps16x32_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, w
     movdqa m6, [dword256]
     pxor m7, m7
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS16
@@ -485,8 +470,7 @@ cglobal Overlaps32x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, wi
     movdqa m6, [dword256]
     pxor m7, m7
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS32
@@ -509,8 +493,7 @@ cglobal Overlaps32x16_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, w
     movdqa m6, [dword256]
     pxor m7, m7
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS32
@@ -543,8 +526,7 @@ cglobal Overlaps32x32_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, w
     movdqa m6, [dword256]
     pxor m7, m7
 
-    ; They're in pixels, apparently.
-    add dst_strideq, dst_strideq
+    ; It's in pixels, apparently.
     add win_strideq, win_strideq
 
     OVERS32

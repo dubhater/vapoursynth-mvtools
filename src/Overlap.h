@@ -7,6 +7,14 @@
 #define M_PI       3.14159265358979323846f
 #endif
 
+#ifndef min
+#define min(a,b)            (((a) < (b)) ? (a) : (b))
+#endif
+
+#ifndef max
+#define max(a,b)            (((a) < (b)) ? (b) : (a))
+#endif
+
 // top, middle, botom and left, middle, right windows
 #define OW_TL 0
 #define OW_TM 1
@@ -45,29 +53,31 @@ class OverlapWindows
     inline short *GetWindow(int i) const { return Overlap9Windows + size*i; }
 };
 
-typedef void (*OverlapsFunction)(unsigned short *pDst, intptr_t nDstPitch,
-        const unsigned char *pSrc, intptr_t nSrcPitch,
+typedef void (*OverlapsFunction)(uint8_t *pDst, intptr_t nDstPitch,
+        const uint8_t *pSrc, intptr_t nSrcPitch,
         short *pWin, intptr_t nWinPitch);
 
-//=============================================================
-// short
-template <int blockWidth, int blockHeight>
-void Overlaps_C(unsigned short *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch)
+
+template <int blockWidth, int blockHeight, typename PixelType2, typename PixelType>
+void Overlaps_C(uint8_t *pDst8, intptr_t nDstPitch, const uint8_t *pSrc8, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch)
 {
     // pWin from 0 to 2048
     for (int j=0; j<blockHeight; j++)
     {
         for (int i=0; i<blockWidth; i++)
         {
-            pDst[i] = ( pDst[i] + ((pSrc[i]*pWin[i]+256)>>6));
+            PixelType2 *pDst = (PixelType2 *)pDst8;
+            const PixelType *pSrc = (const PixelType *)pSrc8;
+
+            pDst[i] += ((pSrc[i] * pWin[i]) >> 6);
         }
-        pDst += nDstPitch;
-        pSrc += nSrcPitch;
+        pDst8 += nDstPitch;
+        pSrc8 += nSrcPitch;
         pWin += nWinPitch;
     }
 }
 
-#define MK_CFUNC(functionname) extern "C" void functionname (unsigned short *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch)
+#define MK_CFUNC(functionname) extern "C" void functionname (uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch)
 
 MK_CFUNC(mvtools_Overlaps2x2_sse2);
 MK_CFUNC(mvtools_Overlaps2x4_sse2);
@@ -91,7 +101,34 @@ MK_CFUNC(mvtools_Overlaps32x32_sse2);
 
 #undef MK_CFUNC
 
-void Short2Bytes(unsigned char *pDst, int nDstPitch, unsigned short *pDstShort, int dstShortPitch, int nWidth, int nHeight);
+
+typedef void (*ToPixelsFunction)(uint8_t *pDst, int nDstPitch,
+        const uint8_t *pSrc, int nSrcPitch,
+        int width, int height, int bitsPerSample);
+
+
+template <typename PixelType2, typename PixelType>
+void ToPixels(uint8_t *pDst8, int nDstPitch, const uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, int bitsPerSample)
+{
+    int pixelMax = (1 << bitsPerSample) - 1;
+
+    for (int h=0; h<nHeight; h++)
+    {
+        for (int i=0; i<nWidth; i++)
+        {
+            const PixelType2 *pSrc = (const PixelType2 *)pSrc8;
+            PixelType *pDst = (PixelType *)pDst8;
+
+            int a = (pSrc[i] + 16)>>5;
+            if (sizeof(PixelType) == 1)
+                pDst[i] = a | ((255-a) >> (sizeof(int)*8-1));
+            else
+                pDst[i] = min(pixelMax, a);
+        }
+        pDst8 += nDstPitch;
+        pSrc8 += nSrcPitch;
+    }
+}
 
 
 #endif

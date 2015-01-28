@@ -38,7 +38,7 @@ MVFilter::MVFilter(VSNodeRef *vector, const char *filterName, const VSAPI *vsapi
     nPel = mvClip.GetPel();
     nOverlapX = mvClip.GetOverlapX();
     nOverlapY = mvClip.GetOverlapY();
-    pixelType = mvClip.GetPixelType();
+    bitsPerSample = mvClip.GetBitsPerSample();
     xRatioUV = mvClip.GetXRatioUV();
     yRatioUV = mvClip.GetYRatioUV();
 
@@ -67,4 +67,7 @@ void MVFilter::CheckSimilarity(const MVClipDicks *vector, const char *vectorName
 
     if ( yRatioUV != vector->GetYRatioUV() )
         throw MVException(std::string(vectorName).append("'s vertical subsampling is incorrect."));
+
+    if ( bitsPerSample != vector->GetBitsPerSample())
+        throw MVException(std::string(vectorName).append("'s bit depth is incorrect."));
 }

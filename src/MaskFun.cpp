@@ -269,8 +269,9 @@ void VectorSmallMaskYToHalfUV(uint8_t * VSmallY, int nBlkX, int nBlkY, uint8_t *
 }
 
 
-void Merge4PlanesToBig(uint8_t *pel2Plane, int pel2Pitch, const uint8_t *pPlane0, const uint8_t *pPlane1,
-        const uint8_t *pPlane2, const uint8_t * pPlane3, int width, int height, int pitch)
+template <typename PixelType>
+void RealMerge4PlanesToBig(uint8_t *pel2Plane_u8, int pel2Pitch, const uint8_t *pPlane0_u8, const uint8_t *pPlane1_u8,
+        const uint8_t *pPlane2_u8, const uint8_t * pPlane3_u8, int width, int height, int pitch)
 {
     // copy refined planes to big one plane
     if (/*!isse*/ 1)
@@ -279,20 +280,28 @@ void Merge4PlanesToBig(uint8_t *pel2Plane, int pel2Pitch, const uint8_t *pPlane0
         {
             for (int w=0; w<width; w++)
             {
+                PixelType *pel2Plane = (PixelType *)pel2Plane_u8;
+                const PixelType *pPlane0 = (const PixelType *)pPlane0_u8;
+                const PixelType *pPlane1 = (const PixelType *)pPlane1_u8;
+
                 pel2Plane[w<<1] = pPlane0[w];
                 pel2Plane[(w<<1) +1] = pPlane1[w];
             }
-            pel2Plane += pel2Pitch;
+            pel2Plane_u8 += pel2Pitch;
             for (int w=0; w<width; w++)
             {
+                PixelType *pel2Plane = (PixelType *)pel2Plane_u8;
+                const PixelType *pPlane2 = (const PixelType *)pPlane2_u8;
+                const PixelType *pPlane3 = (const PixelType *)pPlane3_u8;
+
                 pel2Plane[w<<1] = pPlane2[w];
                 pel2Plane[(w<<1) +1] = pPlane3[w];
             }
-            pel2Plane += pel2Pitch;
-            pPlane0 += pitch;
-            pPlane1 += pitch;
-            pPlane2 += pitch;
-            pPlane3 += pitch;
+            pel2Plane_u8 += pel2Pitch;
+            pPlane0_u8 += pitch;
+            pPlane1_u8 += pitch;
+            pPlane2_u8 += pitch;
+            pPlane3_u8 += pitch;
         }
     }
 #if 0
@@ -377,11 +386,20 @@ looph2:
 }
 
 
-void Merge16PlanesToBig(uint8_t *pel4Plane, int pel4Pitch,
-        const uint8_t *pPlane0, const uint8_t *pPlane1, const uint8_t *pPlane2, const uint8_t * pPlane3,
-        const uint8_t *pPlane4, const uint8_t *pPlane5, const uint8_t *pPlane6, const uint8_t * pPlane7,
-        const uint8_t *pPlane8, const uint8_t *pPlane9, const uint8_t *pPlane10, const uint8_t * pPlane11,
-        const uint8_t *pPlane12, const uint8_t * pPlane13, const uint8_t *pPlane14, const uint8_t * pPlane15,
+void Merge4PlanesToBig(uint8_t *pel2Plane, int pel2Pitch, const uint8_t *pPlane0, const uint8_t *pPlane1, const uint8_t *pPlane2, const uint8_t *pPlane3, int width, int height, int pitch, int bitsPerSample) {
+    if (bitsPerSample == 8)
+        RealMerge4PlanesToBig<uint8_t>(pel2Plane, pel2Pitch, pPlane0, pPlane1, pPlane2, pPlane3, width, height, pitch);
+    else
+        RealMerge4PlanesToBig<uint16_t>(pel2Plane, pel2Pitch, pPlane0, pPlane1, pPlane2, pPlane3, width, height, pitch);
+}
+
+
+template <typename PixelType>
+void RealMerge16PlanesToBig(uint8_t *pel4Plane_u8, int pel4Pitch,
+        const uint8_t *pPlane0_u8, const uint8_t *pPlane1_u8, const uint8_t *pPlane2_u8, const uint8_t * pPlane3_u8,
+        const uint8_t *pPlane4_u8, const uint8_t *pPlane5_u8, const uint8_t *pPlane6_u8, const uint8_t * pPlane7_u8,
+        const uint8_t *pPlane8_u8, const uint8_t *pPlane9_u8, const uint8_t *pPlane10_u8, const uint8_t * pPlane11_u8,
+        const uint8_t *pPlane12_u8, const uint8_t * pPlane13_u8, const uint8_t *pPlane14_u8, const uint8_t * pPlane15_u8,
         int width, int height, int pitch)
 {
     // copy refined planes to big one plane
@@ -391,55 +409,93 @@ void Merge16PlanesToBig(uint8_t *pel4Plane, int pel4Pitch,
         {
             for (int w=0; w<width; w++)
             {
+                PixelType *pel4Plane = (PixelType *)pel4Plane_u8;
+                const PixelType *pPlane0 = (const PixelType *)pPlane0_u8;
+                const PixelType *pPlane1 = (const PixelType *)pPlane1_u8;
+                const PixelType *pPlane2 = (const PixelType *)pPlane2_u8;
+                const PixelType *pPlane3 = (const PixelType *)pPlane3_u8;
+
                 pel4Plane[w<<2] = pPlane0[w];
                 pel4Plane[(w<<2) +1] = pPlane1[w];
                 pel4Plane[(w<<2) +2] = pPlane2[w];
                 pel4Plane[(w<<2) +3] = pPlane3[w];
             }
-            pel4Plane += pel4Pitch;
+            pel4Plane_u8 += pel4Pitch;
             for (int w=0; w<width; w++)
             {
+                PixelType *pel4Plane = (PixelType *)pel4Plane_u8;
+                const PixelType *pPlane4 = (const PixelType *)pPlane4_u8;
+                const PixelType *pPlane5 = (const PixelType *)pPlane5_u8;
+                const PixelType *pPlane6 = (const PixelType *)pPlane6_u8;
+                const PixelType *pPlane7 = (const PixelType *)pPlane7_u8;
+
                 pel4Plane[w<<2] = pPlane4[w];
                 pel4Plane[(w<<2) +1] = pPlane5[w];
                 pel4Plane[(w<<2) +2] = pPlane6[w];
                 pel4Plane[(w<<2) +3] = pPlane7[w];
             }
-            pel4Plane += pel4Pitch;
+            pel4Plane_u8 += pel4Pitch;
             for (int w=0; w<width; w++)
             {
+                PixelType *pel4Plane = (PixelType *)pel4Plane_u8;
+                const PixelType *pPlane8 = (const PixelType *)pPlane8_u8;
+                const PixelType *pPlane9 = (const PixelType *)pPlane9_u8;
+                const PixelType *pPlane10 = (const PixelType *)pPlane10_u8;
+                const PixelType *pPlane11 = (const PixelType *)pPlane11_u8;
+
                 pel4Plane[w<<2] = pPlane8[w];
                 pel4Plane[(w<<2) +1] = pPlane9[w];
                 pel4Plane[(w<<2) +2] = pPlane10[w];
                 pel4Plane[(w<<2) +3] = pPlane11[w];
             }
-            pel4Plane += pel4Pitch;
+            pel4Plane_u8 += pel4Pitch;
             for (int w=0; w<width; w++)
             {
+                PixelType *pel4Plane = (PixelType *)pel4Plane_u8;
+                const PixelType *pPlane12 = (const PixelType *)pPlane12_u8;
+                const PixelType *pPlane13 = (const PixelType *)pPlane13_u8;
+                const PixelType *pPlane14 = (const PixelType *)pPlane14_u8;
+                const PixelType *pPlane15 = (const PixelType *)pPlane15_u8;
+
                 pel4Plane[w<<2] = pPlane12[w];
                 pel4Plane[(w<<2) +1] = pPlane13[w];
                 pel4Plane[(w<<2) +2] = pPlane14[w];
                 pel4Plane[(w<<2) +3] = pPlane15[w];
             }
-            pel4Plane += pel4Pitch;
-            pPlane0 += pitch;
-            pPlane1 += pitch;
-            pPlane2 += pitch;
-            pPlane3 += pitch;
-            pPlane4 += pitch;
-            pPlane5 += pitch;
-            pPlane6 += pitch;
-            pPlane7 += pitch;
-            pPlane8 += pitch;
-            pPlane9 += pitch;
-            pPlane10 += pitch;
-            pPlane11 += pitch;
-            pPlane12 += pitch;
-            pPlane13+= pitch;
-            pPlane14 += pitch;
-            pPlane15 += pitch;
+            pel4Plane_u8 += pel4Pitch;
+            pPlane0_u8 += pitch;
+            pPlane1_u8 += pitch;
+            pPlane2_u8 += pitch;
+            pPlane3_u8 += pitch;
+            pPlane4_u8 += pitch;
+            pPlane5_u8 += pitch;
+            pPlane6_u8 += pitch;
+            pPlane7_u8 += pitch;
+            pPlane8_u8 += pitch;
+            pPlane9_u8 += pitch;
+            pPlane10_u8 += pitch;
+            pPlane11_u8 += pitch;
+            pPlane12_u8 += pitch;
+            pPlane13_u8 += pitch;
+            pPlane14_u8 += pitch;
+            pPlane15_u8 += pitch;
         }
     }
 }
+
+
+void Merge16PlanesToBig(uint8_t *pel4Plane, int pel4Pitch,
+        const uint8_t *pPlane0, const uint8_t *pPlane1, const uint8_t *pPlane2, const uint8_t * pPlane3,
+        const uint8_t *pPlane4, const uint8_t *pPlane5, const uint8_t *pPlane6, const uint8_t * pPlane7,
+        const uint8_t *pPlane8, const uint8_t *pPlane9, const uint8_t *pPlane10, const uint8_t * pPlane11,
+        const uint8_t *pPlane12, const uint8_t * pPlane13, const uint8_t *pPlane14, const uint8_t * pPlane15,
+        int width, int height, int pitch, int bitsPerSample) {
+    if (bitsPerSample == 8)
+        RealMerge16PlanesToBig<uint8_t>(pel4Plane, pel4Pitch, pPlane0, pPlane1, pPlane2, pPlane3, pPlane4, pPlane5, pPlane6, pPlane7, pPlane8, pPlane9, pPlane10, pPlane11, pPlane12, pPlane13, pPlane14, pPlane15, width, height, pitch);
+    else
+        RealMerge16PlanesToBig<uint16_t>(pel4Plane, pel4Pitch, pPlane0, pPlane1, pPlane2, pPlane3, pPlane4, pPlane5, pPlane6, pPlane7, pPlane8, pPlane9, pPlane10, pPlane11, pPlane12, pPlane13, pPlane14, pPlane15, width, height, pitch);
+}
+
 
 //-----------------------------------------------------------
 unsigned char SADToMask(unsigned int sad, unsigned int sadnorm1024)
@@ -451,7 +507,8 @@ unsigned char SADToMask(unsigned int sad, unsigned int sadnorm1024)
 
 
 // time-weihted blend src with ref frames (used for interpolation for poor motion estimation)
-void Blend(uint8_t * pdst, const uint8_t * psrc, const uint8_t * pref, int height, int width, int dst_pitch, int src_pitch, int ref_pitch, int time256, bool isse)
+template <typename PixelType>
+void RealBlend(uint8_t * pdst, const uint8_t * psrc, const uint8_t * pref, int height, int width, int dst_pitch, int src_pitch, int ref_pitch, int time256, bool isse)
 {
     // add isse
     int h, w;
@@ -459,13 +516,26 @@ void Blend(uint8_t * pdst, const uint8_t * psrc, const uint8_t * pref, int heigh
     {
         for (w=0; w<width; w++)
         {
-            pdst[w] = (psrc[w]*(256 - time256) + pref[w]*time256)>>8;
+            const PixelType *psrc_ = (const PixelType *)psrc;
+            const PixelType *pref_ = (const PixelType *)pref;
+            PixelType *pdst_ = (PixelType *)pdst;
+
+            pdst_[w] = (psrc_[w]*(256 - time256) + pref_[w]*time256)>>8;
         }
         pdst += dst_pitch;
         psrc += src_pitch;
         pref += ref_pitch;
     }
 }
+
+
+void Blend(uint8_t * pdst, const uint8_t * psrc, const uint8_t * pref, int height, int width, int dst_pitch, int src_pitch, int ref_pitch, int time256, bool isse, int bitsPerSample) {
+    if (bitsPerSample == 8)
+        RealBlend<uint8_t>(pdst, psrc, pref, height, width, dst_pitch, src_pitch, ref_pitch, time256, isse);
+    else
+        RealBlend<uint16_t>(pdst, psrc, pref, height, width, dst_pitch, src_pitch, ref_pitch, time256, isse);
+}
+
 
 void Create_LUTV(int time256, int *LUTVB, int *LUTVF)
 {
@@ -476,10 +546,19 @@ void Create_LUTV(int time256, int *LUTVB, int *LUTVF)
     }
 }
 
-void FlowInter(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
+
+template <typename PixelType>
+void RealFlowInter(uint8_t * pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch,
         uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,
         int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int *LUTVF)
 {
+    const PixelType *prefB = (const PixelType *)prefB8;
+    const PixelType *prefF = (const PixelType *)prefF8;
+    PixelType *pdst = (PixelType *)pdst8;
+
+    ref_pitch /= sizeof(PixelType);
+    dst_pitch /= sizeof(PixelType);
+
     if (nPel==1)
     {
         for (int h=0; h<height; h++)
@@ -488,11 +567,11 @@ void FlowInter(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const uint8_
             {
                 int vxF = LUTVF[VXFullF[w]];
                 int vyF = LUTVF[VYFullF[w]];
-                int dstF = prefF[vyF*ref_pitch + vxF + w];
+                int64_t dstF = prefF[vyF*ref_pitch + vxF + w];
                 int dstF0 = prefF[w]; // zero
                 int vxB = LUTVB[VXFullB[w]];
                 int vyB = LUTVB[VYFullB[w]];
-                int dstB = prefB[vyB*ref_pitch + vxB + w];
+                int64_t dstB = prefB[vyB*ref_pitch + vxB + w];
                 int dstB0 = prefB[w]; // zero
                 pdst[w] = ( ( (dstF*(255-MaskF[w]) + ((MaskF[w]*(dstB*(255-MaskB[w])+MaskB[w]*dstF0)+255)>>8) + 255)>>8 )*(256-time256) +
                         ( (dstB*(255-MaskB[w]) + ((MaskB[w]*(dstF*(255-MaskF[w])+MaskF[w]*dstB0)+255)>>8) + 255)>>8 )*time256 )>>8;
@@ -566,6 +645,17 @@ void FlowInter(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const uint8_
     }
 }
 
+
+void FlowInter(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
+        uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,
+        int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int *LUTVF, int bitsPerSample) {
+    if (bitsPerSample == 8)
+        RealFlowInter<uint8_t>(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, LUTVB, LUTVF);
+    else
+        RealFlowInter<uint16_t>(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, LUTVB, LUTVF);
+}
+
+
 // FIND MEDIAN OF 3 ELEMENTS
 //
 inline int Median3 (int a, int b, int c)
@@ -594,11 +684,20 @@ inline int Median3r (int a, int b, int c)
 
 }
 
-void FlowInterExtra(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
+
+template <typename PixelType>
+void RealFlowInterExtra(uint8_t * pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch,
         uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,
         int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int * LUTVF,
         uint8_t *VXFullBB, uint8_t *VXFullFF, uint8_t *VYFullBB, uint8_t *VYFullFF)
 {
+    const PixelType *prefB = (const PixelType *)prefB8;
+    const PixelType *prefF = (const PixelType *)prefF8;
+    PixelType *pdst = (PixelType *)pdst8;
+
+    ref_pitch /= sizeof(PixelType);
+    dst_pitch /= sizeof(PixelType);
+
     if (nPel==1)
     {
         for (int h=0; h<height; h++)
@@ -755,10 +854,29 @@ void FlowInterExtra(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const u
     }
 }
 
-void FlowInterSimple(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
+
+void FlowInterExtra(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
+        uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,
+        int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int * LUTVF,
+        uint8_t *VXFullBB, uint8_t *VXFullFF, uint8_t *VYFullBB, uint8_t *VYFullFF, int bitsPerSample) {
+    if (bitsPerSample == 8)
+        RealFlowInterExtra<uint8_t>(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, LUTVB, LUTVF, VXFullBB, VXFullFF, VYFullBB, VYFullFF);
+    else
+        RealFlowInterExtra<uint16_t>(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, LUTVB, LUTVF, VXFullBB, VXFullFF, VYFullBB, VYFullFF);
+}
+
+
+template <typename PixelType>
+void RealFlowInterSimple(uint8_t * pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch,
         uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,
         int VPitch, int width, int height, int time256, int nPel, int *LUTVB, int *LUTVF)
 {
+    const PixelType *prefB = (const PixelType *)prefB8;
+    const PixelType *prefF = (const PixelType *)prefF8;
+    PixelType *pdst = (PixelType *)pdst8;
+
+    ref_pitch /= sizeof(PixelType);
+    dst_pitch /= sizeof(PixelType);
 
     if (time256==128) // special case double fps - fastest
     {
@@ -931,6 +1049,17 @@ void FlowInterSimple(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const 
         }
     }
 }
+
+
+void FlowInterSimple(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
+        uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,
+        int VPitch, int width, int height, int time256, int nPel, int *LUTVB, int *LUTVF, int bitsPerSample) {
+    if (bitsPerSample == 8)
+        RealFlowInterSimple<uint8_t>(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, LUTVB, LUTVF);
+    else
+        RealFlowInterSimple<uint16_t>(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, LUTVB, LUTVF);
+}
+
 
 void FlowInterPel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *prefF, int ref_pitch,
         uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,

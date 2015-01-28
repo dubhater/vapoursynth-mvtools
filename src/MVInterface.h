@@ -267,7 +267,7 @@ class MVAnalysisData
 
         int nBlkY; // number of blocks along Y
 
-        int pixelType; // color format
+        int bitsPerSample;
 
         int yRatioUV; // ratio of luma plane height to chroma plane height
 
@@ -294,7 +294,7 @@ class MVAnalysisData
         inline int GetOverlapX() const { return nOverlapX; }
         inline int GetBlkX() const { return nBlkX; }
         inline int GetBlkY() const { return nBlkY; }
-        inline int GetPixelType() const { return pixelType; }
+        inline int GetBitsPerSample() const { return bitsPerSample; }
         inline int GetYRatioUV() const { return yRatioUV; }
         inline int GetXRatioUV() const { return xRatioUV; }
         inline int GetBlkSizeY() const { return nBlkSizeY; }
@@ -385,7 +385,7 @@ class MVFilter {
         int nOverlapX;
         int nOverlapY;
 
-        int pixelType;
+        int bitsPerSample;
         int yRatioUV;
         int xRatioUV;
 
@@ -412,6 +412,8 @@ class MVPlane {
     int nOffsetPadding;
     int nHPaddingPel;
     int nVPaddingPel;
+    int bitsPerSample;
+    int bytesPerSample;
 
     int nPel;
 
@@ -423,9 +425,15 @@ class MVPlane {
 
     //CRITICAL_SECTION cs;
 
+    template <typename PixelType>
+    void RefineExtPel2(const uint8_t *pSrc2x, int nSrc2xPitch, bool isExtPadded);
+
+    template <typename PixelType>
+    void RefineExtPel4(const uint8_t *pSrc2x, int nSrc2xPitch, bool isExtPadded);
+
     public :
 
-    MVPlane(int _nWidth, int _nHeight, int _nPel, int _nHPad, int _nVPad, bool _isse);
+    MVPlane(int _nWidth, int _nHeight, int _nPel, int _nHPad, int _nVPad, bool _isse, int _bitsPerSample);
     ~MVPlane();
 
     void Update(uint8_t* pSrc, int _nPitch);
@@ -439,14 +447,14 @@ class MVPlane {
     inline const uint8_t *GetAbsolutePointer(int nX, int nY) const
     {
         if ( nPel == 1 )
-            return pPlane[0] + nX + nY * nPitch;
+            return pPlane[0] + nX * bytesPerSample + nY * nPitch;
         else if (nPel == 2) {
             int idx = (nX&1) | ((nY&1)<<1);
 
             nX >>= 1;
             nY >>= 1;
 
-            return pPlane[idx] + nX + nY * nPitch;
+            return pPlane[idx] + nX * bytesPerSample + nY * nPitch;
         }
         else // nPel = 4
         {
@@ -455,13 +463,13 @@ class MVPlane {
             nX >>= 2;
             nY >>= 2;
 
-            return pPlane[idx] + nX + nY * nPitch;
+            return pPlane[idx] + nX * bytesPerSample + nY * nPitch;
         }
     }
 
     inline const uint8_t *GetAbsolutePointerPel1(int nX, int nY) const
     {
-        return pPlane[0] + nX + nY * nPitch;
+        return pPlane[0] + nX * bytesPerSample + nY * nPitch;
     }
 
     inline const uint8_t *GetAbsolutePointerPel2(int nX, int nY) const
@@ -471,7 +479,7 @@ class MVPlane {
         nX >>= 1;
         nY >>= 1;
 
-        return pPlane[idx] + nX + nY * nPitch;
+        return pPlane[idx] + nX * bytesPerSample + nY * nPitch;
     }
 
     inline const uint8_t *GetAbsolutePointerPel4(int nX, int nY) const
@@ -481,7 +489,7 @@ class MVPlane {
         nX >>= 2;
         nY >>= 2;
 
-        return pPlane[idx] + nX + nY * nPitch;
+        return pPlane[idx] + nX * bytesPerSample + nY * nPitch;
     }
 
     inline const uint8_t *GetPointer(int nX, int nY) const
@@ -505,7 +513,7 @@ class MVPlane {
     }
 
     inline const uint8_t *GetAbsolutePelPointer(int nX, int nY) const
-    {  return pPlane[0] + nX + nY * nPitch; }
+    {  return pPlane[0] + nX * bytesPerSample + nY * nPitch; }
 
     inline int GetPitch() const { return nPitch; }
     inline int GetWidth() const { return nWidth; }
@@ -528,9 +536,10 @@ class MVFrame {
     bool isse;
     int xRatioUV;
     int yRatioUV;
+    int bitsPerSample;
 
     public:
-    MVFrame(int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int _nMode, bool _isse, int _xRatioUV, int _yRatioUV);
+    MVFrame(int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int _nMode, bool _isse, int _xRatioUV, int _yRatioUV, int _bitsPerSample);
     ~MVFrame();
 
     void Update(int _nMode, uint8_t * pSrcY, int pitchY, uint8_t * pSrcU, int pitchU, uint8_t *pSrcV, int pitchV);
@@ -574,10 +583,11 @@ class MVGroupOfFrames {
     int nVPad;
     int xRatioUV;
     int yRatioUV;
+    int bitsPerSample;
 
     public :
 
-    MVGroupOfFrames(int _nLevelCount, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int nMode, bool isse, int _xRatioUV, int yRatioUV);
+    MVGroupOfFrames(int _nLevelCount, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int nMode, bool isse, int _xRatioUV, int yRatioUV, int _bitsPerSample);
     ~MVGroupOfFrames();
     void Update(int nModeYUV, uint8_t * pSrcY, int pitchY, uint8_t * pSrcU, int pitchU, uint8_t *pSrcV, int pitchV);
 

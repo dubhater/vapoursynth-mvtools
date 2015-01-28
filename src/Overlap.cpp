@@ -18,14 +18,6 @@
 
 #include "Overlap.h"
 
-#ifndef min
-#define min(a,b)            (((a) < (b)) ? (a) : (b))
-#endif
-
-#ifndef max
-#define max(a,b)            (((a) < (b)) ? (b) : (a))
-#endif
-
 
 //--------------------------------------------------------------------
 // Overlap Windows class
@@ -134,20 +126,5 @@ OverlapWindows::~OverlapWindows()
     delete [] fWin1UVy;
     delete [] fWin1UVyfirst;
     delete [] fWin1UVylast;
-}
-
-void Short2Bytes(unsigned char *pDst, int nDstPitch, unsigned short *pDstShort, int dstShortPitch, int nWidth, int nHeight)
-{
-    for (int h=0; h<nHeight; h++)
-    {
-        for (int i=0; i<nWidth; i++)
-        {
-            int a = (pDstShort[i])>>5;
-            pDst[i] = a | (255-a) >> (sizeof(int)*8-1);
-            //            pDst[i] = min(255, (pDstShort[i])>>5);
-        }
-        pDst += nDstPitch;
-        pDstShort += dstShortPitch;
-    }
 }
 

@@ -26,35 +26,27 @@ typedef void (*DenoiseFunction)(uint8_t *pDst, int nDstPitch, const uint8_t *pSr
 
 // XXX Moves the pointers passed in pRefs. This is okay because they are not
 // used after this function is done with them.
-template <int radius, int blockWidth, int blockHeight>
-void Degrain_C(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch, const uint8_t **pRefs, const int *nRefPitches, int WSrc, const int *WRefs) {
+template <int radius, int blockWidth, int blockHeight, typename PixelType>
+void Degrain_C(uint8_t *pDst8, int nDstPitch, const uint8_t *pSrc8, int nSrcPitch, const uint8_t **pRefs8, const int *nRefPitches, int WSrc, const int *WRefs) {
     for (int y = 0; y < blockHeight; y++) {
         for (int x = 0; x < blockWidth; x++) {
-            int sum = 128 + pSrc[x] * WSrc + pRefs[0][x] * WRefs[0] + pRefs[1][x] * WRefs[1];
+            const PixelType *pSrc = (const PixelType *)pSrc8;
+            PixelType *pDst = (PixelType *)pDst8;
 
-            if (radius > 1)
-                sum += pRefs[2][x] * WRefs[2] + pRefs[3][x] * WRefs[3];
+            int sum = 128 + pSrc[x] * WSrc;
 
-            if (radius > 2)
-                sum += pRefs[4][x] * WRefs[4] + pRefs[5][x] * WRefs[5];
+            for (int r = 0; r < radius*2; r++) {
+                const PixelType *pRef = (const PixelType *)pRefs8[r];
+                sum += pRef[x] * WRefs[r];
+            }
 
             pDst[x] = sum >> 8;
         }
 
-        pDst += nDstPitch;
-        pSrc += nSrcPitch;
-        pRefs[0] += nRefPitches[0];
-        pRefs[1] += nRefPitches[1];
-
-        if (radius > 1) {
-            pRefs[2] += nRefPitches[2];
-            pRefs[3] += nRefPitches[3];
-        }
-
-        if (radius > 2) {
-            pRefs[4] += nRefPitches[4];
-            pRefs[5] += nRefPitches[5];
-        }
+        pDst8 += nDstPitch;
+        pSrc8 += nSrcPitch;
+        for (int r = 0; r < radius*2; r++)
+            pRefs8[r] += nRefPitches[r];
     }
 }
 
@@ -171,24 +163,32 @@ void Degrain_sse2(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPit
 }
 
 
-extern "C" void mvtools_LimitChanges_sse2(unsigned char *pDst, intptr_t nDstPitch, const unsigned char *pSrc, intptr_t nSrcPitch, intptr_t nWidth, intptr_t nHeight, intptr_t nLimit);
+typedef void (*LimitFunction)(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidth, intptr_t nHeight, intptr_t nLimit);
 
 
-inline void LimitChanges_c(unsigned char *pDst, int nDstPitch, const unsigned char *pSrc, int nSrcPitch, int nWidth, int nHeight, int nLimit) {
+extern "C" void mvtools_LimitChanges_sse2(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidth, intptr_t nHeight, intptr_t nLimit);
+
+
+template <typename PixelType>
+static void LimitChanges_C(uint8_t *pDst8, intptr_t nDstPitch, const uint8_t *pSrc8, intptr_t nSrcPitch, intptr_t nWidth, intptr_t nHeight, intptr_t nLimit) {
     for (int h = 0; h < nHeight; h++) {
-        for (int i = 0; i < nWidth; i++)
+        for (int i = 0; i < nWidth; i++) {
+            const PixelType *pSrc = (const PixelType *)pSrc8;
+            PixelType *pDst = (PixelType *)pDst8;
+
             pDst[i] = VSMIN( VSMAX(pDst[i], (pSrc[i] - nLimit)), (pSrc[i] + nLimit));
-        pDst += nDstPitch;
-        pSrc += nSrcPitch;
+        }
+        pDst8 += nDstPitch;
+        pSrc8 += nSrcPitch;
     }
 }
 
 
-inline int DegrainWeight(int thSAD, int blockSAD) {
-    int a = ( (thSAD - blockSAD) > 0 ? (thSAD - blockSAD) : 0 ) * (thSAD + blockSAD);
-    int b = a < (1 << 23) ? (a << 8) / (thSAD * thSAD + blockSAD * blockSAD)  // small a
-                          : a / ((thSAD * thSAD + blockSAD * blockSAD) >> 8); // very large a, prevent overflow
-    return b;
+inline int DegrainWeight(int64_t thSAD, int64_t blockSAD) {
+    if (blockSAD >= thSAD)
+        return 0;
+
+    return (thSAD - blockSAD) * (thSAD + blockSAD) * 256 / (thSAD * thSAD + blockSAD * blockSAD);
 }
 
 

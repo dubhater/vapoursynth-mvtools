@@ -78,7 +78,7 @@ static const VSFrameRef *VS_CC mvsuperGetFrame(int n, int activationReason, void
             memset(pDst[plane], 0, nDstPitch[plane] * vsapi->getFrameHeight(dst, plane));
         }
 
-        MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nLevels, d->nWidth, d->nHeight, d->nPel, d->nHPad, d->nVPad, d->nModeYUV, d->isse, d->xRatioUV, d->yRatioUV);
+        MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nLevels, d->nWidth, d->nHeight, d->nPel, d->nHPad, d->nVPad, d->nModeYUV, d->isse, d->xRatioUV, d->yRatioUV, d->vi.format->bitsPerSample);
 
         pSrcGOF->Update(d->nModeYUV, pDst[0], nDstPitch[0], pDst[1], nDstPitch[1], pDst[2], nDstPitch[2]);
 
@@ -197,8 +197,8 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
     d.nWidth = d.vi.width;
     d.nHeight = d.vi.height;
 
-    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 8 || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || (d.vi.format->colorFamily != cmYUV && d.vi.format->colorFamily != cmGray)) {
-        vsapi->setError(out, "Super: input clip must be GRAY8, YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
+    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 16 || d.vi.format->sampleType != stInteger || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || (d.vi.format->colorFamily != cmYUV && d.vi.format->colorFamily != cmGray)) {
+        vsapi->setError(out, "Super: input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.");
         vsapi->freeNode(d.node);
         return;
     }
@@ -207,6 +207,10 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
         d.chroma = 0;
 
     d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
+
+
+    if (d.vi.format->bitsPerSample > 8)
+        d.isse = 0;
 
 
     d.xRatioUV = 1 << d.vi.format->subSamplingW;

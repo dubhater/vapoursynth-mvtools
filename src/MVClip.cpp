@@ -58,11 +58,16 @@ MVClipDicks::MVClipDicks(VSNodeRef *vectors, int _nSCD1, int _nSCD2, const VSAPI
     nBlkY = pAnalyseFilter->GetBlkY();
     nBlkCount = nBlkX * nBlkY;
 
+    bitsPerSample = pAnalyseFilter->GetBitsPerSample();
+
     // SCD thresholds
     int referenceBlockSize = 8 * 8;
     nSCD1 = _nSCD1 * (nBlkSizeX * nBlkSizeY) / referenceBlockSize;
     if ( pAnalyseFilter->IsChromaMotion() )
         nSCD1 += nSCD1 / (xRatioUV * yRatioUV) * 2;
+
+    int pixelMax = (1 << bitsPerSample) - 1;
+    nSCD1 = (double)nSCD1 * pixelMax / 255 + 0.5;
 
     nSCD2 = _nSCD2 * nBlkCount / 256;
 

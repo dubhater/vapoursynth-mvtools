@@ -50,6 +50,8 @@ class PlaneOfBlocks {
     int yRatioUV;
     int nLogxRatioUV;// log of xRatioUV (0 for 1 and 1 for 2)
     int nLogyRatioUV;// log of yRatioUV (0 for 1 and 1 for 2)
+    int bitsPerSample;
+    int bytesPerSample;
 
     SADFunction SAD;           /* function which computes the sad */
     LUMAFunction LUMA;         /* function which computes the mean luma */
@@ -106,7 +108,7 @@ class PlaneOfBlocks {
     //   int nLambdaLen; //  penalty factor (lambda) for vector length
     int badSAD; // SAD threshold for more wide search
     int badrange; // wide search radius
-    int planeSAD; // summary SAD of plane
+    int64_t planeSAD; // summary SAD of plane
     int badcount; // number of bad blocks refined
     bool temporal; // use temporal predictor
     bool tryMany; // try refine around many predictors
@@ -207,14 +209,29 @@ class PlaneOfBlocks {
         {
             case 1: // dct SAD
                 DCT->DCTBytes2D(pRef0, nRefPitch[0], dctRef, dctpitch);
-                sad = (SAD(dctSrc, dctpitch, dctRef, dctpitch) + abs(dctSrc[0]-dctRef[0])*3)*nBlkSizeX/2; //correct reduced DC component
+                if (bytesPerSample == 1)
+                    sad = (SAD(dctSrc, dctpitch, dctRef, dctpitch) + abs(dctSrc[0]-dctRef[0])*3)*nBlkSizeX/2; //correct reduced DC component
+                else {
+                    uint16_t *dctSrc16 = (uint16_t *)dctSrc;
+                    uint16_t *dctRef16 = (uint16_t *)dctRef;
+
+                    sad = (SAD(dctSrc, dctpitch, dctRef, dctpitch) + abs(dctSrc16[0]-dctRef16[0])*3) * nBlkSizeX/2; //correct reduced DC component
+                }
                 break;
             case 2: //  globally (lumaChange) weighted spatial and DCT
                 sad = SAD(pSrc[0], nSrcPitch[0], pRef0, nRefPitch[0]);
                 if (dctweight16 > 0)
                 {
                     DCT->DCTBytes2D(pRef0, nRefPitch[0], dctRef, dctpitch);
-                    int dctsad = (SAD(dctSrc, dctpitch, dctRef, dctpitch)+ abs(dctSrc[0]-dctRef[0])*3)*nBlkSizeX/2;
+                    int dctsad;
+                    if (bytesPerSample == 1)
+                        dctsad = (SAD(dctSrc, dctpitch, dctRef, dctpitch)+ abs(dctSrc[0]-dctRef[0])*3)*nBlkSizeX/2;
+                    else {
+                        uint16_t *dctSrc16 = (uint16_t *)dctSrc;
+                        uint16_t *dctRef16 = (uint16_t *)dctRef;
+
+                        dctsad = (SAD(dctSrc, dctpitch, dctRef, dctpitch)+ abs(dctSrc16[0]-dctRef16[0])*3)*nBlkSizeX/2;
+                    }
                     sad = (sad*(16-dctweight16) + dctsad*dctweight16)/16;
                 }
                 break;
@@ -492,7 +509,7 @@ class PlaneOfBlocks {
 
     public :
 
-    PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int _nFlags, int _nOverlapX, int _nOverlapY, int _xRatioUV, int _yRatioUV);
+    PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int _nFlags, int _nOverlapX, int _nOverlapY, int _xRatioUV, int _yRatioUV, int _bitsPerSample);
 
     ~PlaneOfBlocks();
 

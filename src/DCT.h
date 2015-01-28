@@ -25,7 +25,7 @@ class DCTClass {
 
     public:
 
-        DCTClass(int _sizex, int _sizey, int _dctmode);
+        DCTClass(int _sizex, int _sizey, int _dctmode, int _bitsPerSample);
         virtual ~DCTClass();
 
         virtual void DCTBytes2D(const unsigned char *srcp0, int _src_pitch,
@@ -34,6 +34,7 @@ class DCTClass {
         int sizex;
         int sizey;
         int dctmode;
+        int bitsPerSample;
 };
 
 #endif

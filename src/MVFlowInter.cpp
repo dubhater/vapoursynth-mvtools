@@ -136,6 +136,9 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
         const int blend = d->blend;
         const int isse = d->isse;
 
+        int bitsPerSample = d->vi->format->bitsPerSample;
+        int bytesPerSample = d->vi->format->bytesPerSample;
+
         if ( isUsableB && isUsableF )
         {
             const VSFrameRef *src = vsapi->getFrameFilter(n, d->finest, frameCtx);
@@ -176,8 +179,8 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
             const int *LUTVB = d->LUTVB;
             const int *LUTVF = d->LUTVF;
 
-            int nOffsetY = nRefPitches[0] * nVPadding * nPel + nHPadding * nPel;
-            int nOffsetUV = nRefPitches[1] * nVPaddingUV * nPel + nHPaddingUV * nPel;
+            int nOffsetY = nRefPitches[0] * nVPadding * nPel + nHPadding * bytesPerSample * nPel;
+            int nOffsetUV = nRefPitches[1] * nVPaddingUV * nPel + nHPaddingUV * bytesPerSample * nPel;
 
 
             uint8_t *VXFullYB = new uint8_t [nHeightP * VPitchY];
@@ -339,7 +342,7 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
 
                 FlowInterExtra(pDst[0], nDstPitches[0], pRef[0] + nOffsetY, pSrc[0] + nOffsetY, nRefPitches[0],
                         VXFullYB, VXFullYF, VYFullYB, VYFullYF, MaskFullYB, MaskFullYF, VPitchY,
-                        nWidth, nHeight, time256, nPel, LUTVB, LUTVF, VXFullYBB, VXFullYFF, VYFullYBB, VYFullYFF);
+                        nWidth, nHeight, time256, nPel, LUTVB, LUTVF, VXFullYBB, VXFullYFF, VYFullYBB, VYFullYFF, bitsPerSample);
 
                 if (d->vi->format->colorFamily != cmGray) {
                     uint8_t *VXFullUVFF = new uint8_t [nHeightPUV * VPitchUV];
@@ -363,10 +366,10 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
 
                     FlowInterExtra(pDst[1], nDstPitches[1], pRef[1] + nOffsetUV, pSrc[1] + nOffsetUV, nRefPitches[1],
                             VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
-                            nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, VXFullUVBB, VXFullUVFF, VYFullUVBB, VYFullUVFF);
+                            nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, VXFullUVBB, VXFullUVFF, VYFullUVBB, VYFullUVFF, bitsPerSample);
                     FlowInterExtra(pDst[2], nDstPitches[2], pRef[2] + nOffsetUV, pSrc[2] + nOffsetUV, nRefPitches[2],
                             VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
-                            nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, VXFullUVBB, VXFullUVFF, VYFullUVBB, VYFullUVFF);
+                            nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, VXFullUVBB, VXFullUVFF, VYFullUVBB, VYFullUVFF, bitsPerSample);
 
                     delete [] VXFullUVBB;
                     delete [] VYFullUVBB;
@@ -391,14 +394,14 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
             {
                 FlowInter(pDst[0], nDstPitches[0], pRef[0] + nOffsetY, pSrc[0] + nOffsetY, nRefPitches[0],
                         VXFullYB, VXFullYF, VYFullYB, VYFullYF, MaskFullYB, MaskFullYF, VPitchY,
-                        nWidth, nHeight, time256, nPel, LUTVB, LUTVF);
+                        nWidth, nHeight, time256, nPel, LUTVB, LUTVF, bitsPerSample);
                 if (d->vi->format->colorFamily != cmGray) {
                     FlowInter(pDst[1], nDstPitches[1], pRef[1] + nOffsetUV, pSrc[1] + nOffsetUV, nRefPitches[1],
                             VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
-                            nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF);
+                            nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, bitsPerSample);
                     FlowInter(pDst[2], nDstPitches[2], pRef[2] + nOffsetUV, pSrc[2] + nOffsetUV, nRefPitches[2],
                             VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
-                            nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF);
+                            nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, bitsPerSample);
                 }
             }
 
@@ -456,10 +459,10 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
                 }
 
                 // blend with time weight
-                Blend(pDst[0], pSrc[0], pRef[0], nHeight, nWidth, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, isse);
+                Blend(pDst[0], pSrc[0], pRef[0], nHeight, nWidth, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, isse, bitsPerSample);
                 if (d->vi->format->colorFamily != cmGray) {
-                    Blend(pDst[1], pSrc[1], pRef[1], nHeightUV, nWidthUV, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, isse);
-                    Blend(pDst[2], pSrc[2], pRef[2], nHeightUV, nWidthUV, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, isse);
+                    Blend(pDst[1], pSrc[1], pRef[1], nHeightUV, nWidthUV, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, isse, bitsPerSample);
+                    Blend(pDst[2], pSrc[2], pRef[2], nHeightUV, nWidthUV, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, isse, bitsPerSample);
                 }
 
                 vsapi->freeFrame(src);
@@ -716,8 +719,8 @@ static void VS_CC mvflowinterCreate(const VSMap *in, VSMap *out, void *userData,
         return;
     }
 
-    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 8 || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || (d.vi->format->colorFamily != cmYUV && d.vi->format->colorFamily != cmGray)) {
-        vsapi->setError(out, "FlowInter: input clip must be GRAY8, YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
+    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 16 || d.vi->format->sampleType != stInteger || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || (d.vi->format->colorFamily != cmYUV && d.vi->format->colorFamily != cmGray)) {
+        vsapi->setError(out, "FlowInter: input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.finest);
         vsapi->freeNode(d.mvfw);
@@ -728,6 +731,9 @@ static void VS_CC mvflowinterCreate(const VSMap *in, VSMap *out, void *userData,
         delete d.mvClipF;
         return;
     }
+
+    if (d.vi->format->bitsPerSample > 8)
+        d.isse = 0;
 
 
 

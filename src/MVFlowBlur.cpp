@@ -73,10 +73,17 @@ static void VS_CC mvflowblurInit(VSMap *in, VSMap *out, void **instanceData, VSN
 }
 
 
-static void FlowBlur(uint8_t * pdst, int dst_pitch, const uint8_t *pref, int ref_pitch,
+template <typename PixelType>
+static void RealFlowBlur(uint8_t * pdst8, int dst_pitch, const uint8_t *pref8, int ref_pitch,
         uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF,
         int VPitch, int width, int height, int blur256, int prec, int nPel)
 {
+    const PixelType *pref = (const PixelType *)pref8;
+    PixelType *pdst = (PixelType *)pdst8;
+
+    ref_pitch /= sizeof(PixelType);
+    dst_pitch /= sizeof(PixelType);
+
     // very slow, but precise motion blur
     if (nPel==1)
     {
@@ -234,6 +241,16 @@ static void FlowBlur(uint8_t * pdst, int dst_pitch, const uint8_t *pref, int ref
 }
 
 
+static void FlowBlur(uint8_t * pdst, int dst_pitch, const uint8_t *pref, int ref_pitch,
+        uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF,
+        int VPitch, int width, int height, int blur256, int prec, int nPel, int bitsPerSample) {
+    if (bitsPerSample == 8)
+        RealFlowBlur<uint8_t>(pdst, dst_pitch, pref, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, VPitch, width, height, blur256, prec, nPel);
+    else
+        RealFlowBlur<uint16_t>(pdst, dst_pitch, pref, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, VPitch, width, height, blur256, prec, nPel);
+}
+
+
 static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
     MVFlowBlurData *d = (MVFlowBlurData *) * instanceData;
 
@@ -304,8 +321,11 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
             const int VPitchY = d->VPitchY;
             const int VPitchUV = d->VPitchUV;
 
-            int nOffsetY = nRefPitches[0] * nVPadding * nPel + nHPadding * nPel;
-            int nOffsetUV = nRefPitches[1] * nVPaddingUV * nPel + nHPaddingUV * nPel;
+            int bitsPerSample = d->vi->format->bitsPerSample;
+            int bytesPerSample = d->vi->format->bytesPerSample;
+
+            int nOffsetY = nRefPitches[0] * nVPadding * nPel + nHPadding * bytesPerSample * nPel;
+            int nOffsetUV = nRefPitches[1] * nVPaddingUV * nPel + nHPaddingUV * bytesPerSample * nPel;
 
 
             uint8_t *VXFullYB = new uint8_t [nHeight * VPitchY];
@@ -336,7 +356,7 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
 
             FlowBlur(pDst[0], nDstPitches[0], pRef[0] + nOffsetY, nRefPitches[0],
                     VXFullYB, VXFullYF, VYFullYB, VYFullYF, VPitchY,
-                    nWidth, nHeight, blur256, prec, nPel);
+                    nWidth, nHeight, blur256, prec, nPel, bitsPerSample);
 
             if (d->vi->format->colorFamily != cmGray) {
                 uint8_t *VXFullUVB = new uint8_t [nHeightUV * VPitchUV];
@@ -369,10 +389,10 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
 
                 FlowBlur(pDst[1], nDstPitches[1], pRef[1] + nOffsetUV, nRefPitches[1],
                         VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, VPitchUV,
-                        nWidthUV, nHeightUV, blur256, prec, nPel);
+                        nWidthUV, nHeightUV, blur256, prec, nPel, bitsPerSample);
                 FlowBlur(pDst[2], nDstPitches[2], pRef[2] + nOffsetUV, nRefPitches[2],
                         VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, VPitchUV,
-                        nWidthUV, nHeightUV, blur256, prec, nPel);
+                        nWidthUV, nHeightUV, blur256, prec, nPel, bitsPerSample);
 
                 delete [] VXFullUVB;
                 delete [] VYFullUVB;
@@ -639,8 +659,8 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
         return;
     }
 
-    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 8 || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || (d.vi->format->colorFamily != cmYUV && d.vi->format->colorFamily != cmGray)) {
-        vsapi->setError(out, "FlowBlur: input clip must be GRAY8, YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
+    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 16 || d.vi->format->sampleType != stInteger || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || (d.vi->format->colorFamily != cmYUV && d.vi->format->colorFamily != cmGray)) {
+        vsapi->setError(out, "FlowBlur: input clip must be GRAY, 420, 422, V440, or 444, up to 16 bits, with constant dimensions.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.finest);
         vsapi->freeNode(d.mvfw);
@@ -651,6 +671,9 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
         delete d.mvClipF;
         return;
     }
+
+    if (d.vi->format->bitsPerSample > 8)
+        d.isse = 0;
 
 
     d.nHeightUV = d.bleh->nHeight / d.bleh->yRatioUV;

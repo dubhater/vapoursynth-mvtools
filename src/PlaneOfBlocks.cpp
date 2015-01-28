@@ -23,7 +23,7 @@
 #define max(a,b) ((a) > (b) ? (a) : (b))
 #define min(a,b) ((a) > (b) ? (b) : (a))
 
-PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int _nFlags, int _nOverlapX, int _nOverlapY, int _xRatioUV, int _yRatioUV)
+PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int _nFlags, int _nOverlapX, int _nOverlapY, int _xRatioUV, int _yRatioUV, int _bitsPerSample)
 {
 
     /* constant fields */
@@ -48,6 +48,9 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
     yRatioUV = _yRatioUV;
     nLogxRatioUV = ilog2(xRatioUV);
     nLogyRatioUV = ilog2(yRatioUV);
+
+    bitsPerSample = _bitsPerSample;
+    bytesPerSample = (bitsPerSample + 7) / 8;
 
     smallestPlane = (bool)(nFlags & MOTION_SMALLEST_PLANE);
     isse = (bool)(nFlags & MOTION_USE_ISSE);
@@ -75,10 +78,10 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 
     // valid block sizes for luma: 4x4, 8x4, 8x8, 16x2, 16x8, 16x16, 32x16, 32x32.
     if (isse) {
-        sads[2][2] = Sad_C<2, 2>;
+        sads[2][2] = Sad_C<2, 2, uint8_t>;
         blits[2][2] = mvtools_Copy2x2_sse2;
 
-        sads[2][4] = Sad_C<2, 4>;
+        sads[2][4] = Sad_C<2, 4, uint8_t>;
         blits[2][4] = mvtools_Copy2x4_sse2;
 
         sads[4][2] = mvtools_sad_4x2_sse2;
@@ -87,6 +90,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
         sads[4][4] = mvtools_pixel_sad_4x4_mmx2;
         lumas[4][4] = mvtools_Luma4x4_sse2;
         blits[4][4] = mvtools_Copy4x4_sse2;
+        satds[4][4] = mvtools_pixel_satd_4x4_mmx2;
 
         sads[4][8] = mvtools_pixel_sad_4x8_mmx2;
         blits[4][8] = mvtools_Copy4x8_sse2;
@@ -100,10 +104,12 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
         sads[8][4] = mvtools_pixel_sad_8x4_mmx2;
         lumas[8][4] = mvtools_Luma8x4_sse2;
         blits[8][4] = mvtools_Copy8x4_sse2;
+        satds[8][4] = mvtools_pixel_satd_8x4_sse2;
 
         sads[8][8] = mvtools_pixel_sad_8x8_mmx2;
         lumas[8][8] = mvtools_Luma8x8_sse2;
         blits[8][8] = mvtools_Copy8x8_sse2;
+        satds[8][8] = mvtools_pixel_satd_8x8_sse2;
 
         sads[8][16] = mvtools_pixel_sad_8x16_sse2;
         blits[8][16] = mvtools_Copy8x16_sse2;
@@ -121,10 +127,13 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
         sads[16][8] = mvtools_pixel_sad_16x8_sse2;
         lumas[16][8] = mvtools_Luma16x8_sse2;
         blits[16][8] = mvtools_Copy16x8_sse2;
+        satds[16][8] = mvtools_pixel_satd_16x8_sse2;
 
         sads[16][16] = mvtools_pixel_sad_16x16_sse2;
         lumas[16][16] = mvtools_Luma16x16_sse2;
         blits[16][16] = mvtools_Copy16x16_sse2;
+        satds[16][16] = mvtools_pixel_satd_16x16_sse2;
+
 
         sads[16][32] = mvtools_sad_16x32_sse2;
         blits[16][32] = mvtools_Copy16x32_sse2;
@@ -154,85 +163,155 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
             sads[16][8] = mvtools_pixel_sad_16x8_cache64_ssse3;
             sads[16][16] = mvtools_pixel_sad_16x16_cache64_ssse3;
         }
+
+        if (ssse3) {
+            satds[8][4] = mvtools_pixel_satd_8x4_ssse3;
+            satds[8][8] = mvtools_pixel_satd_8x8_ssse3;
+            satds[16][8] = mvtools_pixel_satd_16x8_ssse3;
+            satds[16][16] = mvtools_pixel_satd_16x16_ssse3;
+        }
     } else {
-        sads[2][2] = Sad_C<2, 2>;
-        blits[2][2] = Copy_C<2, 2>;
+        if (bytesPerSample == 1) {
+            sads[2][2] = Sad_C<2, 2, uint8_t>;
+            blits[2][2] = Copy_C<2, 2, uint8_t>;
 
-        sads[2][4] = Sad_C<2, 4>;
-        blits[2][4] = Copy_C<2, 4>;
+            sads[2][4] = Sad_C<2, 4, uint8_t>;
+            blits[2][4] = Copy_C<2, 4, uint8_t>;
 
-        sads[4][2] = Sad_C<4, 2>;
-        blits[4][2] = Copy_C<4, 2>;
+            sads[4][2] = Sad_C<4, 2, uint8_t>;
+            blits[4][2] = Copy_C<4, 2, uint8_t>;
 
-        sads[4][4] = Sad_C<4, 4>;
-        lumas[4][4] = Luma_C<4, 4>;
-        blits[4][4] = Copy_C<4, 4>;
+            sads[4][4] = Sad_C<4, 4, uint8_t>;
+            lumas[4][4] = Luma_C<4, 4, uint8_t>;
+            blits[4][4] = Copy_C<4, 4, uint8_t>;
+            satds[4][4] = Satd_C<4, 4, uint8_t>;
 
-        sads[4][8] = Sad_C<4, 8>;
-        blits[4][8] = Copy_C<4, 8>;
+            sads[4][8] = Sad_C<4, 8, uint8_t>;
+            blits[4][8] = Copy_C<4, 8, uint8_t>;
 
-        sads[8][1] = Sad_C<8, 1>;
-        blits[8][1] = Copy_C<8, 1>;
+            sads[8][1] = Sad_C<8, 1, uint8_t>;
+            blits[8][1] = Copy_C<8, 1, uint8_t>;
 
-        sads[8][2] = Sad_C<8, 2>;
-        blits[8][2] = Copy_C<8, 2>;
+            sads[8][2] = Sad_C<8, 2, uint8_t>;
+            blits[8][2] = Copy_C<8, 2, uint8_t>;
 
-        sads[8][4] = Sad_C<8, 4>;
-        lumas[8][4] = Luma_C<8, 4>;
-        blits[8][4] = Copy_C<8, 4>;
+            sads[8][4] = Sad_C<8, 4, uint8_t>;
+            lumas[8][4] = Luma_C<8, 4, uint8_t>;
+            blits[8][4] = Copy_C<8, 4, uint8_t>;
+            satds[8][4] = Satd_C<8, 4, uint8_t>;
 
-        sads[8][8] = Sad_C<8, 8>;
-        lumas[8][8] = Luma_C<8, 8>;
-        blits[8][8] = Copy_C<8, 8>;
+            sads[8][8] = Sad_C<8, 8, uint8_t>;
+            lumas[8][8] = Luma_C<8, 8, uint8_t>;
+            blits[8][8] = Copy_C<8, 8, uint8_t>;
+            satds[8][8] = Satd_C<8, 8, uint8_t>;
 
-        sads[8][16] = Sad_C<8, 16>;
-        blits[8][16] = Copy_C<8, 16>;
+            sads[8][16] = Sad_C<8, 16, uint8_t>;
+            blits[8][16] = Copy_C<8, 16, uint8_t>;
 
-        sads[16][1] = Sad_C<16, 1>;
-        blits[16][1] = Copy_C<16, 1>;
+            sads[16][1] = Sad_C<16, 1, uint8_t>;
+            blits[16][1] = Copy_C<16, 1, uint8_t>;
 
-        sads[16][2] = Sad_C<16, 2>;
-        lumas[16][2] = Luma_C<16, 2>;
-        blits[16][2] = Copy_C<16, 2>;
+            sads[16][2] = Sad_C<16, 2, uint8_t>;
+            lumas[16][2] = Luma_C<16, 2, uint8_t>;
+            blits[16][2] = Copy_C<16, 2, uint8_t>;
 
-        sads[16][4] = Sad_C<16, 4>;
-        blits[16][4] = Copy_C<16, 4>;
+            sads[16][4] = Sad_C<16, 4, uint8_t>;
+            blits[16][4] = Copy_C<16, 4, uint8_t>;
 
-        sads[16][8] = Sad_C<16, 8>;
-        lumas[16][8] = Luma_C<16, 8>;
-        blits[16][8] = Copy_C<16, 8>;
+            sads[16][8] = Sad_C<16, 8, uint8_t>;
+            lumas[16][8] = Luma_C<16, 8, uint8_t>;
+            blits[16][8] = Copy_C<16, 8, uint8_t>;
+            satds[16][8] = Satd_C<16, 8, uint8_t>;
 
-        sads[16][16] = Sad_C<16, 16>;
-        lumas[16][16] = Luma_C<16, 16>;
-        blits[16][16] = Copy_C<16, 16>;
+            sads[16][16] = Sad_C<16, 16, uint8_t>;
+            lumas[16][16] = Luma_C<16, 16, uint8_t>;
+            blits[16][16] = Copy_C<16, 16, uint8_t>;
+            satds[16][16] = Satd_C<16, 16, uint8_t>;
 
-        sads[16][32] = Sad_C<16, 32>;
-        blits[16][32] = Copy_C<16, 32>;
+            sads[16][32] = Sad_C<16, 32, uint8_t>;
+            blits[16][32] = Copy_C<16, 32, uint8_t>;
 
-        sads[32][8] = Sad_C<32, 8>;
-        blits[32][8] = Copy_C<32, 8>;
+            sads[32][8] = Sad_C<32, 8, uint8_t>;
+            blits[32][8] = Copy_C<32, 8, uint8_t>;
 
-        sads[32][16] = Sad_C<32, 16>;
-        lumas[32][16] = Luma_C<32, 16>;
-        blits[32][16] = Copy_C<32, 16>;
+            sads[32][16] = Sad_C<32, 16, uint8_t>;
+            lumas[32][16] = Luma_C<32, 16, uint8_t>;
+            blits[32][16] = Copy_C<32, 16, uint8_t>;
 
-        sads[32][32] = Sad_C<32, 32>;
-        lumas[32][32] = Luma_C<32, 32>;
-        blits[32][32] = Copy_C<32, 32>;
-    }
+            sads[32][32] = Sad_C<32, 32, uint8_t>;
+            lumas[32][32] = Luma_C<32, 32, uint8_t>;
+            blits[32][32] = Copy_C<32, 32, uint8_t>;
+        } else {
+            sads[2][2] = Sad_C<2, 2, uint16_t>;
+            blits[2][2] = Copy_C<2, 2, uint16_t>;
 
-    // There are no C versions for these, so use them irrespective of isse.
-    satds[4][4] = mvtools_pixel_satd_4x4_mmx2;
-    satds[8][4] = mvtools_pixel_satd_8x4_sse2;
-    satds[8][8] = mvtools_pixel_satd_8x8_sse2;
-    satds[16][8] = mvtools_pixel_satd_16x8_sse2;
-    satds[16][16] = mvtools_pixel_satd_16x16_sse2;
+            sads[2][4] = Sad_C<2, 4, uint16_t>;
+            blits[2][4] = Copy_C<2, 4, uint16_t>;
 
-    if (ssse3) {
-        satds[8][4] = mvtools_pixel_satd_8x4_ssse3;
-        satds[8][8] = mvtools_pixel_satd_8x8_ssse3;
-        satds[16][8] = mvtools_pixel_satd_16x8_ssse3;
-        satds[16][16] = mvtools_pixel_satd_16x16_ssse3;
+            sads[4][2] = Sad_C<4, 2, uint16_t>;
+            blits[4][2] = Copy_C<4, 2, uint16_t>;
+
+            sads[4][4] = Sad_C<4, 4, uint16_t>;
+            lumas[4][4] = Luma_C<4, 4, uint16_t>;
+            blits[4][4] = Copy_C<4, 4, uint16_t>;
+            satds[4][4] = Satd_C<4, 4, uint16_t>;
+
+            sads[4][8] = Sad_C<4, 8, uint16_t>;
+            blits[4][8] = Copy_C<4, 8, uint16_t>;
+
+            sads[8][1] = Sad_C<8, 1, uint16_t>;
+            blits[8][1] = Copy_C<8, 1, uint16_t>;
+
+            sads[8][2] = Sad_C<8, 2, uint16_t>;
+            blits[8][2] = Copy_C<8, 2, uint16_t>;
+
+            sads[8][4] = Sad_C<8, 4, uint16_t>;
+            lumas[8][4] = Luma_C<8, 4, uint16_t>;
+            blits[8][4] = Copy_C<8, 4, uint16_t>;
+            satds[8][4] = Satd_C<8, 4, uint16_t>;
+
+            sads[8][8] = Sad_C<8, 8, uint16_t>;
+            lumas[8][8] = Luma_C<8, 8, uint16_t>;
+            blits[8][8] = Copy_C<8, 8, uint16_t>;
+            satds[8][8] = Satd_C<8, 8, uint16_t>;
+
+            sads[8][16] = Sad_C<8, 16, uint16_t>;
+            blits[8][16] = Copy_C<8, 16, uint16_t>;
+
+            sads[16][1] = Sad_C<16, 1, uint16_t>;
+            blits[16][1] = Copy_C<16, 1, uint16_t>;
+
+            sads[16][2] = Sad_C<16, 2, uint16_t>;
+            lumas[16][2] = Luma_C<16, 2, uint16_t>;
+            blits[16][2] = Copy_C<16, 2, uint16_t>;
+
+            sads[16][4] = Sad_C<16, 4, uint16_t>;
+            blits[16][4] = Copy_C<16, 4, uint16_t>;
+
+            sads[16][8] = Sad_C<16, 8, uint16_t>;
+            lumas[16][8] = Luma_C<16, 8, uint16_t>;
+            blits[16][8] = Copy_C<16, 8, uint16_t>;
+            satds[16][8] = Satd_C<16, 8, uint16_t>;
+
+            sads[16][16] = Sad_C<16, 16, uint16_t>;
+            lumas[16][16] = Luma_C<16, 16, uint16_t>;
+            blits[16][16] = Copy_C<16, 16, uint16_t>;
+            satds[16][16] = Satd_C<16, 16, uint16_t>;
+
+            sads[16][32] = Sad_C<16, 32, uint16_t>;
+            blits[16][32] = Copy_C<16, 32, uint16_t>;
+
+            sads[32][8] = Sad_C<32, 8, uint16_t>;
+            blits[32][8] = Copy_C<32, 8, uint16_t>;
+
+            sads[32][16] = Sad_C<32, 16, uint16_t>;
+            lumas[32][16] = Luma_C<32, 16, uint16_t>;
+            blits[32][16] = Copy_C<32, 16, uint16_t>;
+
+            sads[32][32] = Sad_C<32, 32, uint16_t>;
+            lumas[32][32] = Luma_C<32, 32, uint16_t>;
+            blits[32][32] = Copy_C<32, 32, uint16_t>;
+        }
     }
 
 
@@ -250,13 +329,13 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
 
 
 #ifdef ALIGN_SOURCEBLOCK
-    dctpitch = max(nBlkSizeX, 16);
+    dctpitch = max(nBlkSizeX, 16) * bytesPerSample;
     dctSrc_base = new uint8_t[nBlkSizeY*dctpitch+ALIGN_PLANES-1];
     dctRef_base = new uint8_t[nBlkSizeY*dctpitch+ALIGN_PLANES-1];
     dctSrc = (uint8_t *)(((((intptr_t)dctSrc_base) + ALIGN_PLANES - 1)&(~(ALIGN_PLANES - 1))));//aligned like this means, that it will have optimum fit in the cache
     dctRef = (uint8_t *)(((((intptr_t)dctRef_base) + ALIGN_PLANES - 1)&(~(ALIGN_PLANES - 1))));
 
-    int blocksize = nBlkSizeX * nBlkSizeY;
+    int blocksize = nBlkSizeX * nBlkSizeY * bytesPerSample;
     int blocksizeUV = blocksize >> (nLogxRatioUV + nLogyRatioUV);
     int sizeAlignedBlock = blocksize + (ALIGN_SOURCEBLOCK - (blocksize % ALIGN_SOURCEBLOCK))
                          + 2 * blocksizeUV + (ALIGN_SOURCEBLOCK - (blocksizeUV % ALIGN_SOURCEBLOCK));
@@ -266,7 +345,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
     pSrc_temp[1] = (uint8_t *)(((intptr_t)pSrc_temp[0] + blocksize + ALIGN_SOURCEBLOCK - 1) & (~(ALIGN_SOURCEBLOCK - 1)));
     pSrc_temp[2] = (uint8_t *)(((intptr_t)pSrc_temp[1] + blocksizeUV + ALIGN_SOURCEBLOCK - 1) & (~(ALIGN_SOURCEBLOCK - 1)));
 #else
-    dctpitch = max(nBlkSizeX, 16);
+    dctpitch = max(nBlkSizeX, 16) * bytesPerSample;
     dctSrc = new uint8_t[nBlkSizeY*dctpitch];
     dctRef = new uint8_t[nBlkSizeY*dctpitch];
 #endif
@@ -274,7 +353,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
     freqSize = 8192*nPel*2;// half must be more than max vector length, which is (framewidth + Padding) * nPel
     freqArray = new int[freqSize];
 
-    verybigSAD = nBlkSizeX*nBlkSizeY*256;
+    verybigSAD = nBlkSizeX*nBlkSizeY*(1 << bitsPerSample);
 
 }
 
@@ -346,9 +425,9 @@ void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
         nSrcPitch_plane[1] = pSrcFrame->GetPlane(UPLANE)->GetPitch();
         nSrcPitch_plane[2] = pSrcFrame->GetPlane(VPLANE)->GetPitch();
     }
-    nSrcPitch[0] = nBlkSizeX;
-    nSrcPitch[1] = nBlkSizeX / xRatioUV;
-    nSrcPitch[2] = nBlkSizeX / xRatioUV;
+    nSrcPitch[0] = nBlkSizeX * bytesPerSample;
+    nSrcPitch[1] = nBlkSizeX * bytesPerSample / xRatioUV;
+    nSrcPitch[2] = nBlkSizeX * bytesPerSample / xRatioUV;
 #else
     nSrcPitch[0] = pSrcFrame->GetPlane(YPLANE)->GetPitch();
     if (chroma)
@@ -547,9 +626,9 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
         nSrcPitch_plane[1] = pSrcFrame->GetPlane(UPLANE)->GetPitch();
         nSrcPitch_plane[2] = pSrcFrame->GetPlane(VPLANE)->GetPitch();
     }
-    nSrcPitch[0] = nBlkSizeX;
-    nSrcPitch[1] = nBlkSizeX / xRatioUV;
-    nSrcPitch[2] = nBlkSizeX / xRatioUV;
+    nSrcPitch[0] = nBlkSizeX * bytesPerSample;
+    nSrcPitch[1] = nBlkSizeX * bytesPerSample / xRatioUV;
+    nSrcPitch[2] = nBlkSizeX * bytesPerSample / xRatioUV;
 #else
     nSrcPitch[0] = pSrcFrame->GetPlane(YPLANE)->GetPitch();
     if (chroma)

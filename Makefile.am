@@ -21,7 +21,6 @@ libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/FakeGroupOfPlanes.cpp \
 						src/FakePlaneOfBlocks.cpp \
 						src/GroupOfPlanes.cpp \
-						src/Interpolation.cpp \
 						src/MaskFun.cpp \
 						src/MVAnalyse.cpp \
 						src/MVBlockFPS.cpp \
@@ -39,7 +38,6 @@ libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/MVSCDetection.cpp \
 						src/MVSuper.cpp \
 						src/Overlap.cpp \
-						src/Padding.cpp \
 						src/PlaneOfBlocks.cpp \
 						src/SimpleResize.cpp \
 						src/asm/const-a.asm \

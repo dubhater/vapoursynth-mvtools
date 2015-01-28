@@ -121,7 +121,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         }
     } else if (activationReason == arAllFramesReady) {
 
-        GroupOfPlanes *vectorFields = new GroupOfPlanes(d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra);
+        GroupOfPlanes *vectorFields = new GroupOfPlanes(d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra, d->supervi->format->bitsPerSample);
 
 
         const uint8_t *pSrc[3];
@@ -212,8 +212,8 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             }
 
 
-            MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV);
-            MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV);
+            MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->supervi->format->bitsPerSample);
+            MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->supervi->format->bitsPerSample);
 
             // cast away the const, because why not.
             pSrcGOF->Update(d->nModeYUV, (uint8_t *)pSrc[0], nSrcPitch[0], (uint8_t *)pSrc[1], nSrcPitch[1], (uint8_t *)pSrc[2], nSrcPitch[2]); // v2.0
@@ -228,7 +228,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
                 DCTc = new DCTINT(d->blksize, d->blksizev, d->dctmode);
                 else
                 */
-                DCTc = new DCTFFTW(d->blksize, d->blksizev, d->dctmode); // check order x,y
+                DCTc = new DCTFFTW(d->blksize, d->blksizev, d->dctmode, d->supervi->format->bitsPerSample);
             }
 
 
@@ -442,9 +442,6 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.analysisData.isBackward = d.isb;
 
 
-    d.lsad = d.lsad * (d.blksize * d.blksizev) / 64;
-    d.badSAD = d.badSAD * (d.blksize * d.blksizev) / 64;
-
     SearchType searchTypes[] = { ONETIME, NSTEP, LOGARITHMIC, EXHAUSTIVE, HEX2SEARCH, UMHSEARCH, HSEARCH, VSEARCH };
     d.searchType = searchTypes[d.search];
     d.searchTypeCoarse = searchTypes[d.search_coarse];
@@ -468,8 +465,8 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.supervi = vsapi->getVideoInfo(d.node);
     d.vi = *d.supervi;
 
-    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 8 || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || (d.vi.format->colorFamily != cmYUV && d.vi.format->colorFamily != cmGray)) {
-        vsapi->setError(out, "Analyse: Input clip must be GRAY8, YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant format and dimensions.");
+    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 16 || d.vi.format->sampleType != stInteger || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || (d.vi.format->colorFamily != cmYUV && d.vi.format->colorFamily != cmGray)) {
+        vsapi->setError(out, "Analyse: Input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant format and dimensions.");
         vsapi->freeNode(d.node);
         return;
     }
@@ -478,6 +475,19 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         d.chroma = 0;
 
     d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
+
+    if (d.vi.format->bitsPerSample > 8)
+        d.isse = 0;
+
+    d.analysisData.bitsPerSample = d.vi.format->bitsPerSample;
+
+    int pixelMax = (1 << d.vi.format->bitsPerSample) - 1;
+    d.lsad = (double)d.lsad * pixelMax / 255 + 0.5;
+    d.badSAD = (double)d.badSAD * pixelMax / 255 + 0.5;
+
+    d.lsad = d.lsad * (d.blksize * d.blksizev) / 64;
+    d.badSAD = d.badSAD * (d.blksize * d.blksizev) / 64;
+
 
     d.analysisData.nFlags = 0;
     d.analysisData.nFlags |= d.isse ? MOTION_USE_ISSE : 0;

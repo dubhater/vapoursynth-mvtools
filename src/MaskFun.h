@@ -34,18 +34,18 @@ void MakeVectorSmallMasks(MVClipBalls *mvClip, int nX, int nY, uint8_t *VXSmallY
 void VectorSmallMaskYToHalfUV(uint8_t * VSmallY, int nBlkX, int nBlkY, uint8_t *VSmallUV, int ratioUV);
 
 void Merge4PlanesToBig(uint8_t *pel2Plane, int pel2Pitch, const uint8_t *pPlane0, const uint8_t *pPlane1,
-        const uint8_t *pPlane2, const uint8_t * pPlane3, int width, int height, int pitch);
+        const uint8_t *pPlane2, const uint8_t * pPlane3, int width, int height, int pitch, int bitsPerSample);
 
 void Merge16PlanesToBig(uint8_t *pel4Plane, int pel4Pitch,
         const uint8_t *pPlane0, const uint8_t *pPlane1, const uint8_t *pPlane2, const uint8_t * pPlane3,
         const uint8_t *pPlane4, const uint8_t *pPlane5, const uint8_t *pPlane6, const uint8_t * pPlane7,
         const uint8_t *pPlane8, const uint8_t *pPlane9, const uint8_t *pPlane10, const uint8_t * pPlane11,
         const uint8_t *pPlane12, const uint8_t * pPlane13, const uint8_t *pPlane14, const uint8_t * pPlane15,
-        int width, int height, int pitch);
+        int width, int height, int pitch, int bitsPerSample);
 
 unsigned char SADToMask(unsigned int sad, unsigned int sadnorm1024);
 
-void Blend(uint8_t * pdst, const uint8_t * psrc, const uint8_t * pref, int height, int width, int dst_pitch, int src_pitch, int ref_pitch, int time256, bool isse);
+void Blend(uint8_t * pdst, const uint8_t * psrc, const uint8_t * pref, int height, int width, int dst_pitch, int src_pitch, int ref_pitch, int time256, bool isse, int bitsPerSample);
 
 
 // lookup table size 256
@@ -53,16 +53,16 @@ void Create_LUTV(int time256, int *LUTVB, int *LUTVF);
 
 void FlowInter(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
         uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,
-        int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int *LUTVF);
+        int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int *LUTVF, int bitsPerSample);
 
 void FlowInterSimple(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
         uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,
-        int VPitch, int width, int height, int time256, int nPel, int *LUTVB, int *LUTVF);
+        int VPitch, int width, int height, int time256, int nPel, int *LUTVB, int *LUTVF, int bitsPerSample);
 
 void FlowInterExtra(uint8_t * pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
         uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,
         int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int * LUTVF,
-        uint8_t *VXFullBB, uint8_t *VXFullFF, uint8_t *VYFullBB, uint8_t *VYFullFF);
+        uint8_t *VXFullBB, uint8_t *VXFullFF, uint8_t *VYFullBB, uint8_t *VYFullFF, int bitsPerSample);
 
 void FlowInterPel(uint8_t * pdst, int dst_pitch, MVPlane *prefB, MVPlane *prefF, int ref_pitch,
         uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,

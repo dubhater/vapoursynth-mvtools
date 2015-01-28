@@ -100,7 +100,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
         }
     } else if (activationReason == arAllFramesReady) {
 
-        GroupOfPlanes *vectorFields = new GroupOfPlanes(d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra);
+        GroupOfPlanes *vectorFields = new GroupOfPlanes(d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra, d->supervi->format->bitsPerSample);
 
 
         const uint8_t *pSrc[3];
@@ -190,8 +190,8 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             }
 
 
-            MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV);
-            MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV);
+            MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->supervi->format->bitsPerSample);
+            MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->supervi->format->bitsPerSample);
 
             // cast away the const, because why not.
             pSrcGOF->Update(d->nModeYUV, (uint8_t *)pSrc[0], nSrcPitch[0], (uint8_t *)pSrc[1], nSrcPitch[1], (uint8_t *)pSrc[2], nSrcPitch[2]); // v2.0
@@ -206,7 +206,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
                 DCTc = new DCTINT(d->blksize, d->blksizev, d->dctmode);
                 else
                 */
-                DCTc = new DCTFFTW(d->blksize, d->blksizev, d->dctmode); // check order x,y
+                DCTc = new DCTFFTW(d->blksize, d->blksizev, d->dctmode, d->vi->format->bitsPerSample);
             }
 
 
@@ -474,12 +474,18 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     vsapi->freeFrame(evil);
 
 
+    int pixelMax = (1 << d.supervi->format->bitsPerSample) - 1;
+    d.thSAD = (double)d.thSAD * pixelMax / 255 + 0.5;
+
     // normalize threshold to block size
     int referenceBlockSize = 8 * 8;
     d.thSAD = d.thSAD * (d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY) / referenceBlockSize;
     if (d.chroma)
         d.thSAD += d.thSAD / (d.analysisData.xRatioUV * d.analysisData.yRatioUV) * 2;
 
+
+    if (d.supervi->format->bitsPerSample > 8)
+        d.isse = 0;
 
     d.analysisData.nFlags = 0;
     d.analysisData.nFlags |= d.isse ? MOTION_USE_ISSE : 0;
@@ -527,7 +533,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     }
 
     try {
-        d.mvClip = new MVClipDicks(d.vectors, 999999, 255, vsapi);
+        d.mvClip = new MVClipDicks(d.vectors, 99999999, 255, vsapi);
     } catch (MVException &e) {
         vsapi->setError(out, std::string("Recalculate: ").append(e.what()).c_str());
         vsapi->freeNode(d.node);

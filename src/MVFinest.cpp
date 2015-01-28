@@ -69,14 +69,17 @@ static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, voi
             nRefPitches[i] = vsapi->getStride(ref, i);
         }
 
+        int bitsPerSample = d->vi.format->bitsPerSample;
+        int bytesPerSample = d->vi.format->bytesPerSample;
+
         if (d->nPel == 1) // simply copy top lines
         {
             for (int i = 0; i < d->vi.format->numPlanes; i++)
-                vs_bitblt(pDst[i], nDstPitches[i], pRef[i], nRefPitches[i], d->vi.width, d->vi.height);
+                vs_bitblt(pDst[i], nDstPitches[i], pRef[i], nRefPitches[i], d->vi.width * bytesPerSample, d->vi.height);
         }
         else
         {
-            MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, d->nWidth, d->nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->xRatioUV, d->yRatioUV);
+            MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, d->nWidth, d->nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->xRatioUV, d->yRatioUV, bitsPerSample);
 
             pRefGOF->Update(d->nSuperModeYUV, (uint8_t*)pRef[0], nRefPitches[0], (uint8_t*)pRef[1], nRefPitches[1], (uint8_t*)pRef[2], nRefPitches[2]);// v2.0
 
@@ -93,17 +96,17 @@ static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, voi
                 Merge4PlanesToBig(pDst[0], nDstPitches[0], pPlanes[0]->GetAbsolutePointer(0,0),
                         pPlanes[0]->GetAbsolutePointer(1,0), pPlanes[0]->GetAbsolutePointer(0,1),
                         pPlanes[0]->GetAbsolutePointer(1,1), pPlanes[0]->GetExtendedWidth(),
-                        pPlanes[0]->GetExtendedHeight(), pPlanes[0]->GetPitch());
+                        pPlanes[0]->GetExtendedHeight(), pPlanes[0]->GetPitch(), bitsPerSample);
                 if (pPlanes[1]) // 0 if plane not exist
                     Merge4PlanesToBig(pDst[1], nDstPitches[1], pPlanes[1]->GetAbsolutePointer(0,0),
                             pPlanes[1]->GetAbsolutePointer(1,0), pPlanes[1]->GetAbsolutePointer(0,1),
                             pPlanes[1]->GetAbsolutePointer(1,1), pPlanes[1]->GetExtendedWidth(),
-                            pPlanes[1]->GetExtendedHeight(), pPlanes[1]->GetPitch());
+                            pPlanes[1]->GetExtendedHeight(), pPlanes[1]->GetPitch(), bitsPerSample);
                 if (pPlanes[2])
                     Merge4PlanesToBig(pDst[2], nDstPitches[2], pPlanes[2]->GetAbsolutePointer(0,0),
                             pPlanes[2]->GetAbsolutePointer(1,0), pPlanes[2]->GetAbsolutePointer(0,1),
                             pPlanes[2]->GetAbsolutePointer(1,1), pPlanes[2]->GetExtendedWidth(),
-                            pPlanes[2]->GetExtendedHeight(), pPlanes[2]->GetPitch());
+                            pPlanes[2]->GetExtendedHeight(), pPlanes[2]->GetPitch(), bitsPerSample);
             }
             else if (d->nPel == 4)
             {
@@ -117,7 +120,7 @@ static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, voi
                         pPlanes[0]->GetAbsolutePointer(2,2), pPlanes[0]->GetAbsolutePointer(3,2),
                         pPlanes[0]->GetAbsolutePointer(0,3), pPlanes[0]->GetAbsolutePointer(1,3),
                         pPlanes[0]->GetAbsolutePointer(2,3), pPlanes[0]->GetAbsolutePointer(3,3),
-                        pPlanes[0]->GetExtendedWidth(), pPlanes[0]->GetExtendedHeight(), pPlanes[0]->GetPitch());
+                        pPlanes[0]->GetExtendedWidth(), pPlanes[0]->GetExtendedHeight(), pPlanes[0]->GetPitch(), bitsPerSample);
                 if (pPlanes[1])
                     Merge16PlanesToBig(pDst[1], nDstPitches[1],
                             pPlanes[1]->GetAbsolutePointer(0,0), pPlanes[1]->GetAbsolutePointer(1,0),
@@ -128,7 +131,7 @@ static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, voi
                             pPlanes[1]->GetAbsolutePointer(2,2), pPlanes[1]->GetAbsolutePointer(3,2),
                             pPlanes[1]->GetAbsolutePointer(0,3), pPlanes[1]->GetAbsolutePointer(1,3),
                             pPlanes[1]->GetAbsolutePointer(2,3), pPlanes[1]->GetAbsolutePointer(3,3),
-                            pPlanes[1]->GetExtendedWidth(), pPlanes[1]->GetExtendedHeight(), pPlanes[1]->GetPitch());
+                            pPlanes[1]->GetExtendedWidth(), pPlanes[1]->GetExtendedHeight(), pPlanes[1]->GetPitch(), bitsPerSample);
                 if (pPlanes[2])
                     Merge16PlanesToBig(pDst[2], nDstPitches[2],
                             pPlanes[2]->GetAbsolutePointer(0,0), pPlanes[2]->GetAbsolutePointer(1,0),
@@ -139,7 +142,7 @@ static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, voi
                             pPlanes[2]->GetAbsolutePointer(2,2), pPlanes[2]->GetAbsolutePointer(3,2),
                             pPlanes[2]->GetAbsolutePointer(0,3), pPlanes[2]->GetAbsolutePointer(1,3),
                             pPlanes[2]->GetAbsolutePointer(2,3), pPlanes[2]->GetAbsolutePointer(3,3),
-                            pPlanes[2]->GetExtendedWidth(), pPlanes[2]->GetExtendedHeight(), pPlanes[2]->GetPitch());
+                            pPlanes[2]->GetExtendedWidth(), pPlanes[2]->GetExtendedHeight(), pPlanes[2]->GetPitch(), bitsPerSample);
             }
 
             delete pRefGOF;
@@ -176,11 +179,14 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
     d.super = vsapi->propGetNode(in, "super", 0, 0);
     d.vi = *vsapi->getVideoInfo(d.super);
 
-    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 8 || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || (d.vi.format->colorFamily != cmYUV && d.vi.format->colorFamily != cmGray)) {
-        vsapi->setError(out, "Finest: input clip must be GRAY8, YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
+    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 16 || d.vi.format->sampleType != stInteger || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || (d.vi.format->colorFamily != cmYUV && d.vi.format->colorFamily != cmGray)) {
+        vsapi->setError(out, "Finest: input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.");
         vsapi->freeNode(d.super);
         return;
     }
+
+    if (d.vi.format->bitsPerSample > 8)
+        d.isse = 0;
 
     char errorMsg[1024];
     const VSFrameRef *evil = vsapi->getFrame(0, d.super, errorMsg, 1024);

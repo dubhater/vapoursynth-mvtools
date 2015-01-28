@@ -49,10 +49,12 @@ typedef struct {
     int nSuperModeYUV;
     int nSuperLevels;
 
-    int dstShortPitch;
+    int dstTempPitch;
 
     OverlapsFunction OVERS[3];
     DenoiseFunction DEGRAIN[3];
+    LimitFunction LimitChanges;
+    ToPixelsFunction ToPixels;
 
     bool process[3];
 
@@ -129,6 +131,9 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
         const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx);
         VSFrameRef *dst = vsapi->newVideoFrame(d->vi->format, d->vi->width, d->vi->height, src, core);
 
+        int bitsPerSample = d->vi->format->bitsPerSample;
+        int bytesPerSample = d->vi->format->bytesPerSample;
+
         uint8_t *pDst[3], *pDstCur[3];
         const uint8_t *pSrcCur[3];
         const uint8_t *pSrc[3];
@@ -136,9 +141,6 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
         int nDstPitches[3], nSrcPitches[3];
         int nRefPitches[3][radius*2];
         bool isUsable[radius*2];
-        int tmpPitch = d->bleh->nBlkSizeX;
-        int WSrc, WRefs[radius*2];
-        unsigned short *pDstShort;
         int nLogPel = (d->bleh->nPel == 4) ? 2 : (d->bleh->nPel == 2) ? 1 : 0;
 
         MVClipBalls *balls[radius*2];
@@ -179,7 +181,7 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
         const int nBlkY = d->bleh->nBlkY;
         const int isse = d->isse;
         const int YUVplanes = d->YUVplanes;
-        const int dstShortPitch = d->dstShortPitch;
+        const int dstTempPitch = d->dstTempPitch;
         const int *nWidth = d->nWidth;
         const int *nHeight = d->nHeight;
         const int *nOverlapX = d->nOverlapX;
@@ -194,23 +196,22 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
 
         MVGroupOfFrames *pRefGOF[radius*2];
         for (int r = 0; r < radius*2; r++)
-            pRefGOF[r] = new MVGroupOfFrames(d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, isse, xRatioUV, yRatioUV);
+            pRefGOF[r] = new MVGroupOfFrames(d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, isse, xRatioUV, yRatioUV, bitsPerSample);
 
-
-        short *winOver;
 
         OverlapWindows *OverWins[3] = { NULL, NULL, NULL };
-        unsigned short *DstShort = NULL;
+        uint8_t *DstTemp = NULL;
+        int tmpBlockPitch = nBlkSizeX[0] * bytesPerSample;
+        uint8_t *tmpBlock = NULL;
         if (nOverlapX[0] > 0 || nOverlapY[0] > 0) {
             OverWins[0] = new OverlapWindows(nBlkSizeX[0], nBlkSizeY[0], nOverlapX[0], nOverlapY[0]);
             if (d->vi->format->colorFamily != cmGray) {
                 OverWins[1] = new OverlapWindows(nBlkSizeX[1], nBlkSizeY[1], nOverlapX[1], nOverlapY[1]);
                 OverWins[2] = OverWins[1];
             }
-            DstShort = new unsigned short[d->dstShortPitch * nHeight[0]];
+            DstTemp = new uint8_t[dstTempPitch * nHeight[0]];
+            tmpBlock = new uint8_t[tmpBlockPitch * nBlkSizeY[0]];
         }
-
-        uint8_t *tmpBlock = new uint8_t[32*32];
 
         MVPlane *pPlanes[3][radius*2] = { };
 
@@ -248,6 +249,8 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
                         const uint8_t *pointers[radius*2]; // Moved by the degrain function.
                         int strides[radius*2];
 
+                        int WSrc, WRefs[radius*2];
+
                         for (int r = 0; r < radius*2; r++)
                             useBlock(pointers[r], strides[r], WRefs[r], isUsable[r], balls[r], i, pPlanes[plane][r], pSrcCur, xx, nSrcPitches, nLogPel, plane, xSubUV, ySubUV, thSAD);
 
@@ -257,12 +260,12 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
                                 pointers, strides,
                                 WSrc, WRefs);
 
-                        xx += nBlkSizeX[plane];
+                        xx += nBlkSizeX[plane] * bytesPerSample;
 
                         if (bx == nBlkX - 1 && nWidth_B[0] < nWidth[0]) // right non-covered region
-                            vs_bitblt(pDstCur[plane] + nWidth_B[plane], nDstPitches[plane],
-                                    pSrcCur[plane] + nWidth_B[plane], nSrcPitches[plane],
-                                    nWidth[plane] - nWidth_B[plane], nBlkSizeY[plane]);
+                            vs_bitblt(pDstCur[plane] + nWidth_B[plane] * bytesPerSample, nDstPitches[plane],
+                                    pSrcCur[plane] + nWidth_B[plane] * bytesPerSample, nSrcPitches[plane],
+                                    (nWidth[plane] - nWidth_B[plane]) * bytesPerSample, nBlkSizeY[plane]);
                     }
                     pDstCur[plane] += nBlkSizeY[plane] * (nDstPitches[plane]);
                     pSrcCur[plane] += nBlkSizeY[plane] * (nSrcPitches[plane]);
@@ -270,11 +273,11 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
                     if (by == nBlkY - 1 && nHeight_B[0] < nHeight[0]) // bottom uncovered region
                         vs_bitblt(pDstCur[plane], nDstPitches[plane],
                                 pSrcCur[plane], nSrcPitches[plane],
-                                nWidth[plane], nHeight[plane] - nHeight_B[plane]);
+                                nWidth[plane] * bytesPerSample, nHeight[plane] - nHeight_B[plane]);
                 }
             } else {// overlap
-                pDstShort = DstShort;
-                memset(pDstShort, 0, dstShortPitch * 2 * nHeight_B[0]);
+                uint8_t *pDstTemp = DstTemp;
+                memset(pDstTemp, 0, dstTempPitch * nHeight_B[0]);
 
                 for (int by = 0; by < nBlkY; by++) {
                     int wby = ((by + nBlkY - 3) / (nBlkY - 2)) * 3;
@@ -282,64 +285,63 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
                     for (int bx = 0; bx < nBlkX; bx++) {
                         // select window
                         int wbx = (bx + nBlkX - 3) / (nBlkX - 2);
-                        winOver = OverWins[plane]->GetWindow(wby + wbx);
+                        short *winOver = OverWins[plane]->GetWindow(wby + wbx);
 
                         int i = by * nBlkX + bx;
 
                         const uint8_t *pointers[radius*2]; // Moved by the degrain function.
                         int strides[radius*2];
 
+                        int WSrc, WRefs[radius*2];
+
                         for (int r = 0; r < radius*2; r++)
                             useBlock(pointers[r], strides[r], WRefs[r], isUsable[r], balls[r], i, pPlanes[plane][r], pSrcCur, xx, nSrcPitches, nLogPel, plane, xSubUV, ySubUV, thSAD);
 
                         normaliseWeights<radius>(WSrc, WRefs);
 
-                        d->DEGRAIN[plane](tmpBlock, tmpPitch, pSrcCur[plane] + xx, nSrcPitches[plane],
+                        d->DEGRAIN[plane](tmpBlock, tmpBlockPitch, pSrcCur[plane] + xx, nSrcPitches[plane],
                                 pointers, strides,
                                 WSrc, WRefs);
-                        d->OVERS[plane](pDstShort + xx, dstShortPitch, tmpBlock, tmpPitch, winOver, nBlkSizeX[plane]);
+                        d->OVERS[plane](pDstTemp + xx, dstTempPitch, tmpBlock, tmpBlockPitch, winOver, nBlkSizeX[plane]);
 
-                        xx += nBlkSizeX[plane] - nOverlapX[plane];
+                        xx += (nBlkSizeX[plane] - nOverlapX[plane]) * bytesPerSample;
 
                     }
                     pSrcCur[plane] += (nBlkSizeY[plane] - nOverlapY[plane]) * nSrcPitches[plane];
-                    pDstShort += (nBlkSizeY[plane] - nOverlapY[plane]) * dstShortPitch;
+                    pDstTemp += (nBlkSizeY[plane] - nOverlapY[plane]) * dstTempPitch;
                 }
 
-                Short2Bytes(pDst[plane], nDstPitches[plane], DstShort, dstShortPitch, nWidth_B[plane], nHeight_B[plane]);
+                d->ToPixels(pDst[plane], nDstPitches[plane], DstTemp, dstTempPitch, nWidth_B[plane], nHeight_B[plane], bitsPerSample);
 
                 if (nWidth_B[0] < nWidth[0])
-                    vs_bitblt(pDst[plane] + nWidth_B[plane], nDstPitches[plane],
-                            pSrc[plane] + nWidth_B[plane], nSrcPitches[plane],
-                            nWidth[plane] - nWidth_B[plane], nHeight_B[plane]);
+                    vs_bitblt(pDst[plane] + nWidth_B[plane] * bytesPerSample, nDstPitches[plane],
+                            pSrc[plane] + nWidth_B[plane] * bytesPerSample, nSrcPitches[plane],
+                            (nWidth[plane] - nWidth_B[plane]) * bytesPerSample, nHeight_B[plane]);
 
                 if (nHeight_B[0] < nHeight[0]) // bottom noncovered region
                     vs_bitblt(pDst[plane] + nDstPitches[plane] * nHeight_B[plane], nDstPitches[plane],
                             pSrc[plane] + nSrcPitches[plane] * nHeight_B[plane], nSrcPitches[plane],
-                            nWidth[plane], nHeight[plane] - nHeight_B[plane]);
+                            nWidth[plane] * bytesPerSample, nHeight[plane] - nHeight_B[plane]);
             }
-            if (nLimit[plane] < 255) {
-                if (isse)
-                    mvtools_LimitChanges_sse2(pDst[plane], nDstPitches[plane],
-                            pSrc[plane], nSrcPitches[plane],
-                            nWidth[plane], nHeight[plane], nLimit[plane]);
-                else
-                    LimitChanges_c(pDst[plane], nDstPitches[plane],
-                            pSrc[plane], nSrcPitches[plane],
-                            nWidth[plane], nHeight[plane], nLimit[plane]);
-            }
+
+            int pixelMax = (1 << bitsPerSample) - 1;
+            if (nLimit[plane] < pixelMax)
+                d->LimitChanges(pDst[plane], nDstPitches[plane],
+                                pSrc[plane], nSrcPitches[plane],
+                                nWidth[plane], nHeight[plane], nLimit[plane]);
         }
 
 
-        delete[] tmpBlock;
+        if (tmpBlock)
+            delete[] tmpBlock;
 
         if (OverWins[0])
             delete OverWins[0];
         if (OverWins[1])
             delete OverWins[1];
 
-        if (DstShort)
-            delete[] DstShort;
+        if (DstTemp)
+            delete[] DstTemp;
 
         for (int r = 0; r < radius*2; r++) {
             delete pRefGOF[r];
@@ -386,62 +388,125 @@ static void selectFunctions(MVDegrainData *d) {
     OverlapsFunction overs[33][33];
     DenoiseFunction degs[33][33];
 
-    overs[2][2] = Overlaps_C<2,2>;
-    degs[2][2] = Degrain_C<radius, 2,2>;
+    if (d->vi->format->bitsPerSample == 8) {
+        overs[2][2] = Overlaps_C<2,2, uint16_t, uint8_t>;
+        degs[2][2] = Degrain_C<radius, 2,2, uint8_t>;
 
-    overs[2][4] = Overlaps_C<2,4>;
-    degs[2][4] = Degrain_C<radius, 2,4>;
+        overs[2][4] = Overlaps_C<2,4, uint16_t, uint8_t>;
+        degs[2][4] = Degrain_C<radius, 2,4, uint8_t>;
 
-    overs[4][2] = d->isse ? mvtools_Overlaps4x2_sse2 : Overlaps_C<4,2>;
-    degs[4][2] = d->isse ? Degrain_sse2<radius, 4,2> : Degrain_C<radius, 4,2>;
+        overs[4][2] = d->isse ? mvtools_Overlaps4x2_sse2 : Overlaps_C<4,2, uint16_t, uint8_t>;
+        degs[4][2] = d->isse ? Degrain_sse2<radius, 4,2> : Degrain_C<radius, 4,2, uint8_t>;
 
-    overs[4][4] = d->isse ? mvtools_Overlaps4x4_sse2 : Overlaps_C<4,4>;
-    degs[4][4] = d->isse ? Degrain_sse2<radius, 4,4> : Degrain_C<radius, 4,4>;
+        overs[4][4] = d->isse ? mvtools_Overlaps4x4_sse2 : Overlaps_C<4,4, uint16_t, uint8_t>;
+        degs[4][4] = d->isse ? Degrain_sse2<radius, 4,4> : Degrain_C<radius, 4,4, uint8_t>;
 
-    overs[4][8] = d->isse ? mvtools_Overlaps4x8_sse2 : Overlaps_C<4,8>;
-    degs[4][8] = d->isse ? Degrain_sse2<radius, 4,8> : Degrain_C<radius, 4,8>;
+        overs[4][8] = d->isse ? mvtools_Overlaps4x8_sse2 : Overlaps_C<4,8, uint16_t, uint8_t>;
+        degs[4][8] = d->isse ? Degrain_sse2<radius, 4,8> : Degrain_C<radius, 4,8, uint8_t>;
 
-    overs[8][1] = d->isse ? mvtools_Overlaps8x1_sse2 : Overlaps_C<8,1>;
-    degs[8][1] = d->isse ? Degrain_sse2<radius, 8,1> : Degrain_C<radius, 8,1>;
+        overs[8][1] = d->isse ? mvtools_Overlaps8x1_sse2 : Overlaps_C<8,1, uint16_t, uint8_t>;
+        degs[8][1] = d->isse ? Degrain_sse2<radius, 8,1> : Degrain_C<radius, 8,1, uint8_t>;
 
-    overs[8][2] = d->isse ? mvtools_Overlaps8x2_sse2 : Overlaps_C<8,2>;
-    degs[8][2] = d->isse ? Degrain_sse2<radius, 8,2> : Degrain_C<radius, 8,2>;
+        overs[8][2] = d->isse ? mvtools_Overlaps8x2_sse2 : Overlaps_C<8,2, uint16_t, uint8_t>;
+        degs[8][2] = d->isse ? Degrain_sse2<radius, 8,2> : Degrain_C<radius, 8,2, uint8_t>;
 
-    overs[8][4] = d->isse ? mvtools_Overlaps8x4_sse2 : Overlaps_C<8,4>;
-    degs[8][4] = d->isse ? Degrain_sse2<radius, 8,4> : Degrain_C<radius, 8,4>;
+        overs[8][4] = d->isse ? mvtools_Overlaps8x4_sse2 : Overlaps_C<8,4, uint16_t, uint8_t>;
+        degs[8][4] = d->isse ? Degrain_sse2<radius, 8,4> : Degrain_C<radius, 8,4, uint8_t>;
 
-    overs[8][8] = d->isse ? mvtools_Overlaps8x8_sse2 : Overlaps_C<8,8>;
-    degs[8][8] = d->isse ? Degrain_sse2<radius, 8,8> : Degrain_C<radius, 8,8>;
+        overs[8][8] = d->isse ? mvtools_Overlaps8x8_sse2 : Overlaps_C<8,8, uint16_t, uint8_t>;
+        degs[8][8] = d->isse ? Degrain_sse2<radius, 8,8> : Degrain_C<radius, 8,8, uint8_t>;
 
-    overs[8][16] = d->isse ? mvtools_Overlaps8x16_sse2 : Overlaps_C<8,16>;
-    degs[8][16] = d->isse ? Degrain_sse2<radius, 8,16> : Degrain_C<radius, 8,16>;
+        overs[8][16] = d->isse ? mvtools_Overlaps8x16_sse2 : Overlaps_C<8,16, uint16_t, uint8_t>;
+        degs[8][16] = d->isse ? Degrain_sse2<radius, 8,16> : Degrain_C<radius, 8,16, uint8_t>;
 
-    overs[16][1] = d->isse ? mvtools_Overlaps16x1_sse2 : Overlaps_C<16,1>;
-    degs[16][1] = d->isse ? Degrain_sse2<radius, 16,1> : Degrain_C<radius, 16,1>;
+        overs[16][1] = d->isse ? mvtools_Overlaps16x1_sse2 : Overlaps_C<16,1, uint16_t, uint8_t>;
+        degs[16][1] = d->isse ? Degrain_sse2<radius, 16,1> : Degrain_C<radius, 16,1, uint8_t>;
 
-    overs[16][2] = d->isse ? mvtools_Overlaps16x2_sse2 : Overlaps_C<16,2>;
-    degs[16][2] = d->isse ? Degrain_sse2<radius, 16,2> : Degrain_C<radius, 16,2>;
+        overs[16][2] = d->isse ? mvtools_Overlaps16x2_sse2 : Overlaps_C<16,2, uint16_t, uint8_t>;
+        degs[16][2] = d->isse ? Degrain_sse2<radius, 16,2> : Degrain_C<radius, 16,2, uint8_t>;
 
-    overs[16][4] = d->isse ? mvtools_Overlaps16x4_sse2 : Overlaps_C<16,4>;
-    degs[16][4] = d->isse ? Degrain_sse2<radius, 16,4> : Degrain_C<radius, 16,4>;
+        overs[16][4] = d->isse ? mvtools_Overlaps16x4_sse2 : Overlaps_C<16,4, uint16_t, uint8_t>;
+        degs[16][4] = d->isse ? Degrain_sse2<radius, 16,4> : Degrain_C<radius, 16,4, uint8_t>;
 
-    overs[16][8] = d->isse ? mvtools_Overlaps16x8_sse2 : Overlaps_C<16,8>;
-    degs[16][8] = d->isse ? Degrain_sse2<radius, 16,8> : Degrain_C<radius, 16,8>;
+        overs[16][8] = d->isse ? mvtools_Overlaps16x8_sse2 : Overlaps_C<16,8, uint16_t, uint8_t>;
+        degs[16][8] = d->isse ? Degrain_sse2<radius, 16,8> : Degrain_C<radius, 16,8, uint8_t>;
 
-    overs[16][16] = d->isse ? mvtools_Overlaps16x16_sse2 : Overlaps_C<16,16>;
-    degs[16][16] = d->isse ? Degrain_sse2<radius, 16,16> : Degrain_C<radius, 16,16>;
+        overs[16][16] = d->isse ? mvtools_Overlaps16x16_sse2 : Overlaps_C<16,16, uint16_t, uint8_t>;
+        degs[16][16] = d->isse ? Degrain_sse2<radius, 16,16> : Degrain_C<radius, 16,16, uint8_t>;
 
-    overs[16][32] = d->isse ? mvtools_Overlaps16x32_sse2 : Overlaps_C<16,32>;
-    degs[16][32] = d->isse ? Degrain_sse2<radius, 16,32> : Degrain_C<radius, 16,32>;
+        overs[16][32] = d->isse ? mvtools_Overlaps16x32_sse2 : Overlaps_C<16,32, uint16_t, uint8_t>;
+        degs[16][32] = d->isse ? Degrain_sse2<radius, 16,32> : Degrain_C<radius, 16,32, uint8_t>;
 
-    overs[32][8] = d->isse ? mvtools_Overlaps32x8_sse2 : Overlaps_C<32,8>;
-    degs[32][8] = d->isse ? Degrain_sse2<radius, 32,8> : Degrain_C<radius, 32,8>;
+        overs[32][8] = d->isse ? mvtools_Overlaps32x8_sse2 : Overlaps_C<32,8, uint16_t, uint8_t>;
+        degs[32][8] = d->isse ? Degrain_sse2<radius, 32,8> : Degrain_C<radius, 32,8, uint8_t>;
 
-    overs[32][16] = d->isse ? mvtools_Overlaps32x16_sse2 : Overlaps_C<32,16>;
-    degs[32][16] = d->isse ? Degrain_sse2<radius, 32,16> : Degrain_C<radius, 32,16>;
+        overs[32][16] = d->isse ? mvtools_Overlaps32x16_sse2 : Overlaps_C<32,16, uint16_t, uint8_t>;
+        degs[32][16] = d->isse ? Degrain_sse2<radius, 32,16> : Degrain_C<radius, 32,16, uint8_t>;
 
-    overs[32][32] = d->isse ? mvtools_Overlaps32x32_sse2 : Overlaps_C<32,32>;
-    degs[32][32] = d->isse ? Degrain_sse2<radius, 32,32> : Degrain_C<radius, 32,32>;
+        overs[32][32] = d->isse ? mvtools_Overlaps32x32_sse2 : Overlaps_C<32,32, uint16_t, uint8_t>;
+        degs[32][32] = d->isse ? Degrain_sse2<radius, 32,32> : Degrain_C<radius, 32,32, uint8_t>;
+
+        d->LimitChanges = d->isse ? mvtools_LimitChanges_sse2 : LimitChanges_C<uint8_t>;
+    } else {
+        overs[2][2] = Overlaps_C<2,2, uint32_t, uint16_t>;
+        degs[2][2] = Degrain_C<radius, 2,2, uint16_t>;
+
+        overs[2][4] = Overlaps_C<2,4, uint32_t, uint16_t>;
+        degs[2][4] = Degrain_C<radius, 2,4, uint16_t>;
+
+        overs[4][2] = Overlaps_C<4,2, uint32_t, uint16_t>;
+        degs[4][2] = Degrain_C<radius, 4,2, uint16_t>;
+
+        overs[4][4] = Overlaps_C<4,4, uint32_t, uint16_t>;
+        degs[4][4] = Degrain_C<radius, 4,4, uint16_t>;
+
+        overs[4][8] = Overlaps_C<4,8, uint32_t, uint16_t>;
+        degs[4][8] = Degrain_C<radius, 4,8, uint16_t>;
+
+        overs[8][1] = Overlaps_C<8,1, uint32_t, uint16_t>;
+        degs[8][1] = Degrain_C<radius, 8,1, uint16_t>;
+
+        overs[8][2] = Overlaps_C<8,2, uint32_t, uint16_t>;
+        degs[8][2] = Degrain_C<radius, 8,2, uint16_t>;
+
+        overs[8][4] = Overlaps_C<8,4, uint32_t, uint16_t>;
+        degs[8][4] = Degrain_C<radius, 8,4, uint16_t>;
+
+        overs[8][8] = Overlaps_C<8,8, uint32_t, uint16_t>;
+        degs[8][8] = Degrain_C<radius, 8,8, uint16_t>;
+
+        overs[8][16] = Overlaps_C<8,16, uint32_t, uint16_t>;
+        degs[8][16] = Degrain_C<radius, 8,16, uint16_t>;
+
+        overs[16][1] = Overlaps_C<16,1, uint32_t, uint16_t>;
+        degs[16][1] = Degrain_C<radius, 16,1, uint16_t>;
+
+        overs[16][2] = Overlaps_C<16,2, uint32_t, uint16_t>;
+        degs[16][2] = Degrain_C<radius, 16,2, uint16_t>;
+
+        overs[16][4] = Overlaps_C<16,4, uint32_t, uint16_t>;
+        degs[16][4] = Degrain_C<radius, 16,4, uint16_t>;
+
+        overs[16][8] = Overlaps_C<16,8, uint32_t, uint16_t>;
+        degs[16][8] = Degrain_C<radius, 16,8, uint16_t>;
+
+        overs[16][16] = Overlaps_C<16,16, uint32_t, uint16_t>;
+        degs[16][16] = Degrain_C<radius, 16,16, uint16_t>;
+
+        overs[16][32] = Overlaps_C<16,32, uint32_t, uint16_t>;
+        degs[16][32] = Degrain_C<radius, 16,32, uint16_t>;
+
+        overs[32][8] = Overlaps_C<32,8, uint32_t, uint16_t>;
+        degs[32][8] = Degrain_C<radius, 32,8, uint16_t>;
+
+        overs[32][16] = Overlaps_C<32,16, uint32_t, uint16_t>;
+        degs[32][16] = Degrain_C<radius, 32,16, uint16_t>;
+
+        overs[32][32] = Overlaps_C<32,32, uint32_t, uint16_t>;
+        degs[32][32] = Degrain_C<radius, 32,32, uint16_t>;
+
+        d->LimitChanges = LimitChanges_C<uint16_t>;
+    }
 
     d->OVERS[0] = overs[nBlkSizeX][nBlkSizeY];
     d->DEGRAIN[0] = degs[nBlkSizeX][nBlkSizeY];
@@ -473,14 +538,6 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
     if (err)
         plane = 4;
 
-    d.nLimit[0] = vsapi->propGetInt(in, "limit", 0, &err);
-    if (err)
-        d.nLimit[0] = 255;
-
-    d.nLimit[1] = d.nLimit[2] = vsapi->propGetInt(in, "limitc", 0, &err);
-    if (err)
-        d.nLimit[1] = d.nLimit[2] = d.nLimit[0];
-
     d.nSCD1 = vsapi->propGetInt(in, "thscd1", 0, &err);
     if (err)
         d.nSCD1 = MV_DEFAULT_SCD1;
@@ -496,16 +553,6 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
 
     if (plane < 0 || plane > 4) {
         vsapi->setError(out, (filter + ": plane must be between 0 and 4 (inclusive).").c_str());
-        return;
-    }
-
-    if (d.nLimit[0] < 0 || d.nLimit[0] > 255) {
-        vsapi->setError(out, (filter + ": limit must be between 0 and 255 (inclusive).").c_str());
-        return;
-    }
-
-    if (d.nLimit[1] < 0 || d.nLimit[1] > 255) {
-        vsapi->setError(out, (filter + ": limitc must be between 0 and 255 (inclusive).").c_str());
         return;
     }
 
@@ -635,12 +682,6 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
 
 
 
-    d.dstShortPitch = ((d.bleh->nWidth + 15)/16)*16;
-
-
-    selectFunctions<radius>(&d);
-
-
     d.node = vsapi->propGetNode(in, "clip", 0, 0);
     d.vi = vsapi->getVideoInfo(d.node);
 
@@ -661,8 +702,8 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
         return;
     }
 
-    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 8 || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || (d.vi->format->colorFamily != cmYUV && d.vi->format->colorFamily != cmGray)) {
-        vsapi->setError(out, (filter + ": input clip must be GRAY8, YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.").c_str());
+    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 16 || d.vi->format->sampleType != stInteger || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || (d.vi->format->colorFamily != cmYUV && d.vi->format->colorFamily != cmGray)) {
+        vsapi->setError(out, (filter + ": input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.").c_str());
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.node);
 
@@ -674,6 +715,54 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
         delete d.bleh;
         return;
     }
+
+    if (d.vi->format->bitsPerSample > 8)
+        d.isse = 0;
+
+    int pixelMax = (1 << d.vi->format->bitsPerSample) - 1;
+
+    d.nLimit[0] = vsapi->propGetInt(in, "limit", 0, &err);
+    if (err)
+        d.nLimit[0] = pixelMax;
+
+    d.nLimit[1] = d.nLimit[2] = vsapi->propGetInt(in, "limitc", 0, &err);
+    if (err)
+        d.nLimit[1] = d.nLimit[2] = d.nLimit[0];
+
+    if (d.nLimit[0] < 0 || d.nLimit[0] > pixelMax) {
+        vsapi->setError(out, (filter + ": limit must be between 0 and " + std::to_string(pixelMax) + " (inclusive).").c_str());
+
+        vsapi->freeNode(d.super);
+        vsapi->freeNode(d.node);
+
+        for (int r = 0; r < radius*2; r++) {
+            vsapi->freeNode(d.vectors[r]);
+            delete d.mvClips[r];
+        }
+
+        delete d.bleh;
+
+        return;
+    }
+
+    if (d.nLimit[1] < 0 || d.nLimit[1] > pixelMax) {
+        vsapi->setError(out, (filter + ": limitc must be between 0 and " + std::to_string(pixelMax) + " (inclusive).").c_str());
+
+        vsapi->freeNode(d.super);
+        vsapi->freeNode(d.node);
+
+        for (int r = 0; r < radius*2; r++) {
+            vsapi->freeNode(d.vectors[r]);
+            delete d.mvClips[r];
+        }
+
+        delete d.bleh;
+
+        return;
+    }
+
+
+    d.dstTempPitch = ((d.bleh->nWidth + 15)/16)*16 * d.vi->format->bytesPerSample * 2;
 
     d.process[0] = d.YUVplanes & YPLANE;
     d.process[1] = d.YUVplanes & UPLANE & d.nSuperModeYUV;
@@ -705,6 +794,9 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
 
     d.nHeight_B[0] = d.bleh->nBlkY * (d.nBlkSizeY[0] - d.nOverlapY[0]) + d.nOverlapY[0];
     d.nHeight_B[1] = d.nHeight_B[2] = d.nHeight_B[0] >> d.ySubUV;
+
+
+    selectFunctions<radius>(&d);
 
 
     data = (MVDegrainData *)malloc(sizeof(d));

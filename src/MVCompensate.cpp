@@ -54,13 +54,14 @@ typedef struct {
     int nSuperModeYUV;
     int nSuperLevels;
 
-    int dstShortPitch;
-    int dstShortPitchUV;
+    int dstTempPitch;
+    int dstTempPitchUV;
 
     OverlapsFunction OVERSLUMA;
     OverlapsFunction OVERSCHROMA;
     COPYFunction BLITLUMA;
     COPYFunction BLITCHROMA;
+    ToPixelsFunction ToPixels;
 } MVCompensateData;
 
 
@@ -106,9 +107,9 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
         int nDstPitches[3], nRefPitches[3];
         const uint8_t *pSrc[3], *pSrcCur[3];
         int nSrcPitches[3];
-        unsigned short *pDstShort;
-        unsigned short *pDstShortU;
-        unsigned short *pDstShortV;
+        uint8_t *pDstTemp;
+        uint8_t *pDstTempU;
+        uint8_t *pDstTempV;
         int blx, bly;
 
         const VSFrameRef *mvn = vsapi->getFrameFilter(n, d->vectors, frameCtx);
@@ -141,14 +142,17 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
         const int nBlkY = d->bleh->nBlkY;
         const int isse = d->isse;
         const int thSAD = d->thSAD;
-        const int dstShortPitch = d->dstShortPitch;
-        const int dstShortPitchUV = d->dstShortPitchUV;
+        const int dstTempPitch = d->dstTempPitch;
+        const int dstTempPitchUV = d->dstTempPitchUV;
         const int nSuperModeYUV = d->nSuperModeYUV;
         const int nPel = d->bleh->nPel;
         const int nHPadding = d->bleh->nHPadding;
         const int nVPadding = d->bleh->nVPadding;
         const int scBehavior = d->scBehavior;
         const int fields = d->fields;
+
+        int bitsPerSample = d->supervi->format->bitsPerSample;
+        int bytesPerSample = d->supervi->format->bytesPerSample;
 
 
         int nWidth_B = nBlkX*(nBlkSizeX - nOverlapX) + nOverlapX;
@@ -170,8 +174,8 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                 nRefPitches[i] = vsapi->getStride(ref, i);
             }
 
-            MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth, nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, nSuperModeYUV, isse, xRatioUV, yRatioUV);
-            MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth, nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, nSuperModeYUV, isse, xRatioUV, yRatioUV);
+            MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth, nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, nSuperModeYUV, isse, xRatioUV, yRatioUV, bitsPerSample);
+            MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nSuperLevels, nWidth, nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, nSuperModeYUV, isse, xRatioUV, yRatioUV, bitsPerSample);
 
             pRefGOF->Update(nSuperModeYUV, (uint8_t*)pRef[0], nRefPitches[0], (uint8_t*)pRef[1], nRefPitches[1], (uint8_t*)pRef[2], nRefPitches[2]);// v2.0
 
@@ -255,7 +259,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                         }
 
 
-                        xx += (nBlkSizeX);
+                        xx += (nBlkSizeX * bytesPerSample);
 
                     }
                     pDstCur[0] += (nBlkSizeY) * (nDstPitches[0]);
@@ -273,24 +277,24 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
             else // overlap
             {
                 OverlapWindows *OverWins = new OverlapWindows(nBlkSizeX, nBlkSizeY, nOverlapX, nOverlapY);
-                unsigned short *DstShort = new unsigned short[dstShortPitch*nHeight];
+                uint8_t *DstTemp = new uint8_t[dstTempPitch * nHeight];
                 OverlapWindows *OverWinsUV = NULL;
-                unsigned short *DstShortU = NULL;
-                unsigned short *DstShortV = NULL;
+                uint8_t *DstTempU = NULL;
+                uint8_t *DstTempV = NULL;
                 if (nSuperModeYUV & UVPLANES) {
                     OverWinsUV = new OverlapWindows(nBlkSizeX/xRatioUV, nBlkSizeY/yRatioUV, nOverlapX/xRatioUV, nOverlapY/yRatioUV);
-                    DstShortU = new unsigned short[dstShortPitchUV*nHeight];
-                    DstShortV = new unsigned short[dstShortPitchUV*nHeight];
+                    DstTempU = new uint8_t[dstTempPitchUV * nHeight];
+                    DstTempV = new uint8_t[dstTempPitchUV * nHeight];
                 }
 
-                pDstShort = DstShort;
-                pDstShortU = DstShortU;
-                pDstShortV = DstShortV;
-                memset(DstShort, 0, nHeight_B * dstShortPitch * 2);
+                pDstTemp = DstTemp;
+                pDstTempU = DstTempU;
+                pDstTempV = DstTempV;
+                memset(DstTemp, 0, nHeight_B * dstTempPitch);
                 if (pPlanes[1])
-                    memset(DstShortU, 0, (nHeight_B >> ySubUV) * dstShortPitchUV * 2);
+                    memset(DstTempU, 0, (nHeight_B >> ySubUV) * dstTempPitchUV);
                 if (pPlanes[2])
-                    memset(DstShortV, 0, (nHeight_B >> ySubUV) * dstShortPitchUV * 2);
+                    memset(DstTempV, 0, (nHeight_B >> ySubUV) * dstTempPitchUV);
 
                 for (int by=0; by<nBlkY; by++)
                 {
@@ -314,126 +318,102 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                         if (block.GetSAD() < thSAD)
                         {
                             // luma
-                            d->OVERSLUMA(pDstShort + xx, dstShortPitch, pPlanes[0]->GetPointer(blx, bly), pPlanes[0]->GetPitch(), winOver, nBlkSizeX);
+                            d->OVERSLUMA(pDstTemp + xx, dstTempPitch, pPlanes[0]->GetPointer(blx, bly), pPlanes[0]->GetPitch(), winOver, nBlkSizeX);
                             // chroma u
-                            if(pPlanes[1]) d->OVERSCHROMA(pDstShortU + (xx >> xSubUV), dstShortPitchUV, pPlanes[1]->GetPointer(blx >> xSubUV, bly>>ySubUV), pPlanes[1]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
+                            if(pPlanes[1]) d->OVERSCHROMA(pDstTempU + (xx >> xSubUV), dstTempPitchUV, pPlanes[1]->GetPointer(blx >> xSubUV, bly>>ySubUV), pPlanes[1]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
                             // chroma v
-                            if(pPlanes[2]) d->OVERSCHROMA(pDstShortV + (xx >> xSubUV), dstShortPitchUV, pPlanes[2]->GetPointer(blx >> xSubUV, bly>>ySubUV), pPlanes[2]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
+                            if(pPlanes[2]) d->OVERSCHROMA(pDstTempV + (xx >> xSubUV), dstTempPitchUV, pPlanes[2]->GetPointer(blx >> xSubUV, bly>>ySubUV), pPlanes[2]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
                         }
                         else // bad compensation, use src
                         {
                             int blxsrc = bx * (nBlkSizeX - nOverlapX) * nPel;
                             int blysrc = by * (nBlkSizeY - nOverlapY) * nPel  + fieldShift;
 
-                            d->OVERSLUMA(pDstShort + xx, dstShortPitch, pSrcPlanes[0]->GetPointer(blxsrc, blysrc), pSrcPlanes[0]->GetPitch(), winOver, nBlkSizeX);
+                            d->OVERSLUMA(pDstTemp + xx, dstTempPitch, pSrcPlanes[0]->GetPointer(blxsrc, blysrc), pSrcPlanes[0]->GetPitch(), winOver, nBlkSizeX);
                             // chroma u
-                            if(pSrcPlanes[1]) d->OVERSCHROMA(pDstShortU + (xx >> xSubUV), dstShortPitchUV, pSrcPlanes[1]->GetPointer(blxsrc >> xSubUV, blysrc>>ySubUV), pSrcPlanes[1]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
+                            if(pSrcPlanes[1]) d->OVERSCHROMA(pDstTempU + (xx >> xSubUV), dstTempPitchUV, pSrcPlanes[1]->GetPointer(blxsrc >> xSubUV, blysrc>>ySubUV), pSrcPlanes[1]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
                             // chroma v
-                            if(pSrcPlanes[2]) d->OVERSCHROMA(pDstShortV + (xx >> xSubUV), dstShortPitchUV, pSrcPlanes[2]->GetPointer(blxsrc >> xSubUV, blysrc>>ySubUV), pSrcPlanes[2]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
+                            if(pSrcPlanes[2]) d->OVERSCHROMA(pDstTempV + (xx >> xSubUV), dstTempPitchUV, pSrcPlanes[2]->GetPointer(blxsrc >> xSubUV, blysrc>>ySubUV), pSrcPlanes[2]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
                         }
 
-                        xx += (nBlkSizeX - nOverlapX);
-
+                        xx += (nBlkSizeX - nOverlapX) * bytesPerSample;
                     }
-                    pDstShort += dstShortPitch*(nBlkSizeY - nOverlapY);
+
+                    pDstTemp += dstTempPitch*(nBlkSizeY - nOverlapY);
                     pDstCur[0] += (nBlkSizeY - nOverlapY) * (nDstPitches[0]);
                     pSrcCur[0] += (nBlkSizeY - nOverlapY) * (nSrcPitches[0]);
                     if (nSuperModeYUV & UVPLANES) {
-                        pDstShortU += dstShortPitchUV*((nBlkSizeY - nOverlapY)>>ySubUV);
-                        pDstShortV += dstShortPitchUV*((nBlkSizeY - nOverlapY)>>ySubUV);
+                        pDstTempU += dstTempPitchUV*((nBlkSizeY - nOverlapY)>>ySubUV);
+                        pDstTempV += dstTempPitchUV*((nBlkSizeY - nOverlapY)>>ySubUV);
                         pDstCur[1] += ((nBlkSizeY - nOverlapY)>>ySubUV) * (nDstPitches[1]);
                         pDstCur[2] += ((nBlkSizeY - nOverlapY)>>ySubUV) * (nDstPitches[2]);
                         pSrcCur[1] += ((nBlkSizeY - nOverlapY)>>ySubUV) * (nSrcPitches[1]);
                         pSrcCur[2] += ((nBlkSizeY - nOverlapY)>>ySubUV) * (nSrcPitches[2]);
                     }
-
-
                 }
-                Short2Bytes(pDst[0], nDstPitches[0], DstShort, dstShortPitch, nWidth_B, nHeight_B);
-                if(pPlanes[1]) Short2Bytes(pDst[1], nDstPitches[1], DstShortU, dstShortPitchUV, nWidth_B >> xSubUV, nHeight_B>>ySubUV);
-                if(pPlanes[2]) Short2Bytes(pDst[2], nDstPitches[2], DstShortV, dstShortPitchUV, nWidth_B >> xSubUV, nHeight_B>>ySubUV);
+
+                d->ToPixels(pDst[0], nDstPitches[0], DstTemp, dstTempPitch, nWidth_B, nHeight_B, bitsPerSample);
+                if (pPlanes[1])
+                    d->ToPixels(pDst[1], nDstPitches[1], DstTempU, dstTempPitchUV, nWidth_B >> xSubUV, nHeight_B>>ySubUV, bitsPerSample);
+                if (pPlanes[2])
+                    d->ToPixels(pDst[2], nDstPitches[2], DstTempV, dstTempPitchUV, nWidth_B >> xSubUV, nHeight_B>>ySubUV, bitsPerSample);
 
                 delete OverWins;
-                delete[] DstShort;
+                delete[] DstTemp;
                 if (nSuperModeYUV & UVPLANES) {
                     delete OverWinsUV;
-                    delete[] DstShortU;
-                    delete[] DstShortV;
+                    delete[] DstTempU;
+                    delete[] DstTempV;
+                }
+            }
+
+            const uint8_t *scSrc[3] = { 0 };
+            int scPitches[3] = { 0 };
+
+            for (int i = 0; i < 3; i++) {
+                if (scBehavior) {
+                    scSrc[i] = pSrc[i];
+                    scPitches[i] = nSrcPitches[i];
+                } else {
+                    scSrc[i] = pRef[i];
+                    scPitches[i] = nRefPitches[i];
                 }
             }
 
             if (nWidth_B < nWidth) // padding of right non-covered region
             {
                 // luma
-                if (scBehavior)
-                    vs_bitblt(pDst[0] + nWidth_B, nDstPitches[0],
-                              pSrc[0] + nWidth_B + nHPadding + nVPadding * nSrcPitches[0], nSrcPitches[0],
-                              nWidth - nWidth_B, nHeight_B);
-                else
-                    vs_bitblt(pDst[0] + nWidth_B, nDstPitches[0],
-                              pRef[0] + nWidth_B + nHPadding + nVPadding * nRefPitches[0], nRefPitches[0],
-                              nWidth - nWidth_B, nHeight_B);
+                vs_bitblt(pDst[0] + nWidth_B * bytesPerSample, nDstPitches[0],
+                          scSrc[0] + (nWidth_B + nHPadding) * bytesPerSample + nVPadding * scPitches[0], scPitches[0],
+                          (nWidth - nWidth_B) * bytesPerSample, nHeight_B);
                 // chroma u
                 if(pPlanes[1])
-                {
-                    if (scBehavior)
-                        vs_bitblt(pDst[1] + (nWidth_B >> xSubUV), nDstPitches[1],
-                                  pSrc[1] + (nWidth_B >> xSubUV) + (nHPadding >> xSubUV) + (nVPadding >> ySubUV) * nSrcPitches[1], nSrcPitches[1],
-                                  (nWidth - nWidth_B) >> xSubUV, nHeight_B >> ySubUV);
-                    else
-                        vs_bitblt(pDst[1] + (nWidth_B >> xSubUV), nDstPitches[1],
-                                  pRef[1] + (nWidth_B >> xSubUV) + (nHPadding >> xSubUV) + (nVPadding >> ySubUV) * nRefPitches[1], nRefPitches[1],
-                                  (nWidth - nWidth_B) >> xSubUV, nHeight_B >> ySubUV);
-                }
+                    vs_bitblt(pDst[1] + (nWidth_B >> xSubUV) * bytesPerSample, nDstPitches[1],
+                              scSrc[1] + ((nWidth_B >> xSubUV) + (nHPadding >> xSubUV)) * bytesPerSample + (nVPadding >> ySubUV) * scPitches[1], scPitches[1],
+                              ((nWidth - nWidth_B) >> xSubUV) * bytesPerSample, nHeight_B >> ySubUV);
                 // chroma v
                 if(pPlanes[2])
-                {
-                    if (scBehavior)
-                        vs_bitblt(pDst[2] + (nWidth_B >> xSubUV), nDstPitches[2],
-                                  pSrc[2] + (nWidth_B >> xSubUV) + (nHPadding >> xSubUV) + (nVPadding >> ySubUV) * nSrcPitches[2], nSrcPitches[2],
-                                  (nWidth - nWidth_B) >> xSubUV, nHeight_B >> ySubUV);
-                    else
-                        vs_bitblt(pDst[2] + (nWidth_B >> xSubUV), nDstPitches[2],
-                                  pRef[2] + (nWidth_B >> xSubUV) + (nHPadding >> xSubUV) + (nVPadding >> ySubUV) * nRefPitches[2], nRefPitches[2],
-                                  (nWidth - nWidth_B) >> xSubUV, nHeight_B >> ySubUV);
-                }
+                    vs_bitblt(pDst[2] + (nWidth_B >> xSubUV) * bytesPerSample, nDstPitches[2],
+                              scSrc[2] + ((nWidth_B >> xSubUV) + (nHPadding >> xSubUV)) * bytesPerSample + (nVPadding >> ySubUV) * scPitches[2], scPitches[2],
+                              ((nWidth - nWidth_B) >> xSubUV) * bytesPerSample, nHeight_B >> ySubUV);
             }
 
             if (nHeight_B < nHeight) // padding of bottom non-covered region
             {
                 // luma
-                if (scBehavior)
-                    vs_bitblt(pDst[0] + nHeight_B * nDstPitches[0], nDstPitches[0],
-                              pSrc[0] + nHPadding + (nHeight_B + nVPadding) * nSrcPitches[0], nSrcPitches[0],
-                              nWidth, nHeight - nHeight_B);
-                else
-                    vs_bitblt(pDst[0] + nHeight_B * nDstPitches[0], nDstPitches[0],
-                              pRef[0] + nHPadding + (nHeight_B + nVPadding) * nRefPitches[0], nRefPitches[0],
-                              nWidth, nHeight - nHeight_B);
+                vs_bitblt(pDst[0] + nHeight_B * nDstPitches[0], nDstPitches[0],
+                          scSrc[0] + nHPadding * bytesPerSample + (nHeight_B + nVPadding) * scPitches[0], scPitches[0],
+                          nWidth * bytesPerSample, nHeight - nHeight_B);
                 // chroma u
                 if(pPlanes[1])
-                {
-                    if (scBehavior)
-                        vs_bitblt(pDst[1] + (nHeight_B >> ySubUV) * nDstPitches[1], nDstPitches[1],
-                                  pSrc[1] + nHPadding + ((nHeight_B + nVPadding) >> ySubUV) * nSrcPitches[1], nSrcPitches[1],
-                                  nWidth >> xSubUV, (nHeight - nHeight_B) >> ySubUV);
-                    else
-                        vs_bitblt(pDst[1] + (nHeight_B >> ySubUV) * nDstPitches[1], nDstPitches[1],
-                                  pRef[1] + nHPadding + ((nHeight_B + nVPadding) >> ySubUV) * nRefPitches[1], nRefPitches[1],
-                                  nWidth >> xSubUV, (nHeight - nHeight_B) >> ySubUV);
-                }
+                    vs_bitblt(pDst[1] + (nHeight_B >> ySubUV) * nDstPitches[1], nDstPitches[1],
+                              scSrc[1] + nHPadding * bytesPerSample + ((nHeight_B + nVPadding) >> ySubUV) * scPitches[1], scPitches[1],
+                              (nWidth >> xSubUV) * bytesPerSample, (nHeight - nHeight_B) >> ySubUV);
                 // chroma v
                 if(pPlanes[2])
-                {
-                    if (scBehavior)
-                        vs_bitblt(pDst[2] + (nHeight_B >> ySubUV) * nDstPitches[2], nDstPitches[2],
-                                  pSrc[2] + nHPadding + ((nHeight_B + nVPadding) >> ySubUV) * nSrcPitches[2], nSrcPitches[2],
-                                  nWidth >> xSubUV, (nHeight - nHeight_B) >> ySubUV);
-                    else
-                        vs_bitblt(pDst[2] + (nHeight_B >> ySubUV) * nDstPitches[2], nDstPitches[2],
-                                  pRef[2] + nHPadding + ((nHeight_B + nVPadding) >> ySubUV) * nRefPitches[2], nRefPitches[2],
-                                  nWidth >> xSubUV, (nHeight - nHeight_B) >> ySubUV);
-                }
+                    vs_bitblt(pDst[2] + (nHeight_B >> ySubUV) * nDstPitches[2], nDstPitches[2],
+                              scSrc[2] + nHPadding * bytesPerSample + ((nHeight_B + nVPadding) >> ySubUV) * scPitches[2], scPitches[2],
+                              (nWidth >> xSubUV) * bytesPerSample, (nHeight - nHeight_B) >> ySubUV);
             }
 
             delete pSrcGOF;
@@ -456,14 +436,14 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
             int nOffset[3];
 
-            nOffset[0] = nHPadding + nVPadding * nSrcPitches[0];
-            nOffset[1] = nHPadding / xRatioUV + (nVPadding / yRatioUV) * nSrcPitches[1];
+            nOffset[0] = nHPadding * bytesPerSample + nVPadding * nSrcPitches[0];
+            nOffset[1] = nHPadding * bytesPerSample / xRatioUV + (nVPadding / yRatioUV) * nSrcPitches[1];
             nOffset[2] = nOffset[1];
 
-            vs_bitblt(pDst[0], nDstPitches[0], pSrc[0] + nOffset[0], nSrcPitches[0], nWidth, nHeight);
+            vs_bitblt(pDst[0], nDstPitches[0], pSrc[0] + nOffset[0], nSrcPitches[0], nWidth * bytesPerSample, nHeight);
             if (nSuperModeYUV & UVPLANES) {
-                vs_bitblt(pDst[1], nDstPitches[1], pSrc[1] + nOffset[1], nSrcPitches[1], nWidth / xRatioUV, nHeight / yRatioUV);
-                vs_bitblt(pDst[2], nDstPitches[2], pSrc[2] + nOffset[2], nSrcPitches[2], nWidth / xRatioUV, nHeight / yRatioUV);
+                vs_bitblt(pDst[1], nDstPitches[1], pSrc[1] + nOffset[1], nSrcPitches[1], nWidth * bytesPerSample / xRatioUV, nHeight / yRatioUV);
+                vs_bitblt(pDst[2], nDstPitches[2], pSrc[2] + nOffset[2], nSrcPitches[2], nWidth * bytesPerSample / xRatioUV, nHeight / yRatioUV);
             }
         }
 
@@ -500,62 +480,125 @@ static void selectFunctions(MVCompensateData *d) {
     OverlapsFunction overs[33][33];
     COPYFunction copys[33][33];
 
-    overs[2][2] = Overlaps_C<2,2>;
-    copys[2][2] = d->isse ? mvtools_Copy2x2_sse2 : Copy_C<2,2>;
+    if (d->vi->format->bitsPerSample == 8) {
+        overs[2][2] = Overlaps_C<2,2, uint16_t, uint8_t>;
+        copys[2][2] = d->isse ? mvtools_Copy2x2_sse2 : Copy_C<2,2, uint8_t>;
 
-    overs[2][4] = Overlaps_C<2,4>;
-    copys[2][4] = d->isse ? mvtools_Copy2x4_sse2 : Copy_C<2,4>;
+        overs[2][4] = Overlaps_C<2,4, uint16_t, uint8_t>;
+        copys[2][4] = d->isse ? mvtools_Copy2x4_sse2 : Copy_C<2,4, uint8_t>;
 
-    overs[4][2] = d->isse ? mvtools_Overlaps4x2_sse2 : Overlaps_C<4,2>;
-    copys[4][2] = d->isse ? mvtools_Copy4x2_sse2 : Copy_C<4,2>;
+        overs[4][2] = d->isse ? mvtools_Overlaps4x2_sse2 : Overlaps_C<4,2, uint16_t, uint8_t>;
+        copys[4][2] = d->isse ? mvtools_Copy4x2_sse2 : Copy_C<4,2, uint8_t>;
 
-    overs[4][4] = d->isse ? mvtools_Overlaps4x4_sse2 : Overlaps_C<4,4>;
-    copys[4][4] = d->isse ? mvtools_Copy4x4_sse2 : Copy_C<4,4>;
+        overs[4][4] = d->isse ? mvtools_Overlaps4x4_sse2 : Overlaps_C<4,4, uint16_t, uint8_t>;
+        copys[4][4] = d->isse ? mvtools_Copy4x4_sse2 : Copy_C<4,4, uint8_t>;
 
-    overs[4][8] = d->isse ? mvtools_Overlaps4x8_sse2 : Overlaps_C<4,8>;
-    copys[4][8] = d->isse ? mvtools_Copy4x8_sse2 : Copy_C<4,8>;
+        overs[4][8] = d->isse ? mvtools_Overlaps4x8_sse2 : Overlaps_C<4,8, uint16_t, uint8_t>;
+        copys[4][8] = d->isse ? mvtools_Copy4x8_sse2 : Copy_C<4,8, uint8_t>;
 
-    overs[8][1] = d->isse ? mvtools_Overlaps8x1_sse2 : Overlaps_C<8,1>;
-    copys[8][1] = d->isse ? mvtools_Copy8x1_sse2 : Copy_C<8,1>;
+        overs[8][1] = d->isse ? mvtools_Overlaps8x1_sse2 : Overlaps_C<8,1, uint16_t, uint8_t>;
+        copys[8][1] = d->isse ? mvtools_Copy8x1_sse2 : Copy_C<8,1, uint8_t>;
 
-    overs[8][2] = d->isse ? mvtools_Overlaps8x2_sse2 : Overlaps_C<8,2>;
-    copys[8][2] = d->isse ? mvtools_Copy8x2_sse2 : Copy_C<8,2>;
+        overs[8][2] = d->isse ? mvtools_Overlaps8x2_sse2 : Overlaps_C<8,2, uint16_t, uint8_t>;
+        copys[8][2] = d->isse ? mvtools_Copy8x2_sse2 : Copy_C<8,2, uint8_t>;
 
-    overs[8][4] = d->isse ? mvtools_Overlaps8x4_sse2 : Overlaps_C<8,4>;
-    copys[8][4] = d->isse ? mvtools_Copy8x4_sse2 : Copy_C<8,4>;
+        overs[8][4] = d->isse ? mvtools_Overlaps8x4_sse2 : Overlaps_C<8,4, uint16_t, uint8_t>;
+        copys[8][4] = d->isse ? mvtools_Copy8x4_sse2 : Copy_C<8,4, uint8_t>;
 
-    overs[8][8] = d->isse ? mvtools_Overlaps8x8_sse2 : Overlaps_C<8,8>;
-    copys[8][8] = d->isse ? mvtools_Copy8x8_sse2 : Copy_C<8,8>;
+        overs[8][8] = d->isse ? mvtools_Overlaps8x8_sse2 : Overlaps_C<8,8, uint16_t, uint8_t>;
+        copys[8][8] = d->isse ? mvtools_Copy8x8_sse2 : Copy_C<8,8, uint8_t>;
 
-    overs[8][16] = d->isse ? mvtools_Overlaps8x16_sse2 : Overlaps_C<8,16>;
-    copys[8][16] = d->isse ? mvtools_Copy8x16_sse2 : Copy_C<8,16>;
+        overs[8][16] = d->isse ? mvtools_Overlaps8x16_sse2 : Overlaps_C<8,16, uint16_t, uint8_t>;
+        copys[8][16] = d->isse ? mvtools_Copy8x16_sse2 : Copy_C<8,16, uint8_t>;
 
-    overs[16][1] = d->isse ? mvtools_Overlaps16x1_sse2 : Overlaps_C<16,1>;
-    copys[16][1] = d->isse ? mvtools_Copy16x1_sse2 : Copy_C<16,1>;
+        overs[16][1] = d->isse ? mvtools_Overlaps16x1_sse2 : Overlaps_C<16,1, uint16_t, uint8_t>;
+        copys[16][1] = d->isse ? mvtools_Copy16x1_sse2 : Copy_C<16,1, uint8_t>;
 
-    overs[16][2] = d->isse ? mvtools_Overlaps16x2_sse2 : Overlaps_C<16,2>;
-    copys[16][2] = d->isse ? mvtools_Copy16x2_sse2 : Copy_C<16,2>;
+        overs[16][2] = d->isse ? mvtools_Overlaps16x2_sse2 : Overlaps_C<16,2, uint16_t, uint8_t>;
+        copys[16][2] = d->isse ? mvtools_Copy16x2_sse2 : Copy_C<16,2, uint8_t>;
 
-    overs[16][4] = d->isse ? mvtools_Overlaps16x4_sse2 : Overlaps_C<16,4>;
-    copys[16][4] = d->isse ? mvtools_Copy16x4_sse2 : Copy_C<16,4>;
+        overs[16][4] = d->isse ? mvtools_Overlaps16x4_sse2 : Overlaps_C<16,4, uint16_t, uint8_t>;
+        copys[16][4] = d->isse ? mvtools_Copy16x4_sse2 : Copy_C<16,4, uint8_t>;
 
-    overs[16][8] = d->isse ? mvtools_Overlaps16x8_sse2 : Overlaps_C<16,8>;
-    copys[16][8] = d->isse ? mvtools_Copy16x8_sse2 : Copy_C<16,8>;
+        overs[16][8] = d->isse ? mvtools_Overlaps16x8_sse2 : Overlaps_C<16,8, uint16_t, uint8_t>;
+        copys[16][8] = d->isse ? mvtools_Copy16x8_sse2 : Copy_C<16,8, uint8_t>;
 
-    overs[16][16] = d->isse ? mvtools_Overlaps16x16_sse2 : Overlaps_C<16,16>;
-    copys[16][16] = d->isse ? mvtools_Copy16x16_sse2 : Copy_C<16,16>;
+        overs[16][16] = d->isse ? mvtools_Overlaps16x16_sse2 : Overlaps_C<16,16, uint16_t, uint8_t>;
+        copys[16][16] = d->isse ? mvtools_Copy16x16_sse2 : Copy_C<16,16, uint8_t>;
 
-    overs[16][32] = d->isse ? mvtools_Overlaps16x32_sse2 : Overlaps_C<16,32>;
-    copys[16][32] = d->isse ? mvtools_Copy16x32_sse2 : Copy_C<16,32>;
+        overs[16][32] = d->isse ? mvtools_Overlaps16x32_sse2 : Overlaps_C<16,32, uint16_t, uint8_t>;
+        copys[16][32] = d->isse ? mvtools_Copy16x32_sse2 : Copy_C<16,32, uint8_t>;
 
-    overs[32][8] = d->isse ? mvtools_Overlaps32x8_sse2 : Overlaps_C<32,8>;
-    copys[32][8] = d->isse ? mvtools_Copy32x8_sse2 : Copy_C<32,8>;
+        overs[32][8] = d->isse ? mvtools_Overlaps32x8_sse2 : Overlaps_C<32,8, uint16_t, uint8_t>;
+        copys[32][8] = d->isse ? mvtools_Copy32x8_sse2 : Copy_C<32,8, uint8_t>;
 
-    overs[32][16] = d->isse ? mvtools_Overlaps32x16_sse2 : Overlaps_C<32,16>;
-    copys[32][16] = d->isse ? mvtools_Copy32x16_sse2 : Copy_C<32,16>;
+        overs[32][16] = d->isse ? mvtools_Overlaps32x16_sse2 : Overlaps_C<32,16, uint16_t, uint8_t>;
+        copys[32][16] = d->isse ? mvtools_Copy32x16_sse2 : Copy_C<32,16, uint8_t>;
 
-    overs[32][32] = d->isse ? mvtools_Overlaps32x32_sse2 : Overlaps_C<32,32>;
-    copys[32][32] = d->isse ? mvtools_Copy32x32_sse2 : Copy_C<32,32>;
+        overs[32][32] = d->isse ? mvtools_Overlaps32x32_sse2 : Overlaps_C<32,32, uint16_t, uint8_t>;
+        copys[32][32] = d->isse ? mvtools_Copy32x32_sse2 : Copy_C<32,32, uint8_t>;
+
+        d->ToPixels = ToPixels<uint16_t, uint8_t>;
+    } else {
+        overs[2][2] = Overlaps_C<2,2, uint32_t, uint16_t>;
+        copys[2][2] = Copy_C<2,2, uint16_t>;
+
+        overs[2][4] = Overlaps_C<2,4, uint32_t, uint16_t>;
+        copys[2][4] = Copy_C<2,4, uint16_t>;
+
+        overs[4][2] = Overlaps_C<4,2, uint32_t, uint16_t>;
+        copys[4][2] = Copy_C<4,2, uint16_t>;
+
+        overs[4][4] = Overlaps_C<4,4, uint32_t, uint16_t>;
+        copys[4][4] = Copy_C<4,4, uint16_t>;
+
+        overs[4][8] = Overlaps_C<4,8, uint32_t, uint16_t>;
+        copys[4][8] = Copy_C<4,8, uint16_t>;
+
+        overs[8][1] = Overlaps_C<8,1, uint32_t, uint16_t>;
+        copys[8][1] = Copy_C<8,1, uint16_t>;
+
+        overs[8][2] = Overlaps_C<8,2, uint32_t, uint16_t>;
+        copys[8][2] = Copy_C<8,2, uint16_t>;
+
+        overs[8][4] = Overlaps_C<8,4, uint32_t, uint16_t>;
+        copys[8][4] = Copy_C<8,4, uint16_t>;
+
+        overs[8][8] = Overlaps_C<8,8, uint32_t, uint16_t>;
+        copys[8][8] = Copy_C<8,8, uint16_t>;
+
+        overs[8][16] = Overlaps_C<8,16, uint32_t, uint16_t>;
+        copys[8][16] = Copy_C<8,16, uint16_t>;
+
+        overs[16][1] = Overlaps_C<16,1, uint32_t, uint16_t>;
+        copys[16][1] = Copy_C<16,1, uint16_t>;
+
+        overs[16][2] = Overlaps_C<16,2, uint32_t, uint16_t>;
+        copys[16][2] = Copy_C<16,2, uint16_t>;
+
+        overs[16][4] = Overlaps_C<16,4, uint32_t, uint16_t>;
+        copys[16][4] = Copy_C<16,4, uint16_t>;
+
+        overs[16][8] = Overlaps_C<16,8, uint32_t, uint16_t>;
+        copys[16][8] = Copy_C<16,8, uint16_t>;
+
+        overs[16][16] = Overlaps_C<16,16, uint32_t, uint16_t>;
+        copys[16][16] = Copy_C<16,16, uint16_t>;
+
+        overs[16][32] = Overlaps_C<16,32, uint32_t, uint16_t>;
+        copys[16][32] = Copy_C<16,32, uint16_t>;
+
+        overs[32][8] = Overlaps_C<32,8, uint32_t, uint16_t>;
+        copys[32][8] = Copy_C<32,8, uint16_t>;
+
+        overs[32][16] = Overlaps_C<32,16, uint32_t, uint16_t>;
+        copys[32][16] = Copy_C<32,16, uint16_t>;
+
+        overs[32][32] = Overlaps_C<32,32, uint32_t, uint16_t>;
+        copys[32][32] = Copy_C<32,32, uint16_t>;
+
+        d->ToPixels = ToPixels<uint32_t, uint16_t>;
+    }
 
     d->OVERSLUMA = overs[nBlkSizeX][nBlkSizeY];
     d->BLITLUMA = copys[nBlkSizeX][nBlkSizeY];
@@ -655,18 +698,16 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
         return;
     }
 
-    d.thSAD = d.thSAD * d.mvClip->GetThSCD1() / d.nSCD1; // normalize to block SAD
-
-
-    d.dstShortPitch = ((d.bleh->nWidth + 15)/16)*16;
-    d.dstShortPitchUV = (((d.bleh->nWidth / d.bleh->xRatioUV) + 15)/16)*16;
-
-
-    selectFunctions(&d);
+    d.thSAD = (int64_t)d.thSAD * d.mvClip->GetThSCD1() / d.nSCD1; // normalize to block SAD
 
 
     d.node = vsapi->propGetNode(in, "clip", 0, 0);
     d.vi = vsapi->getVideoInfo(d.node);
+
+
+    d.dstTempPitch = ((d.bleh->nWidth + 15)/16)*16 * d.vi->format->bytesPerSample * 2;
+    d.dstTempPitchUV = (((d.bleh->nWidth / d.bleh->xRatioUV) + 15)/16)*16 * d.vi->format->bytesPerSample * 2;
+
 
     d.supervi = vsapi->getVideoInfo(d.super);
     int nSuperWidth = d.supervi->width;
@@ -681,8 +722,8 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
         return;
     }
 
-    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 8 || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || (d.vi->format->colorFamily != cmYUV && d.vi->format->colorFamily != cmGray)) {
-        vsapi->setError(out, "Compensate: input clip must be GRAY8, YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
+    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 16 || d.vi->format->sampleType != stInteger || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || (d.vi->format->colorFamily != cmYUV && d.vi->format->colorFamily != cmGray)) {
+        vsapi->setError(out, "Compensate: input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.vectors);
         vsapi->freeNode(d.node);
@@ -690,6 +731,12 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
         delete d.bleh;
         return;
     }
+
+    if (d.vi->format->bitsPerSample > 8)
+        d.isse = 0;
+
+
+    selectFunctions(&d);
 
 
     data = (MVCompensateData *)malloc(sizeof(d));
