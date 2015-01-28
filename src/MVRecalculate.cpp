@@ -529,7 +529,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     try {
         d.mvClip = new MVClipDicks(d.vectors, 999999, 255, vsapi);
     } catch (MVException &e) {
-        vsapi->setError(out, e.what());
+        vsapi->setError(out, std::string("Recalculate: ").append(e.what()).c_str());
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.vectors);
         return;

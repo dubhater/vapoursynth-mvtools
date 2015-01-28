@@ -500,7 +500,7 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
     try {
         d.mvClipB = new MVClipDicks(d.mvbw, d.thscd1, d.thscd2, vsapi);
     } catch (MVException &e) {
-        vsapi->setError(out, e.what());
+        vsapi->setError(out, std::string("FlowBlur: ").append(e.what()).c_str());
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvbw);
         vsapi->freeNode(d.mvfw);
@@ -510,7 +510,7 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
     try {
         d.mvClipF = new MVClipDicks(d.mvfw, d.thscd1, d.thscd2, vsapi);
     } catch (MVException &e) {
-        vsapi->setError(out, e.what());
+        vsapi->setError(out, std::string("FlowBlur: ").append(e.what()).c_str());
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -546,7 +546,7 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
     try {
         d.bleh = new MVFilter(d.mvfw, "FlowBlur", vsapi);
     } catch (MVException &e) {
-        vsapi->setError(out, e.what());
+        vsapi->setError(out, std::string("FlowBlur: ").append(e.what()).c_str());
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -561,7 +561,7 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
         d.bleh->CheckSimilarity(d.mvClipF, "mvfw");
         d.bleh->CheckSimilarity(d.mvClipB, "mvbw");
     } catch (MVException &e) {
-        vsapi->setError(out, e.what());
+        vsapi->setError(out, std::string("FlowBlur: ").append(e.what()).c_str());
         delete d.bleh;
         delete d.mvClipB;
         delete d.mvClipF;

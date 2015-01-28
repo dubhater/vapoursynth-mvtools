@@ -629,7 +629,7 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
     try {
         d.mvClip = new MVClipDicks(d.vectors, d.nSCD1, d.nSCD2, vsapi);
     } catch (MVException &e) {
-        vsapi->setError(out, e.what());
+        vsapi->setError(out, std::string("Compensate: ").append(e.what()).c_str());
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.vectors);
         return;
@@ -638,7 +638,7 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
     try {
         d.bleh = new MVFilter(d.vectors, "Compensate", vsapi);
     } catch (MVException &e) {
-        vsapi->setError(out, e.what());
+        vsapi->setError(out, std::string("Compensate: ").append(e.what()).c_str());
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.vectors);
         delete d.mvClip;

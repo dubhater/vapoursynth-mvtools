@@ -102,7 +102,7 @@ static void VS_CC mvscdetectionCreate(const VSMap *in, VSMap *out, void *userDat
     try {
         d.mvClip = new MVClipDicks(d.vectors, d.thscd1, d.thscd2, vsapi);
     } catch (MVException &e) {
-        vsapi->setError(out, e.what());
+        vsapi->setError(out, std::string("SCDetection: ").append(e.what()).c_str());
         vsapi->freeNode(d.vectors);
         return;
     }
@@ -110,7 +110,7 @@ static void VS_CC mvscdetectionCreate(const VSMap *in, VSMap *out, void *userDat
     try {
         d.bleh = new MVFilter(d.vectors, "SCDetection", vsapi);
     } catch (MVException &e) {
-        vsapi->setError(out, e.what());
+        vsapi->setError(out, std::string("SCDetection: ").append(e.what()).c_str());
         vsapi->freeNode(d.vectors);
         delete d.mvClip;
         return;
