@@ -44,7 +44,6 @@ libmvtools_la_SOURCES = src/asm-placeholder.cpp \
 						src/asm/cpu-a.asm \
 						src/asm/pixel-a.asm \
 						src/asm/sad-a.asm \
-						src/asm/CopyCode.asm \
 						src/asm/Interpolation.asm \
 						src/asm/MVDegrains.asm \
 						src/asm/Overlap.asm \

@@ -729,25 +729,25 @@ static void selectFunctions(MVBlockFPSData *d) {
     COPYFunction copys[33][33];
 
     // The copy functions are only used with 8 bit masks.
-    copys[2][2] = d->isse ? mvtools_Copy2x2_sse2 : Copy_C<2,2, uint8_t>;
-    copys[2][4] = d->isse ? mvtools_Copy2x4_sse2 : Copy_C<2,4, uint8_t>;
-    copys[4][2] = d->isse ? mvtools_Copy4x2_sse2 : Copy_C<4,2, uint8_t>;
-    copys[4][4] = d->isse ? mvtools_Copy4x4_sse2 : Copy_C<4,4, uint8_t>;
-    copys[4][8] = d->isse ? mvtools_Copy4x8_sse2 : Copy_C<4,8, uint8_t>;
-    copys[8][1] = d->isse ? mvtools_Copy8x1_sse2 : Copy_C<8,1, uint8_t>;
-    copys[8][2] = d->isse ? mvtools_Copy8x2_sse2 : Copy_C<8,2, uint8_t>;
-    copys[8][4] = d->isse ? mvtools_Copy8x4_sse2 : Copy_C<8,4, uint8_t>;
-    copys[8][8] = d->isse ? mvtools_Copy8x8_sse2 : Copy_C<8,8, uint8_t>;
-    copys[8][16] = d->isse ? mvtools_Copy8x16_sse2 : Copy_C<8,16, uint8_t>;
-    copys[16][1] = d->isse ? mvtools_Copy16x1_sse2 : Copy_C<16,1, uint8_t>;
-    copys[16][2] = d->isse ? mvtools_Copy16x2_sse2 : Copy_C<16,2, uint8_t>;
-    copys[16][4] = d->isse ? mvtools_Copy16x4_sse2 : Copy_C<16,4, uint8_t>;
-    copys[16][8] = d->isse ? mvtools_Copy16x8_sse2 : Copy_C<16,8, uint8_t>;
-    copys[16][16] = d->isse ? mvtools_Copy16x16_sse2 : Copy_C<16,16, uint8_t>;
-    copys[16][32] = d->isse ? mvtools_Copy16x32_sse2 : Copy_C<16,32, uint8_t>;
-    copys[32][8] = d->isse ? mvtools_Copy32x8_sse2 : Copy_C<32,8, uint8_t>;
-    copys[32][16] = d->isse ? mvtools_Copy32x16_sse2 : Copy_C<32,16, uint8_t>;
-    copys[32][32] = d->isse ? mvtools_Copy32x32_sse2 : Copy_C<32,32, uint8_t>;
+    copys[2][2] = Copy_C<2,2, uint8_t>;
+    copys[2][4] = Copy_C<2,4, uint8_t>;
+    copys[4][2] = Copy_C<4,2, uint8_t>;
+    copys[4][4] = Copy_C<4,4, uint8_t>;
+    copys[4][8] = Copy_C<4,8, uint8_t>;
+    copys[8][1] = Copy_C<8,1, uint8_t>;
+    copys[8][2] = Copy_C<8,2, uint8_t>;
+    copys[8][4] = Copy_C<8,4, uint8_t>;
+    copys[8][8] = Copy_C<8,8, uint8_t>;
+    copys[8][16] = Copy_C<8,16, uint8_t>;
+    copys[16][1] = Copy_C<16,1, uint8_t>;
+    copys[16][2] = Copy_C<16,2, uint8_t>;
+    copys[16][4] = Copy_C<16,4, uint8_t>;
+    copys[16][8] = Copy_C<16,8, uint8_t>;
+    copys[16][16] = Copy_C<16,16, uint8_t>;
+    copys[16][32] = Copy_C<16,32, uint8_t>;
+    copys[32][8] = Copy_C<32,8, uint8_t>;
+    copys[32][16] = Copy_C<32,16, uint8_t>;
+    copys[32][32] = Copy_C<32,32, uint8_t>;
 
     d->BLITLUMA = copys[nBlkSizeX][nBlkSizeY];
 }
