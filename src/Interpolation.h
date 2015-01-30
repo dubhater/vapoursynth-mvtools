@@ -282,7 +282,7 @@ void RB2BilinearFilteredVertical(unsigned char *pDst8, const unsigned char *pSrc
         pSrc += nSrcPitch * 2;
     }
 
-    if (isse && nWidthMMX>=8)
+    if (sizeof(PixelType) == 1 && isse && nWidthMMX>=8)
     {
         for ( int y = 1; y < nHeight-1; y++ )
         {
@@ -332,7 +332,7 @@ void RB2BilinearFilteredHorizontalInplace(unsigned char *pSrc8, int nSrcPitch, i
         int x = 0;
         int pSrc0 = (pSrc[x*2] + pSrc[x*2+1] + 1) / 2;
 
-        if (isse)
+        if (sizeof(PixelType) == 1 && isse)
         {
             mvtools_RB2BilinearFilteredHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX); // very first is skipped
             for ( x = nWidthMMX; x < nWidth-1; x++ )
@@ -384,7 +384,7 @@ void RB2QuadraticVertical(unsigned char *pDst8, const unsigned char *pSrc8, int 
         pSrc += nSrcPitch * 2;
     }
 
-    if (isse && nWidthMMX>=8)
+    if (sizeof(PixelType) == 1 && isse && nWidthMMX>=8)
     {
         for ( int y = 1; y < nHeight-1; y++ )
         {
@@ -436,7 +436,7 @@ void RB2QuadraticHorizontalInplace(unsigned char *pSrc8, int nSrcPitch, int nWid
         int x = 0;
         int pSrc0 = (pSrc[x*2] + pSrc[x*2+1] + 1) / 2; // store temporary
 
-        if (isse)
+        if (sizeof(PixelType) == 1 && isse)
         {
             mvtools_RB2QuadraticHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX);
             for ( x = nWidthMMX; x < nWidth-1; x++ )
@@ -487,7 +487,7 @@ void RB2CubicVertical(unsigned char *pDst8, const unsigned char *pSrc8, int nDst
         pSrc += nSrcPitch * 2;
     }
 
-    if (isse && nWidthMMX>=8)
+    if (sizeof(PixelType) == 1 && isse && nWidthMMX>=8)
     {
         for ( int y = 1; y < nHeight-1; y++ )
         {
@@ -536,7 +536,7 @@ void RB2CubicHorizontalInplace(unsigned char *pSrc8, int nSrcPitch, int nWidth, 
     {
         int x = 0;
         int pSrcw0 = (pSrc[x*2] + pSrc[x*2+1] + 1) / 2; // store temporary
-        if (isse)
+        if (sizeof(PixelType) == 1 && isse)
         {
             mvtools_RB2CubicHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX);
             for ( x = nWidthMMX; x < nWidth-1; x++ )

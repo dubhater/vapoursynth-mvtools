@@ -98,28 +98,30 @@ void MVPlane::Refine(int sharp)
     {
         if (sharp == 0) // bilinear
         {
-            if (isse)
-            {
-                mvtools_HorizontalBilinear_sse2(pPlane[1], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
-                mvtools_VerticalBilinear_sse2(pPlane[2], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
-                mvtools_DiagonalBilinear_sse2(pPlane[3], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
-            }
-            else
-            {
-                if (bytesPerSample == 1) {
+            if (bytesPerSample == 1) {
+                if (isse)
+                {
+                    mvtools_HorizontalBilinear_sse2(pPlane[1], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+                    mvtools_VerticalBilinear_sse2(pPlane[2], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+                    mvtools_DiagonalBilinear_sse2(pPlane[3], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+                }
+                else
+                {
                     HorizontalBilinear<uint8_t>(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                     VerticalBilinear<uint8_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                     DiagonalBilinear<uint8_t>(pPlane[3], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-                } else {
-                    HorizontalBilinear<uint16_t>(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-                    VerticalBilinear<uint16_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-                    DiagonalBilinear<uint16_t>(pPlane[3], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                 }
+            } else {
+                HorizontalBilinear<uint16_t>(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+                VerticalBilinear<uint16_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+                DiagonalBilinear<uint16_t>(pPlane[3], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
             }
         }
         else if(sharp==1) // bicubic
         {
-            /* TODO: port the asm
+            {
+                if (bytesPerSample == 1) {
+                    /* TODO: port the asm
                if (isse)
                {
                HorizontalBicubic_iSSE(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
@@ -128,8 +130,6 @@ void MVPlane::Refine(int sharp)
                }
                else
                */
-            {
-                if (bytesPerSample == 1) {
                     HorizontalBicubic<uint8_t>(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
                     VerticalBicubic<uint8_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
                     HorizontalBicubic<uint8_t>(pPlane[3], pPlane[2], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample); // faster from ready-made horizontal
@@ -142,23 +142,23 @@ void MVPlane::Refine(int sharp)
         }
         else // Wiener
         {
-            if (isse)
-            {
-                mvtools_HorizontalWiener_sse2(pPlane[1], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
-                mvtools_VerticalWiener_sse2(pPlane[2], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
-                mvtools_HorizontalWiener_sse2(pPlane[3], pPlane[2], nPitch, nExtendedWidth, nExtendedHeight);// faster from ready-made horizontal
-            }
-            else
-            {
-                if (bytesPerSample == 1) {
+            if (bytesPerSample == 1) {
+                if (isse)
+                {
+                    mvtools_HorizontalWiener_sse2(pPlane[1], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+                    mvtools_VerticalWiener_sse2(pPlane[2], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+                    mvtools_HorizontalWiener_sse2(pPlane[3], pPlane[2], nPitch, nExtendedWidth, nExtendedHeight);// faster from ready-made horizontal
+                }
+                else
+                {
                     HorizontalWiener<uint8_t>(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
                     VerticalWiener<uint8_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
                     HorizontalWiener<uint8_t>(pPlane[3], pPlane[2], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample); // faster from ready-made horizontal
-                } else {
-                    HorizontalWiener<uint16_t>(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
-                    VerticalWiener<uint16_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
-                    HorizontalWiener<uint16_t>(pPlane[3], pPlane[2], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample); // faster from ready-made horizontal
                 }
+            } else {
+                HorizontalWiener<uint16_t>(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
+                VerticalWiener<uint16_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
+                HorizontalWiener<uint16_t>(pPlane[3], pPlane[2], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample); // faster from ready-made horizontal
             }
         }
     }
@@ -166,28 +166,30 @@ void MVPlane::Refine(int sharp)
     {
         if (sharp == 0) // bilinear
         {
-            if (isse)
-            {
-                mvtools_HorizontalBilinear_sse2(pPlane[2], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
-                mvtools_VerticalBilinear_sse2(pPlane[8], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
-                mvtools_DiagonalBilinear_sse2(pPlane[10], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
-            }
-            else
-            {
-                if (bytesPerSample == 1) {
+            if (bytesPerSample == 1) {
+                if (isse)
+                {
+                    mvtools_HorizontalBilinear_sse2(pPlane[2], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+                    mvtools_VerticalBilinear_sse2(pPlane[8], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+                    mvtools_DiagonalBilinear_sse2(pPlane[10], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+                }
+                else
+                {
                     HorizontalBilinear<uint8_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                     VerticalBilinear<uint8_t>(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                     DiagonalBilinear<uint8_t>(pPlane[10], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-                } else {
-                    HorizontalBilinear<uint16_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-                    VerticalBilinear<uint16_t>(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
-                    DiagonalBilinear<uint16_t>(pPlane[10], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                 }
+            } else {
+                HorizontalBilinear<uint16_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+                VerticalBilinear<uint16_t>(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
+                DiagonalBilinear<uint16_t>(pPlane[10], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
             }
         }
         else if(sharp==1) // bicubic
         {
-            /* TODO: port the asm
+            {
+                if (bytesPerSample == 1) {
+                    /* TODO: port the asm
                if (isse)
                {
                HorizontalBicubic_iSSE(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
@@ -196,8 +198,6 @@ void MVPlane::Refine(int sharp)
                }
                else
                */
-            {
-                if (bytesPerSample == 1) {
                     HorizontalBicubic<uint8_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
                     VerticalBicubic<uint8_t>(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
                     HorizontalBicubic<uint8_t>(pPlane[10], pPlane[8], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample); // faster from ready-made horizontal
@@ -210,42 +210,42 @@ void MVPlane::Refine(int sharp)
         }
         else // Wiener
         {
-            if (isse)
-            {
-                mvtools_HorizontalWiener_sse2(pPlane[2], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
-                mvtools_VerticalWiener_sse2(pPlane[8], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
-                mvtools_HorizontalWiener_sse2(pPlane[10], pPlane[8], nPitch, nExtendedWidth, nExtendedHeight);// faster from ready-made horizontal
-            }
-            else
-            {
-                if (bytesPerSample == 1) {
+            if (bytesPerSample == 1) {
+                if (isse)
+                {
+                    mvtools_HorizontalWiener_sse2(pPlane[2], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+                    mvtools_VerticalWiener_sse2(pPlane[8], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
+                    mvtools_HorizontalWiener_sse2(pPlane[10], pPlane[8], nPitch, nExtendedWidth, nExtendedHeight);// faster from ready-made horizontal
+                }
+                else
+                {
                     HorizontalWiener<uint8_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
                     VerticalWiener<uint8_t>(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
                     HorizontalWiener<uint8_t>(pPlane[10], pPlane[8], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample); // faster from ready-made horizontal
-                } else {
-                    HorizontalWiener<uint16_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
-                    VerticalWiener<uint16_t>(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
-                    HorizontalWiener<uint16_t>(pPlane[10], pPlane[8], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample); // faster from ready-made horizontal
                 }
+            } else {
+                HorizontalWiener<uint16_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
+                VerticalWiener<uint16_t>(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
+                HorizontalWiener<uint16_t>(pPlane[10], pPlane[8], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample); // faster from ready-made horizontal
             }
         }
         // now interpolate intermediate
-        if (isse) {
-            mvtools_Average2_sse2(pPlane[1], pPlane[0], pPlane[2], nPitch, nExtendedWidth, nExtendedHeight);
-            mvtools_Average2_sse2(pPlane[9], pPlane[8], pPlane[10], nPitch, nExtendedWidth, nExtendedHeight);
-            mvtools_Average2_sse2(pPlane[4], pPlane[0], pPlane[8], nPitch, nExtendedWidth, nExtendedHeight);
-            mvtools_Average2_sse2(pPlane[6], pPlane[2], pPlane[10], nPitch, nExtendedWidth, nExtendedHeight);
-            mvtools_Average2_sse2(pPlane[5], pPlane[4], pPlane[6], nPitch, nExtendedWidth, nExtendedHeight);
+        if (bytesPerSample == 1) {
+            if (isse) {
+                mvtools_Average2_sse2(pPlane[1], pPlane[0], pPlane[2], nPitch, nExtendedWidth, nExtendedHeight);
+                mvtools_Average2_sse2(pPlane[9], pPlane[8], pPlane[10], nPitch, nExtendedWidth, nExtendedHeight);
+                mvtools_Average2_sse2(pPlane[4], pPlane[0], pPlane[8], nPitch, nExtendedWidth, nExtendedHeight);
+                mvtools_Average2_sse2(pPlane[6], pPlane[2], pPlane[10], nPitch, nExtendedWidth, nExtendedHeight);
+                mvtools_Average2_sse2(pPlane[5], pPlane[4], pPlane[6], nPitch, nExtendedWidth, nExtendedHeight);
 
-            mvtools_Average2_sse2(pPlane[3], pPlane[0] + 1, pPlane[2], nPitch, nExtendedWidth-1, nExtendedHeight);
-            mvtools_Average2_sse2(pPlane[11], pPlane[8] + 1, pPlane[10], nPitch, nExtendedWidth-1, nExtendedHeight);
-            mvtools_Average2_sse2(pPlane[12], pPlane[0] + nPitch, pPlane[8], nPitch, nExtendedWidth, nExtendedHeight-1);
-            mvtools_Average2_sse2(pPlane[14], pPlane[2] + nPitch, pPlane[10], nPitch, nExtendedWidth, nExtendedHeight-1);
-            mvtools_Average2_sse2(pPlane[13], pPlane[12], pPlane[14], nPitch, nExtendedWidth, nExtendedHeight);
-            mvtools_Average2_sse2(pPlane[7], pPlane[4] + 1, pPlane[6], nPitch, nExtendedWidth-1, nExtendedHeight);
-            mvtools_Average2_sse2(pPlane[15], pPlane[12] + 1, pPlane[14], nPitch, nExtendedWidth-1, nExtendedHeight);
-        } else {
-            if (bytesPerSample == 1) {
+                mvtools_Average2_sse2(pPlane[3], pPlane[0] + 1, pPlane[2], nPitch, nExtendedWidth-1, nExtendedHeight);
+                mvtools_Average2_sse2(pPlane[11], pPlane[8] + 1, pPlane[10], nPitch, nExtendedWidth-1, nExtendedHeight);
+                mvtools_Average2_sse2(pPlane[12], pPlane[0] + nPitch, pPlane[8], nPitch, nExtendedWidth, nExtendedHeight-1);
+                mvtools_Average2_sse2(pPlane[14], pPlane[2] + nPitch, pPlane[10], nPitch, nExtendedWidth, nExtendedHeight-1);
+                mvtools_Average2_sse2(pPlane[13], pPlane[12], pPlane[14], nPitch, nExtendedWidth, nExtendedHeight);
+                mvtools_Average2_sse2(pPlane[7], pPlane[4] + 1, pPlane[6], nPitch, nExtendedWidth-1, nExtendedHeight);
+                mvtools_Average2_sse2(pPlane[15], pPlane[12] + 1, pPlane[14], nPitch, nExtendedWidth-1, nExtendedHeight);
+            } else {
                 Average2<uint8_t>(pPlane[1], pPlane[0], pPlane[2], nPitch, nExtendedWidth, nExtendedHeight);
                 Average2<uint8_t>(pPlane[9], pPlane[8], pPlane[10], nPitch, nExtendedWidth, nExtendedHeight);
                 Average2<uint8_t>(pPlane[4], pPlane[0], pPlane[8], nPitch, nExtendedWidth, nExtendedHeight);
@@ -259,25 +259,25 @@ void MVPlane::Refine(int sharp)
                 Average2<uint8_t>(pPlane[13], pPlane[12], pPlane[14], nPitch, nExtendedWidth, nExtendedHeight);
                 Average2<uint8_t>(pPlane[7], pPlane[4] + 1, pPlane[6], nPitch, nExtendedWidth-1, nExtendedHeight);
                 Average2<uint8_t>(pPlane[15], pPlane[12] + 1, pPlane[14], nPitch, nExtendedWidth-1, nExtendedHeight);
-            } else {
-                Average2<uint16_t>(pPlane[1], pPlane[0], pPlane[2], nPitch, nExtendedWidth, nExtendedHeight);
-                Average2<uint16_t>(pPlane[9], pPlane[8], pPlane[10], nPitch, nExtendedWidth, nExtendedHeight);
-                Average2<uint16_t>(pPlane[4], pPlane[0], pPlane[8], nPitch, nExtendedWidth, nExtendedHeight);
-                Average2<uint16_t>(pPlane[6], pPlane[2], pPlane[10], nPitch, nExtendedWidth, nExtendedHeight);
-                Average2<uint16_t>(pPlane[5], pPlane[4], pPlane[6], nPitch, nExtendedWidth, nExtendedHeight);
-
-                Average2<uint16_t>(pPlane[3], pPlane[0] + bytesPerSample, pPlane[2], nPitch, nExtendedWidth - 1, nExtendedHeight);
-                Average2<uint16_t>(pPlane[11], pPlane[8] + bytesPerSample, pPlane[10], nPitch, nExtendedWidth - 1, nExtendedHeight);
-                Average2<uint16_t>(pPlane[12], pPlane[0] + nPitch, pPlane[8], nPitch, nExtendedWidth, nExtendedHeight - 1);
-                Average2<uint16_t>(pPlane[14], pPlane[2] + nPitch, pPlane[10], nPitch, nExtendedWidth, nExtendedHeight - 1);
-                Average2<uint16_t>(pPlane[13], pPlane[12], pPlane[14], nPitch, nExtendedWidth, nExtendedHeight);
-                Average2<uint16_t>(pPlane[7], pPlane[4] + bytesPerSample, pPlane[6], nPitch, nExtendedWidth - 1, nExtendedHeight);
-                Average2<uint16_t>(pPlane[15], pPlane[12] + bytesPerSample, pPlane[14], nPitch, nExtendedWidth - 1, nExtendedHeight);
-
             }
-        }
+        } else {
+            Average2<uint16_t>(pPlane[1], pPlane[0], pPlane[2], nPitch, nExtendedWidth, nExtendedHeight);
+            Average2<uint16_t>(pPlane[9], pPlane[8], pPlane[10], nPitch, nExtendedWidth, nExtendedHeight);
+            Average2<uint16_t>(pPlane[4], pPlane[0], pPlane[8], nPitch, nExtendedWidth, nExtendedHeight);
+            Average2<uint16_t>(pPlane[6], pPlane[2], pPlane[10], nPitch, nExtendedWidth, nExtendedHeight);
+            Average2<uint16_t>(pPlane[5], pPlane[4], pPlane[6], nPitch, nExtendedWidth, nExtendedHeight);
 
+            Average2<uint16_t>(pPlane[3], pPlane[0] + bytesPerSample, pPlane[2], nPitch, nExtendedWidth - 1, nExtendedHeight);
+            Average2<uint16_t>(pPlane[11], pPlane[8] + bytesPerSample, pPlane[10], nPitch, nExtendedWidth - 1, nExtendedHeight);
+            Average2<uint16_t>(pPlane[12], pPlane[0] + nPitch, pPlane[8], nPitch, nExtendedWidth, nExtendedHeight - 1);
+            Average2<uint16_t>(pPlane[14], pPlane[2] + nPitch, pPlane[10], nPitch, nExtendedWidth, nExtendedHeight - 1);
+            Average2<uint16_t>(pPlane[13], pPlane[12], pPlane[14], nPitch, nExtendedWidth, nExtendedHeight);
+            Average2<uint16_t>(pPlane[7], pPlane[4] + bytesPerSample, pPlane[6], nPitch, nExtendedWidth - 1, nExtendedHeight);
+            Average2<uint16_t>(pPlane[15], pPlane[12] + bytesPerSample, pPlane[14], nPitch, nExtendedWidth - 1, nExtendedHeight);
+
+        }
     }
+
     isRefined = true;
     //   LeaveCriticalSection(&cs);
 }
