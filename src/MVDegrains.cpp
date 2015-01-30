@@ -447,6 +447,8 @@ static void selectFunctions(MVDegrainData *d) {
         degs[32][32] = d->isse ? Degrain_sse2<radius, 32,32> : Degrain_C<radius, 32,32, uint8_t>;
 
         d->LimitChanges = d->isse ? mvtools_LimitChanges_sse2 : LimitChanges_C<uint8_t>;
+
+        d->ToPixels = ToPixels<uint16_t, uint8_t>;
     } else {
         overs[2][2] = Overlaps_C<2,2, uint32_t, uint16_t>;
         degs[2][2] = Degrain_C<radius, 2,2, uint16_t>;
@@ -506,6 +508,8 @@ static void selectFunctions(MVDegrainData *d) {
         degs[32][32] = Degrain_C<radius, 32,32, uint16_t>;
 
         d->LimitChanges = LimitChanges_C<uint16_t>;
+
+        d->ToPixels = ToPixels<uint32_t, uint16_t>;
     }
 
     d->OVERS[0] = overs[nBlkSizeX][nBlkSizeY];
