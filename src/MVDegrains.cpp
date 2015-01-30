@@ -299,7 +299,7 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
                         d->DEGRAIN[plane](tmpBlock, tmpBlockPitch, pSrcCur[plane] + xx, nSrcPitches[plane],
                                 pointers, strides,
                                 WSrc, WRefs);
-                        d->OVERS[plane](pDstTemp + xx, dstTempPitch, tmpBlock, tmpBlockPitch, winOver, nBlkSizeX[plane]);
+                        d->OVERS[plane](pDstTemp + xx*2, dstTempPitch, tmpBlock, tmpBlockPitch, winOver, nBlkSizeX[plane]);
 
                         xx += (nBlkSizeX[plane] - nOverlapX[plane]) * bytesPerSample;
 

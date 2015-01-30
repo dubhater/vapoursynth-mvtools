@@ -320,22 +320,22 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                         if (block.GetSAD() < thSAD)
                         {
                             // luma
-                            d->OVERSLUMA(pDstTemp + xx, dstTempPitch, pPlanes[0]->GetPointer(blx, bly), pPlanes[0]->GetPitch(), winOver, nBlkSizeX);
+                            d->OVERSLUMA(pDstTemp + xx*2, dstTempPitch, pPlanes[0]->GetPointer(blx, bly), pPlanes[0]->GetPitch(), winOver, nBlkSizeX);
                             // chroma u
-                            if(pPlanes[1]) d->OVERSCHROMA(pDstTempU + (xx >> xSubUV), dstTempPitchUV, pPlanes[1]->GetPointer(blx >> xSubUV, bly>>ySubUV), pPlanes[1]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
+                            if(pPlanes[1]) d->OVERSCHROMA(pDstTempU + (xx >> xSubUV)*2, dstTempPitchUV, pPlanes[1]->GetPointer(blx >> xSubUV, bly>>ySubUV), pPlanes[1]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
                             // chroma v
-                            if(pPlanes[2]) d->OVERSCHROMA(pDstTempV + (xx >> xSubUV), dstTempPitchUV, pPlanes[2]->GetPointer(blx >> xSubUV, bly>>ySubUV), pPlanes[2]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
+                            if(pPlanes[2]) d->OVERSCHROMA(pDstTempV + (xx >> xSubUV)*2, dstTempPitchUV, pPlanes[2]->GetPointer(blx >> xSubUV, bly>>ySubUV), pPlanes[2]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
                         }
                         else // bad compensation, use src
                         {
                             int blxsrc = bx * (nBlkSizeX - nOverlapX) * nPel;
                             int blysrc = by * (nBlkSizeY - nOverlapY) * nPel  + fieldShift;
 
-                            d->OVERSLUMA(pDstTemp + xx, dstTempPitch, pSrcPlanes[0]->GetPointer(blxsrc, blysrc), pSrcPlanes[0]->GetPitch(), winOver, nBlkSizeX);
+                            d->OVERSLUMA(pDstTemp + xx*2, dstTempPitch, pSrcPlanes[0]->GetPointer(blxsrc, blysrc), pSrcPlanes[0]->GetPitch(), winOver, nBlkSizeX);
                             // chroma u
-                            if(pSrcPlanes[1]) d->OVERSCHROMA(pDstTempU + (xx >> xSubUV), dstTempPitchUV, pSrcPlanes[1]->GetPointer(blxsrc >> xSubUV, blysrc>>ySubUV), pSrcPlanes[1]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
+                            if(pSrcPlanes[1]) d->OVERSCHROMA(pDstTempU + (xx >> xSubUV)*2, dstTempPitchUV, pSrcPlanes[1]->GetPointer(blxsrc >> xSubUV, blysrc>>ySubUV), pSrcPlanes[1]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
                             // chroma v
-                            if(pSrcPlanes[2]) d->OVERSCHROMA(pDstTempV + (xx >> xSubUV), dstTempPitchUV, pSrcPlanes[2]->GetPointer(blxsrc >> xSubUV, blysrc>>ySubUV), pSrcPlanes[2]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
+                            if(pSrcPlanes[2]) d->OVERSCHROMA(pDstTempV + (xx >> xSubUV)*2, dstTempPitchUV, pSrcPlanes[2]->GetPointer(blxsrc >> xSubUV, blysrc>>ySubUV), pSrcPlanes[2]->GetPitch(), winOverUV, nBlkSizeX >> xSubUV);
                         }
 
                         xx += (nBlkSizeX - nOverlapX) * bytesPerSample;
