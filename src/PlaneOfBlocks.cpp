@@ -77,241 +77,170 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
     SADFunction satds[33][33];
 
     // valid block sizes for luma: 4x4, 8x4, 8x8, 16x2, 16x8, 16x16, 32x16, 32x32.
-    if (isse) {
+    if (bytesPerSample == 1) {
         sads[2][2] = Sad_C<2, 2, uint8_t>;
-        blits[2][2] = mvtools_Copy2x2_sse2;
+        blits[2][2] = Copy_C<2, 2, uint8_t>;
 
         sads[2][4] = Sad_C<2, 4, uint8_t>;
-        blits[2][4] = mvtools_Copy2x4_sse2;
+        blits[2][4] = Copy_C<2, 4, uint8_t>;
 
-        sads[4][2] = mvtools_sad_4x2_sse2;
-        blits[4][2] = mvtools_Copy4x2_sse2;
+        sads[4][2] = isse ? mvtools_sad_4x2_sse2 : Sad_C<4, 2, uint8_t>;
+        blits[4][2] = Copy_C<4, 2, uint8_t>;
 
-        sads[4][4] = mvtools_pixel_sad_4x4_mmx2;
-        lumas[4][4] = mvtools_Luma4x4_sse2;
-        blits[4][4] = mvtools_Copy4x4_sse2;
-        satds[4][4] = mvtools_pixel_satd_4x4_mmx2;
+        sads[4][4] = isse ? mvtools_pixel_sad_4x4_mmx2 : Sad_C<4, 4, uint8_t>;
+        lumas[4][4] = isse ? mvtools_Luma4x4_sse2 : Luma_C<4, 4, uint8_t>;
+        blits[4][4] = Copy_C<4, 4, uint8_t>;
+        satds[4][4] = isse ? mvtools_pixel_satd_4x4_mmx2 : Satd_C<4, 4, uint8_t>;
 
-        sads[4][8] = mvtools_pixel_sad_4x8_mmx2;
-        blits[4][8] = mvtools_Copy4x8_sse2;
+        sads[4][8] = isse ? mvtools_pixel_sad_4x8_mmx2 : Sad_C<4, 8, uint8_t>;
+        blits[4][8] = Copy_C<4, 8, uint8_t>;
 
-        sads[8][1] = mvtools_sad_8x1_sse2;
-        blits[8][1] = mvtools_Copy8x1_sse2;
+        sads[8][1] = isse ? mvtools_sad_8x1_sse2 : Sad_C<8, 1, uint8_t>;
+        blits[8][1] = Copy_C<8, 1, uint8_t>;
 
-        sads[8][2] = mvtools_sad_8x2_sse2;
-        blits[8][2] = mvtools_Copy8x2_sse2;
+        sads[8][2] = isse ? mvtools_sad_8x2_sse2 : Sad_C<8, 2, uint8_t>;
+        blits[8][2] = Copy_C<8, 2, uint8_t>;
 
-        sads[8][4] = mvtools_pixel_sad_8x4_mmx2;
-        lumas[8][4] = mvtools_Luma8x4_sse2;
-        blits[8][4] = mvtools_Copy8x4_sse2;
-        satds[8][4] = mvtools_pixel_satd_8x4_sse2;
+        sads[8][4] = isse ? mvtools_pixel_sad_8x4_mmx2 : Sad_C<8, 4, uint8_t>;
+        lumas[8][4] = isse ? mvtools_Luma8x4_sse2 : Luma_C<8, 4, uint8_t>;
+        blits[8][4] = Copy_C<8, 4, uint8_t>;
+        satds[8][4] = isse ? mvtools_pixel_satd_8x4_sse2 : Satd_C<8, 4, uint8_t>;
 
-        sads[8][8] = mvtools_pixel_sad_8x8_mmx2;
-        lumas[8][8] = mvtools_Luma8x8_sse2;
-        blits[8][8] = mvtools_Copy8x8_sse2;
-        satds[8][8] = mvtools_pixel_satd_8x8_sse2;
+        sads[8][8] = isse ? mvtools_pixel_sad_8x8_mmx2 : Sad_C<8, 8, uint8_t>;
+        lumas[8][8] = isse ? mvtools_Luma8x8_sse2 : Luma_C<8, 8, uint8_t>;
+        blits[8][8] = Copy_C<8, 8, uint8_t>;
+        satds[8][8] = isse ? mvtools_pixel_satd_8x8_sse2 : Satd_C<8, 8, uint8_t>;
 
-        sads[8][16] = mvtools_pixel_sad_8x16_sse2;
-        blits[8][16] = mvtools_Copy8x16_sse2;
+        sads[8][16] = isse ? mvtools_pixel_sad_8x16_sse2 : Sad_C<8, 16, uint8_t>;
+        blits[8][16] = Copy_C<8, 16, uint8_t>;
 
-        sads[16][1] = mvtools_sad_16x1_sse2;
-        blits[16][1] = mvtools_Copy16x1_sse2;
+        sads[16][1] = isse ? mvtools_sad_16x1_sse2 : Sad_C<16, 1, uint8_t>;
+        blits[16][1] = Copy_C<16, 1, uint8_t>;
 
-        sads[16][2] = mvtools_sad_16x2_sse2;
-        lumas[16][2] = mvtools_Luma16x2_sse2;
-        blits[16][2] = mvtools_Copy16x2_sse2;
+        sads[16][2] = isse ? mvtools_sad_16x2_sse2 : Sad_C<16, 2, uint8_t>;
+        lumas[16][2] = isse ? mvtools_Luma16x2_sse2 : Luma_C<16, 2, uint8_t>;
+        blits[16][2] = Copy_C<16, 2, uint8_t>;
 
-        sads[16][4] = mvtools_sad_16x4_sse2;
-        blits[16][4] = mvtools_Copy16x4_sse2;
+        sads[16][4] = isse ? mvtools_sad_16x4_sse2 : Sad_C<16, 4, uint8_t>;
+        blits[16][4] = Copy_C<16, 4, uint8_t>;
 
-        sads[16][8] = mvtools_pixel_sad_16x8_sse2;
-        lumas[16][8] = mvtools_Luma16x8_sse2;
-        blits[16][8] = mvtools_Copy16x8_sse2;
-        satds[16][8] = mvtools_pixel_satd_16x8_sse2;
+        sads[16][8] = isse ? mvtools_pixel_sad_16x8_sse2 : Sad_C<16, 8, uint8_t>;
+        lumas[16][8] = isse ? mvtools_Luma16x8_sse2 : Luma_C<16, 8, uint8_t>;
+        blits[16][8] = Copy_C<16, 8, uint8_t>;
+        satds[16][8] = isse ? mvtools_pixel_satd_16x8_sse2 : Satd_C<16, 8, uint8_t>;
 
-        sads[16][16] = mvtools_pixel_sad_16x16_sse2;
-        lumas[16][16] = mvtools_Luma16x16_sse2;
-        blits[16][16] = mvtools_Copy16x16_sse2;
-        satds[16][16] = mvtools_pixel_satd_16x16_sse2;
+        sads[16][16] = isse ? mvtools_pixel_sad_16x16_sse2 : Sad_C<16, 16, uint8_t>;
+        lumas[16][16] = isse ? mvtools_Luma16x16_sse2 : Luma_C<16, 16, uint8_t>;
+        blits[16][16] = Copy_C<16, 16, uint8_t>;
+        satds[16][16] = isse ? mvtools_pixel_satd_16x16_sse2 : Satd_C<16, 16, uint8_t>;
 
+        sads[16][32] = isse ? mvtools_sad_16x32_sse2 : Sad_C<16, 32, uint8_t>;
+        blits[16][32] = Copy_C<16, 32, uint8_t>;
 
-        sads[16][32] = mvtools_sad_16x32_sse2;
-        blits[16][32] = mvtools_Copy16x32_sse2;
+        sads[32][8] = isse ? mvtools_sad_32x8_sse2 : Sad_C<32, 8, uint8_t>;
+        blits[32][8] = Copy_C<32, 8, uint8_t>;
 
-        sads[32][8] = mvtools_sad_32x8_sse2;
-        blits[32][8] = mvtools_Copy32x8_sse2;
+        sads[32][16] = isse ? mvtools_sad_32x16_sse2 : Sad_C<32, 16, uint8_t>;
+        lumas[32][16] = isse ? mvtools_Luma32x16_sse2 : Luma_C<32, 16, uint8_t>;
+        blits[32][16] = Copy_C<32, 16, uint8_t>;
 
-        sads[32][16] = mvtools_sad_32x16_sse2;
-        lumas[32][16] = mvtools_Luma32x16_sse2;
-        blits[32][16] = mvtools_Copy32x16_sse2;
+        sads[32][32] = isse ? mvtools_sad_32x32_sse2 : Sad_C<32, 32, uint8_t>;
+        lumas[32][32] = isse ? mvtools_Luma32x32_sse2 : Luma_C<32, 32, uint8_t>;
+        blits[32][32] = Copy_C<32, 32, uint8_t>;
 
-        sads[32][32] = mvtools_sad_32x32_sse2;
-        lumas[32][32] = mvtools_Luma32x32_sse2;
-        blits[32][32] = mvtools_Copy32x32_sse2;
+        if (isse) {
+            if (cache64) {
+                sads[8][4] = mvtools_pixel_sad_8x4_cache64_mmx2;
+                sads[8][8] = mvtools_pixel_sad_8x8_cache64_mmx2;
+            }
 
-        if (cache64) {
-            sads[8][4] = mvtools_pixel_sad_8x4_cache64_mmx2;
-            sads[8][8] = mvtools_pixel_sad_8x8_cache64_mmx2;
-        }
+            if (sse3) {
+                sads[16][8] = mvtools_pixel_sad_16x8_sse3;
+                sads[16][16] = mvtools_pixel_sad_16x16_sse3;
+            }
 
-        if (sse3) {
-            sads[16][8] = mvtools_pixel_sad_16x8_sse3;
-            sads[16][16] = mvtools_pixel_sad_16x16_sse3;
-        }
+            if (ssse3 && cache64) {
+                sads[16][8] = mvtools_pixel_sad_16x8_cache64_ssse3;
+                sads[16][16] = mvtools_pixel_sad_16x16_cache64_ssse3;
+            }
 
-        if (ssse3 && cache64) {
-            sads[16][8] = mvtools_pixel_sad_16x8_cache64_ssse3;
-            sads[16][16] = mvtools_pixel_sad_16x16_cache64_ssse3;
-        }
-
-        if (ssse3) {
-            satds[8][4] = mvtools_pixel_satd_8x4_ssse3;
-            satds[8][8] = mvtools_pixel_satd_8x8_ssse3;
-            satds[16][8] = mvtools_pixel_satd_16x8_ssse3;
-            satds[16][16] = mvtools_pixel_satd_16x16_ssse3;
+            if (ssse3) {
+                satds[8][4] = mvtools_pixel_satd_8x4_ssse3;
+                satds[8][8] = mvtools_pixel_satd_8x8_ssse3;
+                satds[16][8] = mvtools_pixel_satd_16x8_ssse3;
+                satds[16][16] = mvtools_pixel_satd_16x16_ssse3;
+            }
         }
     } else {
-        if (bytesPerSample == 1) {
-            sads[2][2] = Sad_C<2, 2, uint8_t>;
-            blits[2][2] = Copy_C<2, 2, uint8_t>;
+        sads[2][2] = isse ? mvtools_sad_2x2_u16_sse2 : Sad_C<2, 2, uint16_t>;
+        blits[2][2] = Copy_C<2, 2, uint16_t>;
 
-            sads[2][4] = Sad_C<2, 4, uint8_t>;
-            blits[2][4] = Copy_C<2, 4, uint8_t>;
+        sads[2][4] = isse ? mvtools_sad_2x4_u16_sse2 : Sad_C<2, 4, uint16_t>;
+        blits[2][4] = Copy_C<2, 4, uint16_t>;
 
-            sads[4][2] = Sad_C<4, 2, uint8_t>;
-            blits[4][2] = Copy_C<4, 2, uint8_t>;
+        sads[4][2] = isse ? mvtools_sad_4x2_u16_sse2 : Sad_C<4, 2, uint16_t>;
+        blits[4][2] = Copy_C<4, 2, uint16_t>;
 
-            sads[4][4] = Sad_C<4, 4, uint8_t>;
-            lumas[4][4] = Luma_C<4, 4, uint8_t>;
-            blits[4][4] = Copy_C<4, 4, uint8_t>;
-            satds[4][4] = Satd_C<4, 4, uint8_t>;
+        sads[4][4] = isse ? mvtools_sad_4x4_u16_sse2 : Sad_C<4, 4, uint16_t>;
+        lumas[4][4] = Luma_C<4, 4, uint16_t>;
+        blits[4][4] = Copy_C<4, 4, uint16_t>;
+        satds[4][4] = Satd_C<4, 4, uint16_t>;
 
-            sads[4][8] = Sad_C<4, 8, uint8_t>;
-            blits[4][8] = Copy_C<4, 8, uint8_t>;
+        sads[4][8] = isse ? mvtools_sad_4x8_u16_sse2 : Sad_C<4, 8, uint16_t>;
+        blits[4][8] = Copy_C<4, 8, uint16_t>;
 
-            sads[8][1] = Sad_C<8, 1, uint8_t>;
-            blits[8][1] = Copy_C<8, 1, uint8_t>;
+        sads[8][1] = isse ? mvtools_sad_8x1_u16_sse2 : Sad_C<8, 1, uint16_t>;
+        blits[8][1] = Copy_C<8, 1, uint16_t>;
 
-            sads[8][2] = Sad_C<8, 2, uint8_t>;
-            blits[8][2] = Copy_C<8, 2, uint8_t>;
+        sads[8][2] = isse ? mvtools_sad_8x2_u16_sse2 : Sad_C<8, 2, uint16_t>;
+        blits[8][2] = Copy_C<8, 2, uint16_t>;
 
-            sads[8][4] = Sad_C<8, 4, uint8_t>;
-            lumas[8][4] = Luma_C<8, 4, uint8_t>;
-            blits[8][4] = Copy_C<8, 4, uint8_t>;
-            satds[8][4] = Satd_C<8, 4, uint8_t>;
+        sads[8][4] = isse ? mvtools_sad_8x4_u16_sse2 : Sad_C<8, 4, uint16_t>;
+        lumas[8][4] = Luma_C<8, 4, uint16_t>;
+        blits[8][4] = Copy_C<8, 4, uint16_t>;
+        satds[8][4] = Satd_C<8, 4, uint16_t>;
 
-            sads[8][8] = Sad_C<8, 8, uint8_t>;
-            lumas[8][8] = Luma_C<8, 8, uint8_t>;
-            blits[8][8] = Copy_C<8, 8, uint8_t>;
-            satds[8][8] = Satd_C<8, 8, uint8_t>;
+        sads[8][8] = isse ? mvtools_sad_8x8_u16_sse2 : Sad_C<8, 8, uint16_t>;
+        lumas[8][8] = Luma_C<8, 8, uint16_t>;
+        blits[8][8] = Copy_C<8, 8, uint16_t>;
+        satds[8][8] = Satd_C<8, 8, uint16_t>;
 
-            sads[8][16] = Sad_C<8, 16, uint8_t>;
-            blits[8][16] = Copy_C<8, 16, uint8_t>;
+        sads[8][16] = isse ? mvtools_sad_8x16_u16_sse2 : Sad_C<8, 16, uint16_t>;
+        blits[8][16] = Copy_C<8, 16, uint16_t>;
 
-            sads[16][1] = Sad_C<16, 1, uint8_t>;
-            blits[16][1] = Copy_C<16, 1, uint8_t>;
+        sads[16][1] = isse ? mvtools_sad_16x1_u16_sse2 : Sad_C<16, 1, uint16_t>;
+        blits[16][1] = Copy_C<16, 1, uint16_t>;
 
-            sads[16][2] = Sad_C<16, 2, uint8_t>;
-            lumas[16][2] = Luma_C<16, 2, uint8_t>;
-            blits[16][2] = Copy_C<16, 2, uint8_t>;
+        sads[16][2] = isse ? mvtools_sad_16x2_u16_sse2 : Sad_C<16, 2, uint16_t>;
+        lumas[16][2] = Luma_C<16, 2, uint16_t>;
+        blits[16][2] = Copy_C<16, 2, uint16_t>;
 
-            sads[16][4] = Sad_C<16, 4, uint8_t>;
-            blits[16][4] = Copy_C<16, 4, uint8_t>;
+        sads[16][4] = isse ? mvtools_sad_16x4_u16_sse2 : Sad_C<16, 4, uint16_t>;
+        blits[16][4] = Copy_C<16, 4, uint16_t>;
 
-            sads[16][8] = Sad_C<16, 8, uint8_t>;
-            lumas[16][8] = Luma_C<16, 8, uint8_t>;
-            blits[16][8] = Copy_C<16, 8, uint8_t>;
-            satds[16][8] = Satd_C<16, 8, uint8_t>;
+        sads[16][8] = isse ? mvtools_sad_16x8_u16_sse2 : Sad_C<16, 8, uint16_t>;
+        lumas[16][8] = Luma_C<16, 8, uint16_t>;
+        blits[16][8] = Copy_C<16, 8, uint16_t>;
+        satds[16][8] = Satd_C<16, 8, uint16_t>;
 
-            sads[16][16] = Sad_C<16, 16, uint8_t>;
-            lumas[16][16] = Luma_C<16, 16, uint8_t>;
-            blits[16][16] = Copy_C<16, 16, uint8_t>;
-            satds[16][16] = Satd_C<16, 16, uint8_t>;
+        sads[16][16] = isse ? mvtools_sad_16x16_u16_sse2 : Sad_C<16, 16, uint16_t>;
+        lumas[16][16] = Luma_C<16, 16, uint16_t>;
+        blits[16][16] = Copy_C<16, 16, uint16_t>;
+        satds[16][16] = Satd_C<16, 16, uint16_t>;
 
-            sads[16][32] = Sad_C<16, 32, uint8_t>;
-            blits[16][32] = Copy_C<16, 32, uint8_t>;
+        sads[16][32] = isse ? mvtools_sad_16x32_u16_sse2 : Sad_C<16, 32, uint16_t>;
+        blits[16][32] = Copy_C<16, 32, uint16_t>;
 
-            sads[32][8] = Sad_C<32, 8, uint8_t>;
-            blits[32][8] = Copy_C<32, 8, uint8_t>;
+        sads[32][8] = isse ? mvtools_sad_32x8_u16_sse2 : Sad_C<32, 8, uint16_t>;
+        blits[32][8] = Copy_C<32, 8, uint16_t>;
 
-            sads[32][16] = Sad_C<32, 16, uint8_t>;
-            lumas[32][16] = Luma_C<32, 16, uint8_t>;
-            blits[32][16] = Copy_C<32, 16, uint8_t>;
+        sads[32][16] = isse ? mvtools_sad_32x16_u16_sse2 : Sad_C<32, 16, uint16_t>;
+        lumas[32][16] = Luma_C<32, 16, uint16_t>;
+        blits[32][16] = Copy_C<32, 16, uint16_t>;
 
-            sads[32][32] = Sad_C<32, 32, uint8_t>;
-            lumas[32][32] = Luma_C<32, 32, uint8_t>;
-            blits[32][32] = Copy_C<32, 32, uint8_t>;
-        } else {
-            sads[2][2] = Sad_C<2, 2, uint16_t>;
-            blits[2][2] = Copy_C<2, 2, uint16_t>;
-
-            sads[2][4] = Sad_C<2, 4, uint16_t>;
-            blits[2][4] = Copy_C<2, 4, uint16_t>;
-
-            sads[4][2] = Sad_C<4, 2, uint16_t>;
-            blits[4][2] = Copy_C<4, 2, uint16_t>;
-
-            sads[4][4] = Sad_C<4, 4, uint16_t>;
-            lumas[4][4] = Luma_C<4, 4, uint16_t>;
-            blits[4][4] = Copy_C<4, 4, uint16_t>;
-            satds[4][4] = Satd_C<4, 4, uint16_t>;
-
-            sads[4][8] = Sad_C<4, 8, uint16_t>;
-            blits[4][8] = Copy_C<4, 8, uint16_t>;
-
-            sads[8][1] = Sad_C<8, 1, uint16_t>;
-            blits[8][1] = Copy_C<8, 1, uint16_t>;
-
-            sads[8][2] = Sad_C<8, 2, uint16_t>;
-            blits[8][2] = Copy_C<8, 2, uint16_t>;
-
-            sads[8][4] = Sad_C<8, 4, uint16_t>;
-            lumas[8][4] = Luma_C<8, 4, uint16_t>;
-            blits[8][4] = Copy_C<8, 4, uint16_t>;
-            satds[8][4] = Satd_C<8, 4, uint16_t>;
-
-            sads[8][8] = Sad_C<8, 8, uint16_t>;
-            lumas[8][8] = Luma_C<8, 8, uint16_t>;
-            blits[8][8] = Copy_C<8, 8, uint16_t>;
-            satds[8][8] = Satd_C<8, 8, uint16_t>;
-
-            sads[8][16] = Sad_C<8, 16, uint16_t>;
-            blits[8][16] = Copy_C<8, 16, uint16_t>;
-
-            sads[16][1] = Sad_C<16, 1, uint16_t>;
-            blits[16][1] = Copy_C<16, 1, uint16_t>;
-
-            sads[16][2] = Sad_C<16, 2, uint16_t>;
-            lumas[16][2] = Luma_C<16, 2, uint16_t>;
-            blits[16][2] = Copy_C<16, 2, uint16_t>;
-
-            sads[16][4] = Sad_C<16, 4, uint16_t>;
-            blits[16][4] = Copy_C<16, 4, uint16_t>;
-
-            sads[16][8] = Sad_C<16, 8, uint16_t>;
-            lumas[16][8] = Luma_C<16, 8, uint16_t>;
-            blits[16][8] = Copy_C<16, 8, uint16_t>;
-            satds[16][8] = Satd_C<16, 8, uint16_t>;
-
-            sads[16][16] = Sad_C<16, 16, uint16_t>;
-            lumas[16][16] = Luma_C<16, 16, uint16_t>;
-            blits[16][16] = Copy_C<16, 16, uint16_t>;
-            satds[16][16] = Satd_C<16, 16, uint16_t>;
-
-            sads[16][32] = Sad_C<16, 32, uint16_t>;
-            blits[16][32] = Copy_C<16, 32, uint16_t>;
-
-            sads[32][8] = Sad_C<32, 8, uint16_t>;
-            blits[32][8] = Copy_C<32, 8, uint16_t>;
-
-            sads[32][16] = Sad_C<32, 16, uint16_t>;
-            lumas[32][16] = Luma_C<32, 16, uint16_t>;
-            blits[32][16] = Copy_C<32, 16, uint16_t>;
-
-            sads[32][32] = Sad_C<32, 32, uint16_t>;
-            lumas[32][32] = Luma_C<32, 32, uint16_t>;
-            blits[32][32] = Copy_C<32, 32, uint16_t>;
-        }
+        sads[32][32] = isse ? mvtools_sad_32x32_u16_sse2 : Sad_C<32, 32, uint16_t>;
+        lumas[32][32] = Luma_C<32, 32, uint16_t>;
+        blits[32][32] = Copy_C<32, 32, uint16_t>;
     }
 
 

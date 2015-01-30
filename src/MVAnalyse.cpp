@@ -476,8 +476,6 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
 
-    if (d.vi.format->bitsPerSample > 8)
-        d.isse = 0;
 
     d.analysisData.bitsPerSample = d.vi.format->bitsPerSample;
 
@@ -499,6 +497,9 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     {
         d.analysisData.nFlags |= cpu_detect();
     }
+
+    if (d.vi.format->bitsPerSample > 8)
+        d.isse = 0; // needed here because MVPlane can't have isse=1 with more than 8 bits
 
     if (d.overlap % (1 << d.vi.format->subSamplingW) ||
         d.overlapv % (1 << d.vi.format->subSamplingH)) {

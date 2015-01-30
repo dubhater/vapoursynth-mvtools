@@ -484,9 +484,6 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
         d.thSAD += d.thSAD / (d.analysisData.xRatioUV * d.analysisData.yRatioUV) * 2;
 
 
-    if (d.supervi->format->bitsPerSample > 8)
-        d.isse = 0;
-
     d.analysisData.nFlags = 0;
     d.analysisData.nFlags |= d.isse ? MOTION_USE_ISSE : 0;
     d.analysisData.nFlags |= d.analysisData.isBackward ? MOTION_IS_BACKWARD : 0;
@@ -497,6 +494,9 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     {
         d.analysisData.nFlags |= cpu_detect();
     }
+
+    if (d.supervi->format->bitsPerSample > 8)
+        d.isse = 0; // needed here because MVPlane can't have isse=1 with more than 8 bits
 
     d.analysisData.nPel = d.nSuperPel;//x
 
