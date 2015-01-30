@@ -18,7 +18,9 @@ Differences
 
     * YUY2 is not supported.
 
-    * GRAY8, YUV420P8, YUV422P8, YUV440P8, and YUV444P8 are supported.
+    * Grayscale, 4:2:0, 4:2:2, 4:4:0, and 4:4:4 are supported.
+
+    * Up to 16 bits per sample are supported.
 
     * The audio is definitely not killed.
 
@@ -92,8 +94,6 @@ For information about the other parameters, consult the Avisynth plugin's docume
 
 Things that may happen soon™
 ============================
-
-  * Support for up to 16 bits per sample
 
   * Possibly lower memory usage
 
