@@ -57,6 +57,9 @@ typedef struct {
     int dstTempPitch;
     int dstTempPitchUV;
 
+    OverlapWindows *OverWins;
+    OverlapWindows *OverWinsUV;
+
     OverlapsFunction OVERSLUMA;
     OverlapsFunction OVERSCHROMA;
     COPYFunction BLITLUMA;
@@ -276,13 +279,12 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
             // -----------------------------------------------------------------
             else // overlap
             {
-                OverlapWindows *OverWins = new OverlapWindows(nBlkSizeX, nBlkSizeY, nOverlapX, nOverlapY);
+                OverlapWindows *OverWins = d->OverWins;
+                OverlapWindows *OverWinsUV = d->OverWinsUV;
                 uint8_t *DstTemp = new uint8_t[dstTempPitch * nHeight];
-                OverlapWindows *OverWinsUV = NULL;
                 uint8_t *DstTempU = NULL;
                 uint8_t *DstTempV = NULL;
                 if (nSuperModeYUV & UVPLANES) {
-                    OverWinsUV = new OverlapWindows(nBlkSizeX/xRatioUV, nBlkSizeY/yRatioUV, nOverlapX/xRatioUV, nOverlapY/yRatioUV);
                     DstTempU = new uint8_t[dstTempPitchUV * nHeight];
                     DstTempV = new uint8_t[dstTempPitchUV * nHeight];
                 }
@@ -358,10 +360,8 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                 if (pPlanes[2])
                     d->ToPixels(pDst[2], nDstPitches[2], DstTempV, dstTempPitchUV, nWidth_B >> xSubUV, nHeight_B>>ySubUV, bitsPerSample);
 
-                delete OverWins;
                 delete[] DstTemp;
                 if (nSuperModeYUV & UVPLANES) {
-                    delete OverWinsUV;
                     delete[] DstTempU;
                     delete[] DstTempV;
                 }
@@ -459,6 +459,12 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
 static void VS_CC mvcompensateFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
     MVCompensateData *d = (MVCompensateData *)instanceData;
+
+    if (d->bleh->nOverlapX || d->bleh->nOverlapY) {
+        delete d->OverWins;
+        if (d->nSuperModeYUV & UVPLANES)
+            delete d->OverWinsUV;
+    }
 
     delete d->mvClip;
 
@@ -735,6 +741,11 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
     if (d.vi->format->bitsPerSample > 8)
         d.isse = 0;
 
+    if (d.bleh->nOverlapX || d.bleh->nOverlapY) {
+        d.OverWins = new OverlapWindows(d.bleh->nBlkSizeX, d.bleh->nBlkSizeY, d.bleh->nOverlapX, d.bleh->nOverlapY);
+        if (d.nSuperModeYUV & UVPLANES)
+            d.OverWinsUV = new OverlapWindows(d.bleh->nBlkSizeX / d.bleh->xRatioUV, d.bleh->nBlkSizeY / d.bleh->yRatioUV, d.bleh->nOverlapX / d.bleh->xRatioUV, d.bleh->nOverlapY / d.bleh->yRatioUV);
+    }
 
     selectFunctions(&d);
 

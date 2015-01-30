@@ -69,6 +69,8 @@ typedef struct {
     int nBlkSizeY[3];
     int nWidth_B[3];
     int nHeight_B[3];
+
+    OverlapWindows *OverWins[3];
 } MVDegrainData;
 
 
@@ -199,16 +201,11 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
             pRefGOF[r] = new MVGroupOfFrames(d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, isse, xRatioUV, yRatioUV, bitsPerSample);
 
 
-        OverlapWindows *OverWins[3] = { NULL, NULL, NULL };
+        OverlapWindows *OverWins[3] = { d->OverWins[0], d->OverWins[1], d->OverWins[2] };
         uint8_t *DstTemp = NULL;
         int tmpBlockPitch = nBlkSizeX[0] * bytesPerSample;
         uint8_t *tmpBlock = NULL;
         if (nOverlapX[0] > 0 || nOverlapY[0] > 0) {
-            OverWins[0] = new OverlapWindows(nBlkSizeX[0], nBlkSizeY[0], nOverlapX[0], nOverlapY[0]);
-            if (d->vi->format->colorFamily != cmGray) {
-                OverWins[1] = new OverlapWindows(nBlkSizeX[1], nBlkSizeY[1], nOverlapX[1], nOverlapY[1]);
-                OverWins[2] = OverWins[1];
-            }
             DstTemp = new uint8_t[dstTempPitch * nHeight[0]];
             tmpBlock = new uint8_t[tmpBlockPitch * nBlkSizeY[0]];
         }
@@ -335,11 +332,6 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
         if (tmpBlock)
             delete[] tmpBlock;
 
-        if (OverWins[0])
-            delete OverWins[0];
-        if (OverWins[1])
-            delete OverWins[1];
-
         if (DstTemp)
             delete[] DstTemp;
 
@@ -365,6 +357,11 @@ template <int radius>
 static void VS_CC mvdegrainFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
     MVDegrainData *d = (MVDegrainData *)instanceData;
 
+    if (d->nOverlapX[0] || d->nOverlapY[0]) {
+        delete d->OverWins[0];
+        if (d->vi->format->colorFamily != cmGray)
+            delete d->OverWins[1];
+    }
     for (int r = 0; r < radius*2; r++) {
         delete d->mvClips[r];
         vsapi->freeNode(d->vectors[r]);
@@ -799,6 +796,13 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
     d.nHeight_B[0] = d.bleh->nBlkY * (d.nBlkSizeY[0] - d.nOverlapY[0]) + d.nOverlapY[0];
     d.nHeight_B[1] = d.nHeight_B[2] = d.nHeight_B[0] >> d.ySubUV;
 
+    if (d.nOverlapX[0] || d.nOverlapY[0]) {
+        d.OverWins[0] = new OverlapWindows(d.nBlkSizeX[0], d.nBlkSizeY[0], d.nOverlapX[0], d.nOverlapY[0]);
+        if (d.vi->format->colorFamily != cmGray) {
+            d.OverWins[1] = new OverlapWindows(d.nBlkSizeX[1], d.nBlkSizeY[1], d.nOverlapX[1], d.nOverlapY[1]);
+            d.OverWins[2] = d.OverWins[1];
+        }
+    }
 
     selectFunctions<radius>(&d);
 
