@@ -310,31 +310,25 @@ cglobal sad_2x4_u16_sse2, 4, 4, 8, srcp1, stride1, srcp2, stride2
 INIT_XMM
 cglobal sad_4x%1_u16_sse2, 4, 5, 6, srcp1, stride1, srcp2, stride2
     pxor m0, m0
-    movdqa m1, [ones_words]
+    pxor m1, m1
 
     mov r4d, %1
 .loop:
     movq m2, [srcp1q]
-    movhps m2, [srcp1q + stride1q]
-    ;movq m4, [srcp1q + stride1q]
-    ;punpcklwd m2, m4
     movq m3, [srcp2q]
-    movhps m3, [srcp2q + stride2q]
-    ;movq m5, [srcp2q + stride2q]
-    ;punpcklwd m3, m5
 
-    lea srcp1q, [srcp1q + stride1q * 2]
-    lea srcp2q, [srcp2q + stride2q * 2]
+    add srcp1q, stride1q
+    add srcp2q, stride2q
 
     movdqa m4, m2
     psubusw m2, m3
     psubusw m3, m4
     por m2, m3
 
-    pmaddwd m2, m1
+    punpcklwd m2, m1
     paddd m0, m2
 
-    sub r4d, 2
+    sub r4d, 1
     jnz .loop
 
     movhlps m1, m0
@@ -351,7 +345,7 @@ cglobal sad_4x%1_u16_sse2, 4, 5, 6, srcp1, stride1, srcp2, stride2
 INIT_XMM
 cglobal sad_%1x%2_u16_sse2, 4, 6, 6, srcp1, stride1, srcp2, stride2
     pxor m0, m0
-    movdqa m1, [ones_words]
+    pxor m1, m1
 
     mov r4d, %2
 .yloop:
@@ -365,8 +359,11 @@ cglobal sad_%1x%2_u16_sse2, 4, 6, 6, srcp1, stride1, srcp2, stride2
     psubusw m3, m4
     por m2, m3
 
-    pmaddwd m2, m1
+    movdqa m3, m2
+    punpcklwd m2, m1
     paddd m0, m2
+    punpckhwd m3, m1
+    paddd m0, m3
 
     add r5q, 16
     cmp r5q, %1 * 2
