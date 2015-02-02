@@ -474,6 +474,8 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     vsapi->freeFrame(evil);
 
 
+    d.analysisData.bitsPerSample = d.supervi->format->bitsPerSample;
+
     int pixelMax = (1 << d.supervi->format->bitsPerSample) - 1;
     d.thSAD = (double)d.thSAD * pixelMax / 255 + 0.5;
 
@@ -533,7 +535,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     }
 
     try {
-        d.mvClip = new MVClipDicks(d.vectors, 99999999, 255, vsapi);
+        d.mvClip = new MVClipDicks(d.vectors, 8 * 8 * 255, 255, vsapi);
     } catch (MVException &e) {
         vsapi->setError(out, std::string("Recalculate: ").append(e.what()).c_str());
         vsapi->freeNode(d.node);
