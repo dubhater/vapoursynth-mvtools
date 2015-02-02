@@ -286,8 +286,6 @@ MK_CFUNC(mvtools_pixel_satd_8x8_avx2);
 MK_CFUNC(mvtools_pixel_satd_16x8_avx2);
 MK_CFUNC(mvtools_pixel_satd_16x16_avx2);
 
-//dummy for testing and deactivate SAD
-MK_CFUNC(SadDummy);
 #undef MK_CFUNC
 
 

@@ -290,7 +290,7 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
     SATD = satds[nBlkSizeX][nBlkSizeY];
 
     if ( !chroma )
-        SADCHROMA = SadDummy;
+        SADCHROMA = NULL;
 
 
 #ifdef ALIGN_SOURCEBLOCK
