@@ -61,6 +61,11 @@ MVClipDicks::MVClipDicks(VSNodeRef *vectors, int _nSCD1, int _nSCD2, const VSAPI
 
     bitsPerSample = pAnalyseFilter->GetBitsPerSample();
 
+    int maxSAD = 8 * 8 * 255;
+
+    if (_nSCD1 > maxSAD)
+        throw MVException(std::string("thscd1 can be at most ").append(std::to_string(maxSAD)).append("."));
+
     // SCD thresholds
     int referenceBlockSize = 8 * 8;
     nSCD1 = _nSCD1 * (nBlkSizeX * nBlkSizeY) / referenceBlockSize;
