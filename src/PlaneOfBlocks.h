@@ -43,7 +43,8 @@ class PlaneOfBlocks {
     int nLogPel;                /* logarithm of the pel refinement accuracy */
     int nScale;                 /* scaling factor of the plane */
     int nLogScale;              /* logarithm of the scaling factor */
-    int nFlags;                 /* additionnal flags */
+    int nMotionFlags;           /* additionnal flags */
+    int nCPUFlags;
     int nOverlapX; // overlap size
     int nOverlapY; // overlap size
     int xRatioUV;
@@ -509,7 +510,7 @@ class PlaneOfBlocks {
 
     public :
 
-    PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int _nFlags, int _nOverlapX, int _nOverlapY, int _xRatioUV, int _yRatioUV, int _bitsPerSample);
+    PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int _nMotionFlags, int _nCPUFlags, int _nOverlapX, int _nOverlapY, int _xRatioUV, int _yRatioUV, int _bitsPerSample);
 
     ~PlaneOfBlocks();
 
@@ -545,8 +546,7 @@ class PlaneOfBlocks {
 
     /* search the vectors for the whole plane */
     void SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame, SearchType st,
-            int stp, int _lambda, int _lSAD, int _pennew, int _plevel,
-            int flags, int *out, VECTOR *globalMVec, short * outfilebuf, int _fieldShiftCur,
+            int stp, int _lambda, int _lSAD, int _pennew, int _plevel, int *out, VECTOR *globalMVec, short * outfilebuf, int _fieldShiftCur,
             DCTClass * _DCT, int * _meanLumaChange, int _divideExtra,
             int _pzero, int _pglobal, int badSAD, int badrange, bool meander, int *vecPrev, bool tryMany);
 
@@ -566,7 +566,7 @@ class PlaneOfBlocks {
 
     void RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MVFrame *_pRefFrame, SearchType st,
             int stp, int _lambda, int _pennew,
-            int flags, int *out, short * outfilebuf, int _fieldShiftCur, int thSAD, DCTClass * _DCT,
+            int *out, short * outfilebuf, int _fieldShiftCur, int thSAD, DCTClass * _DCT,
             int _divideExtra, int smooth, bool meander);
 };
 

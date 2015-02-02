@@ -100,7 +100,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
         }
     } else if (activationReason == arAllFramesReady) {
 
-        GroupOfPlanes *vectorFields = new GroupOfPlanes(d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra, d->supervi->format->bitsPerSample);
+        GroupOfPlanes *vectorFields = new GroupOfPlanes(d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nMotionFlags, d->analysisData.nCPUFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra, d->supervi->format->bitsPerSample);
 
 
         const uint8_t *pSrc[3];
@@ -210,11 +210,11 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             }
 
 
-            vectorFields->RecalculateMVs(balls, pSrcGOF, pRefGOF, d->searchType, d->nSearchParam, d->nLambda, d->pnew, d->analysisData.nFlags, reinterpret_cast<int*>(pDst), NULL, fieldShift, d->thSAD, DCTc, d->smooth, d->meander);
+            vectorFields->RecalculateMVs(balls, pSrcGOF, pRefGOF, d->searchType, d->nSearchParam, d->nLambda, d->pnew, reinterpret_cast<int*>(pDst), NULL, fieldShift, d->thSAD, DCTc, d->smooth, d->meander);
 
             if (d->divideExtra) {
                 // make extra level with divided sublocks with median (not estimated) motion
-                vectorFields->ExtraDivide(reinterpret_cast<int*>(pDst), d->analysisData.nFlags);
+                vectorFields->ExtraDivide(reinterpret_cast<int*>(pDst));
             }
 
             delete vectorFields;
@@ -484,15 +484,15 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
         d.thSAD += d.thSAD / (d.analysisData.xRatioUV * d.analysisData.yRatioUV) * 2;
 
 
-    d.analysisData.nFlags = 0;
-    d.analysisData.nFlags |= d.isse ? MOTION_USE_ISSE : 0;
-    d.analysisData.nFlags |= d.analysisData.isBackward ? MOTION_IS_BACKWARD : 0;
-    d.analysisData.nFlags |= d.chroma ? MOTION_USE_CHROMA_MOTION : 0;
+    d.analysisData.nMotionFlags = 0;
+    d.analysisData.nMotionFlags |= d.isse ? MOTION_USE_ISSE : 0;
+    d.analysisData.nMotionFlags |= d.analysisData.isBackward ? MOTION_IS_BACKWARD : 0;
+    d.analysisData.nMotionFlags |= d.chroma ? MOTION_USE_CHROMA_MOTION : 0;
 
 
     if (d.isse)
     {
-        d.analysisData.nFlags |= cpu_detect();
+        d.analysisData.nCPUFlags = cpu_detect();
     }
 
     if (d.supervi->format->bitsPerSample > 8)

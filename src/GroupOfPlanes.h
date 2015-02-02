@@ -25,7 +25,8 @@ class GroupOfPlanes {
     int nBlkSizeY;
     int nLevelCount;
     int nPel;
-    int nFlags;
+    int nMotionFlags;
+    int nCPUFlags;
     int nOverlapX;
     int nOverlapY;
     int xRatioUV;
@@ -37,17 +38,15 @@ class GroupOfPlanes {
 
     public :
     GroupOfPlanes(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, int _nPel,
-            int _nFlags, int _nOverlapX, int _nOverlapY, int _nBlkX, int _nBlkY, int _xRatioUV, int _yRatioUV, int _divideExtra, int _bitsPerSample);
+            int _nMotionFlags, int _nCPUFlags, int _nOverlapX, int _nOverlapY, int _nBlkX, int _nBlkY, int _xRatioUV, int _yRatioUV, int _divideExtra, int _bitsPerSample);
     ~GroupOfPlanes();
     void SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
-            SearchType searchType, int nSearchParam, int _PelSearch, int _nLambda, int _lsad, int _pnew, int _plevel, bool _global,
-            int flags, int *out, short * outfilebuf, int fieldShift, DCTClass * DCT, int _pzero, int _pglobal, int badSAD, int badrange, bool meander, int *vecPrev, bool tryMany, SearchType coarseSearchType);
+            SearchType searchType, int nSearchParam, int _PelSearch, int _nLambda, int _lsad, int _pnew, int _plevel, bool _global, int *out, short * outfilebuf, int fieldShift, DCTClass * DCT, int _pzero, int _pglobal, int badSAD, int badrange, bool meander, int *vecPrev, bool tryMany, SearchType coarseSearchType);
     void WriteDefaultToArray(int *array);
     int GetArraySize();
-    void ExtraDivide(int *out, int flags);
+    void ExtraDivide(int *out);
     void RecalculateMVs(MVClipBalls &mvClip, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
-            SearchType _searchType, int _nSearchParam, int _nLambda, int _pnew,
-            int flags, int *out, short * outfilebuf, int fieldShift, int thSAD, DCTClass * DCT, int smooth, bool meander);
+            SearchType _searchType, int _nSearchParam, int _nLambda, int _pnew, int *out, short * outfilebuf, int fieldShift, int thSAD, DCTClass * DCT, int smooth, bool meander);
 };
 
 #endif

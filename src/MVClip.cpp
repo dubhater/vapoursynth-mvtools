@@ -52,7 +52,8 @@ MVClipDicks::MVClipDicks(VSNodeRef *vectors, int _nSCD1, int _nSCD2, const VSAPI
     yRatioUV = pAnalyseFilter->GetYRatioUV();
     nVPadding = pAnalyseFilter->GetVPadding();
     nHPadding = pAnalyseFilter->GetHPadding();
-    nFlags = pAnalyseFilter->GetFlags();
+    nMotionFlags = pAnalyseFilter->GetMotionFlags();
+    nCPUFlags = pAnalyseFilter->GetCPUFlags();
 
     nBlkX = pAnalyseFilter->GetBlkX();
     nBlkY = pAnalyseFilter->GetBlkY();

@@ -121,7 +121,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         }
     } else if (activationReason == arAllFramesReady) {
 
-        GroupOfPlanes *vectorFields = new GroupOfPlanes(d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra, d->supervi->format->bitsPerSample);
+        GroupOfPlanes *vectorFields = new GroupOfPlanes(d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nMotionFlags, d->analysisData.nCPUFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra, d->supervi->format->bitsPerSample);
 
 
         const uint8_t *pSrc[3];
@@ -232,11 +232,11 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             }
 
 
-            vectorFields->SearchMVs(pSrcGOF, pRefGOF, d->searchType, d->nSearchParam, d->nPelSearch, d->nLambda, d->lsad, d->pnew, d->plevel, d->global, d->analysisData.nFlags, reinterpret_cast<int*>(pDst), NULL, fieldShift, DCTc, d->pzero, d->pglobal, d->badSAD, d->badrange, d->meander, NULL, d->tryMany, d->searchTypeCoarse);
+            vectorFields->SearchMVs(pSrcGOF, pRefGOF, d->searchType, d->nSearchParam, d->nPelSearch, d->nLambda, d->lsad, d->pnew, d->plevel, d->global, reinterpret_cast<int*>(pDst), NULL, fieldShift, DCTc, d->pzero, d->pglobal, d->badSAD, d->badrange, d->meander, NULL, d->tryMany, d->searchTypeCoarse);
 
             if (d->divideExtra) {
                 // make extra level with divided sublocks with median (not estimated) motion
-                vectorFields->ExtraDivide(reinterpret_cast<int*>(pDst), d->analysisData.nFlags);
+                vectorFields->ExtraDivide(reinterpret_cast<int*>(pDst));
             }
 
             delete vectorFields;
@@ -487,15 +487,15 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.badSAD = d.badSAD * (d.blksize * d.blksizev) / 64;
 
 
-    d.analysisData.nFlags = 0;
-    d.analysisData.nFlags |= d.isse ? MOTION_USE_ISSE : 0;
-    d.analysisData.nFlags |= d.analysisData.isBackward ? MOTION_IS_BACKWARD : 0;
-    d.analysisData.nFlags |= d.chroma ? MOTION_USE_CHROMA_MOTION : 0;
+    d.analysisData.nMotionFlags = 0;
+    d.analysisData.nMotionFlags |= d.isse ? MOTION_USE_ISSE : 0;
+    d.analysisData.nMotionFlags |= d.analysisData.isBackward ? MOTION_IS_BACKWARD : 0;
+    d.analysisData.nMotionFlags |= d.chroma ? MOTION_USE_CHROMA_MOTION : 0;
 
 
     if (d.isse)
     {
-        d.analysisData.nFlags |= cpu_detect();
+        d.analysisData.nCPUFlags = cpu_detect();
     }
 
     if (d.vi.format->bitsPerSample > 8)

@@ -23,7 +23,7 @@
 #define max(a,b) ((a) > (b) ? (a) : (b))
 #define min(a,b) ((a) > (b) ? (b) : (a))
 
-PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int _nFlags, int _nOverlapX, int _nOverlapY, int _xRatioUV, int _yRatioUV, int _bitsPerSample)
+PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int _nMotionFlags, int _nCPUFlags, int _nOverlapX, int _nOverlapY, int _xRatioUV, int _yRatioUV, int _bitsPerSample)
 {
 
     /* constant fields */
@@ -43,7 +43,8 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
     nBlkY = _nBlkY;
     nBlkCount = nBlkX * nBlkY;
 
-    nFlags = _nFlags;
+    nMotionFlags = _nMotionFlags;
+    nCPUFlags = _nCPUFlags;
     xRatioUV = _xRatioUV;
     yRatioUV = _yRatioUV;
     nLogxRatioUV = ilog2(xRatioUV);
@@ -52,13 +53,13 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
     bitsPerSample = _bitsPerSample;
     bytesPerSample = (bitsPerSample + 7) / 8;
 
-    smallestPlane = (bool)(nFlags & MOTION_SMALLEST_PLANE);
-    isse = (bool)(nFlags & MOTION_USE_ISSE);
-    chroma = (bool)(nFlags & MOTION_USE_CHROMA_MOTION);
+    smallestPlane = (bool)(nMotionFlags & MOTION_SMALLEST_PLANE);
+    isse = (bool)(nMotionFlags & MOTION_USE_ISSE);
+    chroma = (bool)(nMotionFlags & MOTION_USE_CHROMA_MOTION);
 
-    bool cache64 = (bool)(nFlags & CPU_CACHELINE_64);
-    bool sse3 = (bool)(nFlags & CPU_SSE3);
-    bool ssse3 = (bool)(nFlags & CPU_SSSE3);
+    bool cache64 = (bool)(nCPUFlags & X264_CPU_CACHELINE_64);
+    bool sse3 = (bool)(nCPUFlags & X264_CPU_SSE3);
+    bool ssse3 = (bool)(nCPUFlags & X264_CPU_SSSE3);
 
     globalMVPredictor.x = zeroMV.x;
     globalMVPredictor.y = zeroMV.y;
@@ -303,7 +304,7 @@ PlaneOfBlocks::~PlaneOfBlocks()
 
 void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
         SearchType st, int stp, int lambda, int lsad, int pnew,
-        int plevel, int flags, int *out, VECTOR * globalMVec,
+        int plevel, int *out, VECTOR * globalMVec,
         short *outfilebuf, int fieldShift, DCTClass *_DCT, int * pmeanLumaChange,
         int divideExtra, int _pzero, int _pglobal, int _badSAD, int _badrange, bool meander, int *vecPrev, bool _tryMany)
 {
@@ -329,8 +330,6 @@ void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
     int *pBlkData = out + 1;
     temporal = (vecPrev) ? true : false;
     if (vecPrev) vecPrev += 1; // same as BlkData
-
-    nFlags |= flags;
 
     pSrcFrame = _pSrcFrame;
     pRefFrame = _pRefFrame;
@@ -510,8 +509,7 @@ void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
 
 
 void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
-        SearchType st, int stp, int lambda, int pnew,
-        int flags, int *out,
+        SearchType st, int stp, int lambda, int pnew, int *out,
         short *outfilebuf, int fieldShift, int thSAD, DCTClass *_DCT, int divideExtra, int smooth, bool meander)
 {
     DCT = _DCT;
@@ -532,8 +530,6 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
     WriteHeaderToArray(out);
 
     int *pBlkData = out + 1;
-
-    nFlags |= flags;
 
     pSrcFrame = _pSrcFrame;
     pRefFrame = _pRefFrame;

@@ -19,13 +19,14 @@
 
 #include "GroupOfPlanes.h"
 
-GroupOfPlanes::GroupOfPlanes(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, int _nPel, int _nFlags, int _nOverlapX, int _nOverlapY, int _nBlkX, int _nBlkY, int _xRatioUV, int _yRatioUV, int _divideExtra, int _bitsPerSample)
+GroupOfPlanes::GroupOfPlanes(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, int _nPel, int _nMotionFlags, int _nCPUFlags, int _nOverlapX, int _nOverlapY, int _nBlkX, int _nBlkY, int _xRatioUV, int _yRatioUV, int _divideExtra, int _bitsPerSample)
 {
     nBlkSizeX = _nBlkSizeX;
     nBlkSizeY = _nBlkSizeY;
     nLevelCount = _nLevelCount;
     nPel = _nPel;
-    nFlags = _nFlags;
+    nMotionFlags = _nMotionFlags;
+    nCPUFlags = _nCPUFlags;
     nOverlapX = _nOverlapX;
     nOverlapY = _nOverlapY;
     xRatioUV = _xRatioUV;
@@ -39,7 +40,7 @@ GroupOfPlanes::GroupOfPlanes(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, i
     int nBlkY = _nBlkY;
 
     int nPelCurrent = nPel;
-    int nFlagsCurrent = nFlags;
+    int nMotionFlagsCurrent = nMotionFlags;
 
     int nWidth_B = (nBlkSizeX - nOverlapX)*nBlkX + nOverlapX;
     int nHeight_B = (nBlkSizeY - nOverlapY)*nBlkY + nOverlapY;
@@ -47,10 +48,10 @@ GroupOfPlanes::GroupOfPlanes(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, i
     for ( int i = 0; i < nLevelCount; i++ )
     {
         if (i == nLevelCount-1)
-            nFlagsCurrent |= MOTION_SMALLEST_PLANE;
+            nMotionFlagsCurrent |= MOTION_SMALLEST_PLANE;
         nBlkX = ((nWidth_B>>i) - nOverlapX)/(nBlkSizeX-nOverlapX);
         nBlkY = ((nHeight_B>>i) - nOverlapY)/(nBlkSizeY-nOverlapY);
-        planes[i] = new PlaneOfBlocks(nBlkX, nBlkY, nBlkSizeX, nBlkSizeY, nPelCurrent, i, nFlagsCurrent, nOverlapX, nOverlapY, xRatioUV, yRatioUV, bitsPerSample);
+        planes[i] = new PlaneOfBlocks(nBlkX, nBlkY, nBlkSizeX, nBlkSizeY, nPelCurrent, i, nMotionFlagsCurrent, nCPUFlags, nOverlapX, nOverlapY, xRatioUV, yRatioUV, bitsPerSample);
         nPelCurrent = 1;
     }
 }
@@ -64,14 +65,12 @@ GroupOfPlanes::~GroupOfPlanes()
 
 void GroupOfPlanes::SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
         SearchType searchType, int nSearchParam, int nPelSearch, int nLambda,
-        int lsad, int pnew, int plevel, bool global, int flags,
+        int lsad, int pnew, int plevel, bool global,
         int *out, short *outfilebuf, int fieldShift, DCTClass * _DCT,
         int pzero, int pglobal, int badSAD, int badrange, bool meander, int *vecPrev, bool tryMany,
         SearchType coarseSearchType)
 {
     int i;
-
-    nFlags |= flags;
 
     // write group's size
     out[0] = GetArraySize();
@@ -100,7 +99,7 @@ void GroupOfPlanes::SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF
     bool tryManyLevel = tryMany && nLevelCount>1;
     planes[nLevelCount - 1]->SearchMVs(pSrcGOF->GetFrame(nLevelCount-1),
             pRefGOF->GetFrame(nLevelCount-1),
-            searchTypeSmallest, nSearchParamSmallest, nLambda, lsad, pnew, plevel, flags,
+            searchTypeSmallest, nSearchParamSmallest, nLambda, lsad, pnew, plevel,
             out, &globalMV, outfilebuf, fieldShiftCur, _DCT, &meanLumaChange, divideExtra,
             pzero, pglobal, badSAD, badrange, meander, vecPrev, tryManyLevel);
     // Refining the search until we reach the highest detail interpolation.
@@ -120,7 +119,7 @@ void GroupOfPlanes::SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF
         fieldShiftCur = (i == 0) ? fieldShift : 0; // may be non zero for finest level only
         tryManyLevel = tryMany && i>0; // not for finest level to not decrease speed
         planes[i]->SearchMVs(pSrcGOF->GetFrame(i), pRefGOF->GetFrame(i),
-                searchTypeLevel, nSearchParamLevel, nLambda, lsad, pnew, plevel, flags,
+                searchTypeLevel, nSearchParamLevel, nLambda, lsad, pnew, plevel,
                 out, &globalMV, outfilebuf, fieldShiftCur, _DCT, &meanLumaChange, divideExtra,
                 pzero, pglobal, badSAD, badrange, meander, vecPrev, tryManyLevel);
         out += planes[i]->GetArraySize(divideExtra);
@@ -130,11 +129,9 @@ void GroupOfPlanes::SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF
 
 void GroupOfPlanes::RecalculateMVs(MVClipBalls &mvClip, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
         SearchType searchType, int nSearchParam, int nLambda,
-        int pnew, int flags,
+        int pnew,
         int *out, short *outfilebuf, int fieldShift, int thSAD, DCTClass * _DCT, int smooth, bool meander)
 {
-    nFlags |= flags;
-
     // write group's size
     out[0] = GetArraySize();
 
@@ -147,7 +144,7 @@ void GroupOfPlanes::RecalculateMVs(MVClipBalls &mvClip, MVGroupOfFrames *pSrcGOF
     // Refining the search until we reach the highest detail interpolation.
     planes[0]->RecalculateMVs(mvClip, pSrcGOF->GetFrame(0),
             pRefGOF->GetFrame(0),
-            searchType, nSearchParam, nLambda, pnew, flags,
+            searchType, nSearchParam, nLambda, pnew,
             out, outfilebuf, fieldShift, thSAD, _DCT, divideExtra, smooth, meander);
 
     out += planes[0]->GetArraySize(divideExtra);
@@ -208,7 +205,7 @@ void GetMedian(int *vx, int *vy, int vx1, int vy1, int vx2, int vy2, int vx3, in
     }
 }
 
-void GroupOfPlanes::ExtraDivide(int *out, int flags)
+void GroupOfPlanes::ExtraDivide(int *out)
 {
     out += 2; // skip full size and validity
     for (int i = nLevelCount - 1; i >= 1; i-- ) // skip all levels up to finest estimated
