@@ -22,12 +22,12 @@ class Padding : public GenericVideoFilter {
         Padding(PClip _child, int hPad, int vPad, bool _planar, IScriptEnvironment* env);
         ~Padding();
         PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
-        static void PadReferenceFrame(unsigned char *frame, int pitch, int hPad, int vPad, int width, int height);
+        static void PadReferenceFrame(uint8_t *frame, int pitch, int hPad, int vPad, int width, int height);
 };
 #endif
 
 template <typename PixelType>
-void PadReferenceFrame(unsigned char *frame, int pitch, int hPad, int vPad, int width, int height);
+void PadReferenceFrame(uint8_t *frame, int pitch, int hPad, int vPad, int width, int height);
 
 
 template <typename PixelType>
@@ -46,7 +46,7 @@ void PadCorner(PixelType *p, PixelType v, int hPad, int vPad, int refPitch)
 
 
 template <typename PixelType>
-void PadReferenceFrame(unsigned char *refFrame8, int refPitch, int hPad, int vPad, int width, int height)
+void PadReferenceFrame(uint8_t *refFrame8, int refPitch, int hPad, int vPad, int width, int height)
 {
     refPitch /= sizeof(PixelType);
     PixelType *refFrame = (PixelType *)refFrame8;

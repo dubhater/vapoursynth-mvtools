@@ -4,8 +4,8 @@
 #include <cstring>
 
 
-typedef void (*COPYFunction)(unsigned char *pDst, intptr_t nDstPitch,
-        const unsigned char *pSrc, intptr_t nSrcPitch);
+typedef void (*COPYFunction)(uint8_t *pDst, intptr_t nDstPitch,
+        const uint8_t *pSrc, intptr_t nSrcPitch);
 
 template<int nBlkWidth, int nBlkHeight, typename PixelType>
 void Copy_C(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch)

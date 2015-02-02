@@ -44,40 +44,40 @@
 
 
 /* TODO: port these
-   extern "C" void  VerticalBicubic_iSSE(unsigned char *pDst, const unsigned char *pSrc, intptr_t nDstPitch,
+   extern "C" void  VerticalBicubic_iSSE(uint8_t *pDst, const uint8_t *pSrc, intptr_t nDstPitch,
    intptr_t nWidth, intptr_t nHeight);
-   extern "C" void  HorizontalBicubic_iSSE(unsigned char *pDst, const unsigned char *pSrc, intptr_t nDstPitch,
+   extern "C" void  HorizontalBicubic_iSSE(uint8_t *pDst, const uint8_t *pSrc, intptr_t nDstPitch,
    intptr_t nWidth, intptr_t nHeight);
-   extern "C" void  RB2F_iSSE(unsigned char *pDst, const unsigned char *pSrc, intptr_t nDstPitch,
+   extern "C" void  RB2F_iSSE(uint8_t *pDst, const uint8_t *pSrc, intptr_t nDstPitch,
    intptr_t nSrcPitch, intptr_t nWidth, intptr_t nHeight);
-   extern "C" void  RB2FilteredVerticalLine_SSE(unsigned char *pDst, const unsigned char *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX);
-   extern "C" void  RB2FilteredHorizontalInplaceLine_SSE(unsigned char *pSrc, intptr_t nWidthMMX);
+   extern "C" void  RB2FilteredVerticalLine_SSE(uint8_t *pDst, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX);
+   extern "C" void  RB2FilteredHorizontalInplaceLine_SSE(uint8_t *pSrc, intptr_t nWidthMMX);
    */
 
-extern "C" void mvtools_Average2_sse2(unsigned char *pDst, const unsigned char *pSrc1, const unsigned char *pSrc2, intptr_t nPitch, intptr_t nWidth, intptr_t nHeight);
+extern "C" void mvtools_Average2_sse2(uint8_t *pDst, const uint8_t *pSrc1, const uint8_t *pSrc2, intptr_t nPitch, intptr_t nWidth, intptr_t nHeight);
 
-extern "C" void mvtools_VerticalBilinear_sse2(unsigned char *pDst, const unsigned char *pSrc, intptr_t nPitch,
+extern "C" void mvtools_VerticalBilinear_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
         intptr_t nWidth, intptr_t nHeight);
-extern "C" void mvtools_HorizontalBilinear_sse2(unsigned char *pDst, const unsigned char *pSrc, intptr_t nPitch,
+extern "C" void mvtools_HorizontalBilinear_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
         intptr_t nWidth, intptr_t nHeight);
-extern "C" void mvtools_DiagonalBilinear_sse2(unsigned char *pDst, const unsigned char *pSrc, intptr_t nPitch,
+extern "C" void mvtools_DiagonalBilinear_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
         intptr_t nWidth, intptr_t nHeight);
 
 
-extern "C" void mvtools_RB2CubicHorizontalInplaceLine_sse2(unsigned char *pSrc, intptr_t nWidthMMX);
-extern "C" void mvtools_RB2CubicVerticalLine_sse2(unsigned char *pDst, const unsigned char *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX);
-extern "C" void mvtools_RB2QuadraticHorizontalInplaceLine_sse2(unsigned char *pSrc, intptr_t nWidthMMX);
-extern "C" void mvtools_RB2QuadraticVerticalLine_sse2(unsigned char *pDst, const unsigned char *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX);
-extern "C" void mvtools_RB2BilinearFilteredVerticalLine_sse2(unsigned char *pDst, const unsigned char *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX);
-extern "C" void mvtools_RB2BilinearFilteredHorizontalInplaceLine_sse2(unsigned char *pSrc, intptr_t nWidthMMX);
-extern "C" void mvtools_VerticalWiener_sse2(unsigned char *pDst, const unsigned char *pSrc, intptr_t nPitch,
+extern "C" void mvtools_RB2CubicHorizontalInplaceLine_sse2(uint8_t *pSrc, intptr_t nWidthMMX);
+extern "C" void mvtools_RB2CubicVerticalLine_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX);
+extern "C" void mvtools_RB2QuadraticHorizontalInplaceLine_sse2(uint8_t *pSrc, intptr_t nWidthMMX);
+extern "C" void mvtools_RB2QuadraticVerticalLine_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX);
+extern "C" void mvtools_RB2BilinearFilteredVerticalLine_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX);
+extern "C" void mvtools_RB2BilinearFilteredHorizontalInplaceLine_sse2(uint8_t *pSrc, intptr_t nWidthMMX);
+extern "C" void mvtools_VerticalWiener_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
         intptr_t nWidth, intptr_t nHeight);
-extern "C" void mvtools_HorizontalWiener_sse2(unsigned char *pDst, const unsigned char *pSrc, intptr_t nPitch,
+extern "C" void mvtools_HorizontalWiener_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
         intptr_t nWidth, intptr_t nHeight);
 
 
 template <typename PixelType>
-void VerticalBilinear(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPitch,
+void VerticalBilinear(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight)
 {
     PixelType *pDst = (PixelType *)pDst8;
@@ -100,7 +100,7 @@ void VerticalBilinear(unsigned char *pDst8, const unsigned char *pSrc8, int nDst
 
 
 template <typename PixelType>
-void HorizontalBilinear(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPitch,
+void HorizontalBilinear(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight)
 {
     PixelType *pDst = (PixelType *)pDst8;
@@ -122,7 +122,7 @@ void HorizontalBilinear(unsigned char *pDst8, const unsigned char *pSrc8, int nD
 
 
 template <typename PixelType>
-void DiagonalBilinear(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPitch,
+void DiagonalBilinear(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight)
 {
     PixelType *pDst = (PixelType *)pDst8;
@@ -147,7 +147,7 @@ void DiagonalBilinear(unsigned char *pDst8, const unsigned char *pSrc8, int nDst
 
 
 template <typename PixelType>
-void RB2F_C(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPitch,
+void RB2F_C(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight)
 {
     PixelType *pDst = (PixelType *)pDst8;
@@ -167,7 +167,7 @@ void RB2F_C(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPitch,
 
 
 template <typename PixelType>
-void RB2FilteredVertical(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPitch,
+void RB2FilteredVertical(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight, bool isse)
 { //  Filtered with 1/4, 1/2, 1/4 filter for smoothing and anti-aliasing - Fizick
     // nHeight is dst height which is reduced by 2 source height
@@ -216,7 +216,7 @@ void RB2FilteredVertical(unsigned char *pDst8, const unsigned char *pSrc8, int n
 }
 
 template <typename PixelType>
-void RB2FilteredHorizontalInplace(unsigned char *pSrc8, int nSrcPitch, int nWidth, int nHeight, bool isse)
+void RB2FilteredHorizontalInplace(uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, bool isse)
 { // Filtered with 1/4, 1/2, 1/4 filter for smoothing and anti-aliasing - Fizick
     // nWidth is dst height which is reduced by 2 source width
     //int nWidthMMX = 1 + ((nWidth-2)/4)*4;
@@ -251,7 +251,7 @@ void RB2FilteredHorizontalInplace(unsigned char *pSrc8, int nSrcPitch, int nWidt
 
 
 template <typename PixelType>
-void RB2Filtered(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
+void RB2Filtered(uint8_t *pDst, const uint8_t *pSrc, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight, bool isse)
 { // separable Filtered with 1/4, 1/2, 1/4 filter for smoothing and anti-aliasing - Fizick v.2.5.2
     // assume he have enough horizontal dimension for intermediate results (double as final)
@@ -261,7 +261,7 @@ void RB2Filtered(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
 
 
 template <typename PixelType>
-void RB2BilinearFilteredVertical(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPitch,
+void RB2BilinearFilteredVertical(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight, bool isse)
 { //  BilinearFiltered with 1/8, 3/8, 3/8, 1/8 filter for smoothing and anti-aliasing - Fizick
     // nHeight is dst height which is reduced by 2 source height
@@ -317,7 +317,7 @@ void RB2BilinearFilteredVertical(unsigned char *pDst8, const unsigned char *pSrc
 
 
 template <typename PixelType>
-void RB2BilinearFilteredHorizontalInplace(unsigned char *pSrc8, int nSrcPitch, int nWidth, int nHeight, bool isse)
+void RB2BilinearFilteredHorizontalInplace(uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, bool isse)
 { // BilinearFiltered with 1/8, 3/8, 3/8, 1/8 filter for smoothing and anti-aliasing - Fizick
     // nWidth is dst height which is reduced by 2 source width
 
@@ -354,7 +354,7 @@ void RB2BilinearFilteredHorizontalInplace(unsigned char *pSrc8, int nSrcPitch, i
 
 
 template <typename PixelType>
-void RB2BilinearFiltered(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
+void RB2BilinearFiltered(uint8_t *pDst, const uint8_t *pSrc, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight, bool isse)
 { // separable BilinearFiltered with 1/8, 3/8, 3/8, 1/8 filter for smoothing and anti-aliasing - Fizick v.2.5.2
     // assume he have enough horizontal dimension for intermediate results (double as final)
@@ -364,7 +364,7 @@ void RB2BilinearFiltered(unsigned char *pDst, const unsigned char *pSrc, int nDs
 
 
 template <typename PixelType>
-void RB2QuadraticVertical(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPitch,
+void RB2QuadraticVertical(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight, bool isse)
 { // filtered Quadratic with 1/64, 9/64, 22/64, 22/64, 9/64, 1/64 filter for smoothing and anti-aliasing - Fizick
     // nHeight is dst height which is reduced by 2 source height
@@ -422,7 +422,7 @@ void RB2QuadraticVertical(unsigned char *pDst8, const unsigned char *pSrc8, int 
 
 
 template <typename PixelType>
-void RB2QuadraticHorizontalInplace(unsigned char *pSrc8, int nSrcPitch, int nWidth, int nHeight, int isse)
+void RB2QuadraticHorizontalInplace(uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, int isse)
 { // filtered Quadratic with 1/64, 9/64, 22/64, 22/64, 9/64, 1/64 filter for smoothing and anti-aliasing - Fizick
     // nWidth is dst height which is reduced by 2 source width
     PixelType *pSrc = (PixelType *)pSrc8;
@@ -458,7 +458,7 @@ void RB2QuadraticHorizontalInplace(unsigned char *pSrc8, int nSrcPitch, int nWid
 
 
 template <typename PixelType>
-void RB2Quadratic(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
+void RB2Quadratic(uint8_t *pDst, const uint8_t *pSrc, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight, bool isse)
 { // separable filtered Quadratic with 1/64, 9/64, 22/64, 22/64, 9/64, 1/64 filter for smoothing and anti-aliasing - Fizick v.2.5.2
     // assume he have enough horizontal dimension for intermediate results (double as final)
@@ -468,7 +468,7 @@ void RB2Quadratic(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
 
 
 template <typename PixelType>
-void RB2CubicVertical(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPitch,
+void RB2CubicVertical(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight, bool isse)
 { // filtered qubic with 1/32, 5/32, 10/32, 10/32, 5/32, 1/32 filter for smoothing and anti-aliasing - Fizick
     // nHeight is dst height which is reduced by 2 source height
@@ -524,7 +524,7 @@ void RB2CubicVertical(unsigned char *pDst8, const unsigned char *pSrc8, int nDst
 
 
 template <typename PixelType>
-void RB2CubicHorizontalInplace(unsigned char *pSrc8, int nSrcPitch, int nWidth, int nHeight, bool isse)
+void RB2CubicHorizontalInplace(uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, bool isse)
 { // filtered qubic with 1/32, 5/32, 10/32, 10/32, 5/32, 1/32 filter for smoothing and anti-aliasing - Fizick
     // nWidth is dst height which is reduced by 2 source width
     PixelType *pSrc = (PixelType *)pSrc8;
@@ -558,7 +558,7 @@ void RB2CubicHorizontalInplace(unsigned char *pSrc8, int nSrcPitch, int nWidth, 
 
 
 template <typename PixelType>
-void RB2Cubic(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
+void RB2Cubic(uint8_t *pDst, const uint8_t *pSrc, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight, bool isse)
 { // separable filtered cubic with 1/32, 5/32, 10/32, 10/32, 5/32, 1/32 filter for smoothing and anti-aliasing - Fizick v.2.5.2
     // assume he have enough horizontal dimension for intermediate results (double as final)
@@ -569,7 +569,7 @@ void RB2Cubic(unsigned char *pDst, const unsigned char *pSrc, int nDstPitch,
 // so called Wiener interpolation. (sharp, similar to Lanczos ?)
 // invarint simplified, 6 taps. Weights: (1, -5, 20, 20, -5, 1)/32 - added by Fizick
 template <typename PixelType>
-void VerticalWiener(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPitch,
+void VerticalWiener(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight, int bitsPerSample)
 {
     PixelType *pDst = (PixelType *)pDst8;
@@ -616,7 +616,7 @@ void VerticalWiener(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPi
 
 
 template <typename PixelType>
-void HorizontalWiener(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPitch,
+void HorizontalWiener(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight, int bitsPerSample)
 {
     PixelType *pDst = (PixelType *)pDst8;
@@ -647,7 +647,7 @@ void HorizontalWiener(unsigned char *pDst8, const unsigned char *pSrc8, int nDst
 
 
 template <typename PixelType>
-void DiagonalWiener(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPitch,
+void DiagonalWiener(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight, int bitsPerSample)
 {
     PixelType *pDst = (PixelType *)pDst8;
@@ -704,7 +704,7 @@ void DiagonalWiener(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPi
 
 // bicubic (Catmull-Rom 4 taps interpolation)
 template <typename PixelType>
-void VerticalBicubic(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPitch,
+void VerticalBicubic(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight, int bitsPerSample)
 {
     PixelType *pDst = (PixelType *)pDst8;
@@ -748,7 +748,7 @@ void VerticalBicubic(unsigned char *pDst8, const unsigned char *pSrc8, int nDstP
 }
 
 template <typename PixelType>
-void HorizontalBicubic(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPitch,
+void HorizontalBicubic(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight, int bitsPerSample)
 {
     PixelType *pDst = (PixelType *)pDst8;
@@ -777,7 +777,7 @@ void HorizontalBicubic(unsigned char *pDst8, const unsigned char *pSrc8, int nDs
 }
 
 template <typename PixelType>
-void DiagonalBicubic(unsigned char *pDst8, const unsigned char *pSrc8, int nDstPitch,
+void DiagonalBicubic(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch,
         int nSrcPitch, int nWidth, int nHeight, int bitsPerSample)
 {
     PixelType *pDst = (PixelType *)pDst8;
@@ -831,7 +831,7 @@ void DiagonalBicubic(unsigned char *pDst8, const unsigned char *pSrc8, int nDstP
 
 
 template <typename PixelType>
-void Average2(unsigned char *pDst8, const unsigned char *pSrc18, const unsigned char *pSrc28,
+void Average2(uint8_t *pDst8, const uint8_t *pSrc18, const uint8_t *pSrc28,
         int nPitch, int nWidth, int nHeight)
 { // assume all pitches equal
     PixelType *pDst = (PixelType *)pDst8;

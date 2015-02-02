@@ -43,7 +43,7 @@ void Merge16PlanesToBig(uint8_t *pel4Plane, int pel4Pitch,
         const uint8_t *pPlane12, const uint8_t * pPlane13, const uint8_t *pPlane14, const uint8_t * pPlane15,
         int width, int height, int pitch, int bitsPerSample);
 
-unsigned char SADToMask(unsigned int sad, unsigned int sadnorm1024);
+uint8_t SADToMask(unsigned int sad, unsigned int sadnorm1024);
 
 void Blend(uint8_t * pdst, const uint8_t * psrc, const uint8_t * pref, int height, int width, int dst_pitch, int src_pitch, int ref_pitch, int time256, bool isse, int bitsPerSample);
 

@@ -1,11 +1,11 @@
 #ifndef __VARIANCE_H__
 #define __VARIANCE_H__
 
-typedef unsigned int (*LUMAFunction)(const unsigned char *pSrc, intptr_t nSrcPitch);
+typedef unsigned int (*LUMAFunction)(const uint8_t *pSrc, intptr_t nSrcPitch);
 
 
 template<int nBlkWidth, int nBlkHeight, typename PixelType>
-unsigned int Luma_C(const unsigned char *pSrc8, intptr_t nSrcPitch)
+unsigned int Luma_C(const uint8_t *pSrc8, intptr_t nSrcPitch)
 {
     unsigned int meanLuma = 0;
     for ( int j = 0; j < nBlkHeight; j++ )
@@ -20,14 +20,14 @@ unsigned int Luma_C(const unsigned char *pSrc8, intptr_t nSrcPitch)
 }
 
 
-extern "C" unsigned int mvtools_Luma32x32_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
-extern "C" unsigned int mvtools_Luma16x32_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
-extern "C" unsigned int mvtools_Luma32x16_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
-extern "C" unsigned int mvtools_Luma16x16_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
-extern "C" unsigned int mvtools_Luma8x8_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
-extern "C" unsigned int mvtools_Luma4x4_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
-extern "C" unsigned int mvtools_Luma8x4_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
-extern "C" unsigned int mvtools_Luma16x8_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
-extern "C" unsigned int mvtools_Luma16x2_sse2(const unsigned char *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma32x32_sse2(const uint8_t *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma16x32_sse2(const uint8_t *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma32x16_sse2(const uint8_t *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma16x16_sse2(const uint8_t *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma8x8_sse2(const uint8_t *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma4x4_sse2(const uint8_t *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma8x4_sse2(const uint8_t *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma16x8_sse2(const uint8_t *pSrc, intptr_t nSrcPitch);
+extern "C" unsigned int mvtools_Luma16x2_sse2(const uint8_t *pSrc, intptr_t nSrcPitch);
 
 #endif

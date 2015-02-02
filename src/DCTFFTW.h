@@ -33,10 +33,10 @@ class DCTFFTW : public DCTClass {
     int dctshift0;
 
     template <typename PixelType>
-    void Bytes2Float(const unsigned char * srcp0, int _pitch, float * realdata);
+    void Bytes2Float(const uint8_t * srcp0, int _pitch, float * realdata);
 
     template <typename PixelType>
-    void Float2Bytes(unsigned char * srcp0, int _pitch, float * realdata);
+    void Float2Bytes(uint8_t * srcp0, int _pitch, float * realdata);
 
     public:
 
@@ -45,8 +45,8 @@ class DCTFFTW : public DCTClass {
     DCTFFTW(int _sizex, int _sizey, int _dctmode, int _bitsPerSample);
     ~DCTFFTW();
 
-    virtual void DCTBytes2D(const unsigned char *srcp0, int _src_pitch,
-            unsigned char *dctp, int _dct_pitch) override;
+    virtual void DCTBytes2D(const uint8_t *srcp0, int _src_pitch,
+            uint8_t *dctp, int _dct_pitch) override;
 
 };
 

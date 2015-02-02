@@ -203,7 +203,7 @@ class PlaneOfBlocks {
         return (nLambda * dist) >> 8;
     }
 
-    int LumaSADx (const unsigned char *pRef0)
+    int LumaSADx (const uint8_t *pRef0)
     {
         int sad;
         switch (dctmode)
@@ -309,7 +309,7 @@ class PlaneOfBlocks {
         return sad;
     }
 
-    inline int LumaSAD (const unsigned char *pRef0)
+    inline int LumaSAD (const uint8_t *pRef0)
     {
 #ifdef ALLOW_DCT
         // made simple SAD more prominent (~1% faster) while keeping DCT support (TSchniede)

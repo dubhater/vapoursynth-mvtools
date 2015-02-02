@@ -61,7 +61,7 @@ DCTFFTW::~DCTFFTW()
 
 //  put source data to real array for FFT
 template <typename PixelType>
-void DCTFFTW::Bytes2Float (const unsigned char * srcp8, int src_pitch, float * realdata)
+void DCTFFTW::Bytes2Float (const uint8_t * srcp8, int src_pitch, float * realdata)
 {
     int floatpitch = sizex;
     int i, j;
@@ -77,7 +77,7 @@ void DCTFFTW::Bytes2Float (const unsigned char * srcp8, int src_pitch, float * r
 
 //  put source data to real array for FFT
 template <typename PixelType>
-void DCTFFTW::Float2Bytes (unsigned char * dstp8, int dst_pitch, float * realdata)
+void DCTFFTW::Float2Bytes (uint8_t * dstp8, int dst_pitch, float * realdata)
 {
     PixelType *dstp = (PixelType *)dstp8;
 
@@ -124,7 +124,7 @@ void DCTFFTW::Float2Bytes (unsigned char * dstp8, int dst_pitch, float * realdat
 }
 
 
-void DCTFFTW::DCTBytes2D(const unsigned char *srcp, int src_pitch, unsigned char *dctp, int dct_pitch)
+void DCTFFTW::DCTBytes2D(const uint8_t *srcp, int src_pitch, uint8_t *dctp, int dct_pitch)
 {
     if (bitsPerSample == 8) {
         Bytes2Float<uint8_t>(srcp, src_pitch, fSrc);

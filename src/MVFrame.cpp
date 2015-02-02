@@ -516,7 +516,7 @@ MVFrame::~MVFrame()
         delete pVPlane;
 }
 
-void MVFrame::ChangePlane(const unsigned char *pNewPlane, int nNewPitch, MVPlaneSet _nMode)
+void MVFrame::ChangePlane(const uint8_t *pNewPlane, int nNewPitch, MVPlaneSet _nMode)
 {
     if ( _nMode & nMode & YPLANE )
         pYPlane->ChangePlane(pNewPlane, nNewPitch);

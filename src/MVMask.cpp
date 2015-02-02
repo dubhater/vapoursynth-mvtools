@@ -78,7 +78,7 @@ static inline uint8_t mvmaskLength(VECTOR v, uint8_t pel, float fMaskNormFactor2
 static inline uint8_t mvmaskSAD(unsigned int s, float fMaskNormFactor, float fGamma, int nBlkSizeX, int nBlkSizeY)
 {
     double l = 255 * pow((s*4*fMaskNormFactor)/(nBlkSizeX*nBlkSizeY), fGamma); // Fizick - now linear for gm=1
-    return (unsigned char)((l > 255) ? 255 : l);
+    return (uint8_t)((l > 255) ? 255 : l);
 }
 
 
