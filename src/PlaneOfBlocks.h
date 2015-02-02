@@ -20,7 +20,8 @@
 
 #include <cstdlib>
 
-#include "MVInterface.h"
+#include "MVClip.h"
+#include "MVFrame.h"
 #include "Interpolation.h"
 #include "CopyCode.h"
 #include "SADFunctions.h"
@@ -29,6 +30,15 @@
 #include "DCT.h"
 
 #define MAX_PREDICTOR 20 // right now 5 should be enough (TSchniede)
+
+#define ALIGN_PLANES 64 // all luma/chroma planes of all frames will have the effective frame area
+// aligned to this (source plane can be accessed with aligned loads, 64 required for effective use of x264 sad on Core2) 1.9.5
+#define ALIGN_SOURCEBLOCK 16    // ALIGN_PLANES aligns the sourceblock UNLESS overlap != 0 OR special case: MMX function AND Block=16, Overlap = 8
+// ALIGN_SOURCEBLOCK creates aligned copy of Source block
+//this options make things usually slower
+#define ALLOW_DCT                // complex check in lumaSAD & DCT code in SearchMV / PseudoEPZ
+//#define    ONLY_CHECK_NONDEFAULT_MV // make the check if it is no default reference (zero, global,...)
+
 
 class PlaneOfBlocks {
 

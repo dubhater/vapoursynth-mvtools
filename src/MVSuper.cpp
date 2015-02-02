@@ -5,8 +5,8 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
+#include "MVFrame.h"
 #include "MVSuper.h"
-#include "MVInterface.h"
 
 
 typedef struct {

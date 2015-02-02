@@ -20,7 +20,8 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-#include "MVInterface.h"
+#include "MVClip.h"
+#include "MVFilter.h"
 
 
 typedef struct {

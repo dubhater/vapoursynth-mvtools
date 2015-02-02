@@ -28,7 +28,7 @@
 #include "CopyCode.h"
 #include "CommonFunctions.h"
 #include "MaskFun.h"
-#include "MVInterface.h"
+#include "MVFilter.h"
 #include "SimpleResize.h"
 
 

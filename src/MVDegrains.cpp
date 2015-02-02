@@ -20,7 +20,10 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
+#include "MVClip.h"
 #include "MVDegrains.h"
+#include "MVFilter.h"
+#include "MVFrame.h"
 #include "MVInterface.h"
 #include "Overlap.h"
 

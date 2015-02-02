@@ -1,6 +1,9 @@
 #ifndef __VARIANCE_H__
 #define __VARIANCE_H__
 
+#include <cstdint>
+
+
 typedef unsigned int (*LUMAFunction)(const uint8_t *pSrc, intptr_t nSrcPitch);
 
 

@@ -16,7 +16,7 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html .
 
-#include "MVInterface.h"
+#include "FakeBlockData.h"
 
 void FakeBlockData::Init(int _x, int _y)
 {

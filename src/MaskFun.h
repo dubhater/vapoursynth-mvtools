@@ -21,7 +21,9 @@
 #define __MASKFUN__
 
 #include <stdint.h>
-#include "MVInterface.h"
+
+#include "MVClip.h"
+#include "MVFrame.h"
 
 void MakeVectorOcclusionMaskTime(MVClipBalls *mvClip, int nBlkX, int nBlkY, double dMaskNormFactor, double fGamma, int nPel, uint8_t * occMask, int occMaskPitch, int time256, int blkSizeX, int blkSizeY);
 void VectorMasksToOcclusionMaskTime(uint8_t *VXMask, uint8_t *VYMask, int nBlkX, int nBlkY, double dMaskNormFactor, double fGamma, int nPel, uint8_t * occMask, int occMaskPitch, int time256, int blkSizeX, int blkSizeY);

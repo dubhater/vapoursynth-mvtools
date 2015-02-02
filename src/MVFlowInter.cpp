@@ -26,6 +26,7 @@
 #include <VSHelper.h>
 
 #include "MaskFun.h"
+#include "MVFilter.h"
 #include "MVInterface.h"
 #include "SimpleResize.h"
 

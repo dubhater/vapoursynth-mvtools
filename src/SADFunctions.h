@@ -20,7 +20,8 @@
 #ifndef __SAD_FUNC__
 #define __SAD_FUNC__
 
-#include "MVInterface.h"
+#include <cstdint>
+
 
 typedef unsigned int (*SADFunction)(const uint8_t *pSrc, intptr_t nSrcPitch,
         const uint8_t *pRef, intptr_t nRefPitch);

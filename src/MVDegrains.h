@@ -6,10 +6,7 @@
 
 #include <emmintrin.h>
 
-#include <VSHelper.h>
-
-#include "MVInterface.h"
-
+#include "MVFrame.h"
 
 enum VectorOrder {
     Backward1 = 0,

@@ -21,7 +21,7 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-#include "MVInterface.h"
+#include "MVFilter.h"
 #include "CopyCode.h"
 #include "Overlap.h"
 #include "MaskFun.h"

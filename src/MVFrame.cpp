@@ -19,7 +19,7 @@
 
 #include <VSHelper.h>
 
-#include "MVInterface.h"
+#include "MVFrame.h"
 #include "Padding.h"
 #include "Interpolation.h"
 #include "MVSuper.h"
