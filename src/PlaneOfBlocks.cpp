@@ -60,6 +60,10 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
     bool cache64 = (bool)(nCPUFlags & X264_CPU_CACHELINE_64);
     bool sse3 = (bool)(nCPUFlags & X264_CPU_SSE3);
     bool ssse3 = (bool)(nCPUFlags & X264_CPU_SSSE3);
+    bool sse41 = (bool)(nCPUFlags & X264_CPU_SSE4);
+    bool avx = (bool)(nCPUFlags & X264_CPU_AVX);
+    bool xop = (bool)(nCPUFlags & X264_CPU_XOP);
+    bool avx2 = (bool)(nCPUFlags & X264_CPU_AVX2);
 
     globalMVPredictor.x = zeroMV.x;
     globalMVPredictor.y = zeroMV.y;
@@ -166,10 +170,41 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
             }
 
             if (ssse3) {
+                satds[4][4] = mvtools_pixel_satd_4x4_ssse3;
                 satds[8][4] = mvtools_pixel_satd_8x4_ssse3;
                 satds[8][8] = mvtools_pixel_satd_8x8_ssse3;
                 satds[16][8] = mvtools_pixel_satd_16x8_ssse3;
                 satds[16][16] = mvtools_pixel_satd_16x16_ssse3;
+            }
+
+            if (sse41) {
+                satds[4][4] = mvtools_pixel_satd_4x4_sse4;
+                satds[8][4] = mvtools_pixel_satd_8x4_sse4;
+                satds[8][8] = mvtools_pixel_satd_8x8_sse4;
+                satds[16][8] = mvtools_pixel_satd_16x8_sse4;
+                satds[16][16] = mvtools_pixel_satd_16x16_sse4;
+            }
+
+            if (avx) {
+                satds[4][4] = mvtools_pixel_satd_4x4_avx;
+                satds[8][4] = mvtools_pixel_satd_8x4_avx;
+                satds[8][8] = mvtools_pixel_satd_8x8_avx;
+                satds[16][8] = mvtools_pixel_satd_16x8_avx;
+                satds[16][16] = mvtools_pixel_satd_16x16_avx;
+            }
+
+            if (xop) {
+                satds[4][4] = mvtools_pixel_satd_4x4_xop;
+                satds[8][4] = mvtools_pixel_satd_8x4_xop;
+                satds[8][8] = mvtools_pixel_satd_8x8_xop;
+                satds[16][8] = mvtools_pixel_satd_16x8_xop;
+                satds[16][16] = mvtools_pixel_satd_16x16_xop;
+            }
+
+            if (avx2) {
+                satds[8][8] = mvtools_pixel_satd_8x8_avx2;
+                satds[16][8] = mvtools_pixel_satd_16x8_avx2;
+                satds[16][16] = mvtools_pixel_satd_16x16_avx2;
             }
         }
     } else {

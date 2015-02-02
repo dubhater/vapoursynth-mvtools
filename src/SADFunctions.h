@@ -258,11 +258,33 @@ MK_CFUNC(mvtools_pixel_satd_8x8_sse2);
 MK_CFUNC(mvtools_pixel_satd_16x8_sse2);
 MK_CFUNC(mvtools_pixel_satd_16x16_sse2);
 
+MK_CFUNC(mvtools_pixel_satd_4x4_ssse3);
 MK_CFUNC(mvtools_pixel_satd_8x4_ssse3);
 MK_CFUNC(mvtools_pixel_satd_8x8_ssse3);
-MK_CFUNC(mvtools_pixel_satd_8x16_ssse3);
 MK_CFUNC(mvtools_pixel_satd_16x8_ssse3);
 MK_CFUNC(mvtools_pixel_satd_16x16_ssse3);
+
+MK_CFUNC(mvtools_pixel_satd_4x4_sse4);
+MK_CFUNC(mvtools_pixel_satd_8x4_sse4);
+MK_CFUNC(mvtools_pixel_satd_8x8_sse4);
+MK_CFUNC(mvtools_pixel_satd_16x8_sse4);
+MK_CFUNC(mvtools_pixel_satd_16x16_sse4);
+
+MK_CFUNC(mvtools_pixel_satd_4x4_avx);
+MK_CFUNC(mvtools_pixel_satd_8x4_avx);
+MK_CFUNC(mvtools_pixel_satd_8x8_avx);
+MK_CFUNC(mvtools_pixel_satd_16x8_avx);
+MK_CFUNC(mvtools_pixel_satd_16x16_avx);
+
+MK_CFUNC(mvtools_pixel_satd_4x4_xop);
+MK_CFUNC(mvtools_pixel_satd_8x4_xop);
+MK_CFUNC(mvtools_pixel_satd_8x8_xop);
+MK_CFUNC(mvtools_pixel_satd_16x8_xop);
+MK_CFUNC(mvtools_pixel_satd_16x16_xop);
+
+MK_CFUNC(mvtools_pixel_satd_8x8_avx2);
+MK_CFUNC(mvtools_pixel_satd_16x8_avx2);
+MK_CFUNC(mvtools_pixel_satd_16x16_avx2);
 
 //dummy for testing and deactivate SAD
 MK_CFUNC(SadDummy);
