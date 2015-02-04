@@ -143,11 +143,8 @@ class PlaneOfBlocks {
     int verybigSAD;
 
 #ifdef ALIGN_SOURCEBLOCK
-    int nSrcPitch_plane[3];    //stores the pitch of the whole plane for easy access (nSrcPitch in non-aligned mode)
+    int nSrcPitch_temp[3];
     uint8_t* pSrc_temp[3];    //for easy WRITE access to temp block
-    uint8_t* pSrc_temp_base;    //stores base memory pointer to non _base pointer
-    uint8_t * dctSrc_base;        //stores base memory pointer to non _base pointer
-    uint8_t * dctRef_base;        //stores base memory pointer to non _base pointer
 #endif
 
     /* inline functions */

@@ -17,6 +17,8 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html .
 
+#include <VSHelper.h>
+
 #include "CPU.h"
 #include "PlaneOfBlocks.h"
 #include "Padding.h"
@@ -294,24 +296,19 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
         SADCHROMA = NULL;
 
 
+    dctpitch = max(nBlkSizeX, 16) * bytesPerSample;
 #ifdef ALIGN_SOURCEBLOCK
-    dctpitch = max(nBlkSizeX, 16) * bytesPerSample;
-    dctSrc_base = new uint8_t[nBlkSizeY*dctpitch+ALIGN_PLANES-1];
-    dctRef_base = new uint8_t[nBlkSizeY*dctpitch+ALIGN_PLANES-1];
-    dctSrc = (uint8_t *)(((((intptr_t)dctSrc_base) + ALIGN_PLANES - 1)&(~(ALIGN_PLANES - 1))));//aligned like this means, that it will have optimum fit in the cache
-    dctRef = (uint8_t *)(((((intptr_t)dctRef_base) + ALIGN_PLANES - 1)&(~(ALIGN_PLANES - 1))));
+    dctSrc = vs_aligned_malloc<uint8_t>(nBlkSizeY * dctpitch, ALIGN_PLANES);
+    dctRef = vs_aligned_malloc<uint8_t>(nBlkSizeY * dctpitch, ALIGN_PLANES);
 
-    int blocksize = nBlkSizeX * nBlkSizeY * bytesPerSample;
-    int blocksizeUV = blocksize >> (nLogxRatioUV + nLogyRatioUV);
-    int sizeAlignedBlock = blocksize + (ALIGN_SOURCEBLOCK - (blocksize % ALIGN_SOURCEBLOCK))
-                         + 2 * blocksizeUV + (ALIGN_SOURCEBLOCK - (blocksizeUV % ALIGN_SOURCEBLOCK));
+    nSrcPitch_temp[0] = nBlkSizeX * bytesPerSample;
+    nSrcPitch_temp[1] = nBlkSizeX / xRatioUV * bytesPerSample;
+    nSrcPitch_temp[2] = nSrcPitch_temp[1];
 
-    pSrc_temp_base = new uint8_t[sizeAlignedBlock + ALIGN_PLANES - 1];
-    pSrc_temp[0] = (uint8_t *)(((intptr_t)pSrc_temp_base + ALIGN_PLANES - 1) & (~(ALIGN_PLANES - 1)));
-    pSrc_temp[1] = (uint8_t *)(((intptr_t)pSrc_temp[0] + blocksize + ALIGN_SOURCEBLOCK - 1) & (~(ALIGN_SOURCEBLOCK - 1)));
-    pSrc_temp[2] = (uint8_t *)(((intptr_t)pSrc_temp[1] + blocksizeUV + ALIGN_SOURCEBLOCK - 1) & (~(ALIGN_SOURCEBLOCK - 1)));
+    pSrc_temp[0] = vs_aligned_malloc<uint8_t>(nBlkSizeY * nSrcPitch_temp[0], ALIGN_PLANES);
+    pSrc_temp[1] = vs_aligned_malloc<uint8_t>(nBlkSizeY / yRatioUV * nSrcPitch_temp[1], ALIGN_PLANES);
+    pSrc_temp[2] = vs_aligned_malloc<uint8_t>(nBlkSizeY / yRatioUV * nSrcPitch_temp[2], ALIGN_PLANES);
 #else
-    dctpitch = max(nBlkSizeX, 16) * bytesPerSample;
     dctSrc = new uint8_t[nBlkSizeY*dctpitch];
     dctRef = new uint8_t[nBlkSizeY*dctpitch];
 #endif
@@ -329,9 +326,12 @@ PlaneOfBlocks::~PlaneOfBlocks()
     delete[] freqArray;
 
 #ifdef ALIGN_SOURCEBLOCK
-    delete[] dctSrc_base;
-    delete[] dctRef_base;
-    delete[] pSrc_temp_base;
+    vs_aligned_free(dctSrc);
+    vs_aligned_free(dctRef);
+
+    vs_aligned_free(pSrc_temp[0]);
+    vs_aligned_free(pSrc_temp[1]);
+    vs_aligned_free(pSrc_temp[2]);
 #else
     delete[] dctSrc;
     delete[] dctRef;
@@ -382,24 +382,13 @@ void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
         y[2] = pSrcFrame->GetPlane(VPLANE)->GetVPadding();
     }
 
-#ifdef ALIGN_SOURCEBLOCK
-    nSrcPitch_plane[0] = pSrcFrame->GetPlane(YPLANE)->GetPitch();
-    if (chroma)
-    {
-        nSrcPitch_plane[1] = pSrcFrame->GetPlane(UPLANE)->GetPitch();
-        nSrcPitch_plane[2] = pSrcFrame->GetPlane(VPLANE)->GetPitch();
-    }
-    nSrcPitch[0] = nBlkSizeX * bytesPerSample;
-    nSrcPitch[1] = nBlkSizeX * bytesPerSample / xRatioUV;
-    nSrcPitch[2] = nBlkSizeX * bytesPerSample / xRatioUV;
-#else
     nSrcPitch[0] = pSrcFrame->GetPlane(YPLANE)->GetPitch();
     if (chroma)
     {
         nSrcPitch[1] = pSrcFrame->GetPlane(UPLANE)->GetPitch();
         nSrcPitch[2] = pSrcFrame->GetPlane(VPLANE)->GetPitch();
     }
-#endif
+
     nRefPitch[0] = pRefFrame->GetPlane(YPLANE)->GetPitch();
     if (chroma)
     {
@@ -452,28 +441,29 @@ void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
             blkIdx = blky*nBlkX + blkx;
             iter=0;
 
-#ifdef ALIGN_SOURCEBLOCK
-            //store the pitch
             pSrc[0] = pSrcFrame->GetPlane(YPLANE)->GetAbsolutePelPointer(x[0], y[0]);
+            if (chroma)
+            {
+                pSrc[1] = pSrcFrame->GetPlane(UPLANE)->GetAbsolutePelPointer(x[1], y[1]);
+                pSrc[2] = pSrcFrame->GetPlane(VPLANE)->GetAbsolutePelPointer(x[2], y[2]);
+            }
+#ifdef ALIGN_SOURCEBLOCK
+            nSrcPitch[0] = pSrcFrame->GetPlane(YPLANE)->GetPitch();
             //create aligned copy
-            BLITLUMA  (pSrc_temp[0],nSrcPitch[0],pSrc[0],nSrcPitch_plane[0]);
+            BLITLUMA(pSrc_temp[0], nSrcPitch_temp[0], pSrc[0], nSrcPitch[0]);
             //set the to the aligned copy
             pSrc[0] = pSrc_temp[0];
+            nSrcPitch[0] = nSrcPitch_temp[0];
             if (chroma)
             {
-                pSrc[1] = pSrcFrame->GetPlane(UPLANE)->GetAbsolutePelPointer(x[1], y[1]);
-                BLITCHROMA(pSrc_temp[1],nSrcPitch[1],pSrc[1],nSrcPitch_plane[1]);
+                nSrcPitch[1] = pSrcFrame->GetPlane(UPLANE)->GetPitch();
+                nSrcPitch[2] = pSrcFrame->GetPlane(VPLANE)->GetPitch();
+                BLITCHROMA(pSrc_temp[1], nSrcPitch_temp[1], pSrc[1], nSrcPitch[1]);
+                BLITCHROMA(pSrc_temp[2], nSrcPitch_temp[2], pSrc[2], nSrcPitch[2]);
                 pSrc[1] = pSrc_temp[1];
-                pSrc[2] = pSrcFrame->GetPlane(VPLANE)->GetAbsolutePelPointer(x[2], y[2]);
-                BLITCHROMA(pSrc_temp[2],nSrcPitch[2],pSrc[2],nSrcPitch_plane[2]);
                 pSrc[2] = pSrc_temp[2];
-            }
-#else
-            pSrc[0] = pSrcFrame->GetPlane(YPLANE)->GetAbsolutePelPointer(x[0], y[0]);
-            if (chroma)
-            {
-                pSrc[1] = pSrcFrame->GetPlane(UPLANE)->GetAbsolutePelPointer(x[1], y[1]);
-                pSrc[2] = pSrcFrame->GetPlane(VPLANE)->GetAbsolutePelPointer(x[2], y[2]);
+                nSrcPitch[1] = nSrcPitch_temp[1];
+                nSrcPitch[2] = nSrcPitch_temp[2];
             }
 #endif
 
@@ -580,24 +570,13 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
         y[2] = pSrcFrame->GetPlane(VPLANE)->GetVPadding();
     }
 
-#ifdef ALIGN_SOURCEBLOCK
-    nSrcPitch_plane[0] = pSrcFrame->GetPlane(YPLANE)->GetPitch();
-    if (chroma)
-    {
-        nSrcPitch_plane[1] = pSrcFrame->GetPlane(UPLANE)->GetPitch();
-        nSrcPitch_plane[2] = pSrcFrame->GetPlane(VPLANE)->GetPitch();
-    }
-    nSrcPitch[0] = nBlkSizeX * bytesPerSample;
-    nSrcPitch[1] = nBlkSizeX * bytesPerSample / xRatioUV;
-    nSrcPitch[2] = nBlkSizeX * bytesPerSample / xRatioUV;
-#else
     nSrcPitch[0] = pSrcFrame->GetPlane(YPLANE)->GetPitch();
     if (chroma)
     {
         nSrcPitch[1] = pSrcFrame->GetPlane(UPLANE)->GetPitch();
         nSrcPitch[2] = pSrcFrame->GetPlane(VPLANE)->GetPitch();
     }
-#endif
+
     nRefPitch[0] = pRefFrame->GetPlane(YPLANE)->GetPitch();
     if (chroma)
     {
@@ -652,28 +631,29 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
             blkx = blkxStart + iblkx*blkScanDir;
             blkIdx = blky*nBlkX + blkx;
 
-#ifdef ALIGN_SOURCEBLOCK
-            //store the pitch
             pSrc[0] = pSrcFrame->GetPlane(YPLANE)->GetAbsolutePelPointer(x[0], y[0]);
+            if (chroma)
+            {
+                pSrc[1] = pSrcFrame->GetPlane(UPLANE)->GetAbsolutePelPointer(x[1], y[1]);
+                pSrc[2] = pSrcFrame->GetPlane(VPLANE)->GetAbsolutePelPointer(x[2], y[2]);
+            }
+#ifdef ALIGN_SOURCEBLOCK
+            nSrcPitch[0] = pSrcFrame->GetPlane(YPLANE)->GetPitch();
             //create aligned copy
-            BLITLUMA  (pSrc_temp[0],nSrcPitch[0],pSrc[0],nSrcPitch_plane[0]);
+            BLITLUMA(pSrc_temp[0], nSrcPitch_temp[0], pSrc[0], nSrcPitch[0]);
             //set the to the aligned copy
             pSrc[0] = pSrc_temp[0];
+            nSrcPitch[0] = nSrcPitch_temp[0];
             if (chroma)
             {
-                pSrc[1] = pSrcFrame->GetPlane(UPLANE)->GetAbsolutePelPointer(x[1], y[1]);
-                pSrc[2] = pSrcFrame->GetPlane(VPLANE)->GetAbsolutePelPointer(x[2], y[2]);
-                BLITCHROMA(pSrc_temp[1],nSrcPitch[1],pSrc[1],nSrcPitch_plane[1]);
-                BLITCHROMA(pSrc_temp[2],nSrcPitch[2],pSrc[2],nSrcPitch_plane[2]);
+                nSrcPitch[1] = pSrcFrame->GetPlane(UPLANE)->GetPitch();
+                nSrcPitch[2] = pSrcFrame->GetPlane(VPLANE)->GetPitch();
+                BLITCHROMA(pSrc_temp[1], nSrcPitch_temp[1], pSrc[1], nSrcPitch[1]);
+                BLITCHROMA(pSrc_temp[2], nSrcPitch_temp[2], pSrc[2], nSrcPitch[2]);
                 pSrc[1] = pSrc_temp[1];
                 pSrc[2] = pSrc_temp[2];
-            }
-#else
-            pSrc[0] = pSrcFrame->GetPlane(YPLANE)->GetAbsolutePelPointer(x[0], y[0]);
-            if (chroma)
-            {
-                pSrc[1] = pSrcFrame->GetPlane(UPLANE)->GetAbsolutePelPointer(x[1], y[1]);
-                pSrc[2] = pSrcFrame->GetPlane(VPLANE)->GetAbsolutePelPointer(x[2], y[2]);
+                nSrcPitch[1] = nSrcPitch_temp[1];
+                nSrcPitch[2] = nSrcPitch_temp[2];
             }
 #endif
 
