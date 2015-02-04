@@ -42,10 +42,10 @@ typedef struct {
 
     float time;
     float ml;
-    int blend;
+    bool blend;
     int thscd1;
     int thscd2;
-    int isse;
+    bool isse;
 
     MVClipDicks *mvClipB;
     MVClipDicks *mvClipF;
@@ -134,8 +134,8 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
         const int nWidthUV = d->nWidthUV;
         const int nHeightUV = d->nHeightUV;
         const int time256 = d->time256;
-        const int blend = d->blend;
-        const int isse = d->isse;
+        const bool blend = d->blend;
+        const bool isse = d->isse;
 
         int bitsPerSample = d->vi->format->bitsPerSample;
         int bytesPerSample = d->vi->format->bytesPerSample;
@@ -525,11 +525,11 @@ static void VS_CC mvflowinterCreate(const VSMap *in, VSMap *out, void *userData,
     if (err)
         d.blend = 1;
 
-    d.thscd1 = vsapi->propGetInt(in, "thscd1", 0, &err);
+    d.thscd1 = int64ToIntS(vsapi->propGetInt(in, "thscd1", 0, &err));
     if (err)
         d.thscd1 = MV_DEFAULT_SCD1;
 
-    d.thscd2 = vsapi->propGetInt(in, "thscd2", 0, &err);
+    d.thscd2 = int64ToIntS(vsapi->propGetInt(in, "thscd2", 0, &err));
     if (err)
         d.thscd2 = MV_DEFAULT_SCD2;
 
@@ -562,8 +562,8 @@ static void VS_CC mvflowinterCreate(const VSMap *in, VSMap *out, void *userData,
     }
     const VSMap *props = vsapi->getFramePropsRO(evil);
     int evil_err[2];
-    int nHeightS = vsapi->propGetInt(props, "Super height", 0, &evil_err[0]);
-    d.nSuperHPad = vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]);
+    int nHeightS = int64ToIntS(vsapi->propGetInt(props, "Super height", 0, &evil_err[0]));
+    d.nSuperHPad = int64ToIntS(vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]));
     vsapi->freeFrame(evil);
 
     for (int i = 0; i < 2; i++)

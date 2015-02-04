@@ -89,11 +89,11 @@ static void VS_CC mvscdetectionCreate(const VSMap *in, VSMap *out, void *userDat
 
     int err;
 
-    d.thscd1 = vsapi->propGetInt(in, "thscd1", 0, &err);
+    d.thscd1 = int64ToIntS(vsapi->propGetInt(in, "thscd1", 0, &err));
     if (err)
         d.thscd1 = MV_DEFAULT_SCD1;
 
-    d.thscd2 = vsapi->propGetInt(in, "thscd2", 0, &err);
+    d.thscd2 = int64ToIntS(vsapi->propGetInt(in, "thscd2", 0, &err));
     if (err)
         d.thscd2 = MV_DEFAULT_SCD2;
 

@@ -44,7 +44,7 @@ typedef struct {
     int prec;
     int thscd1;
     int thscd2;
-    int isse;
+    bool isse;
 
     MVClipDicks *mvClipB;
     MVClipDicks *mvClipF;
@@ -456,23 +456,23 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
 
     int err;
 
-    d.blur = vsapi->propGetFloat(in, "blur", 0, &err);
+    d.blur = (float)vsapi->propGetFloat(in, "blur", 0, &err);
     if (err)
         d.blur = 50.0f;
 
-    d.prec = vsapi->propGetInt(in, "prec", 0, &err);
+    d.prec = int64ToIntS(vsapi->propGetInt(in, "prec", 0, &err));
     if (err)
         d.prec = 1;
 
-    d.thscd1 = vsapi->propGetInt(in, "thscd1", 0, &err);
+    d.thscd1 = int64ToIntS(vsapi->propGetInt(in, "thscd1", 0, &err));
     if (err)
         d.thscd1 = MV_DEFAULT_SCD1;
 
-    d.thscd2 = vsapi->propGetInt(in, "thscd2", 0, &err);
+    d.thscd2 = int64ToIntS(vsapi->propGetInt(in, "thscd2", 0, &err));
     if (err)
         d.thscd2 = MV_DEFAULT_SCD2;
 
-    d.isse = vsapi->propGetInt(in, "isse", 0, &err);
+    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
     if (err)
         d.isse = 1;
 
@@ -501,8 +501,8 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
     }
     const VSMap *props = vsapi->getFramePropsRO(evil);
     int evil_err[2];
-    int nHeightS = vsapi->propGetInt(props, "Super height", 0, &evil_err[0]);
-    d.nSuperHPad = vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]);
+    int nHeightS = int64ToIntS(vsapi->propGetInt(props, "Super height", 0, &evil_err[0]));
+    d.nSuperHPad = int64ToIntS(vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]));
     vsapi->freeFrame(evil);
 
     for (int i = 0; i < 2; i++)

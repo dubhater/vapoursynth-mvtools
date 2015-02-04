@@ -43,9 +43,9 @@ typedef struct {
     int64_t num, den;
     int maskmode;
     double ml;
-    int blend;
+    bool blend;
     int thscd1, thscd2;
-    int isse;
+    bool isse;
 
     MVClipDicks *mvClipB;
     MVClipDicks *mvClipF;
@@ -203,8 +203,8 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
         const int nWidthUV = d->nWidthUV;
         const int nHeightUV = d->nHeightUV;
         const int maskmode = d->maskmode;
-        const int blend = d->blend;
-        const int isse = d->isse;
+        const bool blend = d->blend;
+        const bool isse = d->isse;
         const double ml = d->ml;
         const int xRatioUV = d->bleh->xRatioUV;
         const int yRatioUV = d->bleh->yRatioUV;
@@ -629,7 +629,7 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
     if (err)
         d.den = 1;
 
-    d.maskmode = vsapi->propGetInt(in, "mask", 0, &err);
+    d.maskmode = int64ToIntS(vsapi->propGetInt(in, "mask", 0, &err));
     if (err)
         d.maskmode = 2;
 
@@ -641,15 +641,15 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
     if (err)
         d.blend = 1;
 
-    d.thscd1 = vsapi->propGetInt(in, "thscd1", 0, &err);
+    d.thscd1 = int64ToIntS(vsapi->propGetInt(in, "thscd1", 0, &err));
     if (err)
         d.thscd1 = MV_DEFAULT_SCD1;
 
-    d.thscd2 = vsapi->propGetInt(in, "thscd2", 0, &err);
+    d.thscd2 = int64ToIntS(vsapi->propGetInt(in, "thscd2", 0, &err));
     if (err)
         d.thscd2 = MV_DEFAULT_SCD2;
 
-    d.isse = vsapi->propGetInt(in, "isse", 0, &err);
+    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
     if (err)
         d.isse = 1;
 
@@ -676,8 +676,8 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
     }
     const VSMap *props = vsapi->getFramePropsRO(evil);
     int evil_err[2];
-    int nHeightS = vsapi->propGetInt(props, "Super height", 0, &evil_err[0]);
-    d.nSuperHPad = vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]);
+    int nHeightS = int64ToIntS(vsapi->propGetInt(props, "Super height", 0, &evil_err[0]));
+    d.nSuperHPad = int64ToIntS(vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]));
     vsapi->freeFrame(evil);
 
     for (int i = 0; i < 2; i++)

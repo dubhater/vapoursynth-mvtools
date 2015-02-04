@@ -40,8 +40,8 @@ typedef struct {
     bool fields;
     int nSCD1;
     int nSCD2;
-    int isse;
-    int tff;
+    bool isse;
+    bool tff;
     int tffexists;
 
     MVClipDicks *mvClip;
@@ -143,7 +143,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
         const int nBlkSizeY = d->bleh->nBlkSizeY;
         const int nBlkX = d->bleh->nBlkX;
         const int nBlkY = d->bleh->nBlkY;
-        const int isse = d->isse;
+        const bool isse = d->isse;
         const int thSAD = d->thSAD;
         const int dstTempPitch = d->dstTempPitch;
         const int dstTempPitchUV = d->dstTempPitchUV;
@@ -203,7 +203,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
             {
                 int err;
                 const VSMap *props = vsapi->getFramePropsRO(src);
-                bool paritySrc = vsapi->propGetInt(props, "_Field", 0, &err); //child->GetParity(n);
+                bool paritySrc = !!vsapi->propGetInt(props, "_Field", 0, &err); //child->GetParity(n);
                 if (err && !d->tffexists) {
                     vsapi->setFilterError("Compensate: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
                     delete pRefGOF;
@@ -215,7 +215,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                 }
 
                 props = vsapi->getFramePropsRO(ref);
-                bool parityRef = vsapi->propGetInt(props, "_Field", 0, &err); //child->GetParity(nref);
+                bool parityRef = !!vsapi->propGetInt(props, "_Field", 0, &err); //child->GetParity(nref);
                 if (err && !d->tffexists) {
                     vsapi->setFilterError("Compensate: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
                     delete pRefGOF;
@@ -620,25 +620,25 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
 
     int err;
 
-    d.scBehavior = vsapi->propGetInt(in, "scbehavior", 0, &err);
+    d.scBehavior = !!vsapi->propGetInt(in, "scbehavior", 0, &err);
     if (err)
         d.scBehavior = 1;
 
-    d.thSAD = vsapi->propGetInt(in, "thsad", 0, &err);
+    d.thSAD = int64ToIntS(vsapi->propGetInt(in, "thsad", 0, &err));
     if (err)
         d.thSAD = 10000;
 
-    d.fields = vsapi->propGetInt(in, "fields", 0, &err);
+    d.fields = !!vsapi->propGetInt(in, "fields", 0, &err);
 
-    d.nSCD1 = vsapi->propGetInt(in, "thscd1", 0, &err);
+    d.nSCD1 = int64ToIntS(vsapi->propGetInt(in, "thscd1", 0, &err));
     if (err)
         d.nSCD1 = MV_DEFAULT_SCD1;
 
-    d.nSCD2 = vsapi->propGetInt(in, "thscd2", 0, &err);
+    d.nSCD2 = int64ToIntS(vsapi->propGetInt(in, "thscd2", 0, &err));
     if (err)
         d.nSCD2 = MV_DEFAULT_SCD2;
 
-    d.isse = vsapi->propGetInt(in, "isse", 0, &err);
+    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
     if (err)
         d.isse = 1;
 
@@ -657,12 +657,12 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
     }
     const VSMap *props = vsapi->getFramePropsRO(evil);
     int evil_err[6];
-    int nHeightS = vsapi->propGetInt(props, "Super height", 0, &evil_err[0]);
-    d.nSuperHPad = vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]);
-    d.nSuperVPad = vsapi->propGetInt(props, "Super vpad", 0, &evil_err[2]);
-    d.nSuperPel = vsapi->propGetInt(props, "Super pel", 0, &evil_err[3]);
-    d.nSuperModeYUV = vsapi->propGetInt(props, "Super modeyuv", 0, &evil_err[4]);
-    d.nSuperLevels = vsapi->propGetInt(props, "Super levels", 0, &evil_err[5]);
+    int nHeightS = int64ToIntS(vsapi->propGetInt(props, "Super height", 0, &evil_err[0]));
+    d.nSuperHPad = int64ToIntS(vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]));
+    d.nSuperVPad = int64ToIntS(vsapi->propGetInt(props, "Super vpad", 0, &evil_err[2]));
+    d.nSuperPel = int64ToIntS(vsapi->propGetInt(props, "Super pel", 0, &evil_err[3]));
+    d.nSuperModeYUV = int64ToIntS(vsapi->propGetInt(props, "Super modeyuv", 0, &evil_err[4]));
+    d.nSuperLevels = int64ToIntS(vsapi->propGetInt(props, "Super levels", 0, &evil_err[5]));
     vsapi->freeFrame(evil);
 
     for (int i = 0; i < 6; i++)

@@ -40,7 +40,7 @@ typedef struct {
     int nLimit[3];
     int nSCD1;
     int nSCD2;
-    int isse;
+    bool isse;
 
     MVClipDicks *mvClips[6];
 
@@ -184,7 +184,7 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
         const int yRatioUV = d->bleh->yRatioUV;
         const int nBlkX = d->bleh->nBlkX;
         const int nBlkY = d->bleh->nBlkY;
-        const int isse = d->isse;
+        const bool isse = d->isse;
         const int YUVplanes = d->YUVplanes;
         const int dstTempPitch = d->dstTempPitch;
         const int *nWidth = d->nWidth;
@@ -530,27 +530,27 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
 
     int err;
 
-    d.thSAD[0] = vsapi->propGetInt(in, "thsad", 0, &err);
+    d.thSAD[0] = int64ToIntS(vsapi->propGetInt(in, "thsad", 0, &err));
     if (err)
         d.thSAD[0] = 400;
 
-    d.thSAD[1] = d.thSAD[2] = vsapi->propGetInt(in, "thsadc", 0, &err);
+    d.thSAD[1] = d.thSAD[2] = int64ToIntS(vsapi->propGetInt(in, "thsadc", 0, &err));
     if (err)
         d.thSAD[1] = d.thSAD[2] = d.thSAD[0];
 
-    int plane = vsapi->propGetInt(in, "plane", 0, &err);
+    int plane = int64ToIntS(vsapi->propGetInt(in, "plane", 0, &err));
     if (err)
         plane = 4;
 
-    d.nSCD1 = vsapi->propGetInt(in, "thscd1", 0, &err);
+    d.nSCD1 = int64ToIntS(vsapi->propGetInt(in, "thscd1", 0, &err));
     if (err)
         d.nSCD1 = MV_DEFAULT_SCD1;
 
-    d.nSCD2 = vsapi->propGetInt(in, "thscd2", 0, &err);
+    d.nSCD2 = int64ToIntS(vsapi->propGetInt(in, "thscd2", 0, &err));
     if (err)
         d.nSCD2 = MV_DEFAULT_SCD2;
 
-    d.isse = vsapi->propGetInt(in, "isse", 0, &err);
+    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
     if (err)
         d.isse = 1;
 
@@ -575,12 +575,12 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
     }
     const VSMap *props = vsapi->getFramePropsRO(evil);
     int evil_err[6];
-    int nHeightS = vsapi->propGetInt(props, "Super height", 0, &evil_err[0]);
-    d.nSuperHPad = vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]);
-    d.nSuperVPad = vsapi->propGetInt(props, "Super vpad", 0, &evil_err[2]);
-    d.nSuperPel = vsapi->propGetInt(props, "Super pel", 0, &evil_err[3]);
-    d.nSuperModeYUV = vsapi->propGetInt(props, "Super modeyuv", 0, &evil_err[4]);
-    d.nSuperLevels = vsapi->propGetInt(props, "Super levels", 0, &evil_err[5]);
+    int nHeightS = int64ToIntS(vsapi->propGetInt(props, "Super height", 0, &evil_err[0]));
+    d.nSuperHPad = int64ToIntS(vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]));
+    d.nSuperVPad = int64ToIntS(vsapi->propGetInt(props, "Super vpad", 0, &evil_err[2]));
+    d.nSuperPel = int64ToIntS(vsapi->propGetInt(props, "Super pel", 0, &evil_err[3]));
+    d.nSuperModeYUV = int64ToIntS(vsapi->propGetInt(props, "Super modeyuv", 0, &evil_err[4]));
+    d.nSuperLevels = int64ToIntS(vsapi->propGetInt(props, "Super levels", 0, &evil_err[5]));
     vsapi->freeFrame(evil);
 
     for (int i = 0; i < 6; i++)
@@ -725,11 +725,11 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
 
     int pixelMax = (1 << d.vi->format->bitsPerSample) - 1;
 
-    d.nLimit[0] = vsapi->propGetInt(in, "limit", 0, &err);
+    d.nLimit[0] = int64ToIntS(vsapi->propGetInt(in, "limit", 0, &err));
     if (err)
         d.nLimit[0] = pixelMax;
 
-    d.nLimit[1] = d.nLimit[2] = vsapi->propGetInt(in, "limitc", 0, &err);
+    d.nLimit[1] = d.nLimit[2] = int64ToIntS(vsapi->propGetInt(in, "limitc", 0, &err));
     if (err)
         d.nLimit[1] = d.nLimit[2] = d.nLimit[0];
 
@@ -768,9 +768,9 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
 
     d.dstTempPitch = ((d.bleh->nWidth + 15)/16)*16 * d.vi->format->bytesPerSample * 2;
 
-    d.process[0] = d.YUVplanes & YPLANE;
-    d.process[1] = d.YUVplanes & UPLANE & d.nSuperModeYUV;
-    d.process[2] = d.YUVplanes & VPLANE & d.nSuperModeYUV;
+    d.process[0] = !!(d.YUVplanes & YPLANE);
+    d.process[1] = !!(d.YUVplanes & UPLANE & d.nSuperModeYUV);
+    d.process[2] = !!(d.YUVplanes & VPLANE & d.nSuperModeYUV);
 
     d.xSubUV = d.vi->format->subSamplingW;
     d.ySubUV = d.vi->format->subSamplingH;

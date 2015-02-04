@@ -56,17 +56,17 @@ PlaneOfBlocks::PlaneOfBlocks(int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSi
     bitsPerSample = _bitsPerSample;
     bytesPerSample = (bitsPerSample + 7) / 8;
 
-    smallestPlane = (bool)(nMotionFlags & MOTION_SMALLEST_PLANE);
-    isse = (bool)(nMotionFlags & MOTION_USE_ISSE);
-    chroma = (bool)(nMotionFlags & MOTION_USE_CHROMA_MOTION);
+    smallestPlane = !!(nMotionFlags & MOTION_SMALLEST_PLANE);
+    isse = !!(nMotionFlags & MOTION_USE_ISSE);
+    chroma = !!(nMotionFlags & MOTION_USE_CHROMA_MOTION);
 
-    bool cache64 = (bool)(nCPUFlags & X264_CPU_CACHELINE_64);
-    bool sse3 = (bool)(nCPUFlags & X264_CPU_SSE3);
-    bool ssse3 = (bool)(nCPUFlags & X264_CPU_SSSE3);
-    bool sse41 = (bool)(nCPUFlags & X264_CPU_SSE4);
-    bool avx = (bool)(nCPUFlags & X264_CPU_AVX);
-    bool xop = (bool)(nCPUFlags & X264_CPU_XOP);
-    bool avx2 = (bool)(nCPUFlags & X264_CPU_AVX2);
+    bool cache64 = !!(nCPUFlags & X264_CPU_CACHELINE_64);
+    bool sse3 = !!(nCPUFlags & X264_CPU_SSE3);
+    bool ssse3 = !!(nCPUFlags & X264_CPU_SSSE3);
+    bool sse41 = !!(nCPUFlags & X264_CPU_SSE4);
+    bool avx = !!(nCPUFlags & X264_CPU_AVX);
+    bool xop = !!(nCPUFlags & X264_CPU_XOP);
+    bool avx2 = !!(nCPUFlags & X264_CPU_AVX2);
 
     globalMVPredictor.x = zeroMV.x;
     globalMVPredictor.y = zeroMV.y;

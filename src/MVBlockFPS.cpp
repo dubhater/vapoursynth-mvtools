@@ -44,9 +44,9 @@ typedef struct {
     int64_t num, den;
     int mode;
     int thres;
-    int blend;
+    bool blend;
     int thscd1, thscd2;
-    int isse;
+    bool isse;
 
     MVClipDicks *mvClipB;
     MVClipDicks *mvClipF;
@@ -366,8 +366,8 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
         const int nHeightPUV = d->nHeightPUV;
         const int mode = d->mode;
         const int thres = d->thres;
-        const int blend = d->blend;
-        const int isse = d->isse;
+        const bool blend = d->blend;
+        const bool isse = d->isse;
         const int xRatioUV = d->bleh->xRatioUV;
         const int yRatioUV = d->bleh->yRatioUV;
         const int nBlkX = d->bleh->nBlkX;
@@ -767,24 +767,24 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     if (err)
         d.den = 1;
 
-    d.mode = vsapi->propGetInt(in, "mode", 0, &err);
+    d.mode = int64ToIntS(vsapi->propGetInt(in, "mode", 0, &err));
 
-    d.thres = vsapi->propGetInt(in, "thres", 0, &thres_err);
+    d.thres = int64ToIntS(vsapi->propGetInt(in, "thres", 0, &thres_err));
     // The default value is computed later.
 
     d.blend = !!vsapi->propGetInt(in, "blend", 0, &err);
     if (err)
         d.blend = 1;
 
-    d.thscd1 = vsapi->propGetInt(in, "thscd1", 0, &err);
+    d.thscd1 = int64ToIntS(vsapi->propGetInt(in, "thscd1", 0, &err));
     if (err)
         d.thscd1 = MV_DEFAULT_SCD1;
 
-    d.thscd2 = vsapi->propGetInt(in, "thscd2", 0, &err);
+    d.thscd2 = int64ToIntS(vsapi->propGetInt(in, "thscd2", 0, &err));
     if (err)
         d.thscd2 = MV_DEFAULT_SCD2;
 
-    d.isse = vsapi->propGetInt(in, "isse", 0, &err);
+    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
     if (err)
         d.isse = 1;
 
@@ -806,12 +806,12 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     }
     const VSMap *props = vsapi->getFramePropsRO(evil);
     int evil_err[6];
-    int nHeightS = vsapi->propGetInt(props, "Super height", 0, &evil_err[0]);
-    d.nSuperHPad = vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]);
-    d.nSuperVPad = vsapi->propGetInt(props, "Super vpad", 0, &evil_err[2]);
-    d.nSuperPel = vsapi->propGetInt(props, "Super pel", 0, &evil_err[3]);
-    d.nSuperModeYUV = vsapi->propGetInt(props, "Super modeyuv", 0, &evil_err[4]);
-    d.nSuperLevels = vsapi->propGetInt(props, "Super levels", 0, &evil_err[5]);
+    int nHeightS = int64ToIntS(vsapi->propGetInt(props, "Super height", 0, &evil_err[0]));
+    d.nSuperHPad = int64ToIntS(vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]));
+    d.nSuperVPad = int64ToIntS(vsapi->propGetInt(props, "Super vpad", 0, &evil_err[2]));
+    d.nSuperPel = int64ToIntS(vsapi->propGetInt(props, "Super pel", 0, &evil_err[3]));
+    d.nSuperModeYUV = int64ToIntS(vsapi->propGetInt(props, "Super modeyuv", 0, &evil_err[4]));
+    d.nSuperLevels = int64ToIntS(vsapi->propGetInt(props, "Super levels", 0, &evil_err[5]));
     vsapi->freeFrame(evil);
 
     for (int i = 0; i < 6; i++)
