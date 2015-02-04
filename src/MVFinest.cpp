@@ -171,7 +171,7 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
 
     int err;
 
-    d.isse = vsapi->propGetInt(in, "isse", 0, &err);
+    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
     if (err)
         d.isse = 1;
 
@@ -197,12 +197,12 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
     }
     const VSMap *props = vsapi->getFramePropsRO(evil);
     int evil_err[6];
-    d.nHeight = vsapi->propGetInt(props, "Super height", 0, &evil_err[0]);
-    d.nSuperHPad = vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]);
-    d.nSuperVPad = vsapi->propGetInt(props, "Super vpad", 0, &evil_err[2]);
-    d.nSuperPel = vsapi->propGetInt(props, "Super pel", 0, &evil_err[3]);
-    d.nSuperModeYUV = vsapi->propGetInt(props, "Super modeyuv", 0, &evil_err[4]);
-    d.nSuperLevels = vsapi->propGetInt(props, "Super levels", 0, &evil_err[5]);
+    d.nHeight = int64ToIntS(vsapi->propGetInt(props, "Super height", 0, &evil_err[0]));
+    d.nSuperHPad = int64ToIntS(vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]));
+    d.nSuperVPad = int64ToIntS(vsapi->propGetInt(props, "Super vpad", 0, &evil_err[2]));
+    d.nSuperPel = int64ToIntS(vsapi->propGetInt(props, "Super pel", 0, &evil_err[3]));
+    d.nSuperModeYUV = int64ToIntS(vsapi->propGetInt(props, "Super modeyuv", 0, &evil_err[4]));
+    d.nSuperLevels = int64ToIntS(vsapi->propGetInt(props, "Super levels", 0, &evil_err[5]));
     vsapi->freeFrame(evil);
 
     for (int i = 0; i < 6; i++)

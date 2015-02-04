@@ -154,7 +154,7 @@ class MVAnalysisData
         inline int GetDeltaFrame() const { return nDeltaFrame; }
         inline int GetWidth() const { return nWidth; }
         inline int GetHeight() const { return nHeight; }
-        inline bool IsChromaMotion() const { return nMotionFlags & MOTION_USE_CHROMA_MOTION; }
+        inline bool IsChromaMotion() const { return !!(nMotionFlags & MOTION_USE_CHROMA_MOTION); }
         inline int GetOverlapX() const { return nOverlapX; }
         inline int GetBlkX() const { return nBlkX; }
         inline int GetBlkY() const { return nBlkY; }

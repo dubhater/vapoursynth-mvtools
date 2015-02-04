@@ -58,16 +58,16 @@ typedef struct {
     int blksizev;
     int search;
     int searchparam;
-    int chroma;
-    int truemotion;
+    bool chroma;
+    bool truemotion;
     int overlap;
     int overlapv;
     int smooth;
     int thSAD;
     VSNodeRef *vectors;
 
-    int fields;
-    int tff;
+    bool fields;
+    bool tff;
     int tffexists;
 } MVRecalculateData;
 
@@ -116,7 +116,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
         const VSMap *srcprops = vsapi->getFramePropsRO(src);
         int err;
 
-        bool srctff = vsapi->propGetInt(srcprops, "_Field", 0, &err);
+        bool srctff = !!vsapi->propGetInt(srcprops, "_Field", 0, &err);
         if (err && d->fields && !d->tffexists) {
             vsapi->setFilterError("Recalculate: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
             delete vectorFields;
@@ -162,7 +162,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->node, frameCtx);
             const VSMap *refprops = vsapi->getFramePropsRO(ref);
 
-            bool reftff = vsapi->propGetInt(refprops, "_Field", 0, &err);
+            bool reftff = !!vsapi->propGetInt(refprops, "_Field", 0, &err);
             if (err && d->fields && !d->tffexists) {
                 vsapi->setFilterError("Recalculate: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
                 delete vectorFields;
@@ -258,67 +258,67 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
     int err;
 
-    d.thSAD = vsapi->propGetInt(in, "thsad", 0, &err);
+    d.thSAD = int64ToIntS(vsapi->propGetInt(in, "thsad", 0, &err));
     if (err)
         d.thSAD = 200;
 
-    d.smooth = vsapi->propGetInt(in, "smooth", 0, &err);
+    d.smooth = int64ToIntS(vsapi->propGetInt(in, "smooth", 0, &err));
     if (err)
         d.smooth = 1;
 
-    d.blksize = vsapi->propGetInt(in, "blksize", 0, &err);
+    d.blksize = int64ToIntS(vsapi->propGetInt(in, "blksize", 0, &err));
     if (err)
         d.blksize = 8;
 
-    d.blksizev = vsapi->propGetInt(in, "blksizev", 0, &err);
+    d.blksizev = int64ToIntS(vsapi->propGetInt(in, "blksizev", 0, &err));
     if (err)
         d.blksizev = d.blksize;
 
-    d.search = vsapi->propGetInt(in, "search", 0, &err);
+    d.search = int64ToIntS(vsapi->propGetInt(in, "search", 0, &err));
     if (err)
         d.search = 4;
 
-    d.searchparam = vsapi->propGetInt(in, "searchparam", 0, &err);
+    d.searchparam = int64ToIntS(vsapi->propGetInt(in, "searchparam", 0, &err));
     if (err)
         d.searchparam = 2;
 
-    d.chroma = vsapi->propGetInt(in, "chroma", 0, &err);
+    d.chroma = !!vsapi->propGetInt(in, "chroma", 0, &err);
     if (err)
         d.chroma = 1;
 
-    d.truemotion = vsapi->propGetInt(in, "truemotion", 0, &err);
+    d.truemotion = !!vsapi->propGetInt(in, "truemotion", 0, &err);
     if (err)
         d.truemotion = 1;
 
-    d.nLambda = vsapi->propGetInt(in, "lambda", 0, &err);
+    d.nLambda = int64ToIntS(vsapi->propGetInt(in, "lambda", 0, &err));
     if (err)
         d.nLambda = d.truemotion ? (1000 * d.blksize * d.blksizev / 64) : 0;
 
-    d.pnew = vsapi->propGetInt(in, "pnew", 0, &err);
+    d.pnew = int64ToIntS(vsapi->propGetInt(in, "pnew", 0, &err));
     if (err)
         d.pnew = d.truemotion ? 50 : 0; // relative to 256
 
-    d.overlap = vsapi->propGetInt(in, "overlap", 0, &err);
+    d.overlap = int64ToIntS(vsapi->propGetInt(in, "overlap", 0, &err));
 
-    d.overlapv = vsapi->propGetInt(in, "overlapv", 0, &err);
+    d.overlapv = int64ToIntS(vsapi->propGetInt(in, "overlapv", 0, &err));
     if (err)
         d.overlapv = d.overlap;
 
-    d.dctmode = vsapi->propGetInt(in, "dct", 0, &err);
+    d.dctmode = int64ToIntS(vsapi->propGetInt(in, "dct", 0, &err));
 
-    d.divideExtra = vsapi->propGetInt(in, "divide", 0, &err);
+    d.divideExtra = int64ToIntS(vsapi->propGetInt(in, "divide", 0, &err));
 
-    d.isse = vsapi->propGetInt(in, "isse", 0, &err);
+    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
     if (err)
         d.isse = 1;
 
-    d.meander = vsapi->propGetInt(in, "meander", 0, &err);
+    d.meander = !!vsapi->propGetInt(in, "meander", 0, &err);
     if (err)
         d.meander = 1;
 
     d.fields = !!vsapi->propGetInt(in, "fields", 0, &err);
 
-    d.tff = vsapi->propGetInt(in, "tff", 0, &err);
+    d.tff = !!vsapi->propGetInt(in, "tff", 0, &err);
     d.tffexists = err;
 
 
@@ -422,12 +422,12 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     }
     const VSMap *props = vsapi->getFramePropsRO(evil);
     int evil_err[6];
-    int nHeight = vsapi->propGetInt(props, "Super height", 0, &evil_err[0]);
-    d.nSuperHPad = vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]);
-    d.nSuperVPad = vsapi->propGetInt(props, "Super vpad", 0, &evil_err[2]);
-    d.nSuperPel = vsapi->propGetInt(props, "Super pel", 0, &evil_err[3]);
-    d.nSuperModeYUV = vsapi->propGetInt(props, "Super modeyuv", 0, &evil_err[4]);
-    d.nSuperLevels = vsapi->propGetInt(props, "Super levels", 0, &evil_err[5]);
+    int nHeight = int64ToIntS(vsapi->propGetInt(props, "Super height", 0, &evil_err[0]));
+    d.nSuperHPad = int64ToIntS(vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]));
+    d.nSuperVPad = int64ToIntS(vsapi->propGetInt(props, "Super vpad", 0, &evil_err[2]));
+    d.nSuperPel = int64ToIntS(vsapi->propGetInt(props, "Super pel", 0, &evil_err[3]));
+    d.nSuperModeYUV = int64ToIntS(vsapi->propGetInt(props, "Super modeyuv", 0, &evil_err[4]));
+    d.nSuperLevels = int64ToIntS(vsapi->propGetInt(props, "Super levels", 0, &evil_err[5]));
     vsapi->freeFrame(evil);
 
     for (int i = 0; i < 6; i++)
@@ -477,7 +477,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     d.analysisData.bitsPerSample = d.supervi->format->bitsPerSample;
 
     int pixelMax = (1 << d.supervi->format->bitsPerSample) - 1;
-    d.thSAD = (double)d.thSAD * pixelMax / 255 + 0.5;
+    d.thSAD = int((double)d.thSAD * pixelMax / 255.0 + 0.5);
 
     // normalize threshold to block size
     int referenceBlockSize = 8 * 8;

@@ -73,7 +73,7 @@ MVClipDicks::MVClipDicks(VSNodeRef *vectors, int _nSCD1, int _nSCD2, const VSAPI
         nSCD1 += nSCD1 / (xRatioUV * yRatioUV) * 2;
 
     int pixelMax = (1 << bitsPerSample) - 1;
-    nSCD1 = (double)nSCD1 * pixelMax / 255 + 0.5;
+    nSCD1 = int((double)nSCD1 * pixelMax / 255.0 + 0.5);
 
     nSCD2 = _nSCD2 * nBlkCount / 256;
 

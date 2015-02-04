@@ -34,7 +34,7 @@ typedef struct {
     VSVideoInfo vi;
 
     VSNodeRef *vectors;
-    int ml;
+    float ml;
     float fGamma;
     int kind;
     int nSceneChangeValue;
@@ -249,23 +249,23 @@ static void VS_CC mvmaskCreate(const VSMap *in, VSMap *out, void *userData, VSCo
 
     int err;
 
-    d.ml = vsapi->propGetFloat(in, "ml", 0, &err);
+    d.ml = (float)vsapi->propGetFloat(in, "ml", 0, &err);
     if (err)
-        d.ml = 100.0;
+        d.ml = 100.0f;
 
     d.fGamma = (float)vsapi->propGetFloat(in, "gamma", 0, &err);
     if (err)
         d.fGamma = 1.0f;
 
-    d.kind = vsapi->propGetInt(in, "kind", 0, &err);
+    d.kind = int64ToIntS(vsapi->propGetInt(in, "kind", 0, &err));
 
-    d.nSceneChangeValue = vsapi->propGetInt(in, "ysc", 0, &err);
+    d.nSceneChangeValue = int64ToIntS(vsapi->propGetInt(in, "ysc", 0, &err));
 
-    d.thscd1 = vsapi->propGetInt(in, "thscd1", 0, &err);
+    d.thscd1 = int64ToIntS(vsapi->propGetInt(in, "thscd1", 0, &err));
     if (err)
         d.thscd1 = MV_DEFAULT_SCD1;
 
-    d.thscd2 = vsapi->propGetInt(in, "thscd2", 0, &err);
+    d.thscd2 = int64ToIntS(vsapi->propGetInt(in, "thscd2", 0, &err));
     if (err)
         d.thscd2 = MV_DEFAULT_SCD2;
 

@@ -102,7 +102,7 @@ unsigned int Real_Satd_4x4_C(const uint8_t *pSrc8, intptr_t nSrcPitch, const uin
         sum += ((SumType)a0) + (a0 >> bitsPerSum);
     }
 
-    return sum >> 1;
+    return (unsigned int)(sum >> 1);
 }
 
 
@@ -141,7 +141,7 @@ unsigned int Real_Satd_8x4_C(const uint8_t *pSrc8, intptr_t nSrcPitch, const uin
         sum += abs2<SumType, SumType2>(a0) + abs2<SumType, SumType2>(a1) + abs2<SumType, SumType2>(a2) + abs2<SumType, SumType2>(a3);
     }
 
-    return (((SumType)sum) + (sum >> bitsPerSum)) >> 1;
+    return (unsigned int)((((SumType)sum) + (sum >> bitsPerSum)) >> 1);
 }
 
 

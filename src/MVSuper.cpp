@@ -144,29 +144,29 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
 
     int err;
 
-    d.nHPad = vsapi->propGetInt(in, "hpad", 0, &err);
+    d.nHPad = int64ToIntS(vsapi->propGetInt(in, "hpad", 0, &err));
     if (err)
         d.nHPad = 8;
 
-    d.nVPad = vsapi->propGetInt(in, "vpad", 0, &err);
+    d.nVPad = int64ToIntS(vsapi->propGetInt(in, "vpad", 0, &err));
     if (err)
         d.nVPad = 8;
 
-    d.nPel = vsapi->propGetInt(in, "pel", 0, &err);
+    d.nPel = int64ToIntS(vsapi->propGetInt(in, "pel", 0, &err));
     if (err)
         d.nPel = 2;
 
-    d.nLevels = vsapi->propGetInt(in, "levels", 0, &err);
+    d.nLevels = int64ToIntS(vsapi->propGetInt(in, "levels", 0, &err));
 
     d.chroma = !!vsapi->propGetInt(in, "chroma", 0, &err);
     if (err)
         d.chroma = 1;
 
-    d.sharp = vsapi->propGetInt(in, "sharp", 0, &err); // pel2 interpolation type
+    d.sharp = int64ToIntS(vsapi->propGetInt(in, "sharp", 0, &err)); // pel2 interpolation type
     if (err)
         d.sharp = 2;
 
-    d.rfilter = vsapi->propGetInt(in, "rfilter", 0, &err);
+    d.rfilter = int64ToIntS(vsapi->propGetInt(in, "rfilter", 0, &err));
     if (err)
         d.rfilter = 2;
 

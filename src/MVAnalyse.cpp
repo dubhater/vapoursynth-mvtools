@@ -68,15 +68,15 @@ typedef struct {
     int search;
     int search_coarse;
     int searchparam;
-    int isb;
-    int chroma;
+    bool isb;
+    bool chroma;
     int delta;
-    int truemotion;
+    bool truemotion;
     int overlap;
     int overlapv;
 
-    int fields;
-    int tff;
+    bool fields;
+    bool tff;
     int tffexists;
 } MVAnalyseData;
 
@@ -143,7 +143,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         const VSMap *srcprops = vsapi->getFramePropsRO(src);
         int err;
 
-        bool srctff = vsapi->propGetInt(srcprops, "_Field", 0, &err);
+        bool srctff = !!vsapi->propGetInt(srcprops, "_Field", 0, &err);
         if (err && d->fields && !d->tffexists) {
             vsapi->setFilterError("Analyse: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
             delete vectorFields;
@@ -185,7 +185,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->node, frameCtx);
             const VSMap *refprops = vsapi->getFramePropsRO(ref);
 
-            bool reftff = vsapi->propGetInt(refprops, "_Field", 0, &err);
+            bool reftff = !!vsapi->propGetInt(refprops, "_Field", 0, &err);
             if (err && d->fields && !d->tffexists) {
                 vsapi->setFilterError("Analyse: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
                 delete vectorFields;
@@ -278,101 +278,101 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     int err;
 
-    d.blksize = vsapi->propGetInt(in, "blksize", 0, &err);
+    d.blksize = int64ToIntS(vsapi->propGetInt(in, "blksize", 0, &err));
     if (err)
         d.blksize = 8;
 
-    d.blksizev = vsapi->propGetInt(in, "blksizev", 0, &err);
+    d.blksizev = int64ToIntS(vsapi->propGetInt(in, "blksizev", 0, &err));
     if (err)
         d.blksizev = d.blksize;
 
-    d.levels = vsapi->propGetInt(in, "levels", 0, &err);
+    d.levels = int64ToIntS(vsapi->propGetInt(in, "levels", 0, &err));
 
-    d.search = vsapi->propGetInt(in, "search", 0, &err);
+    d.search = int64ToIntS(vsapi->propGetInt(in, "search", 0, &err));
     if (err)
         d.search = 4;
 
-    d.search_coarse = vsapi->propGetInt(in, "search_coarse", 0, &err);
+    d.search_coarse = int64ToIntS(vsapi->propGetInt(in, "search_coarse", 0, &err));
     if (err)
         d.search_coarse = 3;
 
-    d.searchparam = vsapi->propGetInt(in, "searchparam", 0, &err);
+    d.searchparam = int64ToIntS(vsapi->propGetInt(in, "searchparam", 0, &err));
     if (err)
         d.searchparam = 2;
 
-    d.nPelSearch = vsapi->propGetInt(in, "pelsearch", 0, &err);
+    d.nPelSearch = int64ToIntS(vsapi->propGetInt(in, "pelsearch", 0, &err));
 
-    d.isb = vsapi->propGetInt(in, "isb", 0, &err);
+    d.isb = !!vsapi->propGetInt(in, "isb", 0, &err);
 
-    d.chroma = vsapi->propGetInt(in, "chroma", 0, &err);
+    d.chroma = !!vsapi->propGetInt(in, "chroma", 0, &err);
     if (err)
         d.chroma = 1;
 
-    d.delta = vsapi->propGetInt(in, "delta", 0, &err);
+    d.delta = int64ToIntS(vsapi->propGetInt(in, "delta", 0, &err));
     if (err)
         d.delta = 1;
 
-    d.truemotion = vsapi->propGetInt(in, "truemotion", 0, &err);
+    d.truemotion = !!vsapi->propGetInt(in, "truemotion", 0, &err);
     if (err)
         d.truemotion = 1;
 
-    d.nLambda = vsapi->propGetInt(in, "lambda", 0, &err);
+    d.nLambda = int64ToIntS(vsapi->propGetInt(in, "lambda", 0, &err));
     if (err)
         d.nLambda = d.truemotion ? (1000 * d.blksize * d.blksizev / 64) : 0;
 
-    d.lsad = vsapi->propGetInt(in, "lsad", 0, &err);
+    d.lsad = int64ToIntS(vsapi->propGetInt(in, "lsad", 0, &err));
     if (err)
         d.lsad = d.truemotion ? 1200 : 400;
 
-    d.plevel = vsapi->propGetInt(in, "plevel", 0, &err);
+    d.plevel = int64ToIntS(vsapi->propGetInt(in, "plevel", 0, &err));
     if (err)
         d.plevel = d.truemotion ? 1 : 0;
 
-    d.global = vsapi->propGetInt(in, "global", 0, &err);
+    d.global = !!vsapi->propGetInt(in, "global", 0, &err);
     if (err)
         d.global = d.truemotion ? 1 : 0;
 
-    d.pnew = vsapi->propGetInt(in, "pnew", 0, &err);
+    d.pnew = int64ToIntS(vsapi->propGetInt(in, "pnew", 0, &err));
     if (err)
         d.pnew = d.truemotion ? 50 : 0; // relative to 256
 
-    d.pzero = vsapi->propGetInt(in, "pzero", 0, &err);
+    d.pzero = int64ToIntS(vsapi->propGetInt(in, "pzero", 0, &err));
     if (err)
         d.pzero = d.pnew;
 
-    d.pglobal = vsapi->propGetInt(in, "pglobal", 0, &err);
+    d.pglobal = int64ToIntS(vsapi->propGetInt(in, "pglobal", 0, &err));
 
-    d.overlap = vsapi->propGetInt(in, "overlap", 0, &err);
+    d.overlap = int64ToIntS(vsapi->propGetInt(in, "overlap", 0, &err));
 
-    d.overlapv = vsapi->propGetInt(in, "overlapv", 0, &err);
+    d.overlapv = int64ToIntS(vsapi->propGetInt(in, "overlapv", 0, &err));
     if (err)
         d.overlapv = d.overlap;
 
-    d.dctmode = vsapi->propGetInt(in, "dct", 0, &err);
+    d.dctmode = int64ToIntS(vsapi->propGetInt(in, "dct", 0, &err));
 
-    d.divideExtra = vsapi->propGetInt(in, "divide", 0, &err);
+    d.divideExtra = int64ToIntS(vsapi->propGetInt(in, "divide", 0, &err));
 
-    d.badSAD = vsapi->propGetInt(in, "badsad", 0, &err);
+    d.badSAD = int64ToIntS(vsapi->propGetInt(in, "badsad", 0, &err));
     if (err)
         d.badSAD = 10000;
 
-    d.badrange = vsapi->propGetInt(in, "badrange", 0, &err);
+    d.badrange = int64ToIntS(vsapi->propGetInt(in, "badrange", 0, &err));
     if (err)
         d.badrange = 24;
 
-    d.isse = vsapi->propGetInt(in, "isse", 0, &err);
+    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
     if (err)
         d.isse = 1;
 
-    d.meander = vsapi->propGetInt(in, "meander", 0, &err);
+    d.meander = !!vsapi->propGetInt(in, "meander", 0, &err);
     if (err)
         d.meander = 1;
 
-    d.tryMany = vsapi->propGetInt(in, "trymany", 0, &err);
+    d.tryMany = !!vsapi->propGetInt(in, "trymany", 0, &err);
 
     d.fields = !!vsapi->propGetInt(in, "fields", 0, &err);
 
-    d.tff = vsapi->propGetInt(in, "tff", 0, &err);
+    d.tff = !!vsapi->propGetInt(in, "tff", 0, &err);
     d.tffexists = err;
 
 
@@ -480,8 +480,8 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.analysisData.bitsPerSample = d.vi.format->bitsPerSample;
 
     int pixelMax = (1 << d.vi.format->bitsPerSample) - 1;
-    d.lsad = (double)d.lsad * pixelMax / 255 + 0.5;
-    d.badSAD = (double)d.badSAD * pixelMax / 255 + 0.5;
+    d.lsad = int((double)d.lsad * pixelMax / 255.0 + 0.5);
+    d.badSAD = int((double)d.badSAD * pixelMax / 255.0 + 0.5);
 
     d.lsad = d.lsad * (d.blksize * d.blksizev) / 64;
     d.badSAD = d.badSAD * (d.blksize * d.blksizev) / 64;
@@ -534,12 +534,12 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     }
     const VSMap *props = vsapi->getFramePropsRO(evil);
     int evil_err[6];
-    int nHeight = vsapi->propGetInt(props, "Super height", 0, &evil_err[0]);
-    d.nSuperHPad = vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]);
-    d.nSuperVPad = vsapi->propGetInt(props, "Super vpad", 0, &evil_err[2]);
-    d.nSuperPel = vsapi->propGetInt(props, "Super pel", 0, &evil_err[3]);
-    d.nSuperModeYUV = vsapi->propGetInt(props, "Super modeyuv", 0, &evil_err[4]);
-    d.nSuperLevels = vsapi->propGetInt(props, "Super levels", 0, &evil_err[5]);
+    int nHeight = int64ToIntS(vsapi->propGetInt(props, "Super height", 0, &evil_err[0]));
+    d.nSuperHPad = int64ToIntS(vsapi->propGetInt(props, "Super hpad", 0, &evil_err[1]));
+    d.nSuperVPad = int64ToIntS(vsapi->propGetInt(props, "Super vpad", 0, &evil_err[2]));
+    d.nSuperPel = int64ToIntS(vsapi->propGetInt(props, "Super pel", 0, &evil_err[3]));
+    d.nSuperModeYUV = int64ToIntS(vsapi->propGetInt(props, "Super modeyuv", 0, &evil_err[4]));
+    d.nSuperLevels = int64ToIntS(vsapi->propGetInt(props, "Super levels", 0, &evil_err[5]));
     vsapi->freeFrame(evil);
 
     for (int i = 0; i < 6; i++)

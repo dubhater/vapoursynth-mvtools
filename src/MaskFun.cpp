@@ -573,8 +573,8 @@ void RealFlowInter(uint8_t * pdst8, int dst_pitch, const uint8_t *prefB8, const 
                 int vyB = LUTVB[VYFullB[w]];
                 int64_t dstB = prefB[vyB*ref_pitch + vxB + w];
                 int dstB0 = prefB[w]; // zero
-                pdst[w] = ( ( (dstF*(255-MaskF[w]) + ((MaskF[w]*(dstB*(255-MaskB[w])+MaskB[w]*dstF0)+255)>>8) + 255)>>8 )*(256-time256) +
-                        ( (dstB*(255-MaskB[w]) + ((MaskB[w]*(dstF*(255-MaskF[w])+MaskF[w]*dstB0)+255)>>8) + 255)>>8 )*time256 )>>8;
+                pdst[w] = PixelType((((dstF*(255 - MaskF[w]) + ((MaskF[w] * (dstB*(255 - MaskB[w]) + MaskB[w] * dstF0) + 255) >> 8) + 255) >> 8)*(256 - time256) +
+                    ((dstB*(255 - MaskB[w]) + ((MaskB[w] * (dstF*(255 - MaskF[w]) + MaskF[w] * dstB0) + 255) >> 8) + 255) >> 8)*time256) >> 8);
             }
             pdst += dst_pitch;
             prefB += ref_pitch;
