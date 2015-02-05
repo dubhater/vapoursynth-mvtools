@@ -1,11 +1,6 @@
 %include "include/x86inc.asm"
 
 
-SECTION_RODATA
-
-dword256 times 4 dd 0x00000100
-
-
 SECTION_TEXT
 
 
@@ -17,7 +12,6 @@ SECTION_TEXT
     pmullw m0, m1
     pmulhw m2, m1
     punpcklwd m0, m2
-    paddd m0, m6
     psrld m0, 6
     packssdw m0, m7
     movd m1, [dstpq]
@@ -34,7 +28,6 @@ INIT_XMM
 cglobal Overlaps2x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7    ; =0
 
     ; It's in pixels, apparently.
@@ -50,7 +43,6 @@ INIT_XMM
 cglobal Overlaps2x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7    ; =0
 
     ; It's in pixels, apparently.
@@ -72,7 +64,6 @@ cglobal Overlaps2x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
     pmullw m0, m1
     pmulhw m2, m1
     punpcklwd m0, m2
-    paddd m0, m6
     psrld m0, 6
     packssdw m0, m7
     movq m1, [dstpq]
@@ -89,7 +80,6 @@ INIT_XMM
 cglobal Overlaps4x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7    ; =0
 
     ; It's in pixels, apparently.
@@ -105,7 +95,6 @@ INIT_XMM
 cglobal Overlaps4x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7    ; =0
 
     ; It's in pixels, apparently.
@@ -123,7 +112,6 @@ INIT_XMM
 cglobal Overlaps4x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7    ; =0
 
     ; It's in pixels, apparently.
@@ -161,8 +149,6 @@ cglobal Overlaps4x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
     movdqa m1, m0
     punpcklwd m0, m2
     punpckhwd m1, m2
-    paddd m0, m6
-    paddd m1, m6
     psrld m0, 6
     psrld m1, 6
     packssdw m0, m1
@@ -183,7 +169,6 @@ INIT_XMM
 cglobal Overlaps8x1_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7
 
     OVERS8
@@ -195,7 +180,6 @@ INIT_XMM
 cglobal Overlaps8x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7
 
     ; It's in pixels, apparently.
@@ -211,7 +195,6 @@ INIT_XMM
 cglobal Overlaps8x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7
 
     ; It's in pixels, apparently.
@@ -229,7 +212,6 @@ INIT_XMM
 cglobal Overlaps8x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7
 
     ; It's in pixels, apparently.
@@ -252,7 +234,6 @@ INIT_XMM
 cglobal Overlaps8x16_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7
 
     ; It's in pixels, apparently.
@@ -296,7 +277,6 @@ INIT_XMM
 cglobal Overlaps16x1_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7
 
     ; It's in pixels, apparently.
@@ -311,7 +291,6 @@ INIT_XMM
 cglobal Overlaps16x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7
 
     ; It's in pixels, apparently.
@@ -327,7 +306,6 @@ INIT_XMM
 cglobal Overlaps16x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7
 
     ; It's in pixels, apparently.
@@ -345,7 +323,6 @@ INIT_XMM
 cglobal Overlaps16x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7
 
     ; It's in pixels, apparently.
@@ -368,7 +345,6 @@ INIT_XMM
 cglobal Overlaps16x16_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7
 
     ; It's in pixels, apparently.
@@ -401,7 +377,6 @@ INIT_XMM
 cglobal Overlaps16x32_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7
 
     ; It's in pixels, apparently.
@@ -467,7 +442,6 @@ INIT_XMM
 cglobal Overlaps32x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7
 
     ; It's in pixels, apparently.
@@ -490,7 +464,6 @@ INIT_XMM
 cglobal Overlaps32x16_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7
 
     ; It's in pixels, apparently.
@@ -523,7 +496,6 @@ INIT_XMM
 cglobal Overlaps32x32_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
-    movdqa m6, [dword256]
     pxor m7, m7
 
     ; It's in pixels, apparently.
