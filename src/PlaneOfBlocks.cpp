@@ -356,6 +356,7 @@ void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
     badrange = _badrange;
     zeroMVfieldShifted.x = 0;
     zeroMVfieldShifted.y = fieldShift;
+    zeroMVfieldShifted.sad = 0;
     globalMVPredictor.x = nPel*globalMVec->x;// v1.8.2
     globalMVPredictor.y = nPel*globalMVec->y + fieldShift;
     globalMVPredictor.sad = globalMVec->sad;
