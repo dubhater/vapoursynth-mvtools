@@ -893,11 +893,13 @@ void PlaneOfBlocks::InterpolatePrediction(const PlaneOfBlocks &pob)
                 v4 = pob.vectors[i / 2 + offx + (j / 2 + offy) * pob.nBlkX];
             }
 
+            int64_t temp_sad;
+
             if (nOverlapX == 0 && nOverlapY == 0)
             {
                 vectors[index].x = 9 * v1.x + 3 * v2.x + 3 * v3.x + v4.x;
                 vectors[index].y = 9 * v1.y + 3 * v2.y + 3 * v3.y + v4.y;
-                vectors[index].sad = 9 * v1.sad + 3 * v2.sad + 3 * v3.sad + v4.sad + 8;
+                temp_sad = (int64_t)(9 * v1.sad) + 3 * v2.sad + 3 * v3.sad + v4.sad + 8;
             }
             else if (nOverlapX <= (nBlkSizeX>>1) && nOverlapY <= (nBlkSizeY>>1)) // corrected in v1.4.11
             {
@@ -905,20 +907,22 @@ void PlaneOfBlocks::InterpolatePrediction(const PlaneOfBlocks &pob)
                 int ax2 = (nBlkSizeX - nOverlapX)*4 - ax1;
                 int ay1 = (offy > 0) ? aoddy : aeveny;
                 int ay2 = (nBlkSizeY - nOverlapY)*4 - ay1;
-                int a11 = ax1*ay1, a12 = ax1*ay2, a21 = ax2*ay1, a22 = ax2*ay2;
+                // 64 bit so that the multiplications by the SADs don't overflow with 16 bit input.
+                int64_t a11 = ax1*ay1, a12 = ax1*ay2, a21 = ax2*ay1, a22 = ax2*ay2;
                 vectors[index].x = (a11*v1.x + a21*v2.x + a12*v3.x + a22*v4.x) /normov;
                 vectors[index].y = (a11*v1.y + a21*v2.y + a12*v3.y + a22*v4.y) /normov;
-                vectors[index].sad = (a11*v1.sad + a21*v2.sad + a12*v3.sad + a22*v4.sad) /normov;
+                temp_sad = (a11*v1.sad + a21*v2.sad + a12*v3.sad + a22*v4.sad) /normov;
             }
             else // large overlap. Weights are not quite correct but let it be
             {
+                // Dead branch. The overlap is no longer allowed to be more than half the block size.
                 vectors[index].x = (v1.x + v2.x + v3.x + v4.x) <<2;
                 vectors[index].y = (v1.y + v2.y + v3.y + v4.y) <<2;
-                vectors[index].sad = (v1.sad + v2.sad + v3.sad + v4.sad + 2) << 2;
+                temp_sad = (int64_t)(v1.sad + v2.sad + v3.sad + v4.sad + 2) << 2;
             }
             vectors[index].x = (vectors[index].x >> normFactor) << mulFactor;
             vectors[index].y = (vectors[index].y >> normFactor) << mulFactor;
-            vectors[index].sad = vectors[index].sad >> 4;
+            vectors[index].sad = temp_sad >> 4;
         }
     }
 }
