@@ -419,8 +419,8 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
             pRefBGOF->Update(nSuperModeYUV, (uint8_t*)pRef[0], nRefPitches[0], (uint8_t*)pRef[1], nRefPitches[1], (uint8_t*)pRef[2], nRefPitches[2]);// v2.0
             pRefFGOF->Update(nSuperModeYUV, (uint8_t*)pSrc[0], nSrcPitches[0], (uint8_t*)pSrc[1], nSrcPitches[1], (uint8_t*)pSrc[2], nSrcPitches[2]);
 
-            MVPlane *pPlanesB[3];
-            MVPlane *pPlanesF[3];
+            MVPlane *pPlanesB[3] = { 0 };
+            MVPlane *pPlanesF[3] = { 0 };
 
             MVPlaneSet planes[3] = { YPLANE, UPLANE, VPLANE };
 

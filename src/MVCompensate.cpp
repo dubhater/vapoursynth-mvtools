@@ -187,8 +187,8 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
             MVPlaneSet planes[3] = { YPLANE, UPLANE, VPLANE };
 
-            MVPlane *pPlanes[3];
-            MVPlane *pSrcPlanes[3];
+            MVPlane *pPlanes[3] = { 0 };
+            MVPlane *pSrcPlanes[3] = { 0 };
 
             for (int plane = 0; plane < d->supervi->format->numPlanes; plane++) {
                 pPlanes[plane] = pRefGOF->GetFrame(0)->GetPlane(planes[plane]);

@@ -83,7 +83,7 @@ static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, voi
 
             pRefGOF->Update(d->nSuperModeYUV, (uint8_t*)pRef[0], nRefPitches[0], (uint8_t*)pRef[1], nRefPitches[1], (uint8_t*)pRef[2], nRefPitches[2]);// v2.0
 
-            MVPlane *pPlanes[3];
+            MVPlane *pPlanes[3] = { 0 };
 
             pPlanes[0] = pRefGOF->GetFrame(0)->GetPlane(YPLANE);
             pPlanes[1] = pRefGOF->GetFrame(0)->GetPlane(UPLANE);
