@@ -692,7 +692,8 @@ static void VS_CC mvblockfpsFree(void *instanceData, VSCore *core, const VSAPI *
     delete d->bleh;
 
     delete d->upsizer;
-    delete d->upsizerUV;
+	if (d->supervi->format->colorFamily != cmGray)
+			delete d->upsizerUV;  
 
     delete [] d->OnesBlock;
 
