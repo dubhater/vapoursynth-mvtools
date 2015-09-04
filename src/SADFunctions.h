@@ -337,8 +337,8 @@ unsigned int Satd_C(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef
     else {
         int bytesPerSample = sizeof(PixelType);
 
-        int sum = Satd_8x4_C<PixelType>(pSrc, nSrcPitch, pRef, nRefPitch)
-                + Satd_8x4_C<PixelType>(pSrc + 4*nSrcPitch, nSrcPitch, pRef + 4*nRefPitch, nRefPitch);
+        unsigned int sum = Satd_8x4_C<PixelType>(pSrc, nSrcPitch, pRef, nRefPitch)
+                         + Satd_8x4_C<PixelType>(pSrc + 4*nSrcPitch, nSrcPitch, pRef + 4*nRefPitch, nRefPitch);
 
         if (nBlkWidth == 16)
             sum += Satd_8x4_C<PixelType>(pSrc + 8*bytesPerSample, nSrcPitch, pRef + 8*bytesPerSample, nRefPitch)
