@@ -1,10 +1,9 @@
 %include "include/x86inc.asm"
 
 
-SECTION_RODATA
+;SECTION_RODATA
 
 
-ones_words times 8 dw 0x0001
 
 
 
@@ -243,7 +242,7 @@ cglobal sad_32x32_sse2, 4, 4, 7, srcp1, stride1, srcp2, stride2
 
 INIT_XMM
 cglobal sad_2x2_u16_sse2, 4, 4, 6, srcp1, stride1, srcp2, stride2
-    movdqa m1, [ones_words]
+    pxor m0, m0
 
     movd m2, [srcp1q]
     movd m4, [srcp1q + stride1q]
@@ -257,7 +256,10 @@ cglobal sad_2x2_u16_sse2, 4, 4, 6, srcp1, stride1, srcp2, stride2
     psubusw m3, m4
     por m2, m3
 
-    pmaddwd m2, m1
+    punpcklwd m2, m0
+
+    movhlps m1, m2
+    paddd m2, m1
 
     pshufd m1, m2, 11100101b
     paddd m1, m2
@@ -268,7 +270,7 @@ cglobal sad_2x2_u16_sse2, 4, 4, 6, srcp1, stride1, srcp2, stride2
 
 INIT_XMM
 cglobal sad_2x4_u16_sse2, 4, 4, 8, srcp1, stride1, srcp2, stride2
-    movdqa m1, [ones_words]
+    pxor m0, m0
 
     movd m2, [srcp1q]
     movd m4, [srcp1q + stride1q]
@@ -295,7 +297,10 @@ cglobal sad_2x4_u16_sse2, 4, 4, 8, srcp1, stride1, srcp2, stride2
     psubusw m3, m4
     por m2, m3
 
-    pmaddwd m2, m1
+    movdqa m3, m2
+    punpcklwd m2, m0
+    punpckhwd m3, m0
+    paddd m2, m3
 
     movhlps m0, m2
     paddd m0, m2
