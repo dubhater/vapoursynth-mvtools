@@ -45,7 +45,7 @@ typedef struct {
     int pglobal; // penalty factor for global motion predictor
     int pzero; // penalty factor for zero vector
     int divideExtra; // divide blocks on sublocks with median motion
-    int badSAD; //  SAD threshold to make more wide search for bad vectors
+    int64_t badSAD; //  SAD threshold to make more wide search for bad vectors
     int badrange;// range (radius) of wide search
     bool meander; //meander (alternate) scan blocks (even row left to right, odd row right to left
     bool tryMany; // try refine around many predictors

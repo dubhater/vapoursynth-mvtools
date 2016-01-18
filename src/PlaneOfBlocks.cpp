@@ -699,11 +699,11 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
                 // interpolate
                 int vector1_x = vectorOld1.x*nStepXold + deltaX*(vectorOld2.x - vectorOld1.x); // scaled by nStepXold to skip slow division
                 int vector1_y = vectorOld1.y*nStepXold + deltaX*(vectorOld2.y - vectorOld1.y);
-                int vector1_sad = vectorOld1.sad*nStepXold + deltaX*(vectorOld2.sad - vectorOld1.sad);
+                int64_t vector1_sad = vectorOld1.sad*nStepXold + deltaX*(vectorOld2.sad - vectorOld1.sad);
 
                 int vector2_x = vectorOld3.x*nStepXold + deltaX*(vectorOld4.x - vectorOld3.x);
                 int vector2_y = vectorOld3.y*nStepXold + deltaX*(vectorOld4.y - vectorOld3.y);
-                int vector2_sad = vectorOld3.sad*nStepXold + deltaX*(vectorOld4.sad - vectorOld3.sad);
+                int64_t vector2_sad = vectorOld3.sad*nStepXold + deltaX*(vectorOld4.sad - vectorOld3.sad);
 
                 vectorOld.x = (vector1_x + deltaY*(vector2_x - vector1_x)/nStepYold)/nStepXold;
                 vectorOld.y = (vector1_y + deltaY*(vector2_y - vector1_y)/nStepYold)/nStepXold;
@@ -727,7 +727,7 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
             vectorOld.y = (vectorOld.y << nLogPel) >> nLogPelold;
 
             predictor = ClipMV(vectorOld); // predictor
-            predictor.sad =  vectorOld.sad * (nBlkSizeX*nBlkSizeY)/(nBlkSizeXold*nBlkSizeYold); // normalized to new block size
+            predictor.sad = (int64_t)vectorOld.sad * (nBlkSizeX*nBlkSizeY)/(nBlkSizeXold*nBlkSizeYold); // normalized to new block size
 
             bestMV.x = predictor.x;
             bestMV.y = predictor.y;

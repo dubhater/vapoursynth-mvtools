@@ -111,8 +111,8 @@ class PlaneOfBlocks {
 
     SearchType searchType;      /* search type used */
     int nSearchParam;           /* additionnal parameter for this search */
-    int nLambda;                /* vector cost factor */
-    int LSAD; // SAD limit for lambda using - Fizick
+    int64_t nLambda;                /* vector cost factor */
+    int64_t LSAD; // SAD limit for lambda using - Fizick
     int penaltyNew; // cost penalty factor for new candidates
     int penaltyZero; // cost penalty factor for zero vector
     int pglobal; // cost penalty factor for global predictor
