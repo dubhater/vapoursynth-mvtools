@@ -517,8 +517,10 @@ void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
             if ( iblkx < nBlkX-1 )
             {
                 x[0] += (nBlkSizeX - nOverlapX) * blkScanDir;
-                x[1] += ((nBlkSizeX - nOverlapX) >> nLogxRatioUV) * blkScanDir;
-                x[2] += ((nBlkSizeX - nOverlapX) >> nLogxRatioUV) * blkScanDir;
+                if (pSrcFrame->GetMode() & UPLANE)
+                    x[1] += ((nBlkSizeX - nOverlapX) >> nLogxRatioUV) * blkScanDir;
+                if (pSrcFrame->GetMode() & VPLANE)
+                    x[2] += ((nBlkSizeX - nOverlapX) >> nLogxRatioUV) * blkScanDir;
             }
         }
         pBlkData += nBlkX*N_PER_BLOCK;
@@ -526,8 +528,10 @@ void PlaneOfBlocks::SearchMVs(MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
             outfilebuf += nBlkX*4;// 4 short word per block
 
         y[0] += (nBlkSizeY - nOverlapY);
-        y[1] += ((nBlkSizeY - nOverlapY) >> nLogyRatioUV );
-        y[2] += ((nBlkSizeY - nOverlapY) >> nLogyRatioUV );
+        if (pSrcFrame->GetMode() & UPLANE)
+            y[1] += ((nBlkSizeY - nOverlapY) >> nLogyRatioUV );
+        if (pSrcFrame->GetMode() & VPLANE)
+            y[2] += ((nBlkSizeY - nOverlapY) >> nLogyRatioUV );
     }
     if (smallestPlane)
         *pmeanLumaChange = sumLumaChange/nBlkCount; // for all finer planes
@@ -752,7 +756,6 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
             bestMV.sad = sad;
             nMinCost = sad;
 
-
             if (bestMV.sad > thSAD)// if old interpolated vector is bad
             {
                 // then, we refine, according to the search type
@@ -831,8 +834,10 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
             if ( iblkx < nBlkX-1 )
             {
                 x[0] += (nBlkSizeX - nOverlapX) * blkScanDir;
-                x[1] += ((nBlkSizeX - nOverlapX) >> nLogxRatioUV) * blkScanDir;
-                x[2] += ((nBlkSizeX - nOverlapX) >> nLogxRatioUV) * blkScanDir;
+                if (pSrcFrame->GetMode() & UPLANE)
+                    x[1] += ((nBlkSizeX - nOverlapX) >> nLogxRatioUV) * blkScanDir;
+                if (pSrcFrame->GetMode() & VPLANE)
+                    x[2] += ((nBlkSizeX - nOverlapX) >> nLogxRatioUV) * blkScanDir;
             }
         }
         pBlkData += nBlkX*N_PER_BLOCK;
@@ -840,8 +845,10 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
             outfilebuf += nBlkX*4;// 4 short word per block
 
         y[0] += (nBlkSizeY - nOverlapY);
-        y[1] += ((nBlkSizeY - nOverlapY) >> nLogyRatioUV );
-        y[2] += ((nBlkSizeY - nOverlapY) >> nLogyRatioUV );
+        if (pSrcFrame->GetMode() & UPLANE)
+            y[1] += ((nBlkSizeY - nOverlapY) >> nLogyRatioUV );
+        if (pSrcFrame->GetMode() & VPLANE)
+            y[2] += ((nBlkSizeY - nOverlapY) >> nLogyRatioUV );
     }
 }
 

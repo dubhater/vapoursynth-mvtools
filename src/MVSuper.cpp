@@ -55,12 +55,12 @@ static const VSFrameRef *VS_CC mvsuperGetFrame(int n, int activationReason, void
     } else if (activationReason == arAllFramesReady) {
         const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx);
 
-        const uint8_t *pSrc[3];
-        uint8_t *pDst[3];
-        const uint8_t *pSrcPel[3];
-        int nSrcPitch[3];
-        int nDstPitch[3];
-        int nSrcPelPitch[3];
+        const uint8_t *pSrc[3] = { nullptr };
+        uint8_t *pDst[3] = { nullptr };
+        const uint8_t *pSrcPel[3] = { nullptr };
+        int nSrcPitch[3] = { 0 };
+        int nDstPitch[3] = { 0 };
+        int nSrcPelPitch[3] = { 0 };
 
         const VSFrameRef *srcPel = NULL;
         if (d->usePelClip)
