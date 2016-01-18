@@ -206,7 +206,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
                 DCTc = new DCTINT(d->blksize, d->blksizev, d->dctmode);
                 else
                 */
-                DCTc = new DCTFFTW(d->blksize, d->blksizev, d->dctmode, d->vi->format->bitsPerSample);
+                DCTc = new DCTFFTW(d->blksize, d->blksizev, d->dctmode, d->supervi->format->bitsPerSample);
             }
 
 
