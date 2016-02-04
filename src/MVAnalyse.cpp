@@ -425,6 +425,24 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.analysisData.nDeltaFrame = d.delta;
 
 
+    if (d.pnew < 0 || d.pnew > 256) {
+        vsapi->setError(out, "Analyse: pnew must be between 0 and 256 (inclusive).");
+        return;
+    }
+
+
+    if (d.pzero < 0 || d.pzero > 256) {
+        vsapi->setError(out, "Analyse: pzero must be between 0 and 256 (inclusive).");
+        return;
+    }
+
+
+    if (d.pglobal < 0 || d.pglobal > 256) {
+        vsapi->setError(out, "Analyse: pglobal must be between 0 and 256 (inclusive).");
+        return;
+    }
+
+
     if (d.overlap < 0 || d.overlap > d.blksize / 2 ||
         d.overlapv < 0 || d.overlapv > d.blksizev / 2) {
         vsapi->setError(out, "Analyse: overlap must be at most half of blksize, overlapv must be at most half of blksizev, and they both need to be at least 0.");
