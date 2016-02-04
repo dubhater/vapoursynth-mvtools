@@ -1057,7 +1057,7 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
 }
 
 
-void mvblockfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
+extern "C" void mvblockfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("BlockFPS",
             "clip:clip;"
             "super:clip;"

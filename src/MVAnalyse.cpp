@@ -652,7 +652,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 }
 
 
-void mvanalyseRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
+extern "C" void mvanalyseRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Analyse",
             "super:clip;"
             "blksize:int:opt;"

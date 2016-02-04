@@ -26,7 +26,7 @@ SimpleResize::SimpleResize(int _dst_width, int _dst_height, int _src_width, int 
 
     InitTables(horizontal_offsets, horizontal_weights, dst_width, src_width);
     InitTables(vertical_offsets, vertical_weights, dst_height, src_height);
-};
+}
 
 
 SimpleResize::~SimpleResize() {

@@ -772,7 +772,7 @@ static void VS_CC mvflowinterCreate(const VSMap *in, VSMap *out, void *userData,
 }
 
 
-void mvflowinterRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
+extern "C" void mvflowinterRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("FlowInter",
             "clip:clip;"
             "super:clip;"

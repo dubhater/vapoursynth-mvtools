@@ -551,7 +551,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 }
 
 
-void mvrecalculateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
+extern "C" void mvrecalculateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Recalculate",
             "super:clip;"
             "vectors:clip;"

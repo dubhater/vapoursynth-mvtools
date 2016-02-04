@@ -1047,7 +1047,7 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
 }
 
 
-void mvflowfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
+extern "C" void mvflowfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("FlowFPS",
             "clip:clip;"
             "super:clip;"

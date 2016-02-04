@@ -1,4 +1,7 @@
-AM_CXXFLAGS = -O2 -std=c++11 -msse2 -mfpmath=sse $(STACKREALIGN) -Wall -Wextra -Wno-unused-parameter -Wshadow
+warningflags = -Wall -Wextra -Wno-unused-parameter -Wshadow
+commonflags = -O2 -msse2 -mfpmath=sse $(STACKREALIGN) $(warningflags)
+AM_CFLAGS = -std=c99 $(commonflags)
+AM_CXXFLAGS = -std=c++11 $(commonflags)
 
 AM_CPPFLAGS = $(VapourSynth_CFLAGS) $(FFTW3F_CFLAGS)
 
@@ -12,10 +15,10 @@ am__v_YASM_1 =
 .asm.lo:
 	$(AM_V_YASM)$(LIBTOOL) $(AM_V_lt) --mode=compile --tag=CC $(AS) $(ASFLAGS) -o $@ $< -prefer-non-pic
 
-libmvtools_la_SOURCES =	src/CPU.cpp \
+libmvtools_la_SOURCES =	src/CPU.c \
 						src/DCT.cpp \
 						src/DCTFFTW.cpp \
-						src/EntryPoint.cpp \
+						src/EntryPoint.c \
 						src/FakeBlockData.cpp \
 						src/FakeGroupOfPlanes.cpp \
 						src/FakePlaneOfBlocks.cpp \

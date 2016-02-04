@@ -271,7 +271,7 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
 }
 
 
-void mvsuperRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
+extern "C" void mvsuperRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Super",
             "clip:clip;"
             "hpad:int:opt;"
