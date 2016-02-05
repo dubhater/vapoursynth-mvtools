@@ -6,6 +6,7 @@
 
 #include <emmintrin.h>
 
+#include "Fakery.h"
 #include "MVFrame.h"
 
 enum VectorOrder {
@@ -189,14 +190,14 @@ inline int DegrainWeight(int64_t thSAD, int64_t blockSAD) {
 }
 
 
-inline void useBlock(const uint8_t *&p, int &np, int &WRef, bool isUsable, const MVClipBalls *mvclip, int i, const MVPlane *pPlane, const uint8_t **pSrcCur, int xx, const int *nSrcPitch, int nLogPel, int plane, int xSubUV, int ySubUV, const int *thSAD) {
+inline void useBlock(const uint8_t *&p, int &np, int &WRef, bool isUsable, const FakeGroupOfPlanes *fgop, int i, const MVPlane *pPlane, const uint8_t **pSrcCur, int xx, const int *nSrcPitch, int nLogPel, int plane, int xSubUV, int ySubUV, const int *thSAD) {
     if (isUsable) {
-        const FakeBlockData &block = mvclip->GetBlock(0, i);
-        int blx = (block.GetX() << nLogPel) + block.GetMV().x;
-        int bly = (block.GetY() << nLogPel) + block.GetMV().y;
-        p = pPlane->GetPointer(plane ? blx >> xSubUV : blx, plane ? bly >> ySubUV : bly);
-        np = pPlane->GetPitch();
-        int blockSAD = block.GetSAD();
+        const FakeBlockData *block = fgopGetBlock(fgop, 0, i);
+        int blx = (block->x << nLogPel) + block->vector.x;
+        int bly = (block->y << nLogPel) + block->vector.y;
+        p = mvpGetPointer(pPlane, plane ? blx >> xSubUV : blx, plane ? bly >> ySubUV : bly);
+        np = pPlane->nPitch;
+        int blockSAD = block->vector.sad;
         WRef = DegrainWeight(thSAD[plane], blockSAD);
     } else {
         p = pSrcCur[plane] + xx;

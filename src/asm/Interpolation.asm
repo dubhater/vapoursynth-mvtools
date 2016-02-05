@@ -164,7 +164,7 @@ cglobal RB2QuadraticVerticalLine_sse2, 4, 7, 8, dstp, srcp, src_stride, width, x
 
 
 INIT_XMM
-cglobal VerticalBilinear_sse2, 5, 7, 2, dstp, srcp, stride, width, height, x, srcpn
+cglobal VerticalBilinear_sse2, 6, 7, 2, dstp, srcp, stride, width, height, x, srcpn
     mov srcpnq, srcpq
     add srcpnq, strideq
 
@@ -200,7 +200,7 @@ cglobal VerticalBilinear_sse2, 5, 7, 2, dstp, srcp, stride, width, height, x, sr
 
 
 INIT_XMM
-cglobal HorizontalBilinear_sse2, 5, 6, 2, x, srcp, stride, width, height, dstp
+cglobal HorizontalBilinear_sse2, 6, 6, 2, x, srcp, stride, width, height, dstp
     ; extra mov because I need x to contain a byte-sized register and only
     ; r0 and r1 have it everywhere (Windows, Linux, OS X, 32 bit and 64 bit).
     ; See DECLARE_REG in x86inc.asm.
@@ -229,7 +229,7 @@ cglobal HorizontalBilinear_sse2, 5, 6, 2, x, srcp, stride, width, height, dstp
 
 
 INIT_XMM
-cglobal DiagonalBilinear_sse2, 5, 7, 6, x, srcp, stride, width, height, dstp, srcpn
+cglobal DiagonalBilinear_sse2, 6, 7, 6, x, srcp, stride, width, height, dstp, srcpn
     ; extra mov because I need x to contain a byte-sized register and only
     ; r0 and r1 have it everywhere (Windows, Linux, OS X, 32 bit and 64 bit).
     ; See DECLARE_REG in x86inc.asm.
@@ -305,7 +305,7 @@ cglobal DiagonalBilinear_sse2, 5, 7, 6, x, srcp, stride, width, height, dstp, sr
 
 
 INIT_XMM
-cglobal VerticalWiener_sse2, 5, 7, 8, dstp, srcp, stride, width, height, x, srcpn
+cglobal VerticalWiener_sse2, 6, 7, 8, dstp, srcp, stride, width, height, x, srcpn
     mov srcpnq, srcpq
     add srcpnq, strideq
 
@@ -467,7 +467,7 @@ cglobal VerticalWiener_sse2, 5, 7, 8, dstp, srcp, stride, width, height, x, srcp
 
 
 INIT_XMM
-cglobal HorizontalWiener_sse2, 5, 6, 9, x, srcp, stride, width, height, dstp
+cglobal HorizontalWiener_sse2, 6, 6, 9, x, srcp, stride, width, height, dstp
     ; extra mov because I need x to contain a byte-sized register and only
     ; r0 and r1 have it everywhere (Windows, Linux, OS X, 32 bit and 64 bit).
     ; See DECLARE_REG in x86inc.asm.

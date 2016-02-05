@@ -20,11 +20,12 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-#include "MVClip.h"
-#include "MVFilter.h"
+#include "Fakery.h"
+#include "MVAnalysisData.h"
 
 
-typedef struct {
+
+typedef struct MVSCDetectionData {
     VSNodeRef *node;
     const VSVideoInfo *vi;
 
@@ -33,9 +34,7 @@ typedef struct {
     int thscd1;
     int thscd2;
 
-    MVFilter *bleh;
-
-    MVClipDicks *mvClip;
+    MVAnalysisData vectors_data;
 } MVSCDetectionData;
 
 
@@ -57,18 +56,22 @@ static const VSFrameRef *VS_CC mvscdetectionGetFrame(int n, int activationReason
         vsapi->freeFrame(src);
 
         const VSFrameRef *mvn = vsapi->getFrameFilter(n, d->vectors, frameCtx);
-        MVClipBalls balls(d->mvClip, vsapi);
-        balls.Update(mvn);
+        const int *mvs = (const int *)vsapi->getReadPtr(mvn, 0);
+        FakeGroupOfPlanes fgop;
+        fgopInit(&fgop, &d->vectors_data);
+        fgopUpdate(&fgop, mvs + mvs[0] / sizeof(int));
         vsapi->freeFrame(mvn);
 
         const char *propNames[2] = { "_SceneChangePrev", "_SceneChangeNext" };
         VSMap *props = vsapi->getFramePropsRW(dst);
-        vsapi->propSetInt(props, propNames[(int)d->mvClip->IsBackward()], !balls.IsUsable(), paReplace);
+        vsapi->propSetInt(props, propNames[!!d->vectors_data.isBackward], !fgopIsUsable(&fgop, d->thscd1, d->thscd2), paReplace);
+
+        fgopDeinit(&fgop);
 
         return dst;
     }
 
-    return 0;
+    return NULL;
 }
 
 
@@ -77,8 +80,6 @@ static void VS_CC mvscdetectionFree(void *instanceData, VSCore *core, const VSAP
 
     vsapi->freeNode(d->node);
     vsapi->freeNode(d->vectors);
-    delete d->mvClip;
-    delete d->bleh;
     free(d);
 }
 
@@ -100,20 +101,20 @@ static void VS_CC mvscdetectionCreate(const VSMap *in, VSMap *out, void *userDat
 
     d.vectors = vsapi->propGetNode(in, "vectors", 0, NULL);
 
-    try {
-        d.mvClip = new MVClipDicks(d.vectors, d.thscd1, d.thscd2, vsapi);
-    } catch (MVException &e) {
-        vsapi->setError(out, std::string("SCDetection: ").append(e.what()).c_str());
-        vsapi->freeNode(d.vectors);
-        return;
-    }
 
-    try {
-        d.bleh = new MVFilter(d.vectors, "SCDetection", vsapi);
-    } catch (MVException &e) {
-        vsapi->setError(out, std::string("SCDetection: ").append(e.what()).c_str());
+#define ERROR_SIZE 512
+    char error[ERROR_SIZE] = { 0 };
+    const char *filter_name = "SCDetection";
+
+    adataFromVectorClip(&d.vectors_data, d.vectors, filter_name, "vectors", vsapi, error, ERROR_SIZE);
+
+    scaleThSCD(&d.thscd1, &d.thscd2, &d.vectors_data, filter_name, error, ERROR_SIZE);
+#undef ERROR_SIZE
+
+    if (error[0]) {
+        vsapi->setError(out, error);
+
         vsapi->freeNode(d.vectors);
-        delete d.mvClip;
         return;
     }
 
@@ -129,7 +130,7 @@ static void VS_CC mvscdetectionCreate(const VSMap *in, VSMap *out, void *userDat
 }
 
 
-extern "C" void mvscdetectionRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
+void mvscdetectionRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("SCDetection",
                  "clip:clip;"
                  "vectors:clip;"

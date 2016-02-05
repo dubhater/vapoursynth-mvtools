@@ -1,19 +1,11 @@
 #ifndef __OVERLAP__
 #define __OVERLAP__
 
-#include <math.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
-#ifndef M_PI
-#define M_PI 3.14159265358979323846f
-#endif
-
-#ifndef min
-#define min(a, b) (((a) < (b)) ? (a) : (b))
-#endif
-
-#ifndef max
-#define max(a, b) (((a) < (b)) ? (b) : (a))
-#endif
 
 // top, middle, botom and left, middle, right windows
 #define OW_TL 0
@@ -26,14 +18,14 @@
 #define OW_BM 7
 #define OW_BR 8
 
-class OverlapWindows {
+typedef struct OverlapWindows {
     int nx; // window sizes
     int ny;
     int ox; // overap sizes
     int oy;
     int size; // full window size= nx*ny
 
-    short *Overlap9Windows;
+    int16_t *Overlap9Windows;
 
     float *fWin1UVx;
     float *fWin1UVxfirst;
@@ -41,67 +33,81 @@ class OverlapWindows {
     float *fWin1UVy;
     float *fWin1UVyfirst;
     float *fWin1UVylast;
+} OverlapWindows;
 
-public:
-    OverlapWindows(int _nx, int _ny, int _ox, int _oy);
-    ~OverlapWindows();
+void overInit(OverlapWindows *over, int nx, int ny, int ox, int oy);
 
-    inline int Getnx() const {
-        return nx;
-    }
-    inline int Getny() const {
-        return ny;
-    }
-    inline int GetSize() const {
-        return size;
-    }
-    inline short *GetWindow(int i) const {
-        return Overlap9Windows + size * i;
-    }
-};
+void overDeinit(OverlapWindows *over);
+
+int16_t *overGetWindow(const OverlapWindows *over, int i);
+
 
 typedef void (*OverlapsFunction)(uint8_t *pDst, intptr_t nDstPitch,
                                  const uint8_t *pSrc, intptr_t nSrcPitch,
-                                 short *pWin, intptr_t nWinPitch);
+                                 int16_t *pWin, intptr_t nWinPitch);
 
 
-template <int blockWidth, int blockHeight, typename PixelType2, typename PixelType>
-void Overlaps_C(uint8_t *pDst8, intptr_t nDstPitch, const uint8_t *pSrc8, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch) {
-    // pWin from 0 to 2048
-    for (int j = 0; j < blockHeight; j++) {
-        for (int i = 0; i < blockWidth; i++) {
-            PixelType2 *pDst = (PixelType2 *)pDst8;
-            const PixelType *pSrc = (const PixelType *)pSrc8;
+#define MK_CFUNC(functionname) void functionname(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, int16_t *pWin, intptr_t nWinPitch)
 
-            pDst[i] += ((pSrc[i] * pWin[i]) >> 6);
-        }
-        pDst8 += nDstPitch;
-        pSrc8 += nSrcPitch;
-        pWin += nWinPitch;
-    }
-}
+MK_CFUNC(mvtools_overlaps_2x2_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_2x4_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_4x2_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_4x4_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_4x8_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_8x1_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_8x2_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_8x4_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_8x8_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_8x16_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_16x1_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_16x2_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_16x4_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_16x8_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_16x16_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_16x32_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_32x8_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_32x16_uint16_t_uint8_t_c);
+MK_CFUNC(mvtools_overlaps_32x32_uint16_t_uint8_t_c);
 
-#define MK_CFUNC(functionname) extern "C" void functionname(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, short *pWin, intptr_t nWinPitch)
+MK_CFUNC(mvtools_overlaps_2x2_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_2x4_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_4x2_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_4x4_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_4x8_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_8x1_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_8x2_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_8x4_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_8x8_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_8x16_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_16x1_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_16x2_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_16x4_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_16x8_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_16x16_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_16x32_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_32x8_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_32x16_uint32_t_uint16_t_c);
+MK_CFUNC(mvtools_overlaps_32x32_uint32_t_uint16_t_c);
 
-MK_CFUNC(mvtools_Overlaps2x2_sse2);
-MK_CFUNC(mvtools_Overlaps2x4_sse2);
-MK_CFUNC(mvtools_Overlaps4x2_sse2);
-MK_CFUNC(mvtools_Overlaps4x4_sse2);
-MK_CFUNC(mvtools_Overlaps4x8_sse2);
-MK_CFUNC(mvtools_Overlaps8x1_sse2);
-MK_CFUNC(mvtools_Overlaps8x2_sse2);
-MK_CFUNC(mvtools_Overlaps8x4_sse2);
-MK_CFUNC(mvtools_Overlaps8x8_sse2);
-MK_CFUNC(mvtools_Overlaps8x16_sse2);
-MK_CFUNC(mvtools_Overlaps16x1_sse2);
-MK_CFUNC(mvtools_Overlaps16x2_sse2);
-MK_CFUNC(mvtools_Overlaps16x4_sse2);
-MK_CFUNC(mvtools_Overlaps16x8_sse2);
-MK_CFUNC(mvtools_Overlaps16x16_sse2);
-MK_CFUNC(mvtools_Overlaps16x32_sse2);
-MK_CFUNC(mvtools_Overlaps32x8_sse2);
-MK_CFUNC(mvtools_Overlaps32x16_sse2);
-MK_CFUNC(mvtools_Overlaps32x32_sse2);
+MK_CFUNC(mvtools_overlaps_2x2_sse2);
+MK_CFUNC(mvtools_overlaps_2x4_sse2);
+MK_CFUNC(mvtools_overlaps_4x2_sse2);
+MK_CFUNC(mvtools_overlaps_4x4_sse2);
+MK_CFUNC(mvtools_overlaps_4x8_sse2);
+MK_CFUNC(mvtools_overlaps_8x1_sse2);
+MK_CFUNC(mvtools_overlaps_8x2_sse2);
+MK_CFUNC(mvtools_overlaps_8x4_sse2);
+MK_CFUNC(mvtools_overlaps_8x8_sse2);
+MK_CFUNC(mvtools_overlaps_8x16_sse2);
+MK_CFUNC(mvtools_overlaps_16x1_sse2);
+MK_CFUNC(mvtools_overlaps_16x2_sse2);
+MK_CFUNC(mvtools_overlaps_16x4_sse2);
+MK_CFUNC(mvtools_overlaps_16x8_sse2);
+MK_CFUNC(mvtools_overlaps_16x16_sse2);
+MK_CFUNC(mvtools_overlaps_16x32_sse2);
+MK_CFUNC(mvtools_overlaps_32x8_sse2);
+MK_CFUNC(mvtools_overlaps_32x16_sse2);
+MK_CFUNC(mvtools_overlaps_32x32_sse2);
 
 #undef MK_CFUNC
 
@@ -110,26 +116,11 @@ typedef void (*ToPixelsFunction)(uint8_t *pDst, int nDstPitch,
                                  const uint8_t *pSrc, int nSrcPitch,
                                  int width, int height, int bitsPerSample);
 
+void ToPixels_uint16_t_uint8_t(uint8_t *pDst8, int nDstPitch, const uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, int bitsPerSample);
+void ToPixels_uint32_t_uint16_t(uint8_t *pDst8, int nDstPitch, const uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, int bitsPerSample);
 
-template <typename PixelType2, typename PixelType>
-void ToPixels(uint8_t *pDst8, int nDstPitch, const uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, int bitsPerSample) {
-    int pixelMax = (1 << bitsPerSample) - 1;
-
-    for (int h = 0; h < nHeight; h++) {
-        for (int i = 0; i < nWidth; i++) {
-            const PixelType2 *pSrc = (const PixelType2 *)pSrc8;
-            PixelType *pDst = (PixelType *)pDst8;
-
-            int a = (pSrc[i] + 16) >> 5;
-            if (sizeof(PixelType) == 1)
-                pDst[i] = a | ((255 - a) >> (sizeof(int) * 8 - 1));
-            else
-                pDst[i] = min(pixelMax, a);
-        }
-        pDst8 += nDstPitch;
-        pSrc8 += nSrcPitch;
-    }
-}
-
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif

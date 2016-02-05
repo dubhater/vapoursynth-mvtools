@@ -25,7 +25,7 @@ SECTION_TEXT
 
 
 INIT_XMM
-cglobal Overlaps2x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_2x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7    ; =0
@@ -40,7 +40,7 @@ cglobal Overlaps2x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
 
 
 INIT_XMM
-cglobal Overlaps2x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_2x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7    ; =0
@@ -77,7 +77,7 @@ cglobal Overlaps2x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
 
 
 INIT_XMM
-cglobal Overlaps4x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_4x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7    ; =0
@@ -92,7 +92,7 @@ cglobal Overlaps4x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
 
 
 INIT_XMM
-cglobal Overlaps4x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_4x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7    ; =0
@@ -109,7 +109,7 @@ cglobal Overlaps4x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
 
 
 INIT_XMM
-cglobal Overlaps4x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_4x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7    ; =0
@@ -166,7 +166,7 @@ cglobal Overlaps4x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
 
 
 INIT_XMM
-cglobal Overlaps8x1_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_8x1_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7
@@ -177,22 +177,7 @@ cglobal Overlaps8x1_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
 
 
 INIT_XMM
-cglobal Overlaps8x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
-
-    ; prepare constants
-    pxor m7, m7
-
-    ; It's in pixels, apparently.
-    add win_strideq, win_strideq
-
-    OVERS8
-    OVERS8
-
-    RET
-
-
-INIT_XMM
-cglobal Overlaps8x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_8x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7
@@ -202,14 +187,12 @@ cglobal Overlaps8x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
 
     OVERS8
     OVERS8
-    OVERS8
-    OVERS8
 
     RET
 
 
 INIT_XMM
-cglobal Overlaps8x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_8x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7
@@ -222,6 +205,23 @@ cglobal Overlaps8x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
     OVERS8
     OVERS8
 
+    RET
+
+
+INIT_XMM
+cglobal overlaps_8x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+
+    ; prepare constants
+    pxor m7, m7
+
+    ; It's in pixels, apparently.
+    add win_strideq, win_strideq
+
+    OVERS8
+    OVERS8
+    OVERS8
+    OVERS8
+
     OVERS8
     OVERS8
     OVERS8
@@ -231,7 +231,7 @@ cglobal Overlaps8x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win
 
 
 INIT_XMM
-cglobal Overlaps8x16_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_8x16_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7
@@ -274,7 +274,7 @@ cglobal Overlaps8x16_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, wi
 
 
 INIT_XMM
-cglobal Overlaps16x1_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_16x1_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7
@@ -288,7 +288,7 @@ cglobal Overlaps16x1_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, wi
 
 
 INIT_XMM
-cglobal Overlaps16x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_16x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7
@@ -303,7 +303,7 @@ cglobal Overlaps16x2_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, wi
 
 
 INIT_XMM
-cglobal Overlaps16x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_16x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7
@@ -320,29 +320,7 @@ cglobal Overlaps16x4_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, wi
 
 
 INIT_XMM
-cglobal Overlaps16x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
-
-    ; prepare constants
-    pxor m7, m7
-
-    ; It's in pixels, apparently.
-    add win_strideq, win_strideq
-
-    OVERS16
-    OVERS16
-    OVERS16
-    OVERS16
-
-    OVERS16
-    OVERS16
-    OVERS16
-    OVERS16
-
-    RET
-
-
-INIT_XMM
-cglobal Overlaps16x16_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_16x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7
@@ -360,6 +338,28 @@ cglobal Overlaps16x16_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, w
     OVERS16
     OVERS16
 
+    RET
+
+
+INIT_XMM
+cglobal overlaps_16x16_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+
+    ; prepare constants
+    pxor m7, m7
+
+    ; It's in pixels, apparently.
+    add win_strideq, win_strideq
+
+    OVERS16
+    OVERS16
+    OVERS16
+    OVERS16
+
+    OVERS16
+    OVERS16
+    OVERS16
+    OVERS16
+
     OVERS16
     OVERS16
     OVERS16
@@ -374,7 +374,7 @@ cglobal Overlaps16x16_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, w
 
 
 INIT_XMM
-cglobal Overlaps16x32_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_16x32_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7
@@ -439,7 +439,7 @@ cglobal Overlaps16x32_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, w
 
 
 INIT_XMM
-cglobal Overlaps32x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_32x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7
@@ -461,7 +461,7 @@ cglobal Overlaps32x8_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, wi
 
 
 INIT_XMM
-cglobal Overlaps32x16_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_32x16_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7
@@ -493,7 +493,7 @@ cglobal Overlaps32x16_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, w
 
 
 INIT_XMM
-cglobal Overlaps32x32_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
+cglobal overlaps_32x32_sse2, 6, 6, 8, dstp, dst_stride, srcp, src_stride, winp, win_stride
 
     ; prepare constants
     pxor m7, m7

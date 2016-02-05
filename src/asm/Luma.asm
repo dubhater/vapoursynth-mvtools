@@ -25,7 +25,7 @@ SECTION_TEXT
 
 
 INIT_XMM
-cglobal Luma4x4_sse2, 2, 3, 8, srcp, stride, stride3
+cglobal luma_4x4_u8_sse2, 2, 3, 8, srcp, stride, stride3
     lea stride3q, [strideq * 3]
 
     pxor m6, m6
@@ -60,7 +60,7 @@ cglobal Luma4x4_sse2, 2, 3, 8, srcp, stride, stride3
 
 
 INIT_XMM
-cglobal Luma8x4_sse2, 2, 3, 8, srcp, stride, stride3
+cglobal luma_8x4_u8_sse2, 2, 3, 8, srcp, stride, stride3
     lea stride3q, [strideq * 3]
 
     pxor m6, m6
@@ -115,7 +115,7 @@ cglobal Luma8x4_sse2, 2, 3, 8, srcp, stride, stride3
 
 
 INIT_XMM
-cglobal Luma8x8_sse2, 2, 3, 8, srcp, stride, stride3
+cglobal luma_8x8_u8_sse2, 2, 3, 8, srcp, stride, stride3
     lea stride3q, [strideq * 3]
 
     pxor m6, m6
@@ -144,7 +144,7 @@ cglobal Luma8x8_sse2, 2, 3, 8, srcp, stride, stride3
 
 
 INIT_XMM
-cglobal Luma16x2_sse2, 2, 2, 8, srcp, stride
+cglobal luma_16x2_u8_sse2, 2, 2, 8, srcp, stride
     pxor m6, m6
     pxor m7, m7
 
@@ -190,7 +190,7 @@ cglobal Luma16x2_sse2, 2, 2, 8, srcp, stride
 
 
 INIT_XMM
-cglobal Luma16x8_sse2, 2, 3, 8, srcp, stride, stride3
+cglobal luma_16x8_u8_sse2, 2, 3, 8, srcp, stride, stride3
     lea stride3q, [strideq * 3]
 
     pxor m6, m6
@@ -220,7 +220,7 @@ cglobal Luma16x8_sse2, 2, 3, 8, srcp, stride, stride3
 
 
 INIT_XMM
-cglobal Luma16x16_sse2, 2, 3, 8, srcp, stride, stride3
+cglobal luma_16x16_u8_sse2, 2, 3, 8, srcp, stride, stride3
     lea stride3q, [strideq * 3]
 
     pxor m6, m6
@@ -255,7 +255,7 @@ cglobal Luma16x16_sse2, 2, 3, 8, srcp, stride, stride3
 
 
 INIT_XMM
-cglobal Luma16x32_sse2, 2, 3, 8, srcp, stride, stride3
+cglobal luma_16x32_u8_sse2, 2, 3, 8, srcp, stride, stride3
     lea stride3q, [strideq * 3]
 
     pxor m6, m6
@@ -311,7 +311,7 @@ cglobal Luma16x32_sse2, 2, 3, 8, srcp, stride, stride3
 
 
 INIT_XMM
-cglobal Luma32x16_sse2, 2, 3, 8, srcp, stride, stride3
+cglobal luma_32x16_u8_sse2, 2, 3, 8, srcp, stride, stride3
     lea stride3q, [strideq * 3]
 
     pxor m6, m6
@@ -356,7 +356,7 @@ cglobal Luma32x16_sse2, 2, 3, 8, srcp, stride, stride3
 
 
 INIT_XMM
-cglobal Luma32x32_sse2, 2, 3, 8, srcp, stride, stride3
+cglobal luma_32x32_u8_sse2, 2, 3, 8, srcp, stride, stride3
     lea stride3q, [strideq * 3]
 
     pxor m6, m6

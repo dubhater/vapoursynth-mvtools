@@ -15,12 +15,20 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html .
 
-#ifndef __GOPLANES__
-#define __GOPLANES__
+#ifndef GROUPOFPLANES_H
+#define GROUPOFPLANES_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "DCTFFTW.h"
+#include "Fakery.h"
+#include "MVFrame.h"
 #include "PlaneOfBlocks.h"
 
-class GroupOfPlanes {
+
+typedef struct GroupOfPlanes {
     int nBlkSizeX;
     int nBlkSizeY;
     int nLevelCount;
@@ -35,18 +43,25 @@ class GroupOfPlanes {
     int bitsPerSample;
 
     PlaneOfBlocks **planes;
+} GroupOfPlanes;
 
-public:
-    GroupOfPlanes(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, int _nPel,
-                  int _nMotionFlags, int _nCPUFlags, int _nOverlapX, int _nOverlapY, int _nBlkX, int _nBlkY, int _xRatioUV, int _yRatioUV, int _divideExtra, int _bitsPerSample);
-    ~GroupOfPlanes();
-    void SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
-                   SearchType searchType, int nSearchParam, int _PelSearch, int _nLambda, int _lsad, int _pnew, int _plevel, bool _global, int *out, short *outfilebuf, int fieldShift, DCTClass *DCT, int _pzero, int _pglobal, int badSAD, int badrange, bool meander, int *vecPrev, bool tryMany, SearchType coarseSearchType);
-    void WriteDefaultToArray(int *array);
-    int GetArraySize();
-    void ExtraDivide(int *out);
-    void RecalculateMVs(MVClipBalls &mvClip, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
-                        SearchType _searchType, int _nSearchParam, int _nLambda, int _pnew, int *out, short *outfilebuf, int fieldShift, int thSAD, DCTClass *DCT, int smooth, bool meander);
-};
+
+void gopInit(GroupOfPlanes *gop, int nBlkSizeX, int nBlkSizeY, int nLevelCount, int nPel, int nMotionFlags, int nCPUFlags, int nOverlapX, int nOverlapY, int nBlkX, int nBlkY, int xRatioUV, int yRatioUV, int divideExtra, int bitsPerSample);
+
+void gopDeinit(GroupOfPlanes *gop);
+
+void gopSearchMVs(GroupOfPlanes *gop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF, SearchType searchType, int nSearchParam, int nPelSearch, int nLambda, int lsad, int pnew, int plevel, int global, int *out, short *outfilebuf, int fieldShift, DCTFFTW *_DCT, int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int *vecPrev, int tryMany, SearchType coarseSearchType);
+
+void gopRecalculateMVs(GroupOfPlanes *gop, FakeGroupOfPlanes *fgop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF, SearchType searchType, int nSearchParam, int nLambda, int pnew, int *out, short *outfilebuf, int fieldShift, int thSAD, DCTFFTW *_DCT, int smooth, int meander);
+
+void gopWriteDefaultToArray(GroupOfPlanes *gop, int *array);
+
+int gopGetArraySize(GroupOfPlanes *gop);
+
+void gopExtraDivide(GroupOfPlanes *gop, int *out);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif

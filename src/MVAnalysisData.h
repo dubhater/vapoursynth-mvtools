@@ -20,37 +20,33 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html .
 
-#ifndef __MV_INTERFACES_H__
-#define __MV_INTERFACES_H__
+#ifndef MVANALYSISDATA_H
+#define MVANALYSISDATA_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdint.h>
 #include <stdio.h>
-
-#include <stdexcept>
-#include <string>
 
 #include <VapourSynth.h>
 
 
 #define MOTION_MAGIC_KEY 0x564D //'MV' is IMHO better 31415926 :)
 
-struct VECTOR {
+typedef struct VECTOR {
     int x;
     int y;
     int sad;
-};
+} VECTOR;
 
-inline void CopyVector(VECTOR *destVector, const VECTOR *srcVector) {
-    destVector->x = srcVector->x;
-    destVector->y = srcVector->y;
-    destVector->sad = srcVector->sad;
-}
 
 #define N_PER_BLOCK 3
 
 
 /*! \brief Search type : defines the algorithm used for minimizing the SAD */
-enum SearchType {
+typedef enum SearchType {
     ONETIME = 1,
     NSTEP = 2,
     LOGARITHMIC = 4,
@@ -59,7 +55,7 @@ enum SearchType {
     UMHSEARCH = 32,  // v.2
     HSEARCH = 64,    // v.2.5.11
     VSEARCH = 128    // v.2.5.11
-};
+} SearchType;
 
 #define MAX(a, b) (((a) < (b)) ? (b) : (a))
 #define MIN(a, b) (((a) > (b)) ? (b) : (a))
@@ -84,8 +80,7 @@ static const VECTOR zeroMV = { 0, 0, -1 };
 
 #define MVANALYSIS_DATA_VERSION 5
 
-class MVAnalysisData {
-public:
+typedef struct MVAnalysisData {
     /*! \brief Unique identifier, not very useful */
     int nMagicKey; // placed to head in v.1.2.6
 
@@ -106,7 +101,7 @@ public:
     int nDeltaFrame;
 
     /*! \brief direction of the search ( forward / backward ) */
-    bool isBackward;
+    int isBackward;
 
     int nCPUFlags;
 
@@ -136,92 +131,21 @@ public:
     int nHPadding; // Horizontal padding - v1.8.1
 
     int nVPadding; // Vertical padding - v1.8.1
+} MVAnalysisData;
 
 
-public:
-    inline void SetCPUFlags(int _nCPUFlags) {
-        nCPUFlags |= _nCPUFlags;
-    }
-    inline int GetCPUFlags() const {
-        return nCPUFlags;
-    }
-    inline void SetMotionFlags(int _nMotionFlags) {
-        nMotionFlags |= _nMotionFlags;
-    }
-    inline int GetMotionFlags() const {
-        return nMotionFlags;
-    }
-    inline int GetBlkSizeX() const {
-        return nBlkSizeX;
-    }
-    inline int GetPel() const {
-        return nPel;
-    }
-    inline int GetLevelCount() const {
-        return nLvCount;
-    }
-    inline bool IsBackward() const {
-        return isBackward;
-    }
-    inline int GetMagicKey() const {
-        return nMagicKey;
-    }
-    inline int GetDeltaFrame() const {
-        return nDeltaFrame;
-    }
-    inline int GetWidth() const {
-        return nWidth;
-    }
-    inline int GetHeight() const {
-        return nHeight;
-    }
-    inline bool IsChromaMotion() const {
-        return !!(nMotionFlags & MOTION_USE_CHROMA_MOTION);
-    }
-    inline int GetOverlapX() const {
-        return nOverlapX;
-    }
-    inline int GetBlkX() const {
-        return nBlkX;
-    }
-    inline int GetBlkY() const {
-        return nBlkY;
-    }
-    inline int GetBitsPerSample() const {
-        return bitsPerSample;
-    }
-    inline int GetYRatioUV() const {
-        return yRatioUV;
-    }
-    inline int GetXRatioUV() const {
-        return xRatioUV;
-    }
-    inline int GetBlkSizeY() const {
-        return nBlkSizeY;
-    }
-    inline int GetOverlapY() const {
-        return nOverlapY;
-    }
-    inline int GetHPadding() const {
-        return nHPadding;
-    }
-    inline int GetVPadding() const {
-        return nVPadding;
-    }
-};
+void scaleThSCD(int *thscd1, int *thscd2, const MVAnalysisData *ad, const char *filter_name, char *error, size_t error_size);
 
+void adataFromVectorClip(struct MVAnalysisData *ad, VSNodeRef *clip, const char *filter_name, const char *vector_name, const VSAPI *vsapi, char *error, size_t error_size);
 
-class MVException : public std::runtime_error {
-public:
-    MVException(const char *descr)
-        : std::runtime_error(descr) {
-    }
-    MVException(const std::string &descr)
-        : std::runtime_error(descr) {
-    }
-};
+void adataCheckSimilarity(const MVAnalysisData *ad1, const MVAnalysisData *ad2, const char *filter_name1, const char *filter_name2, const char *vector_name, char *error, size_t error_size);
 
 
 //#define MOTION_DELTA_FRAME_BUFFER 5
 
+
+#ifdef __cplusplus
+} // extern "C"
 #endif
+
+#endif // MVANALYSISDATA_H

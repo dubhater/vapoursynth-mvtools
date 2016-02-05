@@ -19,57 +19,65 @@
 
 #include "GroupOfPlanes.h"
 
-GroupOfPlanes::GroupOfPlanes(int _nBlkSizeX, int _nBlkSizeY, int _nLevelCount, int _nPel, int _nMotionFlags, int _nCPUFlags, int _nOverlapX, int _nOverlapY, int _nBlkX, int _nBlkY, int _xRatioUV, int _yRatioUV, int _divideExtra, int _bitsPerSample) {
-    nBlkSizeX = _nBlkSizeX;
-    nBlkSizeY = _nBlkSizeY;
-    nLevelCount = _nLevelCount;
-    nPel = _nPel;
-    nMotionFlags = _nMotionFlags;
-    nCPUFlags = _nCPUFlags;
-    nOverlapX = _nOverlapX;
-    nOverlapY = _nOverlapY;
-    xRatioUV = _xRatioUV;
-    yRatioUV = _yRatioUV;
-    divideExtra = _divideExtra;
-    bitsPerSample = _bitsPerSample;
 
-    planes = new PlaneOfBlocks *[nLevelCount];
+void gopInit(GroupOfPlanes *gop, int nBlkSizeX, int nBlkSizeY, int nLevelCount, int nPel, int nMotionFlags, int nCPUFlags, int nOverlapX, int nOverlapY, int nBlkX, int nBlkY, int xRatioUV, int yRatioUV, int divideExtra, int bitsPerSample) {
+    gop->nBlkSizeX = nBlkSizeX;
+    gop->nBlkSizeY = nBlkSizeY;
+    gop->nLevelCount = nLevelCount;
+    gop->nPel = nPel;
+    gop->nMotionFlags = nMotionFlags;
+    gop->nCPUFlags = nCPUFlags;
+    gop->nOverlapX = nOverlapX;
+    gop->nOverlapY = nOverlapY;
+    gop->xRatioUV = xRatioUV;
+    gop->yRatioUV = yRatioUV;
+    gop->divideExtra = divideExtra;
+    gop->bitsPerSample = bitsPerSample;
 
-    int nBlkX = _nBlkX;
-    int nBlkY = _nBlkY;
+    gop->planes = (PlaneOfBlocks **)malloc(gop->nLevelCount * sizeof(PlaneOfBlocks *));
 
-    int nPelCurrent = nPel;
-    int nMotionFlagsCurrent = nMotionFlags;
+    int nBlkXCurrent = nBlkX;
+    int nBlkYCurrent = nBlkY;
 
-    int nWidth_B = (nBlkSizeX - nOverlapX) * nBlkX + nOverlapX;
-    int nHeight_B = (nBlkSizeY - nOverlapY) * nBlkY + nOverlapY;
+    int nPelCurrent = gop->nPel;
+    int nMotionFlagsCurrent = gop->nMotionFlags;
 
-    for (int i = 0; i < nLevelCount; i++) {
-        if (i == nLevelCount - 1)
+    int nWidth_B = (gop->nBlkSizeX - gop->nOverlapX) * nBlkX + gop->nOverlapX;
+    int nHeight_B = (gop->nBlkSizeY - gop->nOverlapY) * nBlkY + gop->nOverlapY;
+
+    for (int i = 0; i < gop->nLevelCount; i++) {
+        if (i == gop->nLevelCount - 1)
             nMotionFlagsCurrent |= MOTION_SMALLEST_PLANE;
-        nBlkX = ((nWidth_B >> i) - nOverlapX) / (nBlkSizeX - nOverlapX);
-        nBlkY = ((nHeight_B >> i) - nOverlapY) / (nBlkSizeY - nOverlapY);
-        planes[i] = new PlaneOfBlocks(nBlkX, nBlkY, nBlkSizeX, nBlkSizeY, nPelCurrent, i, nMotionFlagsCurrent, nCPUFlags, nOverlapX, nOverlapY, xRatioUV, yRatioUV, bitsPerSample);
+        nBlkXCurrent = ((nWidth_B >> i) - gop->nOverlapX) / (gop->nBlkSizeX - gop->nOverlapX);
+        nBlkYCurrent = ((nHeight_B >> i) - gop->nOverlapY) / (gop->nBlkSizeY - gop->nOverlapY);
+
+        gop->planes[i] = (PlaneOfBlocks *)malloc(sizeof(PlaneOfBlocks));
+        pobInit(gop->planes[i], nBlkXCurrent, nBlkYCurrent, gop->nBlkSizeX, gop->nBlkSizeY, nPelCurrent, i, nMotionFlagsCurrent, gop->nCPUFlags, gop->nOverlapX, gop->nOverlapY, gop->xRatioUV, gop->yRatioUV, gop->bitsPerSample);
         nPelCurrent = 1;
     }
 }
 
-GroupOfPlanes::~GroupOfPlanes() {
-    for (int i = 0; i < nLevelCount; i++)
-        delete planes[i];
-    delete[] planes;
+
+void gopDeinit(GroupOfPlanes *gop) {
+    for (int i = 0; i < gop->nLevelCount; i++) {
+        pobDeinit(gop->planes[i]);
+        free(gop->planes[i]);
+    }
+
+    free(gop->planes);
 }
 
-void GroupOfPlanes::SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
-                              SearchType searchType, int nSearchParam, int nPelSearch, int nLambda,
-                              int lsad, int pnew, int plevel, bool global,
-                              int *out, short *outfilebuf, int fieldShift, DCTClass *_DCT,
-                              int pzero, int pglobal, int badSAD, int badrange, bool meander, int *vecPrev, bool tryMany,
-                              SearchType coarseSearchType) {
+
+void gopSearchMVs(GroupOfPlanes *gop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
+                  SearchType searchType, int nSearchParam, int nPelSearch, int nLambda,
+                  int lsad, int pnew, int plevel, int global,
+                  int *out, short *outfilebuf, int fieldShift, DCTFFTW *_DCT,
+                  int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int *vecPrev, int tryMany,
+                  SearchType coarseSearchType) {
     int i;
 
     // write group's size
-    out[0] = GetArraySize();
+    out[0] = gopGetArraySize(gop);
 
     // write validity : 1 in that case
     out[1] = 1;
@@ -78,7 +86,7 @@ void GroupOfPlanes::SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF
     if (vecPrev)
         vecPrev += 2;
 
-    int fieldShiftCur = (nLevelCount - 1 == 0) ? fieldShift : 0; // may be non zero for finest level only
+    int fieldShiftCur = (gop->nLevelCount - 1 == 0) ? fieldShift : 0; // may be non zero for finest level only
 
     VECTOR globalMV; // create and init global motion vector as zero
     globalMV.x = zeroMV.x;
@@ -91,45 +99,47 @@ void GroupOfPlanes::SearchMVs(MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF
     int meanLumaChange = 0;
 
     // Search the motion vectors, for the low details interpolations first
-    SearchType searchTypeSmallest = (nLevelCount == 1 || searchType == HSEARCH || searchType == VSEARCH) ? searchType : coarseSearchType; // full search for smallest coarse plane
-    int nSearchParamSmallest = (nLevelCount == 1) ? nPelSearch : nSearchParam;
-    bool tryManyLevel = tryMany && nLevelCount > 1;
-    planes[nLevelCount - 1]->SearchMVs(pSrcGOF->GetFrame(nLevelCount - 1),
-                                       pRefGOF->GetFrame(nLevelCount - 1),
-                                       searchTypeSmallest, nSearchParamSmallest, nLambda, lsad, pnew, plevel,
-                                       out, &globalMV, outfilebuf, fieldShiftCur, _DCT, &meanLumaChange, divideExtra,
-                                       pzero, pglobal, badSAD, badrange, meander, vecPrev, tryManyLevel);
+    SearchType searchTypeSmallest = (gop->nLevelCount == 1 || searchType == HSEARCH || searchType == VSEARCH) ? searchType : coarseSearchType; // full search for smallest coarse plane
+    int nSearchParamSmallest = (gop->nLevelCount == 1) ? nPelSearch : nSearchParam;
+    int tryManyLevel = tryMany && gop->nLevelCount > 1;
+    pobSearchMVs(gop->planes[gop->nLevelCount - 1],
+                 pSrcGOF->frames[gop->nLevelCount - 1],
+                 pRefGOF->frames[gop->nLevelCount - 1],
+                 searchTypeSmallest, nSearchParamSmallest, nLambda, lsad, pnew, plevel,
+                 out, &globalMV, outfilebuf, fieldShiftCur, _DCT, &meanLumaChange, gop->divideExtra,
+                 pzero, pglobal, badSAD, badrange, meander, vecPrev, tryManyLevel);
     // Refining the search until we reach the highest detail interpolation.
 
-    out += planes[nLevelCount - 1]->GetArraySize(divideExtra);
+    out += pobGetArraySize(gop->planes[gop->nLevelCount - 1], gop->divideExtra);
     if (vecPrev)
-        vecPrev += planes[nLevelCount - 1]->GetArraySize(divideExtra);
+        vecPrev += pobGetArraySize(gop->planes[gop->nLevelCount - 1], gop->divideExtra);
 
-    for (i = nLevelCount - 2; i >= 0; i--) {
+    for (i = gop->nLevelCount - 2; i >= 0; i--) {
         SearchType searchTypeLevel = (i == 0 || searchType == HSEARCH || searchType == VSEARCH) ? searchType : coarseSearchType; // full search for coarse planes
         int nSearchParamLevel = (i == 0) ? nPelSearch : nSearchParam;                                                            // special case for finest level
         if (global) {
-            planes[i + 1]->EstimateGlobalMVDoubled(&globalMV); // get updated global MV (doubled)
+            pobEstimateGlobalMVDoubled(gop->planes[i + 1], &globalMV); // get updated global MV (doubled)
         }
-        planes[i]->InterpolatePrediction(*(planes[i + 1]));
+        pobInterpolatePrediction(gop->planes[i], gop->planes[i + 1]);
         fieldShiftCur = (i == 0) ? fieldShift : 0; // may be non zero for finest level only
         tryManyLevel = tryMany && i > 0;           // not for finest level to not decrease speed
-        planes[i]->SearchMVs(pSrcGOF->GetFrame(i), pRefGOF->GetFrame(i),
-                             searchTypeLevel, nSearchParamLevel, nLambda, lsad, pnew, plevel,
-                             out, &globalMV, outfilebuf, fieldShiftCur, _DCT, &meanLumaChange, divideExtra,
-                             pzero, pglobal, badSAD, badrange, meander, vecPrev, tryManyLevel);
-        out += planes[i]->GetArraySize(divideExtra);
+        pobSearchMVs(gop->planes[i], pSrcGOF->frames[i], pRefGOF->frames[i],
+                     searchTypeLevel, nSearchParamLevel, nLambda, lsad, pnew, plevel,
+                     out, &globalMV, outfilebuf, fieldShiftCur, _DCT, &meanLumaChange, gop->divideExtra,
+                     pzero, pglobal, badSAD, badrange, meander, vecPrev, tryManyLevel);
+        out += pobGetArraySize(gop->planes[i], gop->divideExtra);
         if (vecPrev)
-            vecPrev += planes[i]->GetArraySize(divideExtra);
+            vecPrev += pobGetArraySize(gop->planes[i], gop->divideExtra);
     }
 }
 
-void GroupOfPlanes::RecalculateMVs(MVClipBalls &mvClip, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
-                                   SearchType searchType, int nSearchParam, int nLambda,
-                                   int pnew,
-                                   int *out, short *outfilebuf, int fieldShift, int thSAD, DCTClass *_DCT, int smooth, bool meander) {
+
+void gopRecalculateMVs(GroupOfPlanes *gop, FakeGroupOfPlanes *fgop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
+                       SearchType searchType, int nSearchParam, int nLambda,
+                       int pnew,
+                       int *out, short *outfilebuf, int fieldShift, int thSAD, DCTFFTW *_DCT, int smooth, int meander) {
     // write group's size
-    out[0] = GetArraySize();
+    out[0] = gopGetArraySize(gop);
 
     // write validity : 1 in that case
     out[1] = 1;
@@ -138,17 +148,17 @@ void GroupOfPlanes::RecalculateMVs(MVClipBalls &mvClip, MVGroupOfFrames *pSrcGOF
 
     // Search the motion vectors, for the low details interpolations first
     // Refining the search until we reach the highest detail interpolation.
-    planes[0]->RecalculateMVs(mvClip, pSrcGOF->GetFrame(0),
-                              pRefGOF->GetFrame(0),
-                              searchType, nSearchParam, nLambda, pnew,
-                              out, outfilebuf, fieldShift, thSAD, _DCT, divideExtra, smooth, meander);
+    pobRecalculateMVs(gop->planes[0], fgop, pSrcGOF->frames[0], pRefGOF->frames[0],
+                      searchType, nSearchParam, nLambda, pnew,
+                      out, outfilebuf, fieldShift, thSAD, _DCT, gop->divideExtra, smooth, meander);
 
-    out += planes[0]->GetArraySize(divideExtra);
+    out += pobGetArraySize(gop->planes[0], gop->divideExtra);
 }
 
-void GroupOfPlanes::WriteDefaultToArray(int *array) {
+
+void gopWriteDefaultToArray(GroupOfPlanes *gop, int *array) {
     // write group's size
-    array[0] = GetArraySize();
+    array[0] = gopGetArraySize(gop);
 
     // write validity : unvalid in that case
     array[1] = 0;
@@ -156,19 +166,22 @@ void GroupOfPlanes::WriteDefaultToArray(int *array) {
     array += 2;
 
     // write planes
-    for (int i = nLevelCount - 1; i >= 0; i--) {
-        array += planes[i]->WriteDefaultToArray(array, divideExtra);
+    for (int i = gop->nLevelCount - 1; i >= 0; i--) {
+        array += pobWriteDefaultToArray(gop->planes[i], array, gop->divideExtra);
     }
 }
 
-int GroupOfPlanes::GetArraySize() {
+
+int gopGetArraySize(GroupOfPlanes *gop) {
     int size = 2; // size, validity
-    for (int i = nLevelCount - 1; i >= 0; i--)
-        size += planes[i]->GetArraySize(divideExtra);
+    for (int i = gop->nLevelCount - 1; i >= 0; i--)
+        size += pobGetArraySize(gop->planes[i], gop->divideExtra);
 
 
     return size;
 }
+
+
 // FIND MEDIAN OF 3 ELEMENTS
 //
 inline int Median3(int a, int b, int c) {
@@ -185,6 +198,7 @@ inline int Median3(int a, int b, int c) {
         return c;
 }
 
+
 void GetMedian(int *vx, int *vy, int vx1, int vy1, int vx2, int vy2, int vx3, int vy3) { // existant median vector (not mixed)
     *vx = Median3(vx1, vx2, vx3);
     *vy = Median3(vy1, vy2, vy3);
@@ -196,16 +210,17 @@ void GetMedian(int *vx, int *vy, int vx1, int vy1, int vx2, int vy2, int vx3, in
     }
 }
 
-void GroupOfPlanes::ExtraDivide(int *out) {
+
+void gopExtraDivide(GroupOfPlanes *gop, int *out) {
     out += 2;                                  // skip full size and validity
-    for (int i = nLevelCount - 1; i >= 1; i--) // skip all levels up to finest estimated
-        out += planes[i]->GetArraySize(0);
+    for (int i = gop->nLevelCount - 1; i >= 1; i--) // skip all levels up to finest estimated
+        out += pobGetArraySize(gop->planes[i], 0);
 
     int *inp = out + 1; // finest estimated plane
     out += out[0] + 1;  // position for divided sublocks data
 
-    int nBlkY = planes[0]->GetnBlkY();
-    int nBlkXN = N_PER_BLOCK * planes[0]->GetnBlkX();
+    int nBlkY = gop->planes[0]->nBlkY;
+    int nBlkXN = N_PER_BLOCK * gop->planes[0]->nBlkX;
     // 6 stored variables
 
     int by = 0; // top blocks
@@ -243,7 +258,7 @@ void GroupOfPlanes::ExtraDivide(int *out) {
             out[bx * 2 + N_PER_BLOCK + nBlkXN * 2 + i] = inp[bx + i] >> 2; // bottom right subblock
         }
         for (bx = N_PER_BLOCK; bx < nBlkXN - N_PER_BLOCK; bx += N_PER_BLOCK) {
-            if (divideExtra == 1) {
+            if (gop->divideExtra == 1) {
                 out[bx * 2] = inp[bx];                                    // top left subblock
                 out[bx * 2 + N_PER_BLOCK] = inp[bx];                      // top right subblock
                 out[bx * 2 + nBlkXN * 2] = inp[bx];                       // bottom left subblock

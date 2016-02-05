@@ -2,18 +2,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <string>
-
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
 #include "CPU.h"
 #include "DCTFFTW.h"
 #include "GroupOfPlanes.h"
-#include "MVInterface.h"
+#include "MVAnalysisData.h"
 
 // FIXME: Redundant members. A few can go straight in analysisData.
-typedef struct {
+typedef struct MVAnalyseData {
     VSNodeRef *node;
     VSVideoInfo vi;
     const VSVideoInfo *supervi;
@@ -22,7 +20,7 @@ typedef struct {
     MVAnalysisData analysisDataDivided;
 
     /*! \brief isse optimisations enabled */
-    bool isse;
+    int isse;
 
     /*! \brief motion vecteur cost factor */
     int nLambda;
@@ -41,14 +39,14 @@ typedef struct {
     int pnew;        // penalty to cost for new canditate - added by Fizick
     int plen;        // penalty factor (similar to lambda) for vector length - added by Fizick
     int plevel;      // penalty factors (lambda, plen) level scaling - added by Fizick
-    bool global;     // use global motion predictor
+    int global;     // use global motion predictor
     int pglobal;     // penalty factor for global motion predictor
     int pzero;       // penalty factor for zero vector
     int divideExtra; // divide blocks on sublocks with median motion
     int64_t badSAD;  //  SAD threshold to make more wide search for bad vectors
     int badrange;    // range (radius) of wide search
-    bool meander;    //meander (alternate) scan blocks (even row left to right, odd row right to left
-    bool tryMany;    // try refine around many predictors
+    int meander;    //meander (alternate) scan blocks (even row left to right, odd row right to left
+    int tryMany;    // try refine around many predictors
 
     int dctmode;
 
@@ -68,15 +66,15 @@ typedef struct {
     int search;
     int search_coarse;
     int searchparam;
-    bool isb;
-    bool chroma;
+    int isb;
+    int chroma;
     int delta;
-    bool truemotion;
+    int truemotion;
     int overlap;
     int overlapv;
 
-    bool fields;
-    bool tff;
+    int fields;
+    int tff;
     int tffexists;
 } MVAnalyseData;
 
@@ -121,12 +119,14 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         }
     } else if (activationReason == arAllFramesReady) {
 
-        GroupOfPlanes *vectorFields = new GroupOfPlanes(d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nMotionFlags, d->analysisData.nCPUFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra, d->supervi->format->bitsPerSample);
+        GroupOfPlanes vectorFields;
+
+        gopInit(&vectorFields, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nMotionFlags, d->analysisData.nCPUFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra, d->supervi->format->bitsPerSample);
 
 
-        const uint8_t *pSrc[3] = { nullptr };
-        const uint8_t *pRef[3] = { nullptr };
-        uint8_t *pDst = { nullptr };
+        const uint8_t *pSrc[3] = { NULL };
+        const uint8_t *pRef[3] = { NULL };
+        uint8_t *pDst = { NULL };
         int nSrcPitch[3] = { 0 };
         int nRefPitch[3] = { 0 };
 
@@ -143,17 +143,17 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         const VSMap *srcprops = vsapi->getFramePropsRO(src);
         int err;
 
-        bool srctff = !!vsapi->propGetInt(srcprops, "_Field", 0, &err);
+        int srctff = !!vsapi->propGetInt(srcprops, "_Field", 0, &err);
         if (err && d->fields && !d->tffexists) {
             vsapi->setFilterError("Analyse: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
-            delete vectorFields;
+            gopDeinit(&vectorFields);
             vsapi->freeFrame(src);
             return NULL;
         }
 
         // if tff was passed, it overrides _Field.
         if (d->tffexists)
-            srctff = d->tff && (n % 2 == 0); //child->GetParity(n); // bool tff;
+            srctff = d->tff && (n % 2 == 0); //child->GetParity(n); // int tff;
 
         for (int plane = 0; plane < d->supervi->format->numPlanes; plane++) {
             pSrc[plane] = vsapi->getReadPtr(src, plane);
@@ -161,12 +161,13 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         }
 
         int dst_height = 1;
-        int dst_width = d->headerSize / sizeof(int) + vectorFields->GetArraySize(); //v1.8.1
+        int dst_width = d->headerSize / sizeof(int) + gopGetArraySize(&vectorFields); //v1.8.1
         // In Avisynth the frame was packed BGR32, which has 4 bytes per pixel.
         // It's GRAY8 here.
         dst_width *= 4;
         VSFrameRef *dst = vsapi->newVideoFrame(d->vi.format, dst_width, dst_height, src, core);
 
+        // XXX Frame properties.
         pDst = vsapi->getWritePtr(dst, 0);
 
         // write analysis parameters as a header to frame
@@ -184,10 +185,10 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->node, frameCtx);
             const VSMap *refprops = vsapi->getFramePropsRO(ref);
 
-            bool reftff = !!vsapi->propGetInt(refprops, "_Field", 0, &err);
+            int reftff = !!vsapi->propGetInt(refprops, "_Field", 0, &err);
             if (err && d->fields && !d->tffexists) {
                 vsapi->setFilterError("Analyse: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
-                delete vectorFields;
+                gopDeinit(&vectorFields);
                 vsapi->freeFrame(src);
                 vsapi->freeFrame(ref);
                 vsapi->freeFrame(dst);
@@ -196,7 +197,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
 
             // if tff was passed, it overrides _Field.
             if (d->tffexists)
-                reftff = d->tff && (nref % 2 == 0); //child->GetParity(n); // bool tff;
+                reftff = d->tff && (nref % 2 == 0); //child->GetParity(n); // int tff;
 
             int fieldShift = 0;
             if (d->fields && d->analysisData.nPel > 1 && (d->analysisData.nDeltaFrame % 2)) {
@@ -210,42 +211,41 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             }
 
 
-            MVGroupOfFrames *pSrcGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->supervi->format->bitsPerSample);
-            MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->supervi->format->bitsPerSample);
+            MVGroupOfFrames pSrcGOF, pRefGOF;
+
+            mvgofInit(&pSrcGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->supervi->format->bitsPerSample);
+            mvgofInit(&pRefGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->supervi->format->bitsPerSample);
 
             // cast away the const, because why not.
-            pSrcGOF->Update(d->nModeYUV, (uint8_t *)pSrc[0], nSrcPitch[0], (uint8_t *)pSrc[1], nSrcPitch[1], (uint8_t *)pSrc[2], nSrcPitch[2]); // v2.0
-            pRefGOF->Update(d->nModeYUV, (uint8_t *)pRef[0], nRefPitch[0], (uint8_t *)pRef[1], nRefPitch[1], (uint8_t *)pRef[2], nRefPitch[2]); // v2.0
+            mvgofUpdate(&pSrcGOF, (uint8_t **)pSrc, nSrcPitch);
+            mvgofUpdate(&pRefGOF, (uint8_t **)pRef, nRefPitch);
 
 
-            DCTClass *DCTc = NULL;
+            DCTFFTW *DCTc = NULL;
             if (d->dctmode != 0) {
-                /*
-                // FIXME: deal with this inline asm shit
-                if (d->isse && (d->blksize == 8) && d->blksizev == 8)
-                DCTc = new DCTINT(d->blksize, d->blksizev, d->dctmode);
-                else
-                */
-                DCTc = new DCTFFTW(d->blksize, d->blksizev, d->dctmode, d->supervi->format->bitsPerSample);
+                DCTc = (DCTFFTW *)malloc(sizeof(DCTFFTW));
+                dctInit(DCTc, d->blksize, d->blksizev, d->dctmode, d->supervi->format->bitsPerSample);
             }
 
 
-            vectorFields->SearchMVs(pSrcGOF, pRefGOF, d->searchType, d->nSearchParam, d->nPelSearch, d->nLambda, d->lsad, d->pnew, d->plevel, d->global, reinterpret_cast<int *>(pDst), NULL, fieldShift, DCTc, d->pzero, d->pglobal, d->badSAD, d->badrange, d->meander, NULL, d->tryMany, d->searchTypeCoarse);
+            gopSearchMVs(&vectorFields, &pSrcGOF, &pRefGOF, d->searchType, d->nSearchParam, d->nPelSearch, d->nLambda, d->lsad, d->pnew, d->plevel, d->global, (int *)pDst, NULL, fieldShift, DCTc, d->pzero, d->pglobal, d->badSAD, d->badrange, d->meander, NULL, d->tryMany, d->searchTypeCoarse);
 
             if (d->divideExtra) {
                 // make extra level with divided sublocks with median (not estimated) motion
-                vectorFields->ExtraDivide(reinterpret_cast<int *>(pDst));
+                gopExtraDivide(&vectorFields, (int *)pDst);
             }
 
-            delete vectorFields;
-            if (DCTc)
-                delete DCTc;
-            delete pSrcGOF;
-            delete pRefGOF;
+            gopDeinit(&vectorFields);
+            if (DCTc) {
+                dctDeinit(DCTc);
+                free(DCTc);
+            }
+            mvgofDeinit(&pSrcGOF);
+            mvgofDeinit(&pRefGOF);
             vsapi->freeFrame(ref);
         } else { // too close to the beginning or end to do anything
-            vectorFields->WriteDefaultToArray(reinterpret_cast<int *>(pDst));
-            delete vectorFields;
+            gopWriteDefaultToArray(&vectorFields, (int *)pDst);
+            gopDeinit(&vectorFields);
         }
 
         // FIXME: Get rid of all mmx shit.
@@ -495,8 +495,8 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.analysisData.bitsPerSample = d.vi.format->bitsPerSample;
 
     int pixelMax = (1 << d.vi.format->bitsPerSample) - 1;
-    d.lsad = int((double)d.lsad * pixelMax / 255.0 + 0.5);
-    d.badSAD = int((double)d.badSAD * pixelMax / 255.0 + 0.5);
+    d.lsad = (int)((double)d.lsad * pixelMax / 255.0 + 0.5);
+    d.badSAD = (int)((double)d.badSAD * pixelMax / 255.0 + 0.5);
 
     d.lsad = d.lsad * (d.blksize * d.blksizev) / 64;
     d.badSAD = d.badSAD * (d.blksize * d.blksizev) / 64;
@@ -539,10 +539,13 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.analysisData.xRatioUV = 1 << d.vi.format->subSamplingW;
 
 
-    char errorMsg[1024];
-    const VSFrameRef *evil = vsapi->getFrame(0, d.node, errorMsg, 1024);
+#define ERROR_SIZE 1024
+    char errorMsg[ERROR_SIZE] = "Analyse: failed to retrieve first frame from super clip. Error message: ";
+    size_t errorLen = strlen(errorMsg);
+    const VSFrameRef *evil = vsapi->getFrame(0, d.node, errorMsg + errorLen, ERROR_SIZE - errorLen);
+#undef ERROR_SIZE
     if (!evil) {
-        vsapi->setError(out, std::string("Analyse: failed to retrieve first frame from super clip. Error message: ").append(errorMsg).c_str());
+        vsapi->setError(out, errorMsg);
         vsapi->freeNode(d.node);
         return;
     }
@@ -622,7 +625,11 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     }
 
     if (d.analysisData.nLvCount > d.nSuperLevels) { //x
-        vsapi->setError(out, ("Analyse: super clip has " + std::to_string(d.nSuperLevels) + " levels. Analyse needs " + std::to_string(d.analysisData.nLvCount) + " levels.").c_str());
+#define ERROR_SIZE 512
+        char error_msg[ERROR_SIZE];
+        snprintf(error_msg, ERROR_SIZE, "Analyse: super clip has %d levels. Analyse needs %d levels.", d.nSuperLevels, d.analysisData.nLvCount);
+#undef ERROR_SIZE
+        vsapi->setError(out, error_msg);
         vsapi->freeNode(d.node);
         return;
     }
@@ -666,7 +673,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 }
 
 
-extern "C" void mvanalyseRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
+void mvanalyseRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Analyse",
                  "super:clip;"
                  "blksize:int:opt;"

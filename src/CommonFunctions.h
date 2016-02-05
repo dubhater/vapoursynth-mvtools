@@ -1,6 +1,13 @@
 #ifndef __COMMON_F__
 #define __COMMON_F__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stdint.h>
+
+
 // returns a > 0 ? a : 0
 inline static int satz(int a) {
     return ~(a >> (sizeof(int) * 8 - 1)) & a;
@@ -71,5 +78,9 @@ inline static int64_t gcd(int64_t u, int64_t v) {
 
     return u << shift;
 }
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif

@@ -17,18 +17,19 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html .
 
+#include <string>
+
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
-#include "MVClip.h"
+#include "Fakery.h"
+#include "MVAnalysisData.h"
 #include "MVDegrains.h"
-#include "MVFilter.h"
 #include "MVFrame.h"
-#include "MVInterface.h"
 #include "Overlap.h"
 
 
-typedef struct {
+struct MVDegrainData {
     VSNodeRef *node;
     const VSVideoInfo *vi;
 
@@ -40,11 +41,9 @@ typedef struct {
     int nLimit[3];
     int nSCD1;
     int nSCD2;
-    bool isse;
+    int isse;
 
-    MVClipDicks *mvClips[6];
-
-    MVFilter *bleh;
+    MVAnalysisData vectors_data[6];
 
     int nSuperHPad;
     int nSuperVPad;
@@ -59,7 +58,7 @@ typedef struct {
     LimitFunction LimitChanges;
     ToPixelsFunction ToPixels;
 
-    bool process[3];
+    int process[3];
 
     int xSubUV;
     int ySubUV;
@@ -74,7 +73,7 @@ typedef struct {
     int nHeight_B[3];
 
     OverlapWindows *OverWins[3];
-} MVDegrainData;
+};
 
 
 static void VS_CC mvdegrainInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
@@ -100,33 +99,33 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
             vsapi->requestFrameFilter(n, d->vectors[Backward3], frameCtx);
 
         if (radius > 2) {
-            int offF3 = -1 * d->mvClips[Forward3]->GetDeltaFrame();
+            int offF3 = -1 * d->vectors_data[Forward3].nDeltaFrame;
             if (n + offF3 >= 0)
                 vsapi->requestFrameFilter(n + offF3, d->super, frameCtx);
         }
 
         if (radius > 1) {
-            int offF2 = -1 * d->mvClips[Forward2]->GetDeltaFrame();
+            int offF2 = -1 * d->vectors_data[Forward2].nDeltaFrame;
             if (n + offF2 >= 0)
                 vsapi->requestFrameFilter(n + offF2, d->super, frameCtx);
         }
 
-        int offF = -1 * d->mvClips[Forward1]->GetDeltaFrame();
+        int offF = -1 * d->vectors_data[Forward1].nDeltaFrame;
         if (n + offF >= 0)
             vsapi->requestFrameFilter(n + offF, d->super, frameCtx);
 
-        int offB = d->mvClips[Backward1]->GetDeltaFrame();
+        int offB = d->vectors_data[Backward1].nDeltaFrame;
         if (n + offB < d->vi->numFrames || !d->vi->numFrames)
             vsapi->requestFrameFilter(n + offB, d->super, frameCtx);
 
         if (radius > 1) {
-            int offB2 = d->mvClips[Backward2]->GetDeltaFrame();
+            int offB2 = d->vectors_data[Backward2].nDeltaFrame;
             if (n + offB2 < d->vi->numFrames || !d->vi->numFrames)
                 vsapi->requestFrameFilter(n + offB2, d->super, frameCtx);
         }
 
         if (radius > 2) {
-            int offB3 = d->mvClips[Backward3]->GetDeltaFrame();
+            int offB3 = d->vectors_data[Backward3].nDeltaFrame;
             if (n + offB3 < d->vi->numFrames || !d->vi->numFrames)
                 vsapi->requestFrameFilter(n + offB3, d->super, frameCtx);
         }
@@ -139,27 +138,30 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
         int bitsPerSample = d->vi->format->bitsPerSample;
         int bytesPerSample = d->vi->format->bytesPerSample;
 
-        uint8_t *pDst[3], *pDstCur[3];
-        const uint8_t *pSrcCur[3];
-        const uint8_t *pSrc[3];
-        const uint8_t *pRefs[3][radius * 2];
-        int nDstPitches[3], nSrcPitches[3];
-        int nRefPitches[3][radius * 2];
-        bool isUsable[radius * 2];
-        int nLogPel = (d->bleh->nPel == 4) ? 2 : (d->bleh->nPel == 2) ? 1 : 0;
+        uint8_t *pDst[3] = { 0 };
+        uint8_t *pDstCur[3] = { 0 };
+        const uint8_t *pSrcCur[3] = { NULL };
+        const uint8_t *pSrc[3] = { NULL };
+        const uint8_t *pRefs[radius * 2][3] = { { NULL } };
+        int nDstPitches[3] = { 0 };
+        int nSrcPitches[3] = { 0 };
+        int nRefPitches[radius * 2][3] = { { 0 } };
+        int isUsable[radius * 2];
+        int nLogPel = (d->vectors_data[0].nPel == 4) ? 2 : (d->vectors_data[0].nPel == 2) ? 1 : 0;
 
-        MVClipBalls *balls[radius * 2];
+        FakeGroupOfPlanes fgops[radius * 2];
         const VSFrameRef *refFrames[radius * 2] = { 0 };
 
         for (int r = 0; r < radius * 2; r++) {
             const VSFrameRef *frame = vsapi->getFrameFilter(n, d->vectors[r], frameCtx);
-            balls[r] = new MVClipBalls(d->mvClips[r], vsapi);
-            balls[r]->Update(frame);
-            isUsable[r] = balls[r]->IsUsable();
+            fgopInit(&fgops[r], &d->vectors_data[r]);
+            const int *mvs = (const int *)vsapi->getReadPtr(frame, 0);
+            fgopUpdate(&fgops[r], mvs + mvs[0] / sizeof(int));
+            isUsable[r] = fgopIsUsable(&fgops[r], d->nSCD1, d->nSCD2);
             vsapi->freeFrame(frame);
 
             if (isUsable[r]) {
-                int offset = d->mvClips[r]->GetDeltaFrame() * (d->mvClips[r]->IsBackward() ? 1 : -1);
+                int offset = d->vectors_data[r].nDeltaFrame * (d->vectors_data[r].isBackward ? 1 : -1);
                 refFrames[r] = vsapi->getFrameFilter(n + offset, d->super, frameCtx);
             }
         }
@@ -173,19 +175,18 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
 
             for (int r = 0; r < radius * 2; r++)
                 if (isUsable[r]) {
-                    pRefs[i][r] = vsapi->getReadPtr(refFrames[r], i);
-                    nRefPitches[i][r] = vsapi->getStride(refFrames[r], i);
+                    pRefs[r][i] = vsapi->getReadPtr(refFrames[r], i);
+                    nRefPitches[r][i] = vsapi->getStride(refFrames[r], i);
                 }
         }
 
         const int xSubUV = d->xSubUV;
         const int ySubUV = d->ySubUV;
-        const int xRatioUV = d->bleh->xRatioUV;
-        const int yRatioUV = d->bleh->yRatioUV;
-        const int nBlkX = d->bleh->nBlkX;
-        const int nBlkY = d->bleh->nBlkY;
-        const bool isse = d->isse;
-        const int YUVplanes = d->YUVplanes;
+        const int xRatioUV = d->vectors_data[0].xRatioUV;
+        const int yRatioUV = d->vectors_data[0].yRatioUV;
+        const int nBlkX = d->vectors_data[0].nBlkX;
+        const int nBlkY = d->vectors_data[0].nBlkY;
+        const int isse = d->isse;
         const int dstTempPitch = d->dstTempPitch;
         const int *nWidth = d->nWidth;
         const int *nHeight = d->nHeight;
@@ -199,9 +200,9 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
         const int *nLimit = d->nLimit;
 
 
-        MVGroupOfFrames *pRefGOF[radius * 2];
+        MVGroupOfFrames pRefGOF[radius * 2];
         for (int r = 0; r < radius * 2; r++)
-            pRefGOF[r] = new MVGroupOfFrames(d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, isse, xRatioUV, yRatioUV, bitsPerSample);
+            mvgofInit(&pRefGOF[r], d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, isse, xRatioUV, yRatioUV, bitsPerSample);
 
 
         OverlapWindows *OverWins[3] = { d->OverWins[0], d->OverWins[1], d->OverWins[2] };
@@ -213,16 +214,12 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
             tmpBlock = new uint8_t[tmpBlockPitch * nBlkSizeY[0]];
         }
 
-        MVPlane *pPlanes[3][radius * 2] = {};
-
-        MVPlaneSet planes[3] = { YPLANE, UPLANE, VPLANE };
+        MVPlane **pPlanes[radius * 2] = { NULL };
 
         for (int r = 0; r < radius * 2; r++)
             if (isUsable[r]) {
-                pRefGOF[r]->Update(YUVplanes, (uint8_t *)pRefs[0][r], nRefPitches[0][r], (uint8_t *)pRefs[1][r], nRefPitches[1][r], (uint8_t *)pRefs[2][r], nRefPitches[2][r]);
-                for (int plane = 0; plane < d->vi->format->numPlanes; plane++)
-                    if (YUVplanes & planes[plane])
-                        pPlanes[plane][r] = pRefGOF[r]->GetFrame(0)->GetPlane(planes[plane]);
+                mvgofUpdate(&pRefGOF[r], (uint8_t **)pRefs[r], nRefPitches[r]);
+                pPlanes[r] = pRefGOF[r].frames[0]->planes;
             }
 
 
@@ -252,7 +249,7 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
                         int WSrc, WRefs[radius * 2];
 
                         for (int r = 0; r < radius * 2; r++)
-                            useBlock(pointers[r], strides[r], WRefs[r], isUsable[r], balls[r], i, pPlanes[plane][r], pSrcCur, xx, nSrcPitches, nLogPel, plane, xSubUV, ySubUV, thSAD);
+                            useBlock(pointers[r], strides[r], WRefs[r], isUsable[r], &fgops[r], i, pPlanes[r][plane], pSrcCur, xx, nSrcPitches, nLogPel, plane, xSubUV, ySubUV, thSAD);
 
                         normaliseWeights<radius>(WSrc, WRefs);
 
@@ -285,7 +282,7 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
                     for (int bx = 0; bx < nBlkX; bx++) {
                         // select window
                         int wbx = (bx + nBlkX - 3) / (nBlkX - 2);
-                        short *winOver = OverWins[plane]->GetWindow(wby + wbx);
+                        int16_t *winOver = overGetWindow(OverWins[plane], wby + wbx);
 
                         int i = by * nBlkX + bx;
 
@@ -295,7 +292,7 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
                         int WSrc, WRefs[radius * 2];
 
                         for (int r = 0; r < radius * 2; r++)
-                            useBlock(pointers[r], strides[r], WRefs[r], isUsable[r], balls[r], i, pPlanes[plane][r], pSrcCur, xx, nSrcPitches, nLogPel, plane, xSubUV, ySubUV, thSAD);
+                            useBlock(pointers[r], strides[r], WRefs[r], isUsable[r], &fgops[r], i, pPlanes[r][plane], pSrcCur, xx, nSrcPitches, nLogPel, plane, xSubUV, ySubUV, thSAD);
 
                         normaliseWeights<radius>(WSrc, WRefs);
 
@@ -338,12 +335,12 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
             delete[] DstTemp;
 
         for (int r = 0; r < radius * 2; r++) {
-            delete pRefGOF[r];
+            mvgofDeinit(&pRefGOF[r]);
 
             if (refFrames[r])
                 vsapi->freeFrame(refFrames[r]);
 
-            delete balls[r];
+            fgopDeinit(&fgops[r]);
         }
 
         vsapi->freeFrame(src);
@@ -360,18 +357,18 @@ static void VS_CC mvdegrainFree(void *instanceData, VSCore *core, const VSAPI *v
     MVDegrainData *d = (MVDegrainData *)instanceData;
 
     if (d->nOverlapX[0] || d->nOverlapY[0]) {
-        delete d->OverWins[0];
-        if (d->vi->format->colorFamily != cmGray)
-            delete d->OverWins[1];
+        overDeinit(d->OverWins[0]);
+        free(d->OverWins[0]);
+        if (d->vi->format->colorFamily != cmGray) {
+            overDeinit(d->OverWins[1]);
+            free(d->OverWins[1]);
+        }
     }
-    for (int r = 0; r < radius * 2; r++) {
-        delete d->mvClips[r];
+    for (int r = 0; r < radius * 2; r++)
         vsapi->freeNode(d->vectors[r]);
-    }
+
     vsapi->freeNode(d->super);
     vsapi->freeNode(d->node);
-
-    delete d->bleh;
 
     free(d);
 }
@@ -379,136 +376,136 @@ static void VS_CC mvdegrainFree(void *instanceData, VSCore *core, const VSAPI *v
 
 template <int radius>
 static void selectFunctions(MVDegrainData *d) {
-    const int xRatioUV = d->bleh->xRatioUV;
-    const int yRatioUV = d->bleh->yRatioUV;
-    const int nBlkSizeX = d->bleh->nBlkSizeX;
-    const int nBlkSizeY = d->bleh->nBlkSizeY;
+    const int xRatioUV = d->vectors_data[0].xRatioUV;
+    const int yRatioUV = d->vectors_data[0].yRatioUV;
+    const int nBlkSizeX = d->vectors_data[0].nBlkSizeX;
+    const int nBlkSizeY = d->vectors_data[0].nBlkSizeY;
 
     OverlapsFunction overs[33][33];
     DenoiseFunction degs[33][33];
 
     if (d->vi->format->bitsPerSample == 8) {
-        overs[2][2] = Overlaps_C<2, 2, uint16_t, uint8_t>;
+        overs[2][2] = mvtools_overlaps_2x2_uint16_t_uint8_t_c;
         degs[2][2] = Degrain_C<radius, 2, 2, uint8_t>;
 
-        overs[2][4] = Overlaps_C<2, 4, uint16_t, uint8_t>;
+        overs[2][4] = mvtools_overlaps_2x4_uint16_t_uint8_t_c;
         degs[2][4] = Degrain_C<radius, 2, 4, uint8_t>;
 
-        overs[4][2] = d->isse ? mvtools_Overlaps4x2_sse2 : Overlaps_C<4, 2, uint16_t, uint8_t>;
+        overs[4][2] = d->isse ? mvtools_overlaps_4x2_sse2 : mvtools_overlaps_4x2_uint16_t_uint8_t_c;
         degs[4][2] = d->isse ? Degrain_sse2<radius, 4, 2> : Degrain_C<radius, 4, 2, uint8_t>;
 
-        overs[4][4] = d->isse ? mvtools_Overlaps4x4_sse2 : Overlaps_C<4, 4, uint16_t, uint8_t>;
+        overs[4][4] = d->isse ? mvtools_overlaps_4x4_sse2 : mvtools_overlaps_4x4_uint16_t_uint8_t_c;
         degs[4][4] = d->isse ? Degrain_sse2<radius, 4, 4> : Degrain_C<radius, 4, 4, uint8_t>;
 
-        overs[4][8] = d->isse ? mvtools_Overlaps4x8_sse2 : Overlaps_C<4, 8, uint16_t, uint8_t>;
+        overs[4][8] = d->isse ? mvtools_overlaps_4x8_sse2 : mvtools_overlaps_4x8_uint16_t_uint8_t_c;
         degs[4][8] = d->isse ? Degrain_sse2<radius, 4, 8> : Degrain_C<radius, 4, 8, uint8_t>;
 
-        overs[8][1] = d->isse ? mvtools_Overlaps8x1_sse2 : Overlaps_C<8, 1, uint16_t, uint8_t>;
+        overs[8][1] = d->isse ? mvtools_overlaps_8x1_sse2 : mvtools_overlaps_8x1_uint16_t_uint8_t_c;
         degs[8][1] = d->isse ? Degrain_sse2<radius, 8, 1> : Degrain_C<radius, 8, 1, uint8_t>;
 
-        overs[8][2] = d->isse ? mvtools_Overlaps8x2_sse2 : Overlaps_C<8, 2, uint16_t, uint8_t>;
+        overs[8][2] = d->isse ? mvtools_overlaps_8x2_sse2 : mvtools_overlaps_8x2_uint16_t_uint8_t_c;
         degs[8][2] = d->isse ? Degrain_sse2<radius, 8, 2> : Degrain_C<radius, 8, 2, uint8_t>;
 
-        overs[8][4] = d->isse ? mvtools_Overlaps8x4_sse2 : Overlaps_C<8, 4, uint16_t, uint8_t>;
+        overs[8][4] = d->isse ? mvtools_overlaps_8x4_sse2 : mvtools_overlaps_8x4_uint16_t_uint8_t_c;
         degs[8][4] = d->isse ? Degrain_sse2<radius, 8, 4> : Degrain_C<radius, 8, 4, uint8_t>;
 
-        overs[8][8] = d->isse ? mvtools_Overlaps8x8_sse2 : Overlaps_C<8, 8, uint16_t, uint8_t>;
+        overs[8][8] = d->isse ? mvtools_overlaps_8x8_sse2 : mvtools_overlaps_8x8_uint16_t_uint8_t_c;
         degs[8][8] = d->isse ? Degrain_sse2<radius, 8, 8> : Degrain_C<radius, 8, 8, uint8_t>;
 
-        overs[8][16] = d->isse ? mvtools_Overlaps8x16_sse2 : Overlaps_C<8, 16, uint16_t, uint8_t>;
+        overs[8][16] = d->isse ? mvtools_overlaps_8x16_sse2 : mvtools_overlaps_8x16_uint16_t_uint8_t_c;
         degs[8][16] = d->isse ? Degrain_sse2<radius, 8, 16> : Degrain_C<radius, 8, 16, uint8_t>;
 
-        overs[16][1] = d->isse ? mvtools_Overlaps16x1_sse2 : Overlaps_C<16, 1, uint16_t, uint8_t>;
+        overs[16][1] = d->isse ? mvtools_overlaps_16x1_sse2 : mvtools_overlaps_16x1_uint16_t_uint8_t_c;
         degs[16][1] = d->isse ? Degrain_sse2<radius, 16, 1> : Degrain_C<radius, 16, 1, uint8_t>;
 
-        overs[16][2] = d->isse ? mvtools_Overlaps16x2_sse2 : Overlaps_C<16, 2, uint16_t, uint8_t>;
+        overs[16][2] = d->isse ? mvtools_overlaps_16x2_sse2 : mvtools_overlaps_16x2_uint16_t_uint8_t_c;
         degs[16][2] = d->isse ? Degrain_sse2<radius, 16, 2> : Degrain_C<radius, 16, 2, uint8_t>;
 
-        overs[16][4] = d->isse ? mvtools_Overlaps16x4_sse2 : Overlaps_C<16, 4, uint16_t, uint8_t>;
+        overs[16][4] = d->isse ? mvtools_overlaps_16x4_sse2 : mvtools_overlaps_16x4_uint16_t_uint8_t_c;
         degs[16][4] = d->isse ? Degrain_sse2<radius, 16, 4> : Degrain_C<radius, 16, 4, uint8_t>;
 
-        overs[16][8] = d->isse ? mvtools_Overlaps16x8_sse2 : Overlaps_C<16, 8, uint16_t, uint8_t>;
+        overs[16][8] = d->isse ? mvtools_overlaps_16x8_sse2 : mvtools_overlaps_16x8_uint16_t_uint8_t_c;
         degs[16][8] = d->isse ? Degrain_sse2<radius, 16, 8> : Degrain_C<radius, 16, 8, uint8_t>;
 
-        overs[16][16] = d->isse ? mvtools_Overlaps16x16_sse2 : Overlaps_C<16, 16, uint16_t, uint8_t>;
+        overs[16][16] = d->isse ? mvtools_overlaps_16x16_sse2 : mvtools_overlaps_16x16_uint16_t_uint8_t_c;
         degs[16][16] = d->isse ? Degrain_sse2<radius, 16, 16> : Degrain_C<radius, 16, 16, uint8_t>;
 
-        overs[16][32] = d->isse ? mvtools_Overlaps16x32_sse2 : Overlaps_C<16, 32, uint16_t, uint8_t>;
+        overs[16][32] = d->isse ? mvtools_overlaps_16x32_sse2 : mvtools_overlaps_16x32_uint16_t_uint8_t_c;
         degs[16][32] = d->isse ? Degrain_sse2<radius, 16, 32> : Degrain_C<radius, 16, 32, uint8_t>;
 
-        overs[32][8] = d->isse ? mvtools_Overlaps32x8_sse2 : Overlaps_C<32, 8, uint16_t, uint8_t>;
+        overs[32][8] = d->isse ? mvtools_overlaps_32x8_sse2 : mvtools_overlaps_32x8_uint16_t_uint8_t_c;
         degs[32][8] = d->isse ? Degrain_sse2<radius, 32, 8> : Degrain_C<radius, 32, 8, uint8_t>;
 
-        overs[32][16] = d->isse ? mvtools_Overlaps32x16_sse2 : Overlaps_C<32, 16, uint16_t, uint8_t>;
+        overs[32][16] = d->isse ? mvtools_overlaps_32x16_sse2 : mvtools_overlaps_32x16_uint16_t_uint8_t_c;
         degs[32][16] = d->isse ? Degrain_sse2<radius, 32, 16> : Degrain_C<radius, 32, 16, uint8_t>;
 
-        overs[32][32] = d->isse ? mvtools_Overlaps32x32_sse2 : Overlaps_C<32, 32, uint16_t, uint8_t>;
+        overs[32][32] = d->isse ? mvtools_overlaps_32x32_sse2 : mvtools_overlaps_32x32_uint16_t_uint8_t_c;
         degs[32][32] = d->isse ? Degrain_sse2<radius, 32, 32> : Degrain_C<radius, 32, 32, uint8_t>;
 
         d->LimitChanges = d->isse ? mvtools_LimitChanges_sse2 : LimitChanges_C<uint8_t>;
 
-        d->ToPixels = ToPixels<uint16_t, uint8_t>;
+        d->ToPixels = ToPixels_uint16_t_uint8_t;
     } else {
-        overs[2][2] = Overlaps_C<2, 2, uint32_t, uint16_t>;
+        overs[2][2] = mvtools_overlaps_2x2_uint32_t_uint16_t_c;
         degs[2][2] = Degrain_C<radius, 2, 2, uint16_t>;
 
-        overs[2][4] = Overlaps_C<2, 4, uint32_t, uint16_t>;
+        overs[2][4] = mvtools_overlaps_2x4_uint32_t_uint16_t_c;
         degs[2][4] = Degrain_C<radius, 2, 4, uint16_t>;
 
-        overs[4][2] = Overlaps_C<4, 2, uint32_t, uint16_t>;
+        overs[4][2] = mvtools_overlaps_4x2_uint32_t_uint16_t_c;
         degs[4][2] = Degrain_C<radius, 4, 2, uint16_t>;
 
-        overs[4][4] = Overlaps_C<4, 4, uint32_t, uint16_t>;
+        overs[4][4] = mvtools_overlaps_4x4_uint32_t_uint16_t_c;
         degs[4][4] = Degrain_C<radius, 4, 4, uint16_t>;
 
-        overs[4][8] = Overlaps_C<4, 8, uint32_t, uint16_t>;
+        overs[4][8] = mvtools_overlaps_4x8_uint32_t_uint16_t_c;
         degs[4][8] = Degrain_C<radius, 4, 8, uint16_t>;
 
-        overs[8][1] = Overlaps_C<8, 1, uint32_t, uint16_t>;
+        overs[8][1] = mvtools_overlaps_8x1_uint32_t_uint16_t_c;
         degs[8][1] = Degrain_C<radius, 8, 1, uint16_t>;
 
-        overs[8][2] = Overlaps_C<8, 2, uint32_t, uint16_t>;
+        overs[8][2] = mvtools_overlaps_8x2_uint32_t_uint16_t_c;
         degs[8][2] = Degrain_C<radius, 8, 2, uint16_t>;
 
-        overs[8][4] = Overlaps_C<8, 4, uint32_t, uint16_t>;
+        overs[8][4] = mvtools_overlaps_8x4_uint32_t_uint16_t_c;
         degs[8][4] = Degrain_C<radius, 8, 4, uint16_t>;
 
-        overs[8][8] = Overlaps_C<8, 8, uint32_t, uint16_t>;
+        overs[8][8] = mvtools_overlaps_8x8_uint32_t_uint16_t_c;
         degs[8][8] = Degrain_C<radius, 8, 8, uint16_t>;
 
-        overs[8][16] = Overlaps_C<8, 16, uint32_t, uint16_t>;
+        overs[8][16] = mvtools_overlaps_8x16_uint32_t_uint16_t_c;
         degs[8][16] = Degrain_C<radius, 8, 16, uint16_t>;
 
-        overs[16][1] = Overlaps_C<16, 1, uint32_t, uint16_t>;
+        overs[16][1] = mvtools_overlaps_16x1_uint32_t_uint16_t_c;
         degs[16][1] = Degrain_C<radius, 16, 1, uint16_t>;
 
-        overs[16][2] = Overlaps_C<16, 2, uint32_t, uint16_t>;
+        overs[16][2] = mvtools_overlaps_16x2_uint32_t_uint16_t_c;
         degs[16][2] = Degrain_C<radius, 16, 2, uint16_t>;
 
-        overs[16][4] = Overlaps_C<16, 4, uint32_t, uint16_t>;
+        overs[16][4] = mvtools_overlaps_16x4_uint32_t_uint16_t_c;
         degs[16][4] = Degrain_C<radius, 16, 4, uint16_t>;
 
-        overs[16][8] = Overlaps_C<16, 8, uint32_t, uint16_t>;
+        overs[16][8] = mvtools_overlaps_16x8_uint32_t_uint16_t_c;
         degs[16][8] = Degrain_C<radius, 16, 8, uint16_t>;
 
-        overs[16][16] = Overlaps_C<16, 16, uint32_t, uint16_t>;
+        overs[16][16] = mvtools_overlaps_16x16_uint32_t_uint16_t_c;
         degs[16][16] = Degrain_C<radius, 16, 16, uint16_t>;
 
-        overs[16][32] = Overlaps_C<16, 32, uint32_t, uint16_t>;
+        overs[16][32] = mvtools_overlaps_16x32_uint32_t_uint16_t_c;
         degs[16][32] = Degrain_C<radius, 16, 32, uint16_t>;
 
-        overs[32][8] = Overlaps_C<32, 8, uint32_t, uint16_t>;
+        overs[32][8] = mvtools_overlaps_32x8_uint32_t_uint16_t_c;
         degs[32][8] = Degrain_C<radius, 32, 8, uint16_t>;
 
-        overs[32][16] = Overlaps_C<32, 16, uint32_t, uint16_t>;
+        overs[32][16] = mvtools_overlaps_32x16_uint32_t_uint16_t_c;
         degs[32][16] = Degrain_C<radius, 32, 16, uint16_t>;
 
-        overs[32][32] = Overlaps_C<32, 32, uint32_t, uint16_t>;
+        overs[32][32] = mvtools_overlaps_32x32_uint32_t_uint16_t_c;
         degs[32][32] = Degrain_C<radius, 32, 32, uint16_t>;
 
         d->LimitChanges = LimitChanges_C<uint16_t>;
 
-        d->ToPixels = ToPixels<uint32_t, uint16_t>;
+        d->ToPixels = ToPixels_uint32_t_uint16_t;
     }
 
     d->OVERS[0] = overs[nBlkSizeX][nBlkSizeY];
@@ -590,98 +587,80 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
         }
 
 
-    d.vectors[Backward1] = vsapi->propGetNode(in, "mvbw", 0, NULL);
-    d.vectors[Forward1] = vsapi->propGetNode(in, "mvfw", 0, NULL);
-    d.vectors[Backward2] = vsapi->propGetNode(in, "mvbw2", 0, &err);
-    d.vectors[Forward2] = vsapi->propGetNode(in, "mvfw2", 0, &err);
-    d.vectors[Backward3] = vsapi->propGetNode(in, "mvbw3", 0, &err);
-    d.vectors[Forward3] = vsapi->propGetNode(in, "mvfw3", 0, &err);
+#define ERROR_SIZE 512
 
-    // XXX Yoda had the right idea.
+    char error[ERROR_SIZE] = { 0 };
 
-    // Loops are nice.
+    const char *vector_names[] = { "mvbw", "mvfw", "mvbw2", "mvfw2", "mvbw3", "mvfw3" };
+
     for (int r = 0; r < radius * 2; r++) {
-        try {
-            d.mvClips[r] = new MVClipDicks(d.vectors[r], d.nSCD1, d.nSCD2, vsapi);
-        } catch (MVException &e) {
-            vsapi->setError(out, (filter + ": " + e.what()).c_str());
+        d.vectors[r] = vsapi->propGetNode(in, vector_names[r], 0, NULL);
 
-            vsapi->freeNode(d.super);
-
-            for (int rr = 0; rr < radius * 2; rr++)
-                vsapi->freeNode(d.vectors[rr]);
-
-            for (int rr = 0; rr < r; rr++)
-                delete d.mvClips[rr];
-
-            return;
-        }
+        adataFromVectorClip(&d.vectors_data[r], d.vectors[r], filter.c_str(), vector_names[r], vsapi, error, ERROR_SIZE);
     }
 
+    int nSCD1_old = d.nSCD1;
+    scaleThSCD(&d.nSCD1, &d.nSCD2, &d.vectors_data[0], filter.c_str(), error, ERROR_SIZE);
 
-    try {
-        // Make sure the motion vector clips are correct.
-        if (!d.mvClips[Backward1]->IsBackward())
-            throw MVException("mvbw must be generated with isb=True.");
-        if (d.mvClips[Forward1]->IsBackward())
-            throw MVException("mvfw must be generated with isb=False.");
-        if (radius > 1) {
-            if (!d.mvClips[Backward2]->IsBackward())
-                throw MVException("mvbw2 must be generated with isb=True.");
-            if (d.mvClips[Forward2]->IsBackward())
-                throw MVException("mvfw2 must be generated with isb=False.");
+    for (int r = 1; r < radius * 2; r++)
+        adataCheckSimilarity(&d.vectors_data[0], &d.vectors_data[r], filter.c_str(), vector_names[0], vector_names[r], error, ERROR_SIZE);
 
-            if (d.mvClips[Backward2]->GetDeltaFrame() <= d.mvClips[Backward1]->GetDeltaFrame())
-                throw MVException("mvbw2 must have greater delta than mvbw.");
-            if (d.mvClips[Forward2]->GetDeltaFrame() <= d.mvClips[Forward1]->GetDeltaFrame())
-                throw MVException("mvfw2 must have greater delta than mvfw.");
-        }
-        if (radius > 2) {
-            if (!d.mvClips[Backward3]->IsBackward())
-                throw MVException("mvbw3 must be generated with isb=True.");
-            if (d.mvClips[Forward3]->IsBackward())
-                throw MVException("mvfw3 must be generated with isb=False.");
+    if (error[0]) {
+        vsapi->setError(out, error);
 
-            if (d.mvClips[Backward3]->GetDeltaFrame() <= d.mvClips[Backward2]->GetDeltaFrame())
-                throw MVException("mvbw3 must have greater delta than mvbw2.");
-            if (d.mvClips[Forward3]->GetDeltaFrame() <= d.mvClips[Forward2]->GetDeltaFrame())
-                throw MVException("mvfw3 must have greater delta than mvfw2.");
-        }
-
-        d.bleh = new MVFilter(d.vectors[Forward1], filter.c_str(), vsapi);
-    } catch (MVException &e) {
-        vsapi->setError(out, (filter + ": " + e.what()).c_str());
         vsapi->freeNode(d.super);
-
-        for (int r = 0; r < radius * 2; r++) {
+        for (int r = 0; r < radius * 2; r++)
             vsapi->freeNode(d.vectors[r]);
-            delete d.mvClips[r];
-        }
+
         return;
     }
 
 
-    try {
-        const char *vectorNames[6] = { "mvbw", "mvfw", "mvbw2", "mvfw2", "mvbw3", "mvfw3" };
+    error[0] = '\0';
+
+    // Make sure the motion vector clips are correct.
+    if (!d.vectors_data[Backward1].isBackward)
+        snprintf(error, ERROR_SIZE, "%s", "mvbw must be generated with isb=True.");
+    if (d.vectors_data[Forward1].isBackward)
+        snprintf(error, ERROR_SIZE, "%s", "mvfw must be generated with isb=False.");
+    if (radius > 1) {
+        if (!d.vectors_data[Backward2].isBackward)
+            snprintf(error, ERROR_SIZE, "%s", "mvbw2 must be generated with isb=True.");
+        if (d.vectors_data[Forward2].isBackward)
+            snprintf(error, ERROR_SIZE, "%s", "mvfw2 must be generated with isb=False.");
+
+        if (d.vectors_data[Backward2].nDeltaFrame <= d.vectors_data[Backward1].nDeltaFrame)
+            snprintf(error, ERROR_SIZE, "%s", "mvbw2 must have greater delta than mvbw.");
+        if (d.vectors_data[Forward2].nDeltaFrame <= d.vectors_data[Forward1].nDeltaFrame)
+            snprintf(error, ERROR_SIZE, "%s", "mvfw2 must have greater delta than mvfw.");
+    }
+    if (radius > 2) {
+        if (!d.vectors_data[Backward3].isBackward)
+            snprintf(error, ERROR_SIZE, "%s", "mvbw3 must be generated with isb=True.");
+        if (d.vectors_data[Forward3].isBackward)
+            snprintf(error, ERROR_SIZE, "%s", "mvfw3 must be generated with isb=False.");
+
+        if (d.vectors_data[Backward3].nDeltaFrame <= d.vectors_data[Backward2].nDeltaFrame)
+            snprintf(error, ERROR_SIZE, "%s", "mvbw3 must have greater delta than mvbw2.");
+        if (d.vectors_data[Forward3].nDeltaFrame <= d.vectors_data[Forward2].nDeltaFrame)
+            snprintf(error, ERROR_SIZE, "%s", "mvfw3 must have greater delta than mvfw2.");
+    }
+
+#undef ERROR_SIZE
+
+    if (error[0]) {
+        vsapi->setError(out, (filter + ": " + error).c_str());
+        vsapi->freeNode(d.super);
 
         for (int r = 0; r < radius * 2; r++)
-            d.bleh->CheckSimilarity(d.mvClips[r], vectorNames[r]);
-    } catch (MVException &e) {
-        vsapi->setError(out, (filter + ": " + e.what()).c_str());
-
-        vsapi->freeNode(d.super);
-
-        for (int r = 0; r < radius * 2; r++) {
             vsapi->freeNode(d.vectors[r]);
-            delete d.mvClips[r];
-        }
 
-        delete d.bleh;
         return;
     }
 
-    d.thSAD[0] = (int64_t)d.thSAD[0] * d.mvClips[Backward1]->GetThSCD1() / d.nSCD1;              // normalize to block SAD
-    d.thSAD[1] = d.thSAD[2] = (int64_t)d.thSAD[1] * d.mvClips[Backward1]->GetThSCD1() / d.nSCD1; // chroma threshold, normalized to block SAD
+
+    d.thSAD[0] = (int64_t)d.thSAD[0] * d.nSCD1 / nSCD1_old;              // normalize to block SAD
+    d.thSAD[1] = d.thSAD[2] = (int64_t)d.thSAD[1] * d.nSCD1 / nSCD1_old; // chroma threshold, normalized to block SAD
 
 
     d.node = vsapi->propGetNode(in, "clip", 0, 0);
@@ -690,17 +669,14 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
     const VSVideoInfo *supervi = vsapi->getVideoInfo(d.super);
     int nSuperWidth = supervi->width;
 
-    if (d.bleh->nHeight != nHeightS || d.bleh->nHeight != d.vi->height || d.bleh->nWidth != nSuperWidth - d.nSuperHPad * 2 || d.bleh->nWidth != d.vi->width) {
+    if (d.vectors_data[0].nHeight != nHeightS || d.vectors_data[0].nHeight != d.vi->height || d.vectors_data[0].nWidth != nSuperWidth - d.nSuperHPad * 2 || d.vectors_data[0].nWidth != d.vi->width) {
         vsapi->setError(out, (filter + ": wrong source or super clip frame size.").c_str());
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.node);
 
-        for (int r = 0; r < radius * 2; r++) {
+        for (int r = 0; r < radius * 2; r++)
             vsapi->freeNode(d.vectors[r]);
-            delete d.mvClips[r];
-        }
 
-        delete d.bleh;
         return;
     }
 
@@ -709,12 +685,9 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.node);
 
-        for (int r = 0; r < radius * 2; r++) {
+        for (int r = 0; r < radius * 2; r++)
             vsapi->freeNode(d.vectors[r]);
-            delete d.mvClips[r];
-        }
 
-        delete d.bleh;
         return;
     }
 
@@ -737,12 +710,8 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.node);
 
-        for (int r = 0; r < radius * 2; r++) {
+        for (int r = 0; r < radius * 2; r++)
             vsapi->freeNode(d.vectors[r]);
-            delete d.mvClips[r];
-        }
-
-        delete d.bleh;
 
         return;
     }
@@ -753,18 +722,14 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.node);
 
-        for (int r = 0; r < radius * 2; r++) {
+        for (int r = 0; r < radius * 2; r++)
             vsapi->freeNode(d.vectors[r]);
-            delete d.mvClips[r];
-        }
-
-        delete d.bleh;
 
         return;
     }
 
 
-    d.dstTempPitch = ((d.bleh->nWidth + 15) / 16) * 16 * d.vi->format->bytesPerSample * 2;
+    d.dstTempPitch = ((d.vectors_data[0].nWidth + 15) / 16) * 16 * d.vi->format->bytesPerSample * 2;
 
     d.process[0] = !!(d.YUVplanes & YPLANE);
     d.process[1] = !!(d.YUVplanes & UPLANE & d.nSuperModeYUV);
@@ -773,34 +738,38 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
     d.xSubUV = d.vi->format->subSamplingW;
     d.ySubUV = d.vi->format->subSamplingH;
 
-    d.nWidth[0] = d.bleh->nWidth;
+    d.nWidth[0] = d.vectors_data[0].nWidth;
     d.nWidth[1] = d.nWidth[2] = d.nWidth[0] >> d.xSubUV;
 
-    d.nHeight[0] = d.bleh->nHeight;
+    d.nHeight[0] = d.vectors_data[0].nHeight;
     d.nHeight[1] = d.nHeight[2] = d.nHeight[0] >> d.ySubUV;
 
-    d.nOverlapX[0] = d.bleh->nOverlapX;
+    d.nOverlapX[0] = d.vectors_data[0].nOverlapX;
     d.nOverlapX[1] = d.nOverlapX[2] = d.nOverlapX[0] >> d.xSubUV;
 
-    d.nOverlapY[0] = d.bleh->nOverlapY;
+    d.nOverlapY[0] = d.vectors_data[0].nOverlapY;
     d.nOverlapY[1] = d.nOverlapY[2] = d.nOverlapY[0] >> d.ySubUV;
 
-    d.nBlkSizeX[0] = d.bleh->nBlkSizeX;
+    d.nBlkSizeX[0] = d.vectors_data[0].nBlkSizeX;
     d.nBlkSizeX[1] = d.nBlkSizeX[2] = d.nBlkSizeX[0] >> d.xSubUV;
 
-    d.nBlkSizeY[0] = d.bleh->nBlkSizeY;
+    d.nBlkSizeY[0] = d.vectors_data[0].nBlkSizeY;
     d.nBlkSizeY[1] = d.nBlkSizeY[2] = d.nBlkSizeY[0] >> d.ySubUV;
 
-    d.nWidth_B[0] = d.bleh->nBlkX * (d.nBlkSizeX[0] - d.nOverlapX[0]) + d.nOverlapX[0];
+    d.nWidth_B[0] = d.vectors_data[0].nBlkX * (d.nBlkSizeX[0] - d.nOverlapX[0]) + d.nOverlapX[0];
     d.nWidth_B[1] = d.nWidth_B[2] = d.nWidth_B[0] >> d.xSubUV;
 
-    d.nHeight_B[0] = d.bleh->nBlkY * (d.nBlkSizeY[0] - d.nOverlapY[0]) + d.nOverlapY[0];
+    d.nHeight_B[0] = d.vectors_data[0].nBlkY * (d.nBlkSizeY[0] - d.nOverlapY[0]) + d.nOverlapY[0];
     d.nHeight_B[1] = d.nHeight_B[2] = d.nHeight_B[0] >> d.ySubUV;
 
     if (d.nOverlapX[0] || d.nOverlapY[0]) {
-        d.OverWins[0] = new OverlapWindows(d.nBlkSizeX[0], d.nBlkSizeY[0], d.nOverlapX[0], d.nOverlapY[0]);
+        d.OverWins[0] = (OverlapWindows *)malloc(sizeof(OverlapWindows));
+        overInit(d.OverWins[0], d.nBlkSizeX[0], d.nBlkSizeY[0], d.nOverlapX[0], d.nOverlapY[0]);
+
         if (d.vi->format->colorFamily != cmGray) {
-            d.OverWins[1] = new OverlapWindows(d.nBlkSizeX[1], d.nBlkSizeY[1], d.nOverlapX[1], d.nOverlapY[1]);
+            d.OverWins[1] = (OverlapWindows *)malloc(sizeof(OverlapWindows));
+            overInit(d.OverWins[1], d.nBlkSizeX[1], d.nBlkSizeY[1], d.nOverlapX[1], d.nOverlapY[1]);
+
             d.OverWins[2] = d.OverWins[1];
         }
     }

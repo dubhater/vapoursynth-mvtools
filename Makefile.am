@@ -15,42 +15,41 @@ am__v_YASM_1 =
 .asm.lo:
 	$(AM_V_YASM)$(LIBTOOL) $(AM_V_lt) --mode=compile --tag=CC $(AS) $(ASFLAGS) -o $@ $< -prefer-non-pic
 
-libmvtools_la_SOURCES =	src/CPU.c \
-						src/DCT.cpp \
+libmvtools_la_SOURCES =	src/CopyCode.c \
+						src/CPU.c \
 						src/DCTFFTW.cpp \
 						src/EntryPoint.c \
-						src/FakeBlockData.cpp \
-						src/FakeGroupOfPlanes.cpp \
-						src/FakePlaneOfBlocks.cpp \
-						src/GroupOfPlanes.cpp \
-						src/MaskFun.cpp \
-						src/MVAnalyse.cpp \
-						src/MVBlockFPS.cpp \
-						src/MVClip.cpp \
-						src/MVCompensate.cpp \
+						src/Fakery.c \
+						src/GroupOfPlanes.c \
+						src/Luma.c \
+						src/MaskFun.c \
+						src/MVAnalyse.c \
+						src/MVAnalysisData.c \
+						src/MVBlockFPS.c \
+						src/MVCompensate.c \
 						src/MVDegrains.cpp \
-						src/MVFilter.cpp \
-						src/MVFinest.cpp \
-						src/MVFlowBlur.cpp \
-						src/MVFlowFPS.cpp \
-						src/MVFlowInter.cpp \
-						src/MVFrame.cpp \
-						src/MVMask.cpp \
-						src/MVRecalculate.cpp \
-						src/MVSCDetection.cpp \
-						src/MVSuper.cpp \
-						src/Overlap.cpp \
-						src/PlaneOfBlocks.cpp \
-						src/SimpleResize.cpp \
+						src/MVFinest.c \
+						src/MVFlowBlur.c \
+						src/MVFlowFPS.c \
+						src/MVFlowInter.c \
+						src/MVFrame.c \
+						src/MVMask.c \
+						src/MVRecalculate.c \
+						src/MVSCDetection.c \
+						src/MVSuper.c \
+						src/Overlap.c \
+						src/PlaneOfBlocks.c \
+						src/SADFunctions.cpp \
+						src/SimpleResize.c \
 						src/asm/const-a.asm \
 						src/asm/cpu-a.asm \
 						src/asm/pixel-a.asm \
 						src/asm/sad-a.asm \
 						src/asm/Interpolation.asm \
+						src/asm/Luma.asm \
 						src/asm/MVDegrains.asm \
 						src/asm/Overlap.asm \
-						src/asm/SAD.asm \
-						src/asm/Variance.asm
+						src/asm/SAD.asm
 
 libmvtools_la_LDFLAGS = -no-undefined -avoid-version $(PLUGINLDFLAGS)
 

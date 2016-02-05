@@ -26,42 +26,48 @@
 std::mutex g_fftw_plans_mutex;
 
 
-DCTFFTW::DCTFFTW(int _sizex, int _sizey, int _dctmode, int _bitsPerSample)
-    : DCTClass(_sizex, _sizey, _dctmode, _bitsPerSample) {
+void dctInit(DCTFFTW *dct, int sizex, int sizey, int dctmode, int bitsPerSample) {
+    dct->sizex = sizex;
+    dct->sizey = sizey;
+    dct->dctmode = dctmode;
+    dct->bitsPerSample = bitsPerSample;
+
     int size2d = sizey * sizex;
 
     int cursize = 1;
-    dctshift = 0;
+    dct->dctshift = 0;
     while (cursize < size2d) {
-        dctshift++;
+        dct->dctshift++;
         cursize = (cursize << 1);
     }
 
-    dctshift0 = dctshift + 2;
+    dct->dctshift0 = dct->dctshift + 2;
 
-    fSrc = (float *)fftwf_malloc(sizeof(float) * size2d);
-    fSrcDCT = (float *)fftwf_malloc(sizeof(float) * size2d);
+    dct->fSrc = (float *)fftwf_malloc(sizeof(float) * size2d);
+    dct->fSrcDCT = (float *)fftwf_malloc(sizeof(float) * size2d);
 
-    g_fftw_plans_mutex.lock();
-    dctplan = fftwf_plan_r2r_2d(sizey, sizex, fSrc, fSrcDCT,
-                                FFTW_REDFT10, FFTW_REDFT10, FFTW_ESTIMATE); // direct fft
-    g_fftw_plans_mutex.unlock();
+    {
+        std::lock_guard<std::mutex> guard(g_fftw_plans_mutex);
+        dct->dctplan = fftwf_plan_r2r_2d(sizey, sizex, dct->fSrc, dct->fSrcDCT,
+                                         FFTW_REDFT10, FFTW_REDFT10, FFTW_ESTIMATE); // direct fft
+    }
 }
 
 
-DCTFFTW::~DCTFFTW() {
-    fftwf_destroy_plan(dctplan);
-    fftwf_free(fSrc);
-    fftwf_free(fSrcDCT);
+void dctDeinit(DCTFFTW *dct) {
+    fftwf_destroy_plan(dct->dctplan);
+    fftwf_free(dct->fSrc);
+    fftwf_free(dct->fSrcDCT);
 }
+
 
 //  put source data to real array for FFT
 template <typename PixelType>
-void DCTFFTW::Bytes2Float(const uint8_t *srcp8, int src_pitch, float *realdata) {
-    int floatpitch = sizex;
+static void Bytes2Float(const DCTFFTW *dct, const uint8_t *srcp8, int src_pitch, float *realdata) {
+    int floatpitch = dct->sizex;
     int i, j;
-    for (j = 0; j < sizey; j++) {
-        for (i = 0; i < sizex; i += 1) {
+    for (j = 0; j < dct->sizey; j++) {
+        for (i = 0; i < dct->sizex; i += 1) {
             PixelType *srcp = (PixelType *)srcp8;
             realdata[i] = srcp[i];
         }
@@ -72,15 +78,15 @@ void DCTFFTW::Bytes2Float(const uint8_t *srcp8, int src_pitch, float *realdata) 
 
 //  put source data to real array for FFT
 template <typename PixelType>
-void DCTFFTW::Float2Bytes(uint8_t *dstp8, int dst_pitch, float *realdata) {
+static void Float2Bytes(const DCTFFTW *dct, uint8_t *dstp8, int dst_pitch, float *realdata) {
     PixelType *dstp = (PixelType *)dstp8;
 
     dst_pitch /= sizeof(PixelType);
 
-    int pixelMax = (1 << bitsPerSample) - 1;
-    int pixelHalf = 1 << (bitsPerSample - 1);
+    int pixelMax = (1 << dct->bitsPerSample) - 1;
+    int pixelHalf = 1 << (dct->bitsPerSample - 1);
 
-    int floatpitch = sizex;
+    int floatpitch = dct->sizex;
     int i, j;
     int integ;
     float f = realdata[0] * 0.5f; // to be compatible with integer DCTINT8
@@ -90,27 +96,27 @@ void DCTFFTW::Float2Bytes(uint8_t *dstp8, int dst_pitch, float *realdata) {
        */
     // XXX function call to nearbyintf can be avoided by using cvtss2si
     integ = (int)(nearbyintf(f));
-    dstp[0] = std::min(pixelMax, std::max(0, (integ >> dctshift0) + pixelHalf)); // DC
-    for (i = 1; i < sizex; i += 1) {
+    dstp[0] = std::min(pixelMax, std::max(0, (integ >> dct->dctshift0) + pixelHalf)); // DC
+    for (i = 1; i < dct->sizex; i += 1) {
         f = realdata[i] * 0.707f; // to be compatible with integer DCTINT8
         /*
            _asm fld f;
            _asm fistp integ;
            */
         integ = (int)(nearbyintf(f));
-        dstp[i] = std::min(pixelMax, std::max(0, (integ >> dctshift) + pixelHalf));
+        dstp[i] = std::min(pixelMax, std::max(0, (integ >> dct->dctshift) + pixelHalf));
     }
     dstp += dst_pitch;
     realdata += floatpitch;
-    for (j = 1; j < sizey; j++) {
-        for (i = 0; i < sizex; i += 1) {
+    for (j = 1; j < dct->sizey; j++) {
+        for (i = 0; i < dct->sizex; i += 1) {
             f = realdata[i] * 0.707f; // to be compatible with integer DCTINT8
             /*
                _asm fld f;
                _asm fistp integ;
                */
             integ = (int)(nearbyintf(f));
-            dstp[i] = std::min(pixelMax, std::max(0, (integ >> dctshift) + pixelHalf));
+            dstp[i] = std::min(pixelMax, std::max(0, (integ >> dct->dctshift) + pixelHalf));
         }
         dstp += dst_pitch;
         realdata += floatpitch;
@@ -118,14 +124,14 @@ void DCTFFTW::Float2Bytes(uint8_t *dstp8, int dst_pitch, float *realdata) {
 }
 
 
-void DCTFFTW::DCTBytes2D(const uint8_t *srcp, int src_pitch, uint8_t *dctp, int dct_pitch) {
-    if (bitsPerSample == 8) {
-        Bytes2Float<uint8_t>(srcp, src_pitch, fSrc);
-        fftwf_execute_r2r(dctplan, fSrc, fSrcDCT);
-        Float2Bytes<uint8_t>(dctp, dct_pitch, fSrcDCT);
+void dctBytes2D(DCTFFTW *dct, const uint8_t *srcp, int src_pitch, uint8_t *dctp, int dct_pitch) {
+    if (dct->bitsPerSample == 8) {
+        Bytes2Float<uint8_t>(dct, srcp, src_pitch, dct->fSrc);
+        fftwf_execute_r2r(dct->dctplan, dct->fSrc, dct->fSrcDCT);
+        Float2Bytes<uint8_t>(dct, dctp, dct_pitch, dct->fSrcDCT);
     } else {
-        Bytes2Float<uint16_t>(srcp, src_pitch, fSrc);
-        fftwf_execute_r2r(dctplan, fSrc, fSrcDCT);
-        Float2Bytes<uint16_t>(dctp, dct_pitch, fSrcDCT);
+        Bytes2Float<uint16_t>(dct, srcp, src_pitch, dct->fSrc);
+        fftwf_execute_r2r(dct->dctplan, dct->fSrc, dct->fSrcDCT);
+        Float2Bytes<uint16_t>(dct, dctp, dct_pitch, dct->fSrcDCT);
     }
 }
