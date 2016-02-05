@@ -372,12 +372,12 @@ class PlaneOfBlocks {
             if(cost>=nMinCost) return;
 
             int sad=LumaSAD(GetRefBlock(vx, vy));
-            cost+=static_cast<int>(sad+((penaltyNew*(int64_t)sad)>>8));
+            cost += sad+static_cast<int>((penaltyNew*(int64_t)sad)>>8);
             if(cost>=nMinCost) return;
 
             int saduv = (chroma) ? SADCHROMA(pSrc[1], nSrcPitch[1], GetRefBlockU(vx, vy), nRefPitch[1])
                 + SADCHROMA(pSrc[2], nSrcPitch[2], GetRefBlockV(vx, vy), nRefPitch[2]) : 0;
-            cost += static_cast<int>(saduv+((penaltyNew*(int64_t)saduv)>>8));
+            cost += saduv+static_cast<int>((penaltyNew*(int64_t)saduv)>>8);
             if(cost>=nMinCost) return;
 
             bestMV.x = vx;
@@ -402,12 +402,12 @@ class PlaneOfBlocks {
             if(cost>=nMinCost) return;
 
             int sad=LumaSAD(GetRefBlock(vx, vy));
-            cost+=static_cast<int>(sad+((penaltyNew*(int64_t)sad)>>8));
+            cost += sad+static_cast<int>((penaltyNew*(int64_t)sad)>>8);
             if(cost>=nMinCost) return;
 
             int saduv = (chroma) ? SADCHROMA(pSrc[1], nSrcPitch[1], GetRefBlockU(vx, vy), nRefPitch[1])
                 + SADCHROMA(pSrc[2], nSrcPitch[2], GetRefBlockV(vx, vy), nRefPitch[2]) : 0;
-            cost += static_cast<int>(saduv+((penaltyNew*(int64_t)saduv)>>8));
+            cost += saduv+static_cast<int>((penaltyNew*(int64_t)saduv)>>8);
             if(cost>=nMinCost) return;
 
             bestMV.x = vx;
@@ -433,12 +433,12 @@ class PlaneOfBlocks {
             if(cost>=nMinCost) return;
 
             int sad=LumaSAD(GetRefBlock(vx, vy));
-            cost+=static_cast<int>(sad+((penaltyNew*(int64_t)sad)>>8));
+            cost += sad+static_cast<int>((penaltyNew*(int64_t)sad)>>8);
             if(cost>=nMinCost) return;
 
             int saduv = (chroma) ? SADCHROMA(pSrc[1], nSrcPitch[1], GetRefBlockU(vx, vy), nRefPitch[1])
                 + SADCHROMA(pSrc[2], nSrcPitch[2], GetRefBlockV(vx, vy), nRefPitch[2]) : 0;
-            cost += static_cast<int>(saduv+((penaltyNew*(int64_t)saduv)>>8));
+            cost += saduv+static_cast<int>((penaltyNew*(int64_t)saduv)>>8);
             if(cost>=nMinCost) return;
 
             nMinCost = cost;
@@ -578,4 +578,3 @@ class PlaneOfBlocks {
 };
 
 #endif
-
