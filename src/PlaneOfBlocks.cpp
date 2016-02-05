@@ -1104,7 +1104,7 @@ void PlaneOfBlocks::PseudoEPZSearch()
     sad = LumaSAD(GetRefBlock(0, zeroMVfieldShifted.y));
     sad += saduv;
     bestMV.sad = sad;
-    nMinCost = static_cast<int>(sad + ((penaltyZero*(int64_t)sad)>>8)); // v.1.11.0.2
+    nMinCost = sad + static_cast<int>((penaltyZero*(int64_t)sad)>>8); // v.1.11.0.2
 
     VECTOR bestMVMany[8];
     int nMinCostMany[8];
@@ -1123,7 +1123,7 @@ void PlaneOfBlocks::PseudoEPZSearch()
         + SADCHROMA(pSrc[2], nSrcPitch[2], GetRefBlockV(globalMVPredictor.x, globalMVPredictor.y), nRefPitch[2]) : 0;
     sad = LumaSAD(GetRefBlock(globalMVPredictor.x, globalMVPredictor.y));
     sad += saduv;
-    int cost = static_cast<int>(sad + ((pglobal*(int64_t)sad)>>8));
+    int cost = sad + static_cast<int>((pglobal*(int64_t)sad)>>8);
 
     if ( cost  < nMinCost || tryMany)
     {
