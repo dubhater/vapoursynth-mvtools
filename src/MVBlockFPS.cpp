@@ -82,7 +82,7 @@ typedef struct {
 
 
 static void VS_CC mvblockfpsInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    MVBlockFPSData *d = (MVBlockFPSData *) * instanceData;
+    MVBlockFPSData *d = (MVBlockFPSData *)*instanceData;
     vsapi->setVideoInfo(&d->vi, 1, node);
 }
 
@@ -98,7 +98,7 @@ static void MakeSmallMask(uint8_t *image, int imagePitch, uint8_t *smallmask, in
             psmallmask[nx] = 0;
             for (int j = 0; j < nBlkSizeY; j++) {
                 for (int i = 0; i < nBlkSizeX; i++)
-                    if (image[i] == 0) // 0 is mark of occlusion
+                    if (image[i] == 0)    // 0 is mark of occlusion
                         psmallmask[nx]++; // count
                 image += imagePitch;
             }
@@ -117,7 +117,6 @@ static void MakeSmallMask(uint8_t *image, int imagePitch, uint8_t *smallmask, in
                 psmallmask[nx] = 255;
             else
                 psmallmask[nx] = 0;
-
         }
         psmallmask += nBlkX;
     }
@@ -129,8 +128,8 @@ static void InflateMask(uint8_t *smallmask, int nBlkX, int nBlkY) {
     // inflate mask
     uint8_t *psmallmask = smallmask + nBlkX;
 
-    for (int ny = 1; ny < nBlkY - 1; ny++) {// skip edges
-        for (int nx = 1; nx < nBlkX - 1; nx++) {// skip edges
+    for (int ny = 1; ny < nBlkY - 1; ny++) {     // skip edges
+        for (int nx = 1; nx < nBlkX - 1; nx++) { // skip edges
             if (psmallmask[nx] == 255) {
                 psmallmask[nx - 1] = 192;
                 psmallmask[nx + 1] = 192;
@@ -147,7 +146,7 @@ static void InflateMask(uint8_t *smallmask, int nBlkX, int nBlkY) {
 }
 
 
-static void MultMasks(uint8_t *smallmaskF, uint8_t *smallmaskB, uint8_t *smallmaskO,  int nBlkX, int nBlkY) {
+static void MultMasks(uint8_t *smallmaskF, uint8_t *smallmaskB, uint8_t *smallmaskO, int nBlkX, int nBlkY) {
     for (int j = 0; j < nBlkY; j++) {
         for (int i = 0; i < nBlkX; i++)
             smallmaskO[i] = (smallmaskF[i] * smallmaskB[i]) / 255;
@@ -169,9 +168,9 @@ static inline PixelType MEDIAN(PixelType a, PixelType b, PixelType c) {
 
 
 template <typename PixelType>
-static void RealResultBlock(uint8_t *pDst, int dst_pitch, const uint8_t * pMCB, int MCB_pitch, const uint8_t * pMCF, int MCF_pitch,
-        const uint8_t * pRef, int ref_pitch, const uint8_t * pSrc, int src_pitch, uint8_t *maskB, int mask_pitch, uint8_t *maskF,
-        uint8_t *pOcc, int nBlkSizeX, int nBlkSizeY, int time256, int mode) {
+static void RealResultBlock(uint8_t *pDst, int dst_pitch, const uint8_t *pMCB, int MCB_pitch, const uint8_t *pMCF, int MCF_pitch,
+                            const uint8_t *pRef, int ref_pitch, const uint8_t *pSrc, int src_pitch, uint8_t *maskB, int mask_pitch, uint8_t *maskF,
+                            uint8_t *pOcc, int nBlkSizeX, int nBlkSizeY, int time256, int mode) {
     if (mode == 0) {
         for (int h = 0; h < nBlkSizeY; h++) {
             for (int w = 0; w < nBlkSizeX; w++) {
@@ -196,9 +195,8 @@ static void RealResultBlock(uint8_t *pDst, int dst_pitch, const uint8_t * pMCB, 
                 PixelType *pDst_ = (PixelType *)pDst;
 
                 int mca = (pMCB_[w] * time256 + pMCF_[w] * (256 - time256)) >> 8; // MC fetched average
-                int sta = MEDIAN<PixelType>(pRef_[w], pSrc_[w], mca); // static median
+                int sta = MEDIAN<PixelType>(pRef_[w], pSrc_[w], mca);             // static median
                 pDst_[w] = sta;
-
             }
             pDst += dst_pitch;
             pMCB += MCB_pitch;
@@ -216,7 +214,7 @@ static void RealResultBlock(uint8_t *pDst, int dst_pitch, const uint8_t * pMCB, 
                 PixelType *pDst_ = (PixelType *)pDst;
 
                 int avg = (pRef_[w] * time256 + pSrc_[w] * (256 - time256)) >> 8; // simple temporal non-MC average
-                int dyn = MEDIAN<PixelType>(avg, pMCB_[w], pMCF_[w]); // dynamic median
+                int dyn = MEDIAN<PixelType>(avg, pMCB_[w], pMCF_[w]);             // dynamic median
                 pDst_[w] = dyn;
             }
             pDst += dst_pitch;
@@ -232,8 +230,9 @@ static void RealResultBlock(uint8_t *pDst, int dst_pitch, const uint8_t * pMCB, 
                 const PixelType *pMCF_ = (const PixelType *)pMCF;
                 PixelType *pDst_ = (PixelType *)pDst;
 
-                pDst_[w] = ( ( (maskB[w] * pMCF_[w] + (255 - maskB[w]) * pMCB_[w] + 255) >> 8 ) * time256 +
-                            ( (maskF[w] * pMCB_[w] + (255 - maskF[w]) * pMCF_[w] + 255) >> 8 ) * (256 - time256) ) >> 8;
+                pDst_[w] = (((maskB[w] * pMCF_[w] + (255 - maskB[w]) * pMCB_[w] + 255) >> 8) * time256 +
+                            ((maskF[w] * pMCB_[w] + (255 - maskF[w]) * pMCF_[w] + 255) >> 8) * (256 - time256)) >>
+                           8;
             }
             pDst += dst_pitch;
             pMCB += MCB_pitch;
@@ -250,11 +249,11 @@ static void RealResultBlock(uint8_t *pDst, int dst_pitch, const uint8_t * pMCB, 
                 const PixelType *pSrc_ = (const PixelType *)pSrc;
                 PixelType *pDst_ = (PixelType *)pDst;
 
-                int f = (maskF[w] * pMCB_[w] + (255 - maskF[w]) * pMCF_[w] + 255 ) >> 8;
+                int f = (maskF[w] * pMCB_[w] + (255 - maskF[w]) * pMCF_[w] + 255) >> 8;
                 int b = (maskB[w] * pMCF_[w] + (255 - maskB[w]) * pMCB_[w] + 255) >> 8;
                 int avg = (pRef_[w] * time256 + pSrc_[w] * (256 - time256) + 255) >> 8; // simple temporal non-MC average
-                int m = ( b * time256 + f * (256 - time256) ) >> 8;
-                pDst_[w] = ( avg * pOcc[w] + m * (255 - pOcc[w]) + 255 ) >> 8;
+                int m = (b * time256 + f * (256 - time256)) >> 8;
+                pDst_[w] = (avg * pOcc[w] + m * (255 - pOcc[w]) + 255) >> 8;
             }
             pDst += dst_pitch;
             pMCB += MCB_pitch;
@@ -279,9 +278,9 @@ static void RealResultBlock(uint8_t *pDst, int dst_pitch, const uint8_t * pMCB, 
 }
 
 
-static void ResultBlock(uint8_t *pDst, int dst_pitch, const uint8_t * pMCB, int MCB_pitch, const uint8_t * pMCF, int MCF_pitch,
-        const uint8_t * pRef, int ref_pitch, const uint8_t * pSrc, int src_pitch, uint8_t *maskB, int mask_pitch, uint8_t *maskF,
-        uint8_t *pOcc, int nBlkSizeX, int nBlkSizeY, int time256, int mode, int bitsPerSample) {
+static void ResultBlock(uint8_t *pDst, int dst_pitch, const uint8_t *pMCB, int MCB_pitch, const uint8_t *pMCF, int MCF_pitch,
+                        const uint8_t *pRef, int ref_pitch, const uint8_t *pSrc, int src_pitch, uint8_t *maskB, int mask_pitch, uint8_t *maskF,
+                        uint8_t *pOcc, int nBlkSizeX, int nBlkSizeY, int time256, int mode, int bitsPerSample) {
     if (bitsPerSample == 8)
         RealResultBlock<uint8_t>(pDst, dst_pitch, pMCB, MCB_pitch, pMCF, MCF_pitch, pRef, ref_pitch, pSrc, src_pitch, maskB, mask_pitch, maskF, pOcc, nBlkSizeX, nBlkSizeY, time256, mode);
     else
@@ -290,7 +289,7 @@ static void ResultBlock(uint8_t *pDst, int dst_pitch, const uint8_t * pMCB, int 
 
 
 static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
-    MVBlockFPSData *d = (MVBlockFPSData *) * instanceData;
+    MVBlockFPSData *d = (MVBlockFPSData *)*instanceData;
 
     if (activationReason == arInitial) {
         int off = d->mvClipB->GetDeltaFrame(); // integer offset of reference frame
@@ -298,7 +297,7 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
         int nleft = (int)(n * d->fa / d->fb);
         int nright = nleft + off;
 
-        int time256 = int( (double(n) * double(d->fa) / double(d->fb) - nleft) * 256 + 0.5);
+        int time256 = int((double(n) * double(d->fa) / double(d->fb) - nleft) * 256 + 0.5);
         if (off > 1)
             time256 = time256 / off;
 
@@ -311,12 +310,12 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
         }
 
         if ((nleft < d->vi.numFrames && nright < d->vi.numFrames) || !d->vi.numFrames) { // for the good estimation case
-            vsapi->requestFrameFilter(nright, d->mvfw, frameCtx); // requests nleft, nleft + off
-            vsapi->requestFrameFilter(nleft, d->mvbw, frameCtx); // requests nleft, nleft + off
+            vsapi->requestFrameFilter(nright, d->mvfw, frameCtx);                        // requests nleft, nleft + off
+            vsapi->requestFrameFilter(nleft, d->mvbw, frameCtx);                         // requests nleft, nleft + off
 
             vsapi->requestFrameFilter(nleft, d->super, frameCtx);
             vsapi->requestFrameFilter(nright, d->super, frameCtx);
-        } 
+        }
 
         vsapi->requestFrameFilter(d->vi.numFrames ? VSMIN(nleft, d->vi.numFrames - 1) : nleft, d->node, frameCtx);
 
@@ -326,7 +325,7 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
     } else if (activationReason == arAllFramesReady) {
         int nleft = (int)(n * d->fa / d->fb);
         // intermediate product may be very large! Now I know how to multiply int64
-        int time256 = int( (double(n)*double(d->fa)/double(d->fb) - nleft) * 256 + 0.5);
+        int time256 = int((double(n) * double(d->fa) / double(d->fb) - nleft) * 256 + 0.5);
 
         int off = d->mvClipB->GetDeltaFrame(); // integer offset of reference frame
         // usually off must be = 1
@@ -348,12 +347,12 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
 
         if ((nleft < d->vi.numFrames && nright < d->vi.numFrames) || !d->vi.numFrames) {
             const VSFrameRef *mvF = vsapi->getFrameFilter(nright, d->mvfw, frameCtx);
-            ballsF.Update(mvF);// forward from current to next
+            ballsF.Update(mvF); // forward from current to next
             isUsableF = ballsF.IsUsable();
             vsapi->freeFrame(mvF);
 
             const VSFrameRef *mvB = vsapi->getFrameFilter(nleft, d->mvbw, frameCtx);
-            ballsB.Update(mvB);// backward from next to current
+            ballsB.Update(mvB); // backward from next to current
             isUsableB = ballsB.IsUsable();
             vsapi->freeFrame(mvB);
         }
@@ -401,7 +400,7 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
 
             // If both are usable, that means both nleft and nright are less than numFrames, or that we don't have numFrames. Thus there is no need to check nleft and nright here.
             const VSFrameRef *src = vsapi->getFrameFilter(nleft, d->super, frameCtx);
-            const VSFrameRef *ref = vsapi->getFrameFilter(nright, d->super, frameCtx);//  right frame for  compensation
+            const VSFrameRef *ref = vsapi->getFrameFilter(nright, d->super, frameCtx); //  right frame for  compensation
             VSFrameRef *dst = vsapi->newVideoFrame(d->vi.format, d->vi.width, d->vi.height, src, core);
 
             for (int i = 0; i < d->supervi->format->numPlanes; i++) {
@@ -416,8 +415,8 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
             MVGroupOfFrames *pRefBGOF = new MVGroupOfFrames(nSuperLevels, nWidth, nHeight, nSuperPel, nSuperHPad, nSuperVPad, nSuperModeYUV, isse, xRatioUV, yRatioUV, d->supervi->format->bitsPerSample);
             MVGroupOfFrames *pRefFGOF = new MVGroupOfFrames(nSuperLevels, nWidth, nHeight, nSuperPel, nSuperHPad, nSuperVPad, nSuperModeYUV, isse, xRatioUV, yRatioUV, d->supervi->format->bitsPerSample);
 
-            pRefBGOF->Update(nSuperModeYUV, (uint8_t*)pRef[0], nRefPitches[0], (uint8_t*)pRef[1], nRefPitches[1], (uint8_t*)pRef[2], nRefPitches[2]);// v2.0
-            pRefFGOF->Update(nSuperModeYUV, (uint8_t*)pSrc[0], nSrcPitches[0], (uint8_t*)pSrc[1], nSrcPitches[1], (uint8_t*)pSrc[2], nSrcPitches[2]);
+            pRefBGOF->Update(nSuperModeYUV, (uint8_t *)pRef[0], nRefPitches[0], (uint8_t *)pRef[1], nRefPitches[1], (uint8_t *)pRef[2], nRefPitches[2]); // v2.0
+            pRefFGOF->Update(nSuperModeYUV, (uint8_t *)pSrc[0], nSrcPitches[0], (uint8_t *)pSrc[1], nSrcPitches[1], (uint8_t *)pSrc[2], nSrcPitches[2]);
 
             MVPlane *pPlanesB[3] = { 0 };
             MVPlane *pPlanesF[3] = { 0 };
@@ -431,17 +430,17 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
                 }
             }
 
-            uint8_t *MaskFullYB = new uint8_t [nHeightP * nPitchY];
-            uint8_t *MaskFullYF = new uint8_t [nHeightP * nPitchY];
-            uint8_t *MaskOccY = new uint8_t [nHeightP * nPitchY];
+            uint8_t *MaskFullYB = new uint8_t[nHeightP * nPitchY];
+            uint8_t *MaskFullYF = new uint8_t[nHeightP * nPitchY];
+            uint8_t *MaskOccY = new uint8_t[nHeightP * nPitchY];
 
             uint8_t *MaskFullUVB = NULL;
             uint8_t *MaskFullUVF = NULL;
             uint8_t *MaskOccUV = NULL;
             if (nSuperModeYUV & UVPLANES) {
-                MaskFullUVB = new uint8_t [nHeightPUV * nPitchUV];
-                MaskFullUVF = new uint8_t [nHeightPUV * nPitchUV];
-                MaskOccUV = new uint8_t [nHeightPUV * nPitchUV];
+                MaskFullUVB = new uint8_t[nHeightPUV * nPitchUV];
+                MaskFullUVF = new uint8_t[nHeightPUV * nPitchUV];
+                MaskOccUV = new uint8_t[nHeightPUV * nPitchUV];
             }
 
 
@@ -457,19 +456,19 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
             int maxoffset = nPitchY * (nHeightP - nBlkSizeY) - nBlkSizeX;
 
             if (mode == 3 || mode == 4 || mode == 5) {
-                smallMaskB = new uint8_t [nBlkXP * nBlkYP];
-                smallMaskF = new uint8_t [nBlkXP * nBlkYP];
-                smallMaskO = new uint8_t [nBlkXP * nBlkYP];
+                smallMaskB = new uint8_t[nBlkXP * nBlkYP];
+                smallMaskF = new uint8_t[nBlkXP * nBlkYP];
+                smallMaskO = new uint8_t[nBlkXP * nBlkYP];
 
                 // make forward shifted images by projection to build occlusion mask
-                for ( int i = 0; i < blocks; i++ ) {
+                for (int i = 0; i < blocks; i++) {
                     const FakeBlockData &blockF = ballsF.GetBlock(0, i);
                     int offset = blockF.GetX() - ((blockF.GetMV().x * time256) >> 8) / nPel + (blockF.GetY() - ((blockF.GetMV().y * time256) >> 8) / nPel) * nPitchY;
                     if (offset >= 0 && offset < maxoffset)
                         d->BLITLUMA(MaskFullYF + offset, nPitchY, OnesBlock, nBlkSizeX); // fill by ones
                 }
                 //  same mask for backward
-                for ( int i = 0; i < blocks; i++ ) {
+                for (int i = 0; i < blocks; i++) {
                     const FakeBlockData &blockB = ballsB.GetBlock(0, i);
                     int offset = blockB.GetX() - ((blockB.GetMV().x * (256 - time256)) >> 8) / nPel + (blockB.GetY() - ((blockB.GetMV().y * (256 - time256)) >> 8) / nPel) * nPitchY;
                     if (offset >= 0 && offset < maxoffset)
@@ -497,7 +496,7 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
 
             if (mode == 4 || mode == 5) {
                 // make final (both directions) occlusion mask
-                MultMasks(smallMaskF, smallMaskB, smallMaskO,  nBlkXP, nBlkYP);
+                MultMasks(smallMaskF, smallMaskB, smallMaskO, nBlkXP, nBlkYP);
                 InflateMask(smallMaskO, nBlkXP, nBlkYP);
                 // upsize small mask to full frame size
                 upsizer->Resize(MaskOccY, nPitchY, smallMaskO, nBlkXP);
@@ -506,12 +505,12 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
             }
 
             // pointers
-            uint8_t * pMaskFullYB = MaskFullYB;
-            uint8_t * pMaskFullYF = MaskFullYF;
-            uint8_t * pMaskFullUVB = MaskFullUVB;
-            uint8_t * pMaskFullUVF = MaskFullUVF;
-            uint8_t * pMaskOccY = MaskOccY;
-            uint8_t * pMaskOccUV = MaskOccUV;
+            uint8_t *pMaskFullYB = MaskFullYB;
+            uint8_t *pMaskFullYF = MaskFullYF;
+            uint8_t *pMaskFullUVB = MaskFullUVB;
+            uint8_t *pMaskFullUVF = MaskFullUVF;
+            uint8_t *pMaskOccY = MaskOccY;
+            uint8_t *pMaskOccUV = MaskOccUV;
 
             pSrc[0] += nSuperHPad * bytesPerSample + nSrcPitches[0] * nSuperVPad; // add offset source in super
             pRef[0] += nSuperHPad * bytesPerSample + nRefPitches[0] * nSuperVPad;
@@ -524,44 +523,44 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
             }
 
             // fetch image blocks
-            for ( int i = 0; i < blocks; i++ ) {
+            for (int i = 0; i < blocks; i++) {
                 const FakeBlockData &blockB = ballsB.GetBlock(0, i);
                 const FakeBlockData &blockF = ballsF.GetBlock(0, i);
 
                 // luma
                 ResultBlock(pDst[0], nDstPitches[0],
-                        pPlanesB[0]->GetPointer(blockB.GetX() * nPel + ((blockB.GetMV().x * (256 - time256)) >> 8), blockB.GetY() * nPel + ((blockB.GetMV().y * (256 - time256)) >> 8)),
-                        pPlanesB[0]->GetPitch(),
-                        pPlanesF[0]->GetPointer(blockF.GetX() * nPel + ((blockF.GetMV().x * time256) >> 8), blockF.GetY() * nPel + ((blockF.GetMV().y * time256) >> 8)),
-                        pPlanesF[0]->GetPitch(),
-                        pRef[0], nRefPitches[0],
-                        pSrc[0], nSrcPitches[0],
-                        pMaskFullYB, nPitchY,
-                        pMaskFullYF, pMaskOccY,
-                        nBlkSizeX, nBlkSizeY, time256, mode, bitsPerSample);
+                            pPlanesB[0]->GetPointer(blockB.GetX() * nPel + ((blockB.GetMV().x * (256 - time256)) >> 8), blockB.GetY() * nPel + ((blockB.GetMV().y * (256 - time256)) >> 8)),
+                            pPlanesB[0]->GetPitch(),
+                            pPlanesF[0]->GetPointer(blockF.GetX() * nPel + ((blockF.GetMV().x * time256) >> 8), blockF.GetY() * nPel + ((blockF.GetMV().y * time256) >> 8)),
+                            pPlanesF[0]->GetPitch(),
+                            pRef[0], nRefPitches[0],
+                            pSrc[0], nSrcPitches[0],
+                            pMaskFullYB, nPitchY,
+                            pMaskFullYF, pMaskOccY,
+                            nBlkSizeX, nBlkSizeY, time256, mode, bitsPerSample);
                 if (nSuperModeYUV & UVPLANES) {
-                // chroma u
+                    // chroma u
                     ResultBlock(pDst[1], nDstPitches[1],
-                            pPlanesB[1]->GetPointer((blockB.GetX() * nPel + ((blockB.GetMV().x * (256 - time256)) >> 8)) / xRatioUV, (blockB.GetY() * nPel + ((blockB.GetMV().y * (256 - time256)) >> 8)) / yRatioUV),
-                            pPlanesB[1]->GetPitch(),
-                            pPlanesF[1]->GetPointer((blockF.GetX() * nPel + ((blockF.GetMV().x * time256) >> 8)) / xRatioUV, (blockF.GetY() * nPel + ((blockF.GetMV().y * time256) >> 8)) / yRatioUV),
-                            pPlanesF[1]->GetPitch(),
-                            pRef[1], nRefPitches[1],
-                            pSrc[1], nSrcPitches[1],
-                            pMaskFullUVB, nPitchUV,
-                            pMaskFullUVF, pMaskOccUV,
-                            nBlkSizeX / xRatioUV, nBlkSizeY / yRatioUV, time256, mode, bitsPerSample);
-                // chroma v
+                                pPlanesB[1]->GetPointer((blockB.GetX() * nPel + ((blockB.GetMV().x * (256 - time256)) >> 8)) / xRatioUV, (blockB.GetY() * nPel + ((blockB.GetMV().y * (256 - time256)) >> 8)) / yRatioUV),
+                                pPlanesB[1]->GetPitch(),
+                                pPlanesF[1]->GetPointer((blockF.GetX() * nPel + ((blockF.GetMV().x * time256) >> 8)) / xRatioUV, (blockF.GetY() * nPel + ((blockF.GetMV().y * time256) >> 8)) / yRatioUV),
+                                pPlanesF[1]->GetPitch(),
+                                pRef[1], nRefPitches[1],
+                                pSrc[1], nSrcPitches[1],
+                                pMaskFullUVB, nPitchUV,
+                                pMaskFullUVF, pMaskOccUV,
+                                nBlkSizeX / xRatioUV, nBlkSizeY / yRatioUV, time256, mode, bitsPerSample);
+                    // chroma v
                     ResultBlock(pDst[2], nDstPitches[2],
-                            pPlanesB[2]->GetPointer((blockB.GetX() * nPel + ((blockB.GetMV().x * (256 - time256)) >> 8)) / xRatioUV, (blockB.GetY() * nPel + ((blockB.GetMV().y * (256 - time256)) >> 8)) / yRatioUV),
-                            pPlanesB[2]->GetPitch(),
-                            pPlanesF[2]->GetPointer((blockF.GetX() * nPel + ((blockF.GetMV().x * time256) >> 8)) / xRatioUV, (blockF.GetY() * nPel + ((blockF.GetMV().y * time256) >> 8)) / yRatioUV),
-                            pPlanesF[2]->GetPitch(),
-                            pRef[2], nRefPitches[2],
-                            pSrc[2], nSrcPitches[2],
-                            pMaskFullUVB, nPitchUV,
-                            pMaskFullUVF, pMaskOccUV,
-                            nBlkSizeX / xRatioUV, nBlkSizeY / yRatioUV, time256, mode, bitsPerSample);
+                                pPlanesB[2]->GetPointer((blockB.GetX() * nPel + ((blockB.GetMV().x * (256 - time256)) >> 8)) / xRatioUV, (blockB.GetY() * nPel + ((blockB.GetMV().y * (256 - time256)) >> 8)) / yRatioUV),
+                                pPlanesB[2]->GetPitch(),
+                                pPlanesF[2]->GetPointer((blockF.GetX() * nPel + ((blockF.GetMV().x * time256) >> 8)) / xRatioUV, (blockF.GetY() * nPel + ((blockF.GetMV().y * time256) >> 8)) / yRatioUV),
+                                pPlanesF[2]->GetPitch(),
+                                pRef[2], nRefPitches[2],
+                                pSrc[2], nSrcPitches[2],
+                                pMaskFullUVB, nPitchUV,
+                                pMaskFullUVF, pMaskOccUV,
+                                nBlkSizeX / xRatioUV, nBlkSizeY / yRatioUV, time256, mode, bitsPerSample);
                 }
 
 
@@ -585,7 +584,7 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
                 }
 
 
-                if ( !((i + 1) % nBlkX)  ) {
+                if (!((i + 1) % nBlkX)) {
                     // blend rest right with time weight
                     Blend(pDst[0], pSrc[0], pRef[0], nBlkSizeY, nWidth - nBlkSizeX * nBlkX, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, isse, bitsPerSample);
 
@@ -600,12 +599,12 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
                         Blend(pDst[1], pSrc[1], pRef[1], nBlkSizeY / yRatioUV, nWidthUV - (nBlkSizeX / xRatioUV) * nBlkX, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, isse, bitsPerSample);
                         Blend(pDst[2], pSrc[2], pRef[2], nBlkSizeY / yRatioUV, nWidthUV - (nBlkSizeX / xRatioUV) * nBlkX, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, isse, bitsPerSample);
 
-                        pDst[1] += ( nBlkSizeY / yRatioUV ) * nDstPitches[1] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
-                        pDst[2] += ( nBlkSizeY / yRatioUV ) * nDstPitches[2] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
-                        pRef[1] += ( nBlkSizeY / yRatioUV ) * nRefPitches[1] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
-                        pRef[2] += ( nBlkSizeY / yRatioUV ) * nRefPitches[2] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
-                        pSrc[1] += ( nBlkSizeY / yRatioUV ) * nSrcPitches[1] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
-                        pSrc[2] += ( nBlkSizeY / yRatioUV ) * nSrcPitches[2] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
+                        pDst[1] += (nBlkSizeY / yRatioUV) * nDstPitches[1] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
+                        pDst[2] += (nBlkSizeY / yRatioUV) * nDstPitches[2] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
+                        pRef[1] += (nBlkSizeY / yRatioUV) * nRefPitches[1] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
+                        pRef[2] += (nBlkSizeY / yRatioUV) * nRefPitches[2] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
+                        pSrc[1] += (nBlkSizeY / yRatioUV) * nSrcPitches[1] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
+                        pSrc[2] += (nBlkSizeY / yRatioUV) * nSrcPitches[2] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
                         pMaskFullUVB += (nBlkSizeY / yRatioUV) * nPitchUV - (nBlkSizeX / xRatioUV) * nBlkX;
                         pMaskFullUVF += (nBlkSizeY / yRatioUV) * nPitchUV - (nBlkSizeX / xRatioUV) * nBlkX;
                         pMaskOccUV += (nBlkSizeY / yRatioUV) * nPitchUV - (nBlkSizeX / xRatioUV) * nBlkX;
@@ -620,18 +619,18 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
             }
 
 
-            delete [] MaskFullYB;
-            delete [] MaskFullYF;
-            delete [] MaskOccY;
+            delete[] MaskFullYB;
+            delete[] MaskFullYF;
+            delete[] MaskOccY;
             if (nSuperModeYUV & UVPLANES) {
-                delete [] MaskFullUVB;
-                delete [] MaskFullUVF;
-                delete [] MaskOccUV;
+                delete[] MaskFullUVB;
+                delete[] MaskFullUVF;
+                delete[] MaskOccUV;
             }
             if (smallMaskB) {
-                delete [] smallMaskB;
-                delete [] smallMaskF;
-                delete [] smallMaskO;
+                delete[] smallMaskB;
+                delete[] smallMaskF;
+                delete[] smallMaskO;
             }
 
             delete pRefBGOF;
@@ -644,7 +643,7 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
         } else { // poor estimation
             const VSFrameRef *src = vsapi->getFrameFilter(d->vi.numFrames ? VSMIN(nleft, d->vi.numFrames - 1) : nleft, d->node, frameCtx);
 
-            if (blend) {//let's blend src with ref frames like ConvertFPS
+            if (blend) { //let's blend src with ref frames like ConvertFPS
                 uint8_t *pDst[3];
                 const uint8_t *pRef[3], *pSrc[3];
                 int nDstPitches[3], nRefPitches[3], nSrcPitches[3];
@@ -695,7 +694,7 @@ static void VS_CC mvblockfpsFree(void *instanceData, VSCore *core, const VSAPI *
     if (d->nSuperModeYUV & UVPLANES)
         delete d->upsizerUV;
 
-    delete [] d->OnesBlock;
+    delete[] d->OnesBlock;
 
     vsapi->freeNode(d->super);
     vsapi->freeNode(d->mvfw);
@@ -730,25 +729,25 @@ static void selectFunctions(MVBlockFPSData *d) {
     COPYFunction copys[33][33];
 
     // The copy functions are only used with 8 bit masks.
-    copys[2][2] = Copy_C<2,2, uint8_t>;
-    copys[2][4] = Copy_C<2,4, uint8_t>;
-    copys[4][2] = Copy_C<4,2, uint8_t>;
-    copys[4][4] = Copy_C<4,4, uint8_t>;
-    copys[4][8] = Copy_C<4,8, uint8_t>;
-    copys[8][1] = Copy_C<8,1, uint8_t>;
-    copys[8][2] = Copy_C<8,2, uint8_t>;
-    copys[8][4] = Copy_C<8,4, uint8_t>;
-    copys[8][8] = Copy_C<8,8, uint8_t>;
-    copys[8][16] = Copy_C<8,16, uint8_t>;
-    copys[16][1] = Copy_C<16,1, uint8_t>;
-    copys[16][2] = Copy_C<16,2, uint8_t>;
-    copys[16][4] = Copy_C<16,4, uint8_t>;
-    copys[16][8] = Copy_C<16,8, uint8_t>;
-    copys[16][16] = Copy_C<16,16, uint8_t>;
-    copys[16][32] = Copy_C<16,32, uint8_t>;
-    copys[32][8] = Copy_C<32,8, uint8_t>;
-    copys[32][16] = Copy_C<32,16, uint8_t>;
-    copys[32][32] = Copy_C<32,32, uint8_t>;
+    copys[2][2] = Copy_C<2, 2, uint8_t>;
+    copys[2][4] = Copy_C<2, 4, uint8_t>;
+    copys[4][2] = Copy_C<4, 2, uint8_t>;
+    copys[4][4] = Copy_C<4, 4, uint8_t>;
+    copys[4][8] = Copy_C<4, 8, uint8_t>;
+    copys[8][1] = Copy_C<8, 1, uint8_t>;
+    copys[8][2] = Copy_C<8, 2, uint8_t>;
+    copys[8][4] = Copy_C<8, 4, uint8_t>;
+    copys[8][8] = Copy_C<8, 8, uint8_t>;
+    copys[8][16] = Copy_C<8, 16, uint8_t>;
+    copys[16][1] = Copy_C<16, 1, uint8_t>;
+    copys[16][2] = Copy_C<16, 2, uint8_t>;
+    copys[16][4] = Copy_C<16, 4, uint8_t>;
+    copys[16][8] = Copy_C<16, 8, uint8_t>;
+    copys[16][16] = Copy_C<16, 16, uint8_t>;
+    copys[16][32] = Copy_C<16, 32, uint8_t>;
+    copys[32][8] = Copy_C<32, 8, uint8_t>;
+    copys[32][16] = Copy_C<32, 16, uint8_t>;
+    copys[32][32] = Copy_C<32, 32, uint8_t>;
 
     d->BLITLUMA = copys[nBlkSizeX][nBlkSizeY];
 }
@@ -960,9 +959,9 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     int nSuperWidth = d.supervi->width;
 
     if (d.bleh->nHeight != nHeightS ||
-            d.bleh->nWidth != nSuperWidth - d.nSuperHPad * 2 ||
-            d.bleh->nWidth != d.vi.width ||
-            d.bleh->nHeight != d.vi.height) {
+        d.bleh->nWidth != nSuperWidth - d.nSuperHPad * 2 ||
+        d.bleh->nWidth != d.vi.width ||
+        d.bleh->nHeight != d.vi.height) {
         vsapi->setError(out, "BlockFPS: wrong source or super clip frame size.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
@@ -1004,8 +1003,7 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     d.nPitchUV = (d.nWidthPUV + 15) & (~15);
 
 
-
-    d.OnesBlock = new uint8_t [d.bleh->nBlkSizeX * d.bleh->nBlkSizeY + 32]; // padding seems unnecessary
+    d.OnesBlock = new uint8_t[d.bleh->nBlkSizeX * d.bleh->nBlkSizeY + 32]; // padding seems unnecessary
     memset(d.OnesBlock, 255, d.bleh->nBlkSizeX * d.bleh->nBlkSizeY);
 
 
@@ -1059,17 +1057,17 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
 
 extern "C" void mvblockfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("BlockFPS",
-            "clip:clip;"
-            "super:clip;"
-            "mvbw:clip;"
-            "mvfw:clip;"
-            "num:int:opt;"
-            "den:int:opt;"
-            "mode:int:opt;"
-            "thres:int:opt;"
-            "blend:int:opt;"
-            "thscd1:int:opt;"
-            "thscd2:int:opt;"
-            "isse:int:opt;"
-            , mvblockfpsCreate, 0, plugin);
+                 "clip:clip;"
+                 "super:clip;"
+                 "mvbw:clip;"
+                 "mvfw:clip;"
+                 "num:int:opt;"
+                 "den:int:opt;"
+                 "mode:int:opt;"
+                 "thres:int:opt;"
+                 "blend:int:opt;"
+                 "thscd1:int:opt;"
+                 "thscd2:int:opt;"
+                 "isse:int:opt;",
+                 mvblockfpsCreate, 0, plugin);
 }

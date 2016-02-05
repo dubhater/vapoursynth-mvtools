@@ -19,9 +19,8 @@
 
 #include "MVClip.h"
 
-MVClipDicks::MVClipDicks(VSNodeRef *vectors, int _nSCD1, int _nSCD2, const VSAPI *_vsapi) :
-    vsapi(_vsapi)
-{
+MVClipDicks::MVClipDicks(VSNodeRef *vectors, int _nSCD1, int _nSCD2, const VSAPI *_vsapi)
+    : vsapi(_vsapi) {
     char errorMsg[1024];
     const VSFrameRef *evil = vsapi->getFrame(0, vectors, errorMsg, 1024);
     if (!evil)
@@ -31,7 +30,7 @@ MVClipDicks::MVClipDicks(VSNodeRef *vectors, int _nSCD1, int _nSCD2, const VSAPI
     const MVAnalysisData *pAnalyseFilter = reinterpret_cast<const MVAnalysisData *>(vsapi->getReadPtr(evil, 0) + sizeof(int));
 
     // 'magic' key, just to check :
-    if ( pAnalyseFilter->GetMagicKey() != MOTION_MAGIC_KEY ) {
+    if (pAnalyseFilter->GetMagicKey() != MOTION_MAGIC_KEY) {
         vsapi->freeFrame(evil);
         throw MVException("Invalid motion vector clip.");
     }
@@ -69,7 +68,7 @@ MVClipDicks::MVClipDicks(VSNodeRef *vectors, int _nSCD1, int _nSCD2, const VSAPI
     // SCD thresholds
     int referenceBlockSize = 8 * 8;
     nSCD1 = _nSCD1 * (nBlkSizeX * nBlkSizeY) / referenceBlockSize;
-    if ( pAnalyseFilter->IsChromaMotion() )
+    if (pAnalyseFilter->IsChromaMotion())
         nSCD1 += nSCD1 / (xRatioUV * yRatioUV) * 2;
 
     int pixelMax = (1 << bitsPerSample) - 1;
@@ -80,27 +79,24 @@ MVClipDicks::MVClipDicks(VSNodeRef *vectors, int _nSCD1, int _nSCD2, const VSAPI
     vsapi->freeFrame(evil);
 }
 
-MVClipDicks::~MVClipDicks()
-{
+MVClipDicks::~MVClipDicks() {
 }
 
 
-MVClipBalls::MVClipBalls(MVClipDicks *_dicks, const VSAPI *_vsapi) :
-    dicks(_dicks),
-    vsapi(_vsapi)
-{
+MVClipBalls::MVClipBalls(MVClipDicks *_dicks, const VSAPI *_vsapi)
+    : dicks(_dicks)
+    , vsapi(_vsapi) {
     FakeGroupOfPlanes::Create(dicks->GetBlkSizeX(), dicks->GetBlkSizeY(), dicks->GetLevelCount(), dicks->GetPel(), dicks->GetOverlapX(), dicks->GetOverlapY(), dicks->GetYRatioUV(), dicks->GetBlkX(), dicks->GetBlkY());
 }
 
-MVClipBalls::~MVClipBalls()
-{
+MVClipBalls::~MVClipBalls() {
 }
 
 
 void MVClipBalls::Update(const VSFrameRef *fn)
 
 {
-    const int *pMv = reinterpret_cast<const int*>(vsapi->getReadPtr(fn, 0));
+    const int *pMv = reinterpret_cast<const int *>(vsapi->getReadPtr(fn, 0));
     int _headerSize = pMv[0];
     int nMagicKey1 = pMv[1];
 
@@ -112,14 +108,13 @@ void MVClipBalls::Update(const VSFrameRef *fn)
     if (nVersion1 != MVANALYSIS_DATA_VERSION)
         throw MVException("MVTools: incompatible version of motion vector clip. Who knows where this error came from exactly?");
 
-    pMv += _headerSize/sizeof(int); // go to data - v1.8.1
+    pMv += _headerSize / sizeof(int); // go to data - v1.8.1
 
-    FakeGroupOfPlanes::Update(pMv);// fixed a bug with lost frames
+    FakeGroupOfPlanes::Update(pMv); // fixed a bug with lost frames
 }
 
 
-bool  MVClipBalls::IsUsable() const
-{
+bool MVClipBalls::IsUsable() const {
     return (!FakeGroupOfPlanes::IsSceneChange(dicks->GetThSCD1(), dicks->GetThSCD2())) && FakeGroupOfPlanes::IsValid();
 }
 

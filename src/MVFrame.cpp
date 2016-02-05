@@ -30,8 +30,7 @@
  *                                                                             *
  ******************************************************************************/
 
-MVPlane::MVPlane(int _nWidth, int _nHeight, int _nPel, int _nHPad, int _nVPad, bool _isse, int _bitsPerSample)
-{
+MVPlane::MVPlane(int _nWidth, int _nHeight, int _nPel, int _nHPad, int _nVPad, bool _isse, int _bitsPerSample) {
     nWidth = _nWidth;
     nHeight = _nHeight;
     nPel = _nPel;
@@ -47,40 +46,36 @@ MVPlane::MVPlane(int _nWidth, int _nHeight, int _nPel, int _nHPad, int _nVPad, b
     nExtendedHeight = nHeight + 2 * nVPadding;
     pPlane = new uint8_t *[nPel * nPel];
     //   InitializeCriticalSection(&cs);
-    }
+}
 
-MVPlane::~MVPlane()
-{
+MVPlane::~MVPlane() {
     delete[] pPlane;
 
     //    DeleteCriticalSection(&cs);
 }
 
-void MVPlane::Update(uint8_t* pSrc, int _nPitch) //v2.0
-{
+void MVPlane::Update(uint8_t *pSrc, int _nPitch) { //v2.0
     //    EnterCriticalSection(&cs);
     nPitch = _nPitch;
     nOffsetPadding = nPitch * nVPadding + nHPadding * bytesPerSample;
 
-    for ( int i = 0; i < nPel * nPel; i++ )
-        pPlane[i] = pSrc + i*nPitch * nExtendedHeight;
+    for (int i = 0; i < nPel * nPel; i++)
+        pPlane[i] = pSrc + i * nPitch * nExtendedHeight;
 
     ResetState();
     //   LeaveCriticalSection(&cs);
 }
-void MVPlane::ChangePlane(const uint8_t *pNewPlane, int nNewPitch)
-{
+void MVPlane::ChangePlane(const uint8_t *pNewPlane, int nNewPitch) {
     //    EnterCriticalSection(&cs);
-    if ( !isFilled )
+    if (!isFilled)
         vs_bitblt(pPlane[0] + nOffsetPadding, nPitch, pNewPlane, nNewPitch, nWidth * bytesPerSample, nHeight);
     isFilled = true;
     //   LeaveCriticalSection(&cs);
 }
 
-void MVPlane::Pad()
-{
+void MVPlane::Pad() {
     //    EnterCriticalSection(&cs);
-    if ( !isPadded ) {
+    if (!isPadded) {
         if (bytesPerSample == 1)
             PadReferenceFrame<uint8_t>(pPlane[0], nPitch, nHPadding, nVPadding, nWidth, nHeight);
         else
@@ -91,22 +86,16 @@ void MVPlane::Pad()
     //   LeaveCriticalSection(&cs);
 }
 
-void MVPlane::Refine(int sharp)
-{
+void MVPlane::Refine(int sharp) {
     //    EnterCriticalSection(&cs);
-    if (( nPel == 2 ) && ( !isRefined ))
-    {
-        if (sharp == 0) // bilinear
-        {
+    if ((nPel == 2) && (!isRefined)) {
+        if (sharp == 0) { // bilinear
             if (bytesPerSample == 1) {
-                if (isse)
-                {
+                if (isse) {
                     mvtools_HorizontalBilinear_sse2(pPlane[1], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
                     mvtools_VerticalBilinear_sse2(pPlane[2], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
                     mvtools_DiagonalBilinear_sse2(pPlane[3], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
-                }
-                else
-                {
+                } else {
                     HorizontalBilinear<uint8_t>(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                     VerticalBilinear<uint8_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                     DiagonalBilinear<uint8_t>(pPlane[3], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
@@ -116,9 +105,7 @@ void MVPlane::Refine(int sharp)
                 VerticalBilinear<uint16_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                 DiagonalBilinear<uint16_t>(pPlane[3], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
             }
-        }
-        else if(sharp==1) // bicubic
-        {
+        } else if (sharp == 1) { // bicubic
             {
                 if (bytesPerSample == 1) {
                     /* TODO: port the asm
@@ -139,18 +126,13 @@ void MVPlane::Refine(int sharp)
                     HorizontalBicubic<uint16_t>(pPlane[3], pPlane[2], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample); // faster from ready-made horizontal
                 }
             }
-        }
-        else // Wiener
-        {
+        } else { // Wiener
             if (bytesPerSample == 1) {
-                if (isse)
-                {
+                if (isse) {
                     mvtools_HorizontalWiener_sse2(pPlane[1], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
                     mvtools_VerticalWiener_sse2(pPlane[2], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
-                    mvtools_HorizontalWiener_sse2(pPlane[3], pPlane[2], nPitch, nExtendedWidth, nExtendedHeight);// faster from ready-made horizontal
-                }
-                else
-                {
+                    mvtools_HorizontalWiener_sse2(pPlane[3], pPlane[2], nPitch, nExtendedWidth, nExtendedHeight); // faster from ready-made horizontal
+                } else {
                     HorizontalWiener<uint8_t>(pPlane[1], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
                     VerticalWiener<uint8_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
                     HorizontalWiener<uint8_t>(pPlane[3], pPlane[2], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample); // faster from ready-made horizontal
@@ -161,20 +143,14 @@ void MVPlane::Refine(int sharp)
                 HorizontalWiener<uint16_t>(pPlane[3], pPlane[2], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample); // faster from ready-made horizontal
             }
         }
-    }
-    else if (( nPel == 4 ) && ( !isRefined )) // firstly pel2 interpolation
-    {
-        if (sharp == 0) // bilinear
-        {
+    } else if ((nPel == 4) && (!isRefined)) { // firstly pel2 interpolation
+        if (sharp == 0) { // bilinear
             if (bytesPerSample == 1) {
-                if (isse)
-                {
+                if (isse) {
                     mvtools_HorizontalBilinear_sse2(pPlane[2], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
                     mvtools_VerticalBilinear_sse2(pPlane[8], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
                     mvtools_DiagonalBilinear_sse2(pPlane[10], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
-                }
-                else
-                {
+                } else {
                     HorizontalBilinear<uint8_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                     VerticalBilinear<uint8_t>(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                     DiagonalBilinear<uint8_t>(pPlane[10], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
@@ -184,9 +160,7 @@ void MVPlane::Refine(int sharp)
                 VerticalBilinear<uint16_t>(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
                 DiagonalBilinear<uint16_t>(pPlane[10], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight);
             }
-        }
-        else if(sharp==1) // bicubic
-        {
+        } else if (sharp == 1) { // bicubic
             {
                 if (bytesPerSample == 1) {
                     /* TODO: port the asm
@@ -207,18 +181,13 @@ void MVPlane::Refine(int sharp)
                     HorizontalBicubic<uint16_t>(pPlane[10], pPlane[8], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample); // faster from ready-made horizontal
                 }
             }
-        }
-        else // Wiener
-        {
+        } else { // Wiener
             if (bytesPerSample == 1) {
-                if (isse)
-                {
+                if (isse) {
                     mvtools_HorizontalWiener_sse2(pPlane[2], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
                     mvtools_VerticalWiener_sse2(pPlane[8], pPlane[0], nPitch, nExtendedWidth, nExtendedHeight);
-                    mvtools_HorizontalWiener_sse2(pPlane[10], pPlane[8], nPitch, nExtendedWidth, nExtendedHeight);// faster from ready-made horizontal
-                }
-                else
-                {
+                    mvtools_HorizontalWiener_sse2(pPlane[10], pPlane[8], nPitch, nExtendedWidth, nExtendedHeight); // faster from ready-made horizontal
+                } else {
                     HorizontalWiener<uint8_t>(pPlane[2], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
                     VerticalWiener<uint8_t>(pPlane[8], pPlane[0], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample);
                     HorizontalWiener<uint8_t>(pPlane[10], pPlane[8], nPitch, nPitch, nExtendedWidth, nExtendedHeight, bitsPerSample); // faster from ready-made horizontal
@@ -238,13 +207,13 @@ void MVPlane::Refine(int sharp)
                 mvtools_Average2_sse2(pPlane[6], pPlane[2], pPlane[10], nPitch, nExtendedWidth, nExtendedHeight);
                 mvtools_Average2_sse2(pPlane[5], pPlane[4], pPlane[6], nPitch, nExtendedWidth, nExtendedHeight);
 
-                mvtools_Average2_sse2(pPlane[3], pPlane[0] + 1, pPlane[2], nPitch, nExtendedWidth-1, nExtendedHeight);
-                mvtools_Average2_sse2(pPlane[11], pPlane[8] + 1, pPlane[10], nPitch, nExtendedWidth-1, nExtendedHeight);
-                mvtools_Average2_sse2(pPlane[12], pPlane[0] + nPitch, pPlane[8], nPitch, nExtendedWidth, nExtendedHeight-1);
-                mvtools_Average2_sse2(pPlane[14], pPlane[2] + nPitch, pPlane[10], nPitch, nExtendedWidth, nExtendedHeight-1);
+                mvtools_Average2_sse2(pPlane[3], pPlane[0] + 1, pPlane[2], nPitch, nExtendedWidth - 1, nExtendedHeight);
+                mvtools_Average2_sse2(pPlane[11], pPlane[8] + 1, pPlane[10], nPitch, nExtendedWidth - 1, nExtendedHeight);
+                mvtools_Average2_sse2(pPlane[12], pPlane[0] + nPitch, pPlane[8], nPitch, nExtendedWidth, nExtendedHeight - 1);
+                mvtools_Average2_sse2(pPlane[14], pPlane[2] + nPitch, pPlane[10], nPitch, nExtendedWidth, nExtendedHeight - 1);
                 mvtools_Average2_sse2(pPlane[13], pPlane[12], pPlane[14], nPitch, nExtendedWidth, nExtendedHeight);
-                mvtools_Average2_sse2(pPlane[7], pPlane[4] + 1, pPlane[6], nPitch, nExtendedWidth-1, nExtendedHeight);
-                mvtools_Average2_sse2(pPlane[15], pPlane[12] + 1, pPlane[14], nPitch, nExtendedWidth-1, nExtendedHeight);
+                mvtools_Average2_sse2(pPlane[7], pPlane[4] + 1, pPlane[6], nPitch, nExtendedWidth - 1, nExtendedHeight);
+                mvtools_Average2_sse2(pPlane[15], pPlane[12] + 1, pPlane[14], nPitch, nExtendedWidth - 1, nExtendedHeight);
             } else {
                 Average2<uint8_t>(pPlane[1], pPlane[0], pPlane[2], nPitch, nExtendedWidth, nExtendedHeight);
                 Average2<uint8_t>(pPlane[9], pPlane[8], pPlane[10], nPitch, nExtendedWidth, nExtendedHeight);
@@ -252,13 +221,13 @@ void MVPlane::Refine(int sharp)
                 Average2<uint8_t>(pPlane[6], pPlane[2], pPlane[10], nPitch, nExtendedWidth, nExtendedHeight);
                 Average2<uint8_t>(pPlane[5], pPlane[4], pPlane[6], nPitch, nExtendedWidth, nExtendedHeight);
 
-                Average2<uint8_t>(pPlane[3], pPlane[0] + 1, pPlane[2], nPitch, nExtendedWidth-1, nExtendedHeight);
-                Average2<uint8_t>(pPlane[11], pPlane[8] + 1, pPlane[10], nPitch, nExtendedWidth-1, nExtendedHeight);
-                Average2<uint8_t>(pPlane[12], pPlane[0] + nPitch, pPlane[8], nPitch, nExtendedWidth, nExtendedHeight-1);
-                Average2<uint8_t>(pPlane[14], pPlane[2] + nPitch, pPlane[10], nPitch, nExtendedWidth, nExtendedHeight-1);
+                Average2<uint8_t>(pPlane[3], pPlane[0] + 1, pPlane[2], nPitch, nExtendedWidth - 1, nExtendedHeight);
+                Average2<uint8_t>(pPlane[11], pPlane[8] + 1, pPlane[10], nPitch, nExtendedWidth - 1, nExtendedHeight);
+                Average2<uint8_t>(pPlane[12], pPlane[0] + nPitch, pPlane[8], nPitch, nExtendedWidth, nExtendedHeight - 1);
+                Average2<uint8_t>(pPlane[14], pPlane[2] + nPitch, pPlane[10], nPitch, nExtendedWidth, nExtendedHeight - 1);
                 Average2<uint8_t>(pPlane[13], pPlane[12], pPlane[14], nPitch, nExtendedWidth, nExtendedHeight);
-                Average2<uint8_t>(pPlane[7], pPlane[4] + 1, pPlane[6], nPitch, nExtendedWidth-1, nExtendedHeight);
-                Average2<uint8_t>(pPlane[15], pPlane[12] + 1, pPlane[14], nPitch, nExtendedWidth-1, nExtendedHeight);
+                Average2<uint8_t>(pPlane[7], pPlane[4] + 1, pPlane[6], nPitch, nExtendedWidth - 1, nExtendedHeight);
+                Average2<uint8_t>(pPlane[15], pPlane[12] + 1, pPlane[14], nPitch, nExtendedWidth - 1, nExtendedHeight);
             }
         } else {
             Average2<uint16_t>(pPlane[1], pPlane[0], pPlane[2], nPitch, nExtendedWidth, nExtendedHeight);
@@ -274,7 +243,6 @@ void MVPlane::Refine(int sharp)
             Average2<uint16_t>(pPlane[13], pPlane[12], pPlane[14], nPitch, nExtendedWidth, nExtendedHeight);
             Average2<uint16_t>(pPlane[7], pPlane[4] + bytesPerSample, pPlane[6], nPitch, nExtendedWidth - 1, nExtendedHeight);
             Average2<uint16_t>(pPlane[15], pPlane[12] + bytesPerSample, pPlane[14], nPitch, nExtendedWidth - 1, nExtendedHeight);
-
         }
     }
 
@@ -301,11 +269,11 @@ void MVPlane::RefineExtPel2(const uint8_t *pSrc2x8, int nSrc2xPitch, bool isExtP
         pp3 += offset;
     }
 
-    for (int h = 0; h < nHeight; h++) {// assembler optimization?
+    for (int h = 0; h < nHeight; h++) { // assembler optimization?
         for (int w = 0; w < nWidth; w++) {
-            pp1[w] = pSrc2x[(w<<1) + 1];
-            pp2[w] = pSrc2x[(w<<1) + nSrc2xPitch];
-            pp3[w] = pSrc2x[(w<<1) + nSrc2xPitch + 1];
+            pp1[w] = pSrc2x[(w << 1) + 1];
+            pp2[w] = pSrc2x[(w << 1) + nSrc2xPitch];
+            pp3[w] = pSrc2x[(w << 1) + nSrc2xPitch + 1];
         }
         pp1 += nPitchTmp;
         pp2 += nPitchTmp;
@@ -338,27 +306,27 @@ void MVPlane::RefineExtPel4(const uint8_t *pSrc2x8, int nSrc2xPitch, bool isExtP
             pp[i] += offset;
     }
 
-    for (int h = 0; h < nHeight; h++) {// assembler optimization?
+    for (int h = 0; h < nHeight; h++) { // assembler optimization?
         for (int w = 0; w < nWidth; w++) {
-            pp[1][w] = pSrc2x[(w<<2) + 1];
-            pp[2][w] = pSrc2x[(w<<2) + 2];
-            pp[3][w] = pSrc2x[(w<<2) + 3];
-            pp[4][w] = pSrc2x[(w<<2) + nSrc2xPitch];
-            pp[5][w] = pSrc2x[(w<<2) + nSrc2xPitch + 1];
-            pp[6][w] = pSrc2x[(w<<2) + nSrc2xPitch + 2];
-            pp[7][w] = pSrc2x[(w<<2) + nSrc2xPitch + 3];
-            pp[8][w] = pSrc2x[(w<<2) + nSrc2xPitch*2];
-            pp[9][w] = pSrc2x[(w<<2) + nSrc2xPitch*2 + 1];
-            pp[10][w] = pSrc2x[(w<<2) + nSrc2xPitch*2 + 2];
-            pp[11][w] = pSrc2x[(w<<2) + nSrc2xPitch*2 + 3];
-            pp[12][w] = pSrc2x[(w<<2) + nSrc2xPitch*3];
-            pp[13][w] = pSrc2x[(w<<2) + nSrc2xPitch*3 + 1];
-            pp[14][w] = pSrc2x[(w<<2) + nSrc2xPitch*3 + 2];
-            pp[15][w] = pSrc2x[(w<<2) + nSrc2xPitch*3 + 3];
+            pp[1][w] = pSrc2x[(w << 2) + 1];
+            pp[2][w] = pSrc2x[(w << 2) + 2];
+            pp[3][w] = pSrc2x[(w << 2) + 3];
+            pp[4][w] = pSrc2x[(w << 2) + nSrc2xPitch];
+            pp[5][w] = pSrc2x[(w << 2) + nSrc2xPitch + 1];
+            pp[6][w] = pSrc2x[(w << 2) + nSrc2xPitch + 2];
+            pp[7][w] = pSrc2x[(w << 2) + nSrc2xPitch + 3];
+            pp[8][w] = pSrc2x[(w << 2) + nSrc2xPitch * 2];
+            pp[9][w] = pSrc2x[(w << 2) + nSrc2xPitch * 2 + 1];
+            pp[10][w] = pSrc2x[(w << 2) + nSrc2xPitch * 2 + 2];
+            pp[11][w] = pSrc2x[(w << 2) + nSrc2xPitch * 2 + 3];
+            pp[12][w] = pSrc2x[(w << 2) + nSrc2xPitch * 3];
+            pp[13][w] = pSrc2x[(w << 2) + nSrc2xPitch * 3 + 1];
+            pp[14][w] = pSrc2x[(w << 2) + nSrc2xPitch * 3 + 2];
+            pp[15][w] = pSrc2x[(w << 2) + nSrc2xPitch * 3 + 3];
         }
         for (int i = 1; i < 16; i++)
             pp[i] += nPitchTmp;
-        pSrc2x += nSrc2xPitch*4;
+        pSrc2x += nSrc2xPitch * 4;
     }
     if (!isExtPadded) {
         for (int i = 1; i < 16; i++)
@@ -371,15 +339,12 @@ void MVPlane::RefineExtPel4(const uint8_t *pSrc2x8, int nSrc2xPitch, bool isExtP
 void MVPlane::RefineExt(const uint8_t *pSrc2x, int nSrc2xPitch, bool isExtPadded) // copy from external upsized clip
 {
     //    EnterCriticalSection(&cs);
-    if (( nPel == 2 ) && ( !isRefined ))
-    {
+    if ((nPel == 2) && (!isRefined)) {
         if (bytesPerSample == 1)
             RefineExtPel2<uint8_t>(pSrc2x, nSrc2xPitch, isExtPadded);
         else
             RefineExtPel2<uint16_t>(pSrc2x, nSrc2xPitch, isExtPadded);
-    }
-    else if (( nPel == 4 ) && ( !isRefined ))
-    {
+    } else if ((nPel == 4) && (!isRefined)) {
         if (bytesPerSample == 1)
             RefineExtPel4<uint8_t>(pSrc2x, nSrc2xPitch, isExtPadded);
         else
@@ -387,16 +352,12 @@ void MVPlane::RefineExt(const uint8_t *pSrc2x, int nSrc2xPitch, bool isExtPadded
     }
     isRefined = true;
     //   LeaveCriticalSection(&cs);
-
 }
 
-void MVPlane::ReduceTo(MVPlane *pReducedPlane, int rfilter)
-{
+void MVPlane::ReduceTo(MVPlane *pReducedPlane, int rfilter) {
     //    EnterCriticalSection(&cs);
-    if ( !pReducedPlane->isFilled )
-    {
-        if (rfilter==0)
-        {
+    if (!pReducedPlane->isFilled) {
+        if (rfilter == 0) {
             /* TODO: port the asm
                if (isse)
                {
@@ -408,56 +369,47 @@ void MVPlane::ReduceTo(MVPlane *pReducedPlane, int rfilter)
             {
                 if (bytesPerSample == 1)
                     RB2F_C<uint8_t>(pReducedPlane->pPlane[0] + pReducedPlane->nOffsetPadding, pPlane[0] + nOffsetPadding,
-                            pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight);
+                                    pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight);
                 else
                     RB2F_C<uint16_t>(pReducedPlane->pPlane[0] + pReducedPlane->nOffsetPadding, pPlane[0] + nOffsetPadding,
-                            pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight);
+                                     pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight);
             }
-        }
-        else if (rfilter==1)
-        {
+        } else if (rfilter == 1) {
             if (bytesPerSample == 1)
                 RB2Filtered<uint8_t>(pReducedPlane->pPlane[0] + pReducedPlane->nOffsetPadding, pPlane[0] + nOffsetPadding,
-                        pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, isse);
+                                     pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, isse);
             else
                 RB2Filtered<uint16_t>(pReducedPlane->pPlane[0] + pReducedPlane->nOffsetPadding, pPlane[0] + nOffsetPadding,
-                        pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, isse);
-        }
-        else if (rfilter==2)
-        {
+                                      pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, isse);
+        } else if (rfilter == 2) {
             if (bytesPerSample == 1)
                 RB2BilinearFiltered<uint8_t>(pReducedPlane->pPlane[0] + pReducedPlane->nOffsetPadding, pPlane[0] + nOffsetPadding,
-                    pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, isse);
+                                             pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, isse);
             else
                 RB2BilinearFiltered<uint16_t>(pReducedPlane->pPlane[0] + pReducedPlane->nOffsetPadding, pPlane[0] + nOffsetPadding,
-                    pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, isse);
-        }
-        else if (rfilter==3)
-        {
+                                              pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, isse);
+        } else if (rfilter == 3) {
             if (bytesPerSample == 1)
                 RB2Quadratic<uint8_t>(pReducedPlane->pPlane[0] + pReducedPlane->nOffsetPadding, pPlane[0] + nOffsetPadding,
-                        pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, isse);
+                                      pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, isse);
             else
                 RB2Quadratic<uint16_t>(pReducedPlane->pPlane[0] + pReducedPlane->nOffsetPadding, pPlane[0] + nOffsetPadding,
-                        pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, isse);
-        }
-        else if (rfilter==4)
-        {
+                                       pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, isse);
+        } else if (rfilter == 4) {
             if (bytesPerSample == 1)
                 RB2Cubic<uint8_t>(pReducedPlane->pPlane[0] + pReducedPlane->nOffsetPadding, pPlane[0] + nOffsetPadding,
-                        pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, isse);
+                                  pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, isse);
             else
                 RB2Cubic<uint16_t>(pReducedPlane->pPlane[0] + pReducedPlane->nOffsetPadding, pPlane[0] + nOffsetPadding,
-                        pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, isse);
+                                   pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, isse);
         }
     }
     pReducedPlane->isFilled = true;
     //   LeaveCriticalSection(&cs);
 }
 
-void MVPlane::WritePlane(FILE *pFile)
-{
-    for ( int i = 0; i < nHeight; i++ )
+void MVPlane::WritePlane(FILE *pFile) {
+    for (int i = 0; i < nHeight; i++)
         fwrite(pPlane[0] + i * nPitch + nOffsetPadding, 1, nWidth, pFile);
 }
 
@@ -468,68 +420,63 @@ void MVPlane::WritePlane(FILE *pFile)
  *                                                                             *
  ******************************************************************************/
 
-MVFrame::MVFrame(int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int _nMode, bool _isse, int _xRatioUV, int _yRatioUV, int _bitsPerSample)
-{
+MVFrame::MVFrame(int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int _nMode, bool _isse, int _xRatioUV, int _yRatioUV, int _bitsPerSample) {
     nMode = _nMode;
     isse = _isse;
     xRatioUV = _xRatioUV;
     yRatioUV = _yRatioUV;
     bitsPerSample = _bitsPerSample;
 
-    if ( nMode & YPLANE )
+    if (nMode & YPLANE)
         pYPlane = new MVPlane(nWidth, nHeight, nPel, nHPad, nVPad, isse, bitsPerSample);
     else
         pYPlane = 0;
 
-    if ( nMode & UPLANE )
+    if (nMode & UPLANE)
         pUPlane = new MVPlane(nWidth / xRatioUV, nHeight / yRatioUV, nPel, nHPad / xRatioUV, nVPad / yRatioUV, isse, bitsPerSample);
     else
         pUPlane = 0;
 
-    if ( nMode & VPLANE )
+    if (nMode & VPLANE)
         pVPlane = new MVPlane(nWidth / xRatioUV, nHeight / yRatioUV, nPel, nHPad / xRatioUV, nVPad / yRatioUV, isse, bitsPerSample);
     else
         pVPlane = 0;
 }
 
-void MVFrame::Update(int _nMode, uint8_t * pSrcY, int pitchY, uint8_t * pSrcU, int pitchU, uint8_t *pSrcV, int pitchV)
-{
-    if ( _nMode & nMode & YPLANE  ) //v2.0.8
+void MVFrame::Update(int _nMode, uint8_t *pSrcY, int pitchY, uint8_t *pSrcU, int pitchU, uint8_t *pSrcV, int pitchV) {
+    if (_nMode & nMode & YPLANE) //v2.0.8
         pYPlane->Update(pSrcY, pitchY);
 
-    if ( _nMode & nMode & UPLANE  )
+    if (_nMode & nMode & UPLANE)
         pUPlane->Update(pSrcU, pitchU);
 
-    if ( _nMode & nMode & VPLANE  )
+    if (_nMode & nMode & VPLANE)
         pVPlane->Update(pSrcV, pitchV);
 }
 
-MVFrame::~MVFrame()
-{
-    if ( nMode & YPLANE )
+MVFrame::~MVFrame() {
+    if (nMode & YPLANE)
         delete pYPlane;
 
-    if ( nMode & UPLANE )
+    if (nMode & UPLANE)
         delete pUPlane;
 
-    if ( nMode & VPLANE )
+    if (nMode & VPLANE)
         delete pVPlane;
 }
 
-void MVFrame::ChangePlane(const uint8_t *pNewPlane, int nNewPitch, MVPlaneSet _nMode)
-{
-    if ( _nMode & nMode & YPLANE )
+void MVFrame::ChangePlane(const uint8_t *pNewPlane, int nNewPitch, MVPlaneSet _nMode) {
+    if (_nMode & nMode & YPLANE)
         pYPlane->ChangePlane(pNewPlane, nNewPitch);
 
-    if ( _nMode & nMode & UPLANE )
+    if (_nMode & nMode & UPLANE)
         pUPlane->ChangePlane(pNewPlane, nNewPitch);
 
-    if ( _nMode & nMode & VPLANE )
+    if (_nMode & nMode & VPLANE)
         pVPlane->ChangePlane(pNewPlane, nNewPitch);
 }
 
-void MVFrame::Refine(MVPlaneSet _nMode, int sharp)
-{
+void MVFrame::Refine(MVPlaneSet _nMode, int sharp) {
     if (nMode & YPLANE & _nMode)
         pYPlane->Refine(sharp);
 
@@ -540,8 +487,7 @@ void MVFrame::Refine(MVPlaneSet _nMode, int sharp)
         pVPlane->Refine(sharp);
 }
 
-void MVFrame::Pad(MVPlaneSet _nMode)
-{
+void MVFrame::Pad(MVPlaneSet _nMode) {
     if (nMode & YPLANE & _nMode)
         pYPlane->Pad();
 
@@ -552,32 +498,29 @@ void MVFrame::Pad(MVPlaneSet _nMode)
         pVPlane->Pad();
 }
 
-void MVFrame::ResetState()
-{
-    if ( nMode & YPLANE )
+void MVFrame::ResetState() {
+    if (nMode & YPLANE)
         pYPlane->ResetState();
 
-    if ( nMode & UPLANE )
+    if (nMode & UPLANE)
         pUPlane->ResetState();
 
-    if ( nMode & VPLANE )
+    if (nMode & VPLANE)
         pVPlane->ResetState();
 }
 
-void MVFrame::WriteFrame(FILE *pFile)
-{
-    if ( nMode & YPLANE )
+void MVFrame::WriteFrame(FILE *pFile) {
+    if (nMode & YPLANE)
         pYPlane->WritePlane(pFile);
 
-    if ( nMode & UPLANE )
+    if (nMode & UPLANE)
         pUPlane->WritePlane(pFile);
 
-    if ( nMode & VPLANE )
+    if (nMode & VPLANE)
         pVPlane->WritePlane(pFile);
 }
 
-void MVFrame::ReduceTo(MVFrame *pFrame, MVPlaneSet _nMode, int rfilter)
-{
+void MVFrame::ReduceTo(MVFrame *pFrame, MVPlaneSet _nMode, int rfilter) {
     if (nMode & YPLANE & _nMode)
         pYPlane->ReduceTo(pFrame->GetPlane(YPLANE), rfilter);
 
@@ -594,8 +537,7 @@ void MVFrame::ReduceTo(MVFrame *pFrame, MVPlaneSet _nMode, int rfilter)
  *                                                                             *
  ******************************************************************************/
 
-MVGroupOfFrames::MVGroupOfFrames(int _nLevelCount, int _nWidth, int _nHeight, int _nPel, int _nHPad, int _nVPad, int nMode, bool isse, int _xRatioUV, int _yRatioUV, int _bitsPerSample)
-{
+MVGroupOfFrames::MVGroupOfFrames(int _nLevelCount, int _nWidth, int _nHeight, int _nPel, int _nHPad, int _nVPad, int nMode, bool isse, int _xRatioUV, int _yRatioUV, int _bitsPerSample) {
     nLevelCount = _nLevelCount;
     nWidth = _nWidth;
     nHeight = _nHeight;
@@ -608,65 +550,56 @@ MVGroupOfFrames::MVGroupOfFrames(int _nLevelCount, int _nWidth, int _nHeight, in
     pFrames = new MVFrame *[nLevelCount];
 
     pFrames[0] = new MVFrame(nWidth, nHeight, nPel, nHPad, nVPad, nMode, isse, xRatioUV, yRatioUV, bitsPerSample);
-    for ( int i = 1; i < nLevelCount; i++ )
-    {
-        int nWidthi = PlaneWidthLuma(nWidth, i, xRatioUV, nHPad);//(nWidthi / 2) - ((nWidthi / 2) % xRatioUV); //  even for YV12
-        int nHeighti = PlaneHeightLuma(nHeight, i, yRatioUV, nVPad);//(nHeighti / 2) - ((nHeighti / 2) % yRatioUV); // even for YV12
+    for (int i = 1; i < nLevelCount; i++) {
+        int nWidthi = PlaneWidthLuma(nWidth, i, xRatioUV, nHPad);    //(nWidthi / 2) - ((nWidthi / 2) % xRatioUV); //  even for YV12
+        int nHeighti = PlaneHeightLuma(nHeight, i, yRatioUV, nVPad); //(nHeighti / 2) - ((nHeighti / 2) % yRatioUV); // even for YV12
         pFrames[i] = new MVFrame(nWidthi, nHeighti, 1, nHPad, nVPad, nMode, isse, xRatioUV, yRatioUV, bitsPerSample);
     }
 }
 
-void MVGroupOfFrames::Update(int nMode, uint8_t * pSrcY, int pitchY, uint8_t * pSrcU, int pitchU, uint8_t *pSrcV, int pitchV) // v2.0
+void MVGroupOfFrames::Update(int nMode, uint8_t *pSrcY, int pitchY, uint8_t *pSrcU, int pitchU, uint8_t *pSrcV, int pitchV) // v2.0
 {
-    for ( int i = 0; i < nLevelCount; i++ )
-    {
+    for (int i = 0; i < nLevelCount; i++) {
         unsigned int offY = PlaneSuperOffset(false, nHeight, i, nPel, nVPad, pitchY, yRatioUV);
-        unsigned int offU = PlaneSuperOffset(true, nHeight/yRatioUV, i, nPel, nVPad/yRatioUV, pitchU, yRatioUV);
-        unsigned int offV = PlaneSuperOffset(true, nHeight/yRatioUV, i, nPel, nVPad/yRatioUV, pitchV, yRatioUV);
-        pFrames[i]->Update (nMode, pSrcY+offY, pitchY, pSrcU+offU, pitchU, pSrcV+offV, pitchV);
+        unsigned int offU = PlaneSuperOffset(true, nHeight / yRatioUV, i, nPel, nVPad / yRatioUV, pitchU, yRatioUV);
+        unsigned int offV = PlaneSuperOffset(true, nHeight / yRatioUV, i, nPel, nVPad / yRatioUV, pitchV, yRatioUV);
+        pFrames[i]->Update(nMode, pSrcY + offY, pitchY, pSrcU + offU, pitchU, pSrcV + offV, pitchV);
     }
 }
 
-MVGroupOfFrames::~MVGroupOfFrames()
-{
-    for ( int i = 0; i < nLevelCount; i++ )
+MVGroupOfFrames::~MVGroupOfFrames() {
+    for (int i = 0; i < nLevelCount; i++)
         delete pFrames[i];
 
     delete[] pFrames;
 }
 
-MVFrame *MVGroupOfFrames::GetFrame(int nLevel)
-{
-    if (( nLevel < 0 ) || ( nLevel >= nLevelCount )) return 0;
+MVFrame *MVGroupOfFrames::GetFrame(int nLevel) {
+    if ((nLevel < 0) || (nLevel >= nLevelCount))
+        return 0;
     return pFrames[nLevel];
 }
 
-void MVGroupOfFrames::SetPlane(const uint8_t *pNewSrc, int nNewPitch, MVPlaneSet nMode)
-{
+void MVGroupOfFrames::SetPlane(const uint8_t *pNewSrc, int nNewPitch, MVPlaneSet nMode) {
     pFrames[0]->ChangePlane(pNewSrc, nNewPitch, nMode);
 }
 
-void MVGroupOfFrames::Refine(MVPlaneSet nMode, int sharp)
-{
+void MVGroupOfFrames::Refine(MVPlaneSet nMode, int sharp) {
     pFrames[0]->Refine(nMode, sharp);
 }
 
-void MVGroupOfFrames::Pad(MVPlaneSet nMode)
-{
+void MVGroupOfFrames::Pad(MVPlaneSet nMode) {
     pFrames[0]->Pad(nMode);
 }
 
-void MVGroupOfFrames::Reduce(MVPlaneSet _nMode, int rfilter)
-{
-    for (int i = 0; i < nLevelCount - 1; i++ )
-    {
-        pFrames[i]->ReduceTo(pFrames[i+1], _nMode, rfilter);
-        pFrames[i+1]->Pad(YUVPLANES);
+void MVGroupOfFrames::Reduce(MVPlaneSet _nMode, int rfilter) {
+    for (int i = 0; i < nLevelCount - 1; i++) {
+        pFrames[i]->ReduceTo(pFrames[i + 1], _nMode, rfilter);
+        pFrames[i + 1]->Pad(YUVPLANES);
     }
 }
 
-void MVGroupOfFrames::ResetState()
-{
-    for ( int i = 0; i < nLevelCount; i++ )
+void MVGroupOfFrames::ResetState() {
+    for (int i = 0; i < nLevelCount; i++)
         pFrames[i]->ResetState();
 }

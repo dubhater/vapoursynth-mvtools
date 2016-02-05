@@ -119,13 +119,13 @@ typedef struct {
 
 
 static void VS_CC mvflowfpsInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    MVFlowFPSData *d = (MVFlowFPSData *) * instanceData;
+    MVFlowFPSData *d = (MVFlowFPSData *)*instanceData;
     vsapi->setVideoInfo(&d->vi, 1, node);
 }
 
 
 static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
-    MVFlowFPSData *d = (MVFlowFPSData *) * instanceData;
+    MVFlowFPSData *d = (MVFlowFPSData *)*instanceData;
 
     if (activationReason == arInitial) {
         int off = d->mvClipB->GetDeltaFrame(); // integer offset of reference frame
@@ -133,7 +133,7 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
         int nleft = (int)(n * d->fa / d->fb);
         int nright = nleft + off;
 
-        int time256 = int( (double(n) * double(d->fa) / double(d->fb) - nleft) * 256 + 0.5);
+        int time256 = int((double(n) * double(d->fa) / double(d->fb) - nleft) * 256 + 0.5);
         if (off > 1)
             time256 = time256 / off;
 
@@ -148,14 +148,14 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
         if ((nleft < d->vi.numFrames && nright < d->vi.numFrames) || !d->vi.numFrames) { // for the good estimation case
             if (d->maskmode == 2)
                 vsapi->requestFrameFilter(nleft, d->mvfw, frameCtx); // requests nleft - off, nleft
-            vsapi->requestFrameFilter(nright, d->mvfw, frameCtx); // requests nleft, nleft + off
-            vsapi->requestFrameFilter(nleft, d->mvbw, frameCtx); // requests nleft, nleft + off
+            vsapi->requestFrameFilter(nright, d->mvfw, frameCtx);    // requests nleft, nleft + off
+            vsapi->requestFrameFilter(nleft, d->mvbw, frameCtx);     // requests nleft, nleft + off
             if (d->maskmode == 2)
                 vsapi->requestFrameFilter(nright, d->mvbw, frameCtx); // requests nleft + off, nleft + off + off
 
             vsapi->requestFrameFilter(nleft, d->finest, frameCtx);
             vsapi->requestFrameFilter(nright, d->finest, frameCtx);
-        } 
+        }
 
         vsapi->requestFrameFilter(d->vi.numFrames ? VSMIN(nleft, d->vi.numFrames - 1) : nleft, d->node, frameCtx);
 
@@ -165,7 +165,7 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
     } else if (activationReason == arAllFramesReady) {
         int nleft = (int)(n * d->fa / d->fb);
         // intermediate product may be very large! Now I know how to multiply int64
-        int time256 = int( (double(n)*double(d->fa)/double(d->fb) - nleft) * 256 + 0.5);
+        int time256 = int((double(n) * double(d->fa) / double(d->fb) - nleft) * 256 + 0.5);
 
         int off = d->mvClipB->GetDeltaFrame(); // integer offset of reference frame
         // usually off must be = 1
@@ -188,12 +188,12 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
 
         if ((nleft < d->vi.numFrames && nright < d->vi.numFrames) || !d->vi.numFrames) {
             const VSFrameRef *mvF = vsapi->getFrameFilter(nright, d->mvfw, frameCtx);
-            ballsF.Update(mvF);// forward from current to next
+            ballsF.Update(mvF); // forward from current to next
             isUsableF = ballsF.IsUsable();
             vsapi->freeFrame(mvF);
 
             const VSFrameRef *mvB = vsapi->getFrameFilter(nleft, d->mvbw, frameCtx);
-            ballsB.Update(mvB);// backward from next to current
+            ballsB.Update(mvB); // backward from next to current
             isUsableB = ballsB.IsUsable();
             vsapi->freeFrame(mvB);
         }
@@ -279,7 +279,7 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
 
             // If both are usable, that means both nleft and nright are less than numFrames, or that we don't have numFrames. Thus there is no need to check nleft and nright here.
             const VSFrameRef *src = vsapi->getFrameFilter(nleft, d->finest, frameCtx);
-            const VSFrameRef *ref = vsapi->getFrameFilter(nright, d->finest, frameCtx);//  right frame for  compensation
+            const VSFrameRef *ref = vsapi->getFrameFilter(nright, d->finest, frameCtx); //  right frame for  compensation
             VSFrameRef *dst = vsapi->newVideoFrame(d->vi.format, d->vi.width, d->vi.height, src, core);
 
             Create_LUTV(time256, LUTVB, LUTVF); // lookup table
@@ -301,16 +301,16 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
                 // 2. they will be zeroed if not
                 // 3. added 128 to all values
                 MakeVectorSmallMasks(&ballsB, nBlkX, nBlkY, VXSmallYB, nBlkXP, VYSmallYB, nBlkXP);
-                if (nBlkXP > nBlkX) {// fill right
-                    for (int j=0; j<nBlkY; j++) {
-                        VXSmallYB[j*nBlkXP + nBlkX] = VSMIN(VXSmallYB[j*nBlkXP + nBlkX-1],128);
-                        VYSmallYB[j*nBlkXP + nBlkX] = VYSmallYB[j*nBlkXP + nBlkX-1];
+                if (nBlkXP > nBlkX) { // fill right
+                    for (int j = 0; j < nBlkY; j++) {
+                        VXSmallYB[j * nBlkXP + nBlkX] = VSMIN(VXSmallYB[j * nBlkXP + nBlkX - 1], 128);
+                        VYSmallYB[j * nBlkXP + nBlkX] = VYSmallYB[j * nBlkXP + nBlkX - 1];
                     }
                 }
-                if (nBlkYP > nBlkY) {// fill bottom
-                    for (int i=0; i<nBlkXP; i++) {
-                        VXSmallYB[nBlkXP*nBlkY +i] = VXSmallYB[nBlkXP*(nBlkY-1) +i];
-                        VYSmallYB[nBlkXP*nBlkY +i] = VSMIN(VYSmallYB[nBlkXP*(nBlkY-1) +i],128);
+                if (nBlkYP > nBlkY) { // fill bottom
+                    for (int i = 0; i < nBlkXP; i++) {
+                        VXSmallYB[nBlkXP * nBlkY + i] = VXSmallYB[nBlkXP * (nBlkY - 1) + i];
+                        VYSmallYB[nBlkXP * nBlkY + i] = VSMIN(VYSmallYB[nBlkXP * (nBlkY - 1) + i], 128);
                     }
                 }
 
@@ -328,13 +328,13 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
             // analyse vectors field to detect occlusion
             //        double occNormB = (256-time256)/(256*ml);
             //        MakeVectorOcclusionMask(mvClipB, nBlkX, nBlkY, occNormB, 1.0, nPel, MaskSmallB, nBlkXP);
-            MakeVectorOcclusionMaskTime(&ballsB, nBlkX, nBlkY, ml, 1.0, nPel, MaskSmallB, nBlkXP, (256-time256), nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY);
+            MakeVectorOcclusionMaskTime(&ballsB, nBlkX, nBlkY, ml, 1.0, nPel, MaskSmallB, nBlkXP, (256 - time256), nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY);
             if (nBlkXP > nBlkX) // fill right
-                for (int j=0; j<nBlkY; j++)
-                    MaskSmallB[j*nBlkXP + nBlkX] = MaskSmallB[j*nBlkXP + nBlkX-1];
+                for (int j = 0; j < nBlkY; j++)
+                    MaskSmallB[j * nBlkXP + nBlkX] = MaskSmallB[j * nBlkXP + nBlkX - 1];
             if (nBlkYP > nBlkY) // fill bottom
-                for (int i=0; i<nBlkXP; i++)
-                    MaskSmallB[nBlkXP*nBlkY +i] = MaskSmallB[nBlkXP*(nBlkY-1) +i];
+                for (int i = 0; i < nBlkXP; i++)
+                    MaskSmallB[nBlkXP * nBlkY + i] = MaskSmallB[nBlkXP * (nBlkY - 1) + i];
 
             upsizer->Resize(MaskFullYB, VPitchY, MaskSmallB, nBlkXP);
             if (d->vi.format->colorFamily != cmGray)
@@ -348,16 +348,16 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
                 // 2. they will be zeroed if not
                 // 3. added 128 to all values
                 MakeVectorSmallMasks(&ballsF, nBlkX, nBlkY, VXSmallYF, nBlkXP, VYSmallYF, nBlkXP);
-                if (nBlkXP > nBlkX) {// fill right
-                    for (int j=0; j<nBlkY; j++) {
-                        VXSmallYF[j*nBlkXP + nBlkX] = VSMIN(VXSmallYF[j*nBlkXP + nBlkX-1],128);
-                        VYSmallYF[j*nBlkXP + nBlkX] = VYSmallYF[j*nBlkXP + nBlkX-1];
+                if (nBlkXP > nBlkX) { // fill right
+                    for (int j = 0; j < nBlkY; j++) {
+                        VXSmallYF[j * nBlkXP + nBlkX] = VSMIN(VXSmallYF[j * nBlkXP + nBlkX - 1], 128);
+                        VYSmallYF[j * nBlkXP + nBlkX] = VYSmallYF[j * nBlkXP + nBlkX - 1];
                     }
                 }
-                if (nBlkYP > nBlkY) {// fill bottom
-                    for (int i=0; i<nBlkXP; i++) {
-                        VXSmallYF[nBlkXP*nBlkY +i] = VXSmallYF[nBlkXP*(nBlkY-1) +i];
-                        VYSmallYF[nBlkXP*nBlkY +i] = VSMIN(VYSmallYF[nBlkXP*(nBlkY-1) +i],128);
+                if (nBlkYP > nBlkY) { // fill bottom
+                    for (int i = 0; i < nBlkXP; i++) {
+                        VXSmallYF[nBlkXP * nBlkY + i] = VXSmallYF[nBlkXP * (nBlkY - 1) + i];
+                        VYSmallYF[nBlkXP * nBlkY + i] = VSMIN(VYSmallYF[nBlkXP * (nBlkY - 1) + i], 128);
                     }
                 }
 
@@ -377,11 +377,11 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
             //        MakeVectorOcclusionMask(mvClipF, nBlkX, nBlkY, occNormF, 1.0, nPel, MaskSmallF, nBlkXP);
             MakeVectorOcclusionMaskTime(&ballsF, nBlkX, nBlkY, ml, 1.0, nPel, MaskSmallF, nBlkXP, time256, nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY);
             if (nBlkXP > nBlkX) // fill right
-                for (int j=0; j<nBlkY; j++)
-                    MaskSmallF[j*nBlkXP + nBlkX] = MaskSmallF[j*nBlkXP + nBlkX-1];
+                for (int j = 0; j < nBlkY; j++)
+                    MaskSmallF[j * nBlkXP + nBlkX] = MaskSmallF[j * nBlkXP + nBlkX - 1];
             if (nBlkYP > nBlkY) // fill bottom
-                for (int i=0; i<nBlkXP; i++)
-                    MaskSmallF[nBlkXP*nBlkY +i] = MaskSmallF[nBlkXP*(nBlkY-1) +i];
+                for (int i = 0; i < nBlkXP; i++)
+                    MaskSmallF[nBlkXP * nBlkY + i] = MaskSmallF[nBlkXP * (nBlkY - 1) + i];
 
             upsizer->Resize(MaskFullYF, VPitchY, MaskSmallF, nBlkXP);
             if (d->vi.format->colorFamily != cmGray)
@@ -392,34 +392,34 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
             if (maskmode == 2) { // These motion vectors should only be needed with maskmode 2. Why was the Avisynth plugin requesting them for all mask modes?
                 // Get motion info from more frames for occlusion areas
                 const VSFrameRef *mvFF = vsapi->getFrameFilter(nleft, d->mvfw, frameCtx);
-                ballsF.Update(mvFF);// forward from prev to cur
+                ballsF.Update(mvFF); // forward from prev to cur
                 isUsableF = ballsF.IsUsable();
                 vsapi->freeFrame(mvFF);
 
                 const VSFrameRef *mvBB = vsapi->getFrameFilter(nright, d->mvbw, frameCtx);
-                ballsB.Update(mvBB);// backward from next next to next
+                ballsB.Update(mvBB); // backward from next next to next
                 isUsableB = ballsB.IsUsable();
                 vsapi->freeFrame(mvBB);
             }
 
-            if (maskmode == 2 && isUsableB && isUsableF) {// slow method with extra frames
+            if (maskmode == 2 && isUsableB && isUsableF) { // slow method with extra frames
                 // get vector mask from extra frames
                 MakeVectorSmallMasks(&ballsB, nBlkX, nBlkY, VXSmallYBB, nBlkXP, VYSmallYBB, nBlkXP);
                 MakeVectorSmallMasks(&ballsF, nBlkX, nBlkY, VXSmallYFF, nBlkXP, VYSmallYFF, nBlkXP);
-                if (nBlkXP > nBlkX) {// fill right
-                    for (int j=0; j<nBlkY; j++) {
-                        VXSmallYBB[j*nBlkXP + nBlkX] = VSMIN(VXSmallYBB[j*nBlkXP + nBlkX-1],128);
-                        VYSmallYBB[j*nBlkXP + nBlkX] = VYSmallYBB[j*nBlkXP + nBlkX-1];
-                        VXSmallYFF[j*nBlkXP + nBlkX] = VSMIN(VXSmallYFF[j*nBlkXP + nBlkX-1],128);
-                        VYSmallYFF[j*nBlkXP + nBlkX] = VYSmallYFF[j*nBlkXP + nBlkX-1];
+                if (nBlkXP > nBlkX) { // fill right
+                    for (int j = 0; j < nBlkY; j++) {
+                        VXSmallYBB[j * nBlkXP + nBlkX] = VSMIN(VXSmallYBB[j * nBlkXP + nBlkX - 1], 128);
+                        VYSmallYBB[j * nBlkXP + nBlkX] = VYSmallYBB[j * nBlkXP + nBlkX - 1];
+                        VXSmallYFF[j * nBlkXP + nBlkX] = VSMIN(VXSmallYFF[j * nBlkXP + nBlkX - 1], 128);
+                        VYSmallYFF[j * nBlkXP + nBlkX] = VYSmallYFF[j * nBlkXP + nBlkX - 1];
                     }
                 }
-                if (nBlkYP > nBlkY) {// fill bottom
-                    for (int i=0; i<nBlkXP; i++) {
-                        VXSmallYBB[nBlkXP*nBlkY +i] = VXSmallYBB[nBlkXP*(nBlkY-1) +i];
-                        VYSmallYBB[nBlkXP*nBlkY +i] = VSMIN(VYSmallYBB[nBlkXP*(nBlkY-1) +i],128);
-                        VXSmallYFF[nBlkXP*nBlkY +i] = VXSmallYFF[nBlkXP*(nBlkY-1) +i];
-                        VYSmallYFF[nBlkXP*nBlkY +i] = VSMIN(VYSmallYFF[nBlkXP*(nBlkY-1) +i],128);
+                if (nBlkYP > nBlkY) { // fill bottom
+                    for (int i = 0; i < nBlkXP; i++) {
+                        VXSmallYBB[nBlkXP * nBlkY + i] = VXSmallYBB[nBlkXP * (nBlkY - 1) + i];
+                        VYSmallYBB[nBlkXP * nBlkY + i] = VSMIN(VYSmallYBB[nBlkXP * (nBlkY - 1) + i], 128);
+                        VXSmallYFF[nBlkXP * nBlkY + i] = VXSmallYFF[nBlkXP * (nBlkY - 1) + i];
+                        VYSmallYFF[nBlkXP * nBlkY + i] = VSMIN(VYSmallYFF[nBlkXP * (nBlkY - 1) + i], 128);
                     }
                 }
 
@@ -430,8 +430,8 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
                 upsizer->Resize(VYFullYFF, VPitchY, VYSmallYFF, nBlkXP);
 
                 FlowInterExtra(pDst[0], nDstPitches[0], pRef[0] + nOffsetY, pSrc[0] + nOffsetY, nRefPitches[0],
-                        VXFullYB, VXFullYF, VYFullYB, VYFullYF, MaskFullYB, MaskFullYF, VPitchY,
-                        nWidth, nHeight, time256, nPel, LUTVB, LUTVF, VXFullYBB, VXFullYFF, VYFullYBB, VYFullYFF, bitsPerSample);
+                               VXFullYB, VXFullYF, VYFullYB, VYFullYF, MaskFullYB, MaskFullYF, VPitchY,
+                               nWidth, nHeight, time256, nPel, LUTVB, LUTVF, VXFullYBB, VXFullYFF, VYFullYBB, VYFullYFF, bitsPerSample);
                 if (d->vi.format->colorFamily != cmGray) {
                     VectorSmallMaskYToHalfUV(VXSmallYBB, nBlkXP, nBlkYP, VXSmallUVBB, xRatioUV);
                     VectorSmallMaskYToHalfUV(VYSmallYBB, nBlkXP, nBlkYP, VYSmallUVBB, yRatioUV);
@@ -445,35 +445,35 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
                     upsizerUV->Resize(VYFullUVFF, VPitchUV, VYSmallUVFF, nBlkXP);
 
                     FlowInterExtra(pDst[1], nDstPitches[1], pRef[1] + nOffsetUV, pSrc[1] + nOffsetUV, nRefPitches[1],
-                            VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
-                            nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, VXFullUVBB, VXFullUVFF, VYFullUVBB, VYFullUVFF, bitsPerSample);
+                                   VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
+                                   nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, VXFullUVBB, VXFullUVFF, VYFullUVBB, VYFullUVFF, bitsPerSample);
                     FlowInterExtra(pDst[2], nDstPitches[2], pRef[2] + nOffsetUV, pSrc[2] + nOffsetUV, nRefPitches[2],
-                            VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
-                            nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, VXFullUVBB, VXFullUVFF, VYFullUVBB, VYFullUVFF, bitsPerSample);
+                                   VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
+                                   nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, VXFullUVBB, VXFullUVFF, VYFullUVBB, VYFullUVFF, bitsPerSample);
                 }
-            } else if (maskmode == 1) {// old method without extra frames
+            } else if (maskmode == 1) { // old method without extra frames
                 FlowInter(pDst[0], nDstPitches[0], pRef[0] + nOffsetY, pSrc[0] + nOffsetY, nRefPitches[0],
-                        VXFullYB, VXFullYF, VYFullYB, VYFullYF, MaskFullYB, MaskFullYF, VPitchY,
-                        nWidth, nHeight, time256, nPel, LUTVB, LUTVF, bitsPerSample);
+                          VXFullYB, VXFullYF, VYFullYB, VYFullYF, MaskFullYB, MaskFullYF, VPitchY,
+                          nWidth, nHeight, time256, nPel, LUTVB, LUTVF, bitsPerSample);
                 if (d->vi.format->colorFamily != cmGray) {
                     FlowInter(pDst[1], nDstPitches[1], pRef[1] + nOffsetUV, pSrc[1] + nOffsetUV, nRefPitches[1],
-                            VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
-                            nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, bitsPerSample);
+                              VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
+                              nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, bitsPerSample);
                     FlowInter(pDst[2], nDstPitches[2], pRef[2] + nOffsetUV, pSrc[2] + nOffsetUV, nRefPitches[2],
-                        VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
-                        nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, bitsPerSample);
+                              VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
+                              nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, bitsPerSample);
                 }
-            } else {// mode=0, faster simple method
+            } else { // mode=0, faster simple method
                 FlowInterSimple(pDst[0], nDstPitches[0], pRef[0] + nOffsetY, pSrc[0] + nOffsetY, nRefPitches[0],
-                        VXFullYB, VXFullYF, VYFullYB, VYFullYF, MaskFullYB, MaskFullYF, VPitchY,
-                        nWidth, nHeight, time256, nPel, LUTVB, LUTVF, bitsPerSample);
+                                VXFullYB, VXFullYF, VYFullYB, VYFullYF, MaskFullYB, MaskFullYF, VPitchY,
+                                nWidth, nHeight, time256, nPel, LUTVB, LUTVF, bitsPerSample);
                 if (d->vi.format->colorFamily != cmGray) {
                     FlowInterSimple(pDst[1], nDstPitches[1], pRef[1] + nOffsetUV, pSrc[1] + nOffsetUV, nRefPitches[1],
-                            VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
-                            nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, bitsPerSample);
+                                    VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
+                                    nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, bitsPerSample);
                     FlowInterSimple(pDst[2], nDstPitches[2], pRef[2] + nOffsetUV, pSrc[2] + nOffsetUV, nRefPitches[2],
-                            VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
-                            nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, bitsPerSample);
+                                    VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
+                                    nWidthUV, nHeightUV, time256, nPel, LUTVB, LUTVF, bitsPerSample);
                 }
             }
 
@@ -484,7 +484,7 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
         } else { // poor estimation
             const VSFrameRef *src = vsapi->getFrameFilter(d->vi.numFrames ? VSMIN(nleft, d->vi.numFrames - 1) : nleft, d->node, frameCtx);
 
-            if (blend) {//let's blend src with ref frames like ConvertFPS
+            if (blend) { //let's blend src with ref frames like ConvertFPS
                 uint8_t *pDst[3];
                 const uint8_t *pRef[3], *pSrc[3];
                 int nDstPitches[3], nRefPitches[3], nSrcPitches[3];
@@ -526,60 +526,60 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
 static void VS_CC mvflowfpsFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
     MVFlowFPSData *d = (MVFlowFPSData *)instanceData;
 
-    delete [] d->VXFullYB;
-    delete [] d->VYFullYB;
-    delete [] d->VXSmallYB;
-    delete [] d->VYSmallYB;
-    delete [] d->VXFullYF;
-    delete [] d->VYFullYF;
-    delete [] d->VXSmallYF;
-    delete [] d->VYSmallYF;
+    delete[] d->VXFullYB;
+    delete[] d->VYFullYB;
+    delete[] d->VXSmallYB;
+    delete[] d->VYSmallYB;
+    delete[] d->VXFullYF;
+    delete[] d->VYFullYF;
+    delete[] d->VXSmallYF;
+    delete[] d->VYSmallYF;
 
     if (d->maskmode == 2) {
-        delete [] d->VXFullYBB;
-        delete [] d->VYFullYBB;
-        delete [] d->VXSmallYBB;
-        delete [] d->VYSmallYBB;
-        delete [] d->VXFullYFF;
-        delete [] d->VYFullYFF;
-        delete [] d->VXSmallYFF;
-        delete [] d->VYSmallYFF;
+        delete[] d->VXFullYBB;
+        delete[] d->VYFullYBB;
+        delete[] d->VXSmallYBB;
+        delete[] d->VYSmallYBB;
+        delete[] d->VXFullYFF;
+        delete[] d->VYFullYFF;
+        delete[] d->VXSmallYFF;
+        delete[] d->VYSmallYFF;
     }
 
-    delete [] d->MaskSmallB;
-    delete [] d->MaskFullYB;
-    delete [] d->MaskSmallF;
-    delete [] d->MaskFullYF;
+    delete[] d->MaskSmallB;
+    delete[] d->MaskFullYB;
+    delete[] d->MaskSmallF;
+    delete[] d->MaskFullYF;
 
     if (d->vi.format->colorFamily != cmGray) {
-        delete [] d->VXFullUVB;
-        delete [] d->VYFullUVB;
-        delete [] d->VXSmallUVB;
-        delete [] d->VYSmallUVB;
-        delete [] d->VXFullUVF;
-        delete [] d->VYFullUVF;
-        delete [] d->VXSmallUVF;
-        delete [] d->VYSmallUVF;
+        delete[] d->VXFullUVB;
+        delete[] d->VYFullUVB;
+        delete[] d->VXSmallUVB;
+        delete[] d->VYSmallUVB;
+        delete[] d->VXFullUVF;
+        delete[] d->VYFullUVF;
+        delete[] d->VXSmallUVF;
+        delete[] d->VYSmallUVF;
 
         if (d->maskmode == 2) {
-            delete [] d->VXFullUVBB;
-            delete [] d->VYFullUVBB;
-            delete [] d->VXSmallUVBB;
-            delete [] d->VYSmallUVBB;
-            delete [] d->VXFullUVFF;
-            delete [] d->VYFullUVFF;
-            delete [] d->VXSmallUVFF;
-            delete [] d->VYSmallUVFF;
+            delete[] d->VXFullUVBB;
+            delete[] d->VYFullUVBB;
+            delete[] d->VXSmallUVBB;
+            delete[] d->VYSmallUVBB;
+            delete[] d->VXFullUVFF;
+            delete[] d->VYFullUVFF;
+            delete[] d->VXSmallUVFF;
+            delete[] d->VYSmallUVFF;
         }
 
-        delete [] d->MaskFullUVB;
-        delete [] d->MaskFullUVF;
+        delete[] d->MaskFullUVB;
+        delete[] d->MaskFullUVF;
 
         delete d->upsizerUV;
     }
 
-    delete [] d->LUTVB;
-    delete [] d->LUTVF;
+    delete[] d->LUTVB;
+    delete[] d->LUTVF;
 
     delete d->mvClipB;
     delete d->mvClipF;
@@ -768,8 +768,7 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
 
     if (d.bleh->nPel == 1)
         d.finest = vsapi->cloneNodeRef(d.super); // v2.0.9.1
-    else
-    {
+    else {
         VSPlugin *mvtoolsPlugin = vsapi->getPluginById("com.nodame.mvtools", core);
         VSPlugin *stdPlugin = vsapi->getPluginById("com.vapoursynth.std", core);
 
@@ -871,7 +870,6 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
     }
 
 
-
     const VSVideoInfo *supervi = vsapi->getVideoInfo(d.super);
     int nSuperWidth = supervi->width;
 
@@ -888,7 +886,7 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
         return;
     }
 
-    if (!((d.bleh->nWidth + d.bleh->nHPadding*2) == supervi->width && (d.bleh->nHeight + d.bleh->nVPadding*2) <= supervi->height)) {
+    if (!((d.bleh->nWidth + d.bleh->nHPadding * 2) == supervi->width && (d.bleh->nHeight + d.bleh->nVPadding * 2) <= supervi->height)) {
         vsapi->setError(out, "FlowFPS: inconsistent clips frame size! Incomprehensible error messages are the best, right?");
         vsapi->freeNode(d.finest);
         vsapi->freeNode(d.super);
@@ -935,67 +933,66 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
     d.VPitchUV = (d.nWidthPUV + 15) & (~15);
 
 
-    d.VXFullYB = new uint8_t [d.nHeightP * d.VPitchY];
-    d.VYFullYB = new uint8_t [d.nHeightP * d.VPitchY];
+    d.VXFullYB = new uint8_t[d.nHeightP * d.VPitchY];
+    d.VYFullYB = new uint8_t[d.nHeightP * d.VPitchY];
 
-    d.VXFullYF = new uint8_t [d.nHeightP * d.VPitchY];
-    d.VYFullYF = new uint8_t [d.nHeightP * d.VPitchY];
+    d.VXFullYF = new uint8_t[d.nHeightP * d.VPitchY];
+    d.VYFullYF = new uint8_t[d.nHeightP * d.VPitchY];
 
-    d.VXSmallYB = new uint8_t [d.nBlkXP * d.nBlkYP];
-    d.VYSmallYB = new uint8_t [d.nBlkXP * d.nBlkYP];
+    d.VXSmallYB = new uint8_t[d.nBlkXP * d.nBlkYP];
+    d.VYSmallYB = new uint8_t[d.nBlkXP * d.nBlkYP];
 
-    d.VXSmallYF = new uint8_t [d.nBlkXP * d.nBlkYP];
-    d.VYSmallYF = new uint8_t [d.nBlkXP * d.nBlkYP];
+    d.VXSmallYF = new uint8_t[d.nBlkXP * d.nBlkYP];
+    d.VYSmallYF = new uint8_t[d.nBlkXP * d.nBlkYP];
 
     if (d.maskmode == 2) {
-        d.VXFullYBB = new uint8_t [d.nHeightP * d.VPitchY];
-        d.VYFullYBB = new uint8_t [d.nHeightP * d.VPitchY];
+        d.VXFullYBB = new uint8_t[d.nHeightP * d.VPitchY];
+        d.VYFullYBB = new uint8_t[d.nHeightP * d.VPitchY];
 
-        d.VXFullYFF = new uint8_t [d.nHeightP * d.VPitchY];
-        d.VYFullYFF = new uint8_t [d.nHeightP * d.VPitchY];
+        d.VXFullYFF = new uint8_t[d.nHeightP * d.VPitchY];
+        d.VYFullYFF = new uint8_t[d.nHeightP * d.VPitchY];
 
-        d.VXSmallYBB = new uint8_t [d.nBlkXP * d.nBlkYP];
-        d.VYSmallYBB = new uint8_t [d.nBlkXP * d.nBlkYP];
+        d.VXSmallYBB = new uint8_t[d.nBlkXP * d.nBlkYP];
+        d.VYSmallYBB = new uint8_t[d.nBlkXP * d.nBlkYP];
 
-        d.VXSmallYFF = new uint8_t [d.nBlkXP * d.nBlkYP];
-        d.VYSmallYFF = new uint8_t [d.nBlkXP * d.nBlkYP];
+        d.VXSmallYFF = new uint8_t[d.nBlkXP * d.nBlkYP];
+        d.VYSmallYFF = new uint8_t[d.nBlkXP * d.nBlkYP];
     }
 
-    d.MaskSmallB = new uint8_t [d.nBlkXP * d.nBlkYP];
-    d.MaskFullYB = new uint8_t [d.nHeightP * d.VPitchY];
+    d.MaskSmallB = new uint8_t[d.nBlkXP * d.nBlkYP];
+    d.MaskFullYB = new uint8_t[d.nHeightP * d.VPitchY];
 
-    d.MaskSmallF = new uint8_t [d.nBlkXP * d.nBlkYP];
-    d.MaskFullYF = new uint8_t [d.nHeightP * d.VPitchY];
+    d.MaskSmallF = new uint8_t[d.nBlkXP * d.nBlkYP];
+    d.MaskFullYF = new uint8_t[d.nHeightP * d.VPitchY];
 
     d.upsizer = new SimpleResize(d.nWidthP, d.nHeightP, d.nBlkXP, d.nBlkYP);
 
     if (d.vi.format->colorFamily != cmGray) {
-        d.VXFullUVB = new uint8_t [d.nHeightPUV * d.VPitchUV];
-        d.VYFullUVB = new uint8_t [d.nHeightPUV * d.VPitchUV];
-        d.VXFullUVF = new uint8_t [d.nHeightPUV * d.VPitchUV];
-        d.VYFullUVF = new uint8_t [d.nHeightPUV * d.VPitchUV];
-        d.VXSmallUVB = new uint8_t [d.nBlkXP * d.nBlkYP];
-        d.VYSmallUVB = new uint8_t [d.nBlkXP * d.nBlkYP];
-        d.VXSmallUVF = new uint8_t [d.nBlkXP * d.nBlkYP];
-        d.VYSmallUVF = new uint8_t [d.nBlkXP * d.nBlkYP];
+        d.VXFullUVB = new uint8_t[d.nHeightPUV * d.VPitchUV];
+        d.VYFullUVB = new uint8_t[d.nHeightPUV * d.VPitchUV];
+        d.VXFullUVF = new uint8_t[d.nHeightPUV * d.VPitchUV];
+        d.VYFullUVF = new uint8_t[d.nHeightPUV * d.VPitchUV];
+        d.VXSmallUVB = new uint8_t[d.nBlkXP * d.nBlkYP];
+        d.VYSmallUVB = new uint8_t[d.nBlkXP * d.nBlkYP];
+        d.VXSmallUVF = new uint8_t[d.nBlkXP * d.nBlkYP];
+        d.VYSmallUVF = new uint8_t[d.nBlkXP * d.nBlkYP];
 
         if (d.maskmode == 2) {
-            d.VXFullUVBB = new uint8_t [d.nHeightPUV * d.VPitchUV];
-            d.VYFullUVBB = new uint8_t [d.nHeightPUV * d.VPitchUV];
-            d.VXFullUVFF = new uint8_t [d.nHeightPUV * d.VPitchUV];
-            d.VYFullUVFF = new uint8_t [d.nHeightPUV * d.VPitchUV];
-            d.VXSmallUVBB = new uint8_t [d.nBlkXP * d.nBlkYP];
-            d.VYSmallUVBB = new uint8_t [d.nBlkXP * d.nBlkYP];
-            d.VXSmallUVFF = new uint8_t [d.nBlkXP * d.nBlkYP];
-            d.VYSmallUVFF = new uint8_t [d.nBlkXP * d.nBlkYP];
+            d.VXFullUVBB = new uint8_t[d.nHeightPUV * d.VPitchUV];
+            d.VYFullUVBB = new uint8_t[d.nHeightPUV * d.VPitchUV];
+            d.VXFullUVFF = new uint8_t[d.nHeightPUV * d.VPitchUV];
+            d.VYFullUVFF = new uint8_t[d.nHeightPUV * d.VPitchUV];
+            d.VXSmallUVBB = new uint8_t[d.nBlkXP * d.nBlkYP];
+            d.VYSmallUVBB = new uint8_t[d.nBlkXP * d.nBlkYP];
+            d.VXSmallUVFF = new uint8_t[d.nBlkXP * d.nBlkYP];
+            d.VYSmallUVFF = new uint8_t[d.nBlkXP * d.nBlkYP];
         }
 
-        d.MaskFullUVB = new uint8_t [d.nHeightPUV * d.VPitchUV];
-        d.MaskFullUVF = new uint8_t [d.nHeightPUV * d.VPitchUV];
+        d.MaskFullUVB = new uint8_t[d.nHeightPUV * d.VPitchUV];
+        d.MaskFullUVF = new uint8_t[d.nHeightPUV * d.VPitchUV];
 
         d.upsizerUV = new SimpleResize(d.nWidthPUV, d.nHeightPUV, d.nBlkXP, d.nBlkYP);
     }
-
 
 
     d.LUTVB = new int[256];
@@ -1049,17 +1046,17 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
 
 extern "C" void mvflowfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("FlowFPS",
-            "clip:clip;"
-            "super:clip;"
-            "mvbw:clip;"
-            "mvfw:clip;"
-            "num:int:opt;"
-            "den:int:opt;"
-            "mask:int:opt;"
-            "ml:float:opt;"
-            "blend:int:opt;"
-            "thscd1:int:opt;"
-            "thscd2:int:opt;"
-            "isse:int:opt;"
-            , mvflowfpsCreate, 0, plugin);
+                 "clip:clip;"
+                 "super:clip;"
+                 "mvbw:clip;"
+                 "mvfw:clip;"
+                 "num:int:opt;"
+                 "den:int:opt;"
+                 "mask:int:opt;"
+                 "ml:float:opt;"
+                 "blend:int:opt;"
+                 "thscd1:int:opt;"
+                 "thscd2:int:opt;"
+                 "isse:int:opt;",
+                 mvflowfpsCreate, 0, plugin);
 }

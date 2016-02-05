@@ -40,13 +40,13 @@ typedef struct {
 
 
 static void VS_CC mvsuperInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    MVSuperData *d = (MVSuperData *) * instanceData;
+    MVSuperData *d = (MVSuperData *)*instanceData;
     vsapi->setVideoInfo(&d->vi, 1, node);
 }
 
 
 static const VSFrameRef *VS_CC mvsuperGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
-    MVSuperData *d = (MVSuperData *) * instanceData;
+    MVSuperData *d = (MVSuperData *)*instanceData;
 
     if (activationReason == arInitial) {
         vsapi->requestFrameFilter(n, d->node, frameCtx);
@@ -90,8 +90,7 @@ static const VSFrameRef *VS_CC mvsuperGetFrame(int n, int activationReason, void
         pSrcGOF->Reduce(d->nModeYUV, d->rfilter);
         pSrcGOF->Pad(d->nModeYUV);
 
-        if (d->usePelClip)
-        {
+        if (d->usePelClip) {
             MVFrame *srcFrames = pSrcGOF->GetFrame(0);
 
             for (int plane = 0; plane < d->vi.format->numPlanes; plane++) {
@@ -102,8 +101,7 @@ static const VSFrameRef *VS_CC mvsuperGetFrame(int n, int activationReason, void
                 if (d->nModeYUV & planes[plane])
                     srcPlane->RefineExt(pSrcPel[plane], nSrcPelPitch[plane], d->isPelClipPadded);
             }
-        }
-        else
+        } else
             pSrcGOF->Refine(d->nModeYUV, d->sharp);
 
         vsapi->freeFrame(src);
@@ -175,7 +173,7 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
         d.isse = 1;
 
 
-    if (( d.nPel != 1 ) && ( d.nPel != 2 ) && ( d.nPel != 4 )) {
+    if ((d.nPel != 1) && (d.nPel != 2) && (d.nPel != 4)) {
         vsapi->setError(out, "Super: pel must be 1, 2, or 4.");
         return;
     }
@@ -217,8 +215,8 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
     d.yRatioUV = 1 << d.vi.format->subSamplingH;
 
     int nLevelsMax = 0;
-    while (PlaneHeightLuma(d.vi.height, nLevelsMax, d.yRatioUV, d.nVPad) >= d.yRatioUV*2 &&
-            PlaneWidthLuma(d.vi.width, nLevelsMax, d.xRatioUV, d.nHPad) >= d.xRatioUV*2) // at last two pixels width and height of chroma
+    while (PlaneHeightLuma(d.vi.height, nLevelsMax, d.yRatioUV, d.nVPad) >= d.yRatioUV * 2 &&
+           PlaneWidthLuma(d.vi.width, nLevelsMax, d.xRatioUV, d.nHPad) >= d.xRatioUV * 2) // at last two pixels width and height of chroma
     {
         nLevelsMax++;
     }
@@ -236,14 +234,13 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
     }
 
     d.usePelClip = false;
-    if (d.pelclip && (d.nPel >= 2))
-    {
+    if (d.pelclip && (d.nPel >= 2)) {
         if ((pelvi->width == d.vi.width * d.nPel) &&
-                (pelvi->height == d.vi.height * d.nPel)) {
+            (pelvi->height == d.vi.height * d.nPel)) {
             d.usePelClip = true;
             d.isPelClipPadded = false;
         } else if ((pelvi->width == (d.vi.width + d.nHPad * 2) * d.nPel) &&
-                (pelvi->height == (d.vi.height + d.nVPad * 2) * d.nPel)) {
+                   (pelvi->height == (d.vi.height + d.nVPad * 2) * d.nPel)) {
             d.usePelClip = true;
             d.isPelClipPadded = true;
         } else {
@@ -273,15 +270,15 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
 
 extern "C" void mvsuperRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Super",
-            "clip:clip;"
-            "hpad:int:opt;"
-            "vpad:int:opt;"
-            "pel:int:opt;"
-            "levels:int:opt;"
-            "chroma:int:opt;"
-            "sharp:int:opt;"
-            "rfilter:int:opt;"
-            "pelclip:clip:opt;"
-            "isse:int:opt;"
-            , mvsuperCreate, 0, plugin);
+                 "clip:clip;"
+                 "hpad:int:opt;"
+                 "vpad:int:opt;"
+                 "pel:int:opt;"
+                 "levels:int:opt;"
+                 "chroma:int:opt;"
+                 "sharp:int:opt;"
+                 "rfilter:int:opt;"
+                 "pelclip:clip:opt;"
+                 "isse:int:opt;",
+                 mvsuperCreate, 0, plugin);
 }

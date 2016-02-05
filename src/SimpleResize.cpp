@@ -38,7 +38,7 @@ SimpleResize::~SimpleResize() {
 
 
 // Thread-safe.
-void SimpleResize::Resize(uint8_t *dstp, int dst_stride, const uint8_t* srcp, int src_stride) {
+void SimpleResize::Resize(uint8_t *dstp, int dst_stride, const uint8_t *srcp, int src_stride) {
     const uint8_t *srcp1;
     const uint8_t *srcp2;
 
@@ -74,7 +74,7 @@ void SimpleResize::Resize(uint8_t *dstp, int dst_stride, const uint8_t* srcp, in
 
 void SimpleResize::InitTables(int *offsets, int *weights, int out, int in) {
     // We don't do shifts.
-    float leftmost = 0.5f; // + shift
+    float leftmost = 0.5f;       // + shift
     float rightmost = in - 0.5f; // + shift
 
     int leftmost_idx = std::max((int)leftmost, 0);

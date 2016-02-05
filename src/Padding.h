@@ -31,8 +31,7 @@ void PadReferenceFrame(uint8_t *frame, int pitch, int hPad, int vPad, int width,
 
 
 template <typename PixelType>
-void PadCorner(PixelType *p, PixelType v, int hPad, int vPad, int refPitch)
-{
+void PadCorner(PixelType *p, PixelType v, int hPad, int vPad, int refPitch) {
     for (int i = 0; i < vPad; i++) {
         if (sizeof(PixelType) == 1)
             memset(p, v, hPad); // faster than loop
@@ -46,8 +45,7 @@ void PadCorner(PixelType *p, PixelType v, int hPad, int vPad, int refPitch)
 
 
 template <typename PixelType>
-void PadReferenceFrame(uint8_t *refFrame8, int refPitch, int hPad, int vPad, int width, int height)
-{
+void PadReferenceFrame(uint8_t *refFrame8, int refPitch, int hPad, int vPad, int width, int height) {
     refPitch /= sizeof(PixelType);
     PixelType *refFrame = (PixelType *)refFrame8;
     PixelType value;
@@ -60,48 +58,42 @@ void PadReferenceFrame(uint8_t *refFrame8, int refPitch, int hPad, int vPad, int
     PadCorner<PixelType>(refFrame + hPad + width, pfoff[width - 1], hPad, vPad, refPitch);
     // Down-Left
     PadCorner<PixelType>(refFrame + (vPad + height) * refPitch,
-            pfoff[(height - 1) * refPitch], hPad, vPad, refPitch);
+                         pfoff[(height - 1) * refPitch], hPad, vPad, refPitch);
     // Down-Right
     PadCorner<PixelType>(refFrame + hPad + width + (vPad + height) * refPitch,
-            pfoff[(height - 1) * refPitch + width - 1], hPad, vPad, refPitch);
+                         pfoff[(height - 1) * refPitch + width - 1], hPad, vPad, refPitch);
 
     // Up
-    for ( int i = 0; i < width; i++ )
-    {
+    for (int i = 0; i < width; i++) {
         value = pfoff[i];
         p = refFrame + hPad + i;
-        for ( int j = 0; j < vPad; j++ )
-        {
+        for (int j = 0; j < vPad; j++) {
             p[0] = value;
             p += refPitch;
         }
     }
 
     // Left
-    for ( int i = 0; i < height; i++ )
-    {
-        value = pfoff[i*refPitch];
+    for (int i = 0; i < height; i++) {
+        value = pfoff[i * refPitch];
         p = refFrame + (vPad + i) * refPitch;
-        for ( int j = 0; j < hPad; j++ )
+        for (int j = 0; j < hPad; j++)
             p[j] = value;
     }
 
     // Right
-    for ( int i = 0; i < height; i++ )
-    {
+    for (int i = 0; i < height; i++) {
         value = pfoff[i * refPitch + width - 1];
         p = refFrame + (vPad + i) * refPitch + width + hPad;
-        for ( int j = 0; j < hPad; j++ )
+        for (int j = 0; j < hPad; j++)
             p[j] = value;
     }
 
     // Down
-    for ( int i = 0; i < width; i++ )
-    {
+    for (int i = 0; i < width; i++) {
         value = pfoff[i + (height - 1) * refPitch];
         p = refFrame + hPad + i + (height + vPad) * refPitch;
-        for ( int j = 0; j < vPad; j++ )
-        {
+        for (int j = 0; j < vPad; j++) {
             p[0] = value;
             p += refPitch;
         }

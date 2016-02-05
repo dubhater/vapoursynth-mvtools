@@ -28,7 +28,6 @@
 #include "SimpleResize.h"
 
 
-
 typedef struct {
     VSNodeRef *node;
     VSVideoInfo vi;
@@ -62,29 +61,27 @@ typedef struct {
 
 
 static void VS_CC mvmaskInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    MVMaskData *d = (MVMaskData *) * instanceData;
+    MVMaskData *d = (MVMaskData *)*instanceData;
     vsapi->setVideoInfo(&d->vi, 1, node);
 }
 
 
-static inline uint8_t mvmaskLength(VECTOR v, uint8_t pel, float fMaskNormFactor2, float fHalfGamma)
-{
-    double norme = double(v.x * v.x + v.y * v.y) / ( pel * pel);
+static inline uint8_t mvmaskLength(VECTOR v, uint8_t pel, float fMaskNormFactor2, float fHalfGamma) {
+    double norme = double(v.x * v.x + v.y * v.y) / (pel * pel);
 
-    double l = 255 * pow(norme*fMaskNormFactor2, fHalfGamma); //Fizick - simply rewritten
+    double l = 255 * pow(norme * fMaskNormFactor2, fHalfGamma); //Fizick - simply rewritten
 
     return (uint8_t)((l > 255) ? 255 : l);
 }
 
-static inline uint8_t mvmaskSAD(unsigned int s, float fMaskNormFactor, float fGamma, int nBlkSizeX, int nBlkSizeY)
-{
-    double l = 255 * pow((s*4*fMaskNormFactor)/(nBlkSizeX*nBlkSizeY), fGamma); // Fizick - now linear for gm=1
+static inline uint8_t mvmaskSAD(unsigned int s, float fMaskNormFactor, float fGamma, int nBlkSizeX, int nBlkSizeY) {
+    double l = 255 * pow((s * 4 * fMaskNormFactor) / (nBlkSizeX * nBlkSizeY), fGamma); // Fizick - now linear for gm=1
     return (uint8_t)((l > 255) ? 255 : l);
 }
 
 
 static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
-    MVMaskData *d = (MVMaskData *) * instanceData;
+    MVMaskData *d = (MVMaskData *)*instanceData;
 
     if (activationReason == arInitial) {
         vsapi->requestFrameFilter(n, d->vectors, frameCtx);
@@ -118,8 +115,7 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
         const int nHeightUV = d->nHeightUV;
         const int nSceneChangeValue = d->nSceneChangeValue;
 
-        if ( balls.IsUsable() )
-        {
+        if (balls.IsUsable()) {
             const int nBlkX = d->bleh->nBlkX;
             const int nBlkY = d->bleh->nBlkY;
             const int nBlkCount = d->bleh->nBlkCount;
@@ -142,43 +138,31 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
             uint8_t *smallMask = new uint8_t[nBlkX * nBlkY];
             uint8_t *smallMaskV = new uint8_t[nBlkX * nBlkY];
 
-            if (kind == 0) // vector length mask
-            {
-                for ( int j = 0; j < nBlkCount; j++)
+            if (kind == 0) { // vector length mask
+                for (int j = 0; j < nBlkCount; j++)
                     smallMask[j] = mvmaskLength(balls.GetBlock(0, j).GetMV(), d->mvClip->GetPel(), fMaskNormFactor2, fHalfGamma);
-            }
-            else if (kind == 1) // SAD mask
-            {
-                for ( int j = 0; j < nBlkCount; j++)
+            } else if (kind == 1) { // SAD mask
+                for (int j = 0; j < nBlkCount; j++)
                     smallMask[j] = mvmaskSAD(balls.GetBlock(0, j).GetSAD(), fMaskNormFactor, fGamma, nBlkSizeX, nBlkSizeY);
-            }
-            else if (kind == 2) // occlusion mask
-            {
-                MakeVectorOcclusionMaskTime(&balls, nBlkX, nBlkY, fMaskNormFactor, fGamma, nPel, smallMask, nBlkX, 256, nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY) ;
-            }
-            else if (kind == 3) // vector x mask
-            {
-                for ( int j = 0; j < nBlkCount; j++)
+            } else if (kind == 2) { // occlusion mask
+                MakeVectorOcclusionMaskTime(&balls, nBlkX, nBlkY, fMaskNormFactor, fGamma, nPel, smallMask, nBlkX, 256, nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY);
+            } else if (kind == 3) { // vector x mask
+                for (int j = 0; j < nBlkCount; j++)
                     smallMask[j] = balls.GetBlock(0, j).GetMV().x + 128; // shited by 128 for signed support
-            }
-            else if (kind == 4) // vector y mask
-            {
-                for ( int j = 0; j < nBlkCount; j++)
+            } else if (kind == 4) {                                      // vector y mask
+                for (int j = 0; j < nBlkCount; j++)
                     smallMask[j] = balls.GetBlock(0, j).GetMV().y + 128; // shited by 128 for signed support
-            }
-            else if (kind == 5) // vector x mask in U, y mask in V
-            {
-                for ( int j = 0; j < nBlkCount; j++) {
+            } else if (kind == 5) {                                      // vector x mask in U, y mask in V
+                for (int j = 0; j < nBlkCount; j++) {
                     VECTOR v = balls.GetBlock(0, j).GetMV();
-                    smallMask[j] = v.x + 128; // shited by 128 for signed support
+                    smallMask[j] = v.x + 128;  // shited by 128 for signed support
                     smallMaskV[j] = v.y + 128; // shited by 128 for signed support
                 }
             }
 
             if (kind == 5) { // do not change luma for kind=5
                 memcpy(pDst[0], pSrc[0], nSrcPitches[0] * nHeight);
-            }
-            else {
+            } else {
                 upsizer->Resize(pDst[0], nDstPitches[0], smallMask, nBlkX);
                 if (nWidth > nWidthB)
                     for (int h = 0; h < nHeight; h++)
@@ -198,13 +182,11 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
 
             if (nWidthUV > nWidthBUV)
                 for (int h = 0; h < nHeightUV; h++)
-                    for (int w = nWidthBUV; w < nWidthUV; w++)
-                    {
+                    for (int w = nWidthBUV; w < nWidthUV; w++) {
                         *(pDst[1] + h * nDstPitches[1] + w) = *(pDst[1] + h * nDstPitches[1] + nWidthBUV - 1);
                         *(pDst[2] + h * nDstPitches[2] + w) = *(pDst[2] + h * nDstPitches[2] + nWidthBUV - 1);
                     }
-            if (nHeightUV > nHeightBUV)
-            {
+            if (nHeightUV > nHeightBUV) {
                 vs_bitblt(pDst[1] + nHeightBUV * nDstPitches[1], nDstPitches[1], pDst[1] + (nHeightBUV - 1) * nDstPitches[1], nDstPitches[1], nWidthUV, nHeightUV - nHeightBUV);
                 vs_bitblt(pDst[2] + nHeightBUV * nDstPitches[2], nDstPitches[2], pDst[2] + (nHeightBUV - 1) * nDstPitches[2], nDstPitches[2], nWidthUV, nHeightUV - nHeightBUV);
             }
@@ -347,13 +329,13 @@ static void VS_CC mvmaskCreate(const VSMap *in, VSMap *out, void *userData, VSCo
 
 extern "C" void mvmaskRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Mask",
-            "clip:clip;"
-            "vectors:clip;"
-            "ml:float:opt;"
-            "gamma:float:opt;"
-            "kind:int:opt;"
-            "ysc:int:opt;"
-            "thscd1:int:opt;"
-            "thscd2:int:opt;"
-            , mvmaskCreate, 0, plugin);
+                 "clip:clip;"
+                 "vectors:clip;"
+                 "ml:float:opt;"
+                 "gamma:float:opt;"
+                 "kind:int:opt;"
+                 "ysc:int:opt;"
+                 "thscd1:int:opt;"
+                 "thscd2:int:opt;",
+                 mvmaskCreate, 0, plugin);
 }

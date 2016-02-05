@@ -44,13 +44,13 @@ typedef struct {
 
 
 static void VS_CC mvfinestInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    MVFinestData *d = (MVFinestData *) * instanceData;
+    MVFinestData *d = (MVFinestData *)*instanceData;
     vsapi->setVideoInfo(&d->vi, 1, node);
 }
 
 
 static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
-    MVFinestData *d = (MVFinestData *) * instanceData;
+    MVFinestData *d = (MVFinestData *)*instanceData;
 
     if (activationReason == arInitial) {
         vsapi->requestFrameFilter(n, d->super, frameCtx);
@@ -76,12 +76,10 @@ static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, voi
         {
             for (int i = 0; i < d->vi.format->numPlanes; i++)
                 vs_bitblt(pDst[i], nDstPitches[i], pRef[i], nRefPitches[i], d->vi.width * bytesPerSample, d->vi.height);
-        }
-        else
-        {
+        } else {
             MVGroupOfFrames *pRefGOF = new MVGroupOfFrames(d->nSuperLevels, d->nWidth, d->nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->xRatioUV, d->yRatioUV, bitsPerSample);
 
-            pRefGOF->Update(d->nSuperModeYUV, (uint8_t*)pRef[0], nRefPitches[0], (uint8_t*)pRef[1], nRefPitches[1], (uint8_t*)pRef[2], nRefPitches[2]);// v2.0
+            pRefGOF->Update(d->nSuperModeYUV, (uint8_t *)pRef[0], nRefPitches[0], (uint8_t *)pRef[1], nRefPitches[1], (uint8_t *)pRef[2], nRefPitches[2]); // v2.0
 
             MVPlane *pPlanes[3] = { 0 };
 
@@ -90,59 +88,56 @@ static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, voi
             pPlanes[2] = pRefGOF->GetFrame(0)->GetPlane(VPLANE);
 
 
-            if (d->nPel == 2)
-            {
+            if (d->nPel == 2) {
                 // merge refined planes to big single plane
-                Merge4PlanesToBig(pDst[0], nDstPitches[0], pPlanes[0]->GetAbsolutePointer(0,0),
-                        pPlanes[0]->GetAbsolutePointer(1,0), pPlanes[0]->GetAbsolutePointer(0,1),
-                        pPlanes[0]->GetAbsolutePointer(1,1), pPlanes[0]->GetExtendedWidth(),
-                        pPlanes[0]->GetExtendedHeight(), pPlanes[0]->GetPitch(), bitsPerSample);
+                Merge4PlanesToBig(pDst[0], nDstPitches[0], pPlanes[0]->GetAbsolutePointer(0, 0),
+                                  pPlanes[0]->GetAbsolutePointer(1, 0), pPlanes[0]->GetAbsolutePointer(0, 1),
+                                  pPlanes[0]->GetAbsolutePointer(1, 1), pPlanes[0]->GetExtendedWidth(),
+                                  pPlanes[0]->GetExtendedHeight(), pPlanes[0]->GetPitch(), bitsPerSample);
                 if (pPlanes[1]) // 0 if plane not exist
-                    Merge4PlanesToBig(pDst[1], nDstPitches[1], pPlanes[1]->GetAbsolutePointer(0,0),
-                            pPlanes[1]->GetAbsolutePointer(1,0), pPlanes[1]->GetAbsolutePointer(0,1),
-                            pPlanes[1]->GetAbsolutePointer(1,1), pPlanes[1]->GetExtendedWidth(),
-                            pPlanes[1]->GetExtendedHeight(), pPlanes[1]->GetPitch(), bitsPerSample);
+                    Merge4PlanesToBig(pDst[1], nDstPitches[1], pPlanes[1]->GetAbsolutePointer(0, 0),
+                                      pPlanes[1]->GetAbsolutePointer(1, 0), pPlanes[1]->GetAbsolutePointer(0, 1),
+                                      pPlanes[1]->GetAbsolutePointer(1, 1), pPlanes[1]->GetExtendedWidth(),
+                                      pPlanes[1]->GetExtendedHeight(), pPlanes[1]->GetPitch(), bitsPerSample);
                 if (pPlanes[2])
-                    Merge4PlanesToBig(pDst[2], nDstPitches[2], pPlanes[2]->GetAbsolutePointer(0,0),
-                            pPlanes[2]->GetAbsolutePointer(1,0), pPlanes[2]->GetAbsolutePointer(0,1),
-                            pPlanes[2]->GetAbsolutePointer(1,1), pPlanes[2]->GetExtendedWidth(),
-                            pPlanes[2]->GetExtendedHeight(), pPlanes[2]->GetPitch(), bitsPerSample);
-            }
-            else if (d->nPel == 4)
-            {
+                    Merge4PlanesToBig(pDst[2], nDstPitches[2], pPlanes[2]->GetAbsolutePointer(0, 0),
+                                      pPlanes[2]->GetAbsolutePointer(1, 0), pPlanes[2]->GetAbsolutePointer(0, 1),
+                                      pPlanes[2]->GetAbsolutePointer(1, 1), pPlanes[2]->GetExtendedWidth(),
+                                      pPlanes[2]->GetExtendedHeight(), pPlanes[2]->GetPitch(), bitsPerSample);
+            } else if (d->nPel == 4) {
                 // merge refined planes to big single plane
                 Merge16PlanesToBig(pDst[0], nDstPitches[0],
-                        pPlanes[0]->GetAbsolutePointer(0,0), pPlanes[0]->GetAbsolutePointer(1,0),
-                        pPlanes[0]->GetAbsolutePointer(2,0), pPlanes[0]->GetAbsolutePointer(3,0),
-                        pPlanes[0]->GetAbsolutePointer(0,1), pPlanes[0]->GetAbsolutePointer(1,1),
-                        pPlanes[0]->GetAbsolutePointer(2,1), pPlanes[0]->GetAbsolutePointer(3,1),
-                        pPlanes[0]->GetAbsolutePointer(0,2), pPlanes[0]->GetAbsolutePointer(1,2),
-                        pPlanes[0]->GetAbsolutePointer(2,2), pPlanes[0]->GetAbsolutePointer(3,2),
-                        pPlanes[0]->GetAbsolutePointer(0,3), pPlanes[0]->GetAbsolutePointer(1,3),
-                        pPlanes[0]->GetAbsolutePointer(2,3), pPlanes[0]->GetAbsolutePointer(3,3),
-                        pPlanes[0]->GetExtendedWidth(), pPlanes[0]->GetExtendedHeight(), pPlanes[0]->GetPitch(), bitsPerSample);
+                                   pPlanes[0]->GetAbsolutePointer(0, 0), pPlanes[0]->GetAbsolutePointer(1, 0),
+                                   pPlanes[0]->GetAbsolutePointer(2, 0), pPlanes[0]->GetAbsolutePointer(3, 0),
+                                   pPlanes[0]->GetAbsolutePointer(0, 1), pPlanes[0]->GetAbsolutePointer(1, 1),
+                                   pPlanes[0]->GetAbsolutePointer(2, 1), pPlanes[0]->GetAbsolutePointer(3, 1),
+                                   pPlanes[0]->GetAbsolutePointer(0, 2), pPlanes[0]->GetAbsolutePointer(1, 2),
+                                   pPlanes[0]->GetAbsolutePointer(2, 2), pPlanes[0]->GetAbsolutePointer(3, 2),
+                                   pPlanes[0]->GetAbsolutePointer(0, 3), pPlanes[0]->GetAbsolutePointer(1, 3),
+                                   pPlanes[0]->GetAbsolutePointer(2, 3), pPlanes[0]->GetAbsolutePointer(3, 3),
+                                   pPlanes[0]->GetExtendedWidth(), pPlanes[0]->GetExtendedHeight(), pPlanes[0]->GetPitch(), bitsPerSample);
                 if (pPlanes[1])
                     Merge16PlanesToBig(pDst[1], nDstPitches[1],
-                            pPlanes[1]->GetAbsolutePointer(0,0), pPlanes[1]->GetAbsolutePointer(1,0),
-                            pPlanes[1]->GetAbsolutePointer(2,0), pPlanes[1]->GetAbsolutePointer(3,0),
-                            pPlanes[1]->GetAbsolutePointer(0,1), pPlanes[1]->GetAbsolutePointer(1,1),
-                            pPlanes[1]->GetAbsolutePointer(2,1), pPlanes[1]->GetAbsolutePointer(3,1),
-                            pPlanes[1]->GetAbsolutePointer(0,2), pPlanes[1]->GetAbsolutePointer(1,2),
-                            pPlanes[1]->GetAbsolutePointer(2,2), pPlanes[1]->GetAbsolutePointer(3,2),
-                            pPlanes[1]->GetAbsolutePointer(0,3), pPlanes[1]->GetAbsolutePointer(1,3),
-                            pPlanes[1]->GetAbsolutePointer(2,3), pPlanes[1]->GetAbsolutePointer(3,3),
-                            pPlanes[1]->GetExtendedWidth(), pPlanes[1]->GetExtendedHeight(), pPlanes[1]->GetPitch(), bitsPerSample);
+                                       pPlanes[1]->GetAbsolutePointer(0, 0), pPlanes[1]->GetAbsolutePointer(1, 0),
+                                       pPlanes[1]->GetAbsolutePointer(2, 0), pPlanes[1]->GetAbsolutePointer(3, 0),
+                                       pPlanes[1]->GetAbsolutePointer(0, 1), pPlanes[1]->GetAbsolutePointer(1, 1),
+                                       pPlanes[1]->GetAbsolutePointer(2, 1), pPlanes[1]->GetAbsolutePointer(3, 1),
+                                       pPlanes[1]->GetAbsolutePointer(0, 2), pPlanes[1]->GetAbsolutePointer(1, 2),
+                                       pPlanes[1]->GetAbsolutePointer(2, 2), pPlanes[1]->GetAbsolutePointer(3, 2),
+                                       pPlanes[1]->GetAbsolutePointer(0, 3), pPlanes[1]->GetAbsolutePointer(1, 3),
+                                       pPlanes[1]->GetAbsolutePointer(2, 3), pPlanes[1]->GetAbsolutePointer(3, 3),
+                                       pPlanes[1]->GetExtendedWidth(), pPlanes[1]->GetExtendedHeight(), pPlanes[1]->GetPitch(), bitsPerSample);
                 if (pPlanes[2])
                     Merge16PlanesToBig(pDst[2], nDstPitches[2],
-                            pPlanes[2]->GetAbsolutePointer(0,0), pPlanes[2]->GetAbsolutePointer(1,0),
-                            pPlanes[2]->GetAbsolutePointer(2,0), pPlanes[2]->GetAbsolutePointer(3,0),
-                            pPlanes[2]->GetAbsolutePointer(0,1), pPlanes[2]->GetAbsolutePointer(1,1),
-                            pPlanes[2]->GetAbsolutePointer(2,1), pPlanes[2]->GetAbsolutePointer(3,1),
-                            pPlanes[2]->GetAbsolutePointer(0,2), pPlanes[2]->GetAbsolutePointer(1,2),
-                            pPlanes[2]->GetAbsolutePointer(2,2), pPlanes[2]->GetAbsolutePointer(3,2),
-                            pPlanes[2]->GetAbsolutePointer(0,3), pPlanes[2]->GetAbsolutePointer(1,3),
-                            pPlanes[2]->GetAbsolutePointer(2,3), pPlanes[2]->GetAbsolutePointer(3,3),
-                            pPlanes[2]->GetExtendedWidth(), pPlanes[2]->GetExtendedHeight(), pPlanes[2]->GetPitch(), bitsPerSample);
+                                       pPlanes[2]->GetAbsolutePointer(0, 0), pPlanes[2]->GetAbsolutePointer(1, 0),
+                                       pPlanes[2]->GetAbsolutePointer(2, 0), pPlanes[2]->GetAbsolutePointer(3, 0),
+                                       pPlanes[2]->GetAbsolutePointer(0, 1), pPlanes[2]->GetAbsolutePointer(1, 1),
+                                       pPlanes[2]->GetAbsolutePointer(2, 1), pPlanes[2]->GetAbsolutePointer(3, 1),
+                                       pPlanes[2]->GetAbsolutePointer(0, 2), pPlanes[2]->GetAbsolutePointer(1, 2),
+                                       pPlanes[2]->GetAbsolutePointer(2, 2), pPlanes[2]->GetAbsolutePointer(3, 2),
+                                       pPlanes[2]->GetAbsolutePointer(0, 3), pPlanes[2]->GetAbsolutePointer(1, 3),
+                                       pPlanes[2]->GetAbsolutePointer(2, 3), pPlanes[2]->GetAbsolutePointer(3, 3),
+                                       pPlanes[2]->GetExtendedWidth(), pPlanes[2]->GetExtendedHeight(), pPlanes[2]->GetPitch(), bitsPerSample);
             }
 
             delete pRefGOF;
@@ -232,7 +227,7 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
 
 extern "C" void mvfinestRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Finest",
-            "super:clip;"
-            "isse:int:opt;"
-            , mvfinestCreate, 0, plugin);
+                 "super:clip;"
+                 "isse:int:opt;",
+                 mvfinestCreate, 0, plugin);
 }

@@ -15,28 +15,38 @@ class MVClipDicks : public MVAnalysisData {
 
     const VSAPI *vsapi;
 
-    public:
+public:
     MVClipDicks(VSNodeRef *vectors, int nSCD1, int nSCD2, const VSAPI *_vsapi);
     ~MVClipDicks();
 
-    inline int GetBlkCount() const { return nBlkCount; }
-    inline int GetThSCD1() const { return nSCD1; }
-    inline int GetThSCD2() const { return nSCD2; }
+    inline int GetBlkCount() const {
+        return nBlkCount;
+    }
+    inline int GetThSCD1() const {
+        return nSCD1;
+    }
+    inline int GetThSCD2() const {
+        return nSCD2;
+    }
 };
 
 
 class MVClipBalls : public FakeGroupOfPlanes {
     MVClipDicks *dicks;
     const VSAPI *vsapi;
-    public:
+
+public:
     MVClipBalls(MVClipDicks *_dicks, const VSAPI *_vsapi);
     ~MVClipBalls();
 
     void Update(const VSFrameRef *fn); // v1.4.13
-    inline const FakeBlockData& GetBlock(int nLevel, int nBlk) const { return GetPlane(nLevel)[nBlk]; }
+    inline const FakeBlockData &GetBlock(int nLevel, int nBlk) const {
+        return GetPlane(nLevel)[nBlk];
+    }
     bool IsUsable() const;
-    bool IsSceneChange(int nSCD1, int nSCD2) const { return FakeGroupOfPlanes::IsSceneChange(nSCD1, nSCD2); }
+    bool IsSceneChange(int nSCD1, int nSCD2) const {
+        return FakeGroupOfPlanes::IsSceneChange(nSCD1, nSCD2);
+    }
 };
 
 #endif // MVTOOLS_MVCLIP_H
-

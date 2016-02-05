@@ -37,18 +37,18 @@ typedef struct {
 
     int nPelSearch; // search radius at finest level
 
-    int lsad; // SAD limit for lambda using - added by Fizick
-    int pnew; // penalty to cost for new canditate - added by Fizick
-    int plen; // penalty factor (similar to lambda) for vector length - added by Fizick
-    int plevel; // penalty factors (lambda, plen) level scaling - added by Fizick
-    bool global; // use global motion predictor
-    int pglobal; // penalty factor for global motion predictor
-    int pzero; // penalty factor for zero vector
+    int lsad;        // SAD limit for lambda using - added by Fizick
+    int pnew;        // penalty to cost for new canditate - added by Fizick
+    int plen;        // penalty factor (similar to lambda) for vector length - added by Fizick
+    int plevel;      // penalty factors (lambda, plen) level scaling - added by Fizick
+    bool global;     // use global motion predictor
+    int pglobal;     // penalty factor for global motion predictor
+    int pzero;       // penalty factor for zero vector
     int divideExtra; // divide blocks on sublocks with median motion
-    int64_t badSAD; //  SAD threshold to make more wide search for bad vectors
-    int badrange;// range (radius) of wide search
-    bool meander; //meander (alternate) scan blocks (even row left to right, odd row right to left
-    bool tryMany; // try refine around many predictors
+    int64_t badSAD;  //  SAD threshold to make more wide search for bad vectors
+    int badrange;    // range (radius) of wide search
+    bool meander;    //meander (alternate) scan blocks (even row left to right, odd row right to left
+    bool tryMany;    // try refine around many predictors
 
     int dctmode;
 
@@ -82,19 +82,19 @@ typedef struct {
 
 
 static void VS_CC mvanalyseInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    MVAnalyseData *d = (MVAnalyseData *) * instanceData;
+    MVAnalyseData *d = (MVAnalyseData *)*instanceData;
     vsapi->setVideoInfo(&d->vi, 1, node);
 }
 
 
 static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
-    MVAnalyseData *d = (MVAnalyseData *) * instanceData;
+    MVAnalyseData *d = (MVAnalyseData *)*instanceData;
 
     if (activationReason == arInitial) {
         int nref;
 
         if (d->analysisData.nDeltaFrame > 0) {
-            int offset = ( d->analysisData.isBackward ) ? d->analysisData.nDeltaFrame : -d->analysisData.nDeltaFrame;
+            int offset = (d->analysisData.isBackward) ? d->analysisData.nDeltaFrame : -d->analysisData.nDeltaFrame;
             nref = n + offset;
 
             if (nref >= 0 && (nref < d->vi.numFrames || !d->vi.numFrames)) {
@@ -108,8 +108,8 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             } else { // too close to beginning/end of clip
                 vsapi->requestFrameFilter(n, d->node, frameCtx);
             }
-        } else { // special static mode
-            nref = - d->analysisData.nDeltaFrame; // positive fixed frame number
+        } else {                                 // special static mode
+            nref = -d->analysisData.nDeltaFrame; // positive fixed frame number
 
             if (n < nref) {
                 vsapi->requestFrameFilter(n, d->node, frameCtx);
@@ -133,10 +133,10 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         int nref;
 
         if (d->analysisData.nDeltaFrame > 0) {
-            int offset = ( d->analysisData.isBackward ) ? d->analysisData.nDeltaFrame : -d->analysisData.nDeltaFrame;
+            int offset = (d->analysisData.isBackward) ? d->analysisData.nDeltaFrame : -d->analysisData.nDeltaFrame;
             nref = n + offset;
-        } else { // special static mode
-            nref = - d->analysisData.nDeltaFrame; // positive fixed frame number
+        } else {                                 // special static mode
+            nref = -d->analysisData.nDeltaFrame; // positive fixed frame number
         }
 
         const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx);
@@ -173,15 +173,14 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         memcpy(pDst, &d->headerSize, sizeof(int));
 
         if (d->divideExtra)
-            memcpy(pDst+sizeof(int), &d->analysisDataDivided, sizeof(d->analysisData));
+            memcpy(pDst + sizeof(int), &d->analysisDataDivided, sizeof(d->analysisData));
         else
-            memcpy(pDst+sizeof(int), &d->analysisData, sizeof(d->analysisData));
+            memcpy(pDst + sizeof(int), &d->analysisData, sizeof(d->analysisData));
 
         pDst += d->headerSize;
 
 
-        if (nref >= 0 && (nref < d->vi.numFrames || !d->vi.numFrames))
-        {
+        if (nref >= 0 && (nref < d->vi.numFrames || !d->vi.numFrames)) {
             const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->node, frameCtx);
             const VSMap *refprops = vsapi->getFramePropsRO(ref);
 
@@ -200,9 +199,8 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
                 reftff = d->tff && (nref % 2 == 0); //child->GetParity(n); // bool tff;
 
             int fieldShift = 0;
-            if (d->fields && d->analysisData.nPel > 1 && (d->analysisData.nDeltaFrame % 2))
-            {
-                fieldShift = (srctff && !reftff) ? d->analysisData.nPel/2 : ( (reftff && !srctff) ? -(d->analysisData.nPel/2) : 0);
+            if (d->fields && d->analysisData.nPel > 1 && (d->analysisData.nDeltaFrame % 2)) {
+                fieldShift = (srctff && !reftff) ? d->analysisData.nPel / 2 : ((reftff && !srctff) ? -(d->analysisData.nPel / 2) : 0);
                 // vertical shift of fields for fieldbased video at finest level pel2
             }
 
@@ -232,11 +230,11 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             }
 
 
-            vectorFields->SearchMVs(pSrcGOF, pRefGOF, d->searchType, d->nSearchParam, d->nPelSearch, d->nLambda, d->lsad, d->pnew, d->plevel, d->global, reinterpret_cast<int*>(pDst), NULL, fieldShift, DCTc, d->pzero, d->pglobal, d->badSAD, d->badrange, d->meander, NULL, d->tryMany, d->searchTypeCoarse);
+            vectorFields->SearchMVs(pSrcGOF, pRefGOF, d->searchType, d->nSearchParam, d->nPelSearch, d->nLambda, d->lsad, d->pnew, d->plevel, d->global, reinterpret_cast<int *>(pDst), NULL, fieldShift, DCTc, d->pzero, d->pglobal, d->badSAD, d->badrange, d->meander, NULL, d->tryMany, d->searchTypeCoarse);
 
             if (d->divideExtra) {
                 // make extra level with divided sublocks with median (not estimated) motion
-                vectorFields->ExtraDivide(reinterpret_cast<int*>(pDst));
+                vectorFields->ExtraDivide(reinterpret_cast<int *>(pDst));
             }
 
             delete vectorFields;
@@ -245,10 +243,8 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             delete pSrcGOF;
             delete pRefGOF;
             vsapi->freeFrame(ref);
-        }
-        else // too close to the beginning or end to do anything
-        {
-            vectorFields->WriteDefaultToArray(reinterpret_cast<int*>(pDst));
+        } else { // too close to the beginning or end to do anything
+            vectorFields->WriteDefaultToArray(reinterpret_cast<int *>(pDst));
             delete vectorFields;
         }
 
@@ -391,11 +387,12 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         return;
     }
 
-    if (d.dctmode >= 5 && !((d.blksize == 4 && d.blksizev == 4) ||
-                (d.blksize == 8 && d.blksizev == 4) ||
-                (d.blksize == 8 && d.blksizev == 8) ||
-                (d.blksize == 16 && d.blksizev == 8) ||
-                (d.blksize == 16 && d.blksizev == 16))) {
+    if (d.dctmode >= 5 &&
+        !((d.blksize == 4 && d.blksizev == 4) ||
+          (d.blksize == 8 && d.blksizev == 4) ||
+          (d.blksize == 8 && d.blksizev == 8) ||
+          (d.blksize == 16 && d.blksizev == 8) ||
+          (d.blksize == 16 && d.blksizev == 16))) {
         vsapi->setError(out, "Analyse: dct 5..10 can only work with 4x4, 8x4, 8x8, 16x8, and 16x16 blocks.");
         return;
     }
@@ -408,14 +405,14 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     d.analysisData.nBlkSizeX = d.blksize;
     d.analysisData.nBlkSizeY = d.blksizev;
-    if ((d.analysisData.nBlkSizeX != 4  || d.analysisData.nBlkSizeY != 4) &&
-            (d.analysisData.nBlkSizeX != 8  || d.analysisData.nBlkSizeY != 4) &&
-            (d.analysisData.nBlkSizeX != 8  || d.analysisData.nBlkSizeY != 8) &&
-            (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 2) &&
-            (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 8) &&
-            (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 16) &&
-            (d.analysisData.nBlkSizeX != 32 || d.analysisData.nBlkSizeY != 32) &&
-            (d.analysisData.nBlkSizeX != 32 || d.analysisData.nBlkSizeY != 16)) {
+    if ((d.analysisData.nBlkSizeX != 4 || d.analysisData.nBlkSizeY != 4) &&
+        (d.analysisData.nBlkSizeX != 8 || d.analysisData.nBlkSizeY != 4) &&
+        (d.analysisData.nBlkSizeX != 8 || d.analysisData.nBlkSizeY != 8) &&
+        (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 2) &&
+        (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 8) &&
+        (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 16) &&
+        (d.analysisData.nBlkSizeX != 32 || d.analysisData.nBlkSizeY != 32) &&
+        (d.analysisData.nBlkSizeX != 32 || d.analysisData.nBlkSizeY != 16)) {
 
         vsapi->setError(out, "Analyse: the block size must be 4x4, 8x4, 8x8, 16x2, 16x8, 16x16, 32x16, or 32x32.");
         return;
@@ -449,7 +446,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         return;
     }
 
-    if (d.divideExtra && (d.blksize < 8 && d.blksizev < 8) ) {
+    if (d.divideExtra && (d.blksize < 8 && d.blksizev < 8)) {
         vsapi->setError(out, "Analyse: blksize and blksizev must be at least 8 when divide=True.");
         return;
     }
@@ -465,9 +462,9 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.searchTypeCoarse = searchTypes[d.search_coarse];
 
     if (d.searchType == NSTEP)
-        d.nSearchParam = ( d.searchparam < 0 ) ? 0 : d.searchparam;
+        d.nSearchParam = (d.searchparam < 0) ? 0 : d.searchparam;
     else
-        d.nSearchParam = ( d.searchparam < 1 ) ? 1 : d.searchparam;
+        d.nSearchParam = (d.searchparam < 1) ? 1 : d.searchparam;
 
 
     // XXX maybe get rid of these two
@@ -511,8 +508,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.analysisData.nMotionFlags |= d.chroma ? MOTION_USE_CHROMA_MOTION : 0;
 
 
-    if (d.isse)
-    {
+    if (d.isse) {
         d.analysisData.nCPUFlags = cpu_detect();
     }
 
@@ -569,8 +565,8 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     // check sanity
     if (nHeight <= 0 || d.nSuperHPad < 0 || d.nSuperHPad >= d.vi.width / 2 ||
-            d.nSuperVPad < 0 || d.nSuperPel < 1 || d.nSuperPel > 4 ||
-            d.nSuperModeYUV < 0 || d.nSuperModeYUV > YUVPLANES || d.nSuperLevels < 1) {
+        d.nSuperVPad < 0 || d.nSuperPel < 1 || d.nSuperPel > 4 ||
+        d.nSuperModeYUV < 0 || d.nSuperModeYUV > YUVPLANES || d.nSuperLevels < 1) {
         vsapi->setError(out, "Analyse: parameters from super clip appear to be wrong.");
         vsapi->freeNode(d.node);
         return;
@@ -584,11 +580,11 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
 
     // fill in missing fields
-    d.analysisData.nWidth = d.vi.width - d.nSuperHPad*2;//x
+    d.analysisData.nWidth = d.vi.width - d.nSuperHPad * 2; //x
 
-    d.analysisData.nHeight = nHeight;//x
+    d.analysisData.nHeight = nHeight; //x
 
-    d.analysisData.nPel = d.nSuperPel;//x
+    d.analysisData.nPel = d.nSuperPel; //x
     // mv.Super already checks this
     /*
        if (( d.analysisData.nPel != 1 ) && ( d.analysisData.nPel != 2 ) && ( d.analysisData.nPel != 4 ))
@@ -599,7 +595,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.analysisData.nVPadding = d.nSuperVPad;
 
 
-    int nBlkX = (d.analysisData.nWidth - d.analysisData.nOverlapX) / (d.analysisData.nBlkSizeX - d.analysisData.nOverlapX);//x
+    int nBlkX = (d.analysisData.nWidth - d.analysisData.nOverlapX) / (d.analysisData.nBlkSizeX - d.analysisData.nOverlapX); //x
 
     int nBlkY = (d.analysisData.nHeight - d.analysisData.nOverlapY) / (d.analysisData.nBlkSizeY - d.analysisData.nOverlapY);
 
@@ -611,8 +607,8 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     // calculate valid levels
     int nLevelsMax = 0;
-    while (    ((nWidth_B >> nLevelsMax) - d.analysisData.nOverlapX) / (d.analysisData.nBlkSizeX - d.analysisData.nOverlapX) > 0 &&
-            ((nHeight_B >> nLevelsMax) - d.analysisData.nOverlapY) / (d.analysisData.nBlkSizeY - d.analysisData.nOverlapY) > 0) // at last one block
+    while (((nWidth_B >> nLevelsMax) - d.analysisData.nOverlapX) / (d.analysisData.nBlkSizeX - d.analysisData.nOverlapX) > 0 &&
+           ((nHeight_B >> nLevelsMax) - d.analysisData.nOverlapY) / (d.analysisData.nBlkSizeY - d.analysisData.nOverlapY) > 0) // at last one block
     {
         nLevelsMax++;
     }
@@ -672,35 +668,35 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
 extern "C" void mvanalyseRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Analyse",
-            "super:clip;"
-            "blksize:int:opt;"
-            "blksizev:int:opt;"
-            "levels:int:opt;"
-            "search:int:opt;"
-            "searchparam:int:opt;"
-            "pelsearch:int:opt;"
-            "isb:int:opt;"
-            "lambda:int:opt;"
-            "chroma:int:opt;"
-            "delta:int:opt;"
-            "truemotion:int:opt;"
-            "lsad:int:opt;"
-            "plevel:int:opt;"
-            "global:int:opt;"
-            "pnew:int:opt;"
-            "pzero:int:opt;"
-            "pglobal:int:opt;"
-            "overlap:int:opt;"
-            "overlapv:int:opt;"
-            "divide:int:opt;"
-            "badsad:int:opt;"
-            "badrange:int:opt;"
-            "isse:int:opt;"
-            "meander:int:opt;"
-            "trymany:int:opt;"
-            "fields:int:opt;"
-            "tff:int:opt;"
-            "search_coarse:int:opt;"
-            "dct:int:opt;"
-            , mvanalyseCreate, 0, plugin);
+                 "super:clip;"
+                 "blksize:int:opt;"
+                 "blksizev:int:opt;"
+                 "levels:int:opt;"
+                 "search:int:opt;"
+                 "searchparam:int:opt;"
+                 "pelsearch:int:opt;"
+                 "isb:int:opt;"
+                 "lambda:int:opt;"
+                 "chroma:int:opt;"
+                 "delta:int:opt;"
+                 "truemotion:int:opt;"
+                 "lsad:int:opt;"
+                 "plevel:int:opt;"
+                 "global:int:opt;"
+                 "pnew:int:opt;"
+                 "pzero:int:opt;"
+                 "pglobal:int:opt;"
+                 "overlap:int:opt;"
+                 "overlapv:int:opt;"
+                 "divide:int:opt;"
+                 "badsad:int:opt;"
+                 "badrange:int:opt;"
+                 "isse:int:opt;"
+                 "meander:int:opt;"
+                 "trymany:int:opt;"
+                 "fields:int:opt;"
+                 "tff:int:opt;"
+                 "search_coarse:int:opt;"
+                 "dct:int:opt;",
+                 mvanalyseCreate, 0, plugin);
 }

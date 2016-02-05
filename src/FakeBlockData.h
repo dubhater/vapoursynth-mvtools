@@ -8,7 +8,7 @@ class FakeBlockData {
     int y;
     VECTOR vector;
 
-    public :
+public:
     FakeBlockData();
     FakeBlockData(int _x, int _y);
     ~FakeBlockData();
@@ -16,11 +16,18 @@ class FakeBlockData {
     void Init(int _x, int _y);
     void Update(const int *array);
 
-    inline int GetX() const { return x; }
-    inline int GetY() const { return y; }
-    inline VECTOR GetMV() const { return vector; }
-    inline int GetSAD() const { return vector.sad; }
+    inline int GetX() const {
+        return x;
+    }
+    inline int GetY() const {
+        return y;
+    }
+    inline VECTOR GetMV() const {
+        return vector;
+    }
+    inline int GetSAD() const {
+        return vector.sad;
+    }
 };
 
 #endif // MVTOOLS_FAKEBLOCKDATA_H
-

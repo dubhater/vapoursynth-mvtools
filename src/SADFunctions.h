@@ -24,18 +24,18 @@
 
 
 typedef unsigned int (*SADFunction)(const uint8_t *pSrc, intptr_t nSrcPitch,
-        const uint8_t *pRef, intptr_t nRefPitch);
+                                    const uint8_t *pRef, intptr_t nRefPitch);
 
-inline unsigned int SADABS(int x) {    return ( x < 0 ) ? -x : x; }
+inline unsigned int SADABS(int x) {
+    return (x < 0) ? -x : x;
+}
 
-template<int nBlkWidth, int nBlkHeight, typename PixelType>
-unsigned int Sad_C(const uint8_t *pSrc8, intptr_t nSrcPitch,const uint8_t *pRef8,
-        intptr_t nRefPitch)
-{
+template <int nBlkWidth, int nBlkHeight, typename PixelType>
+unsigned int Sad_C(const uint8_t *pSrc8, intptr_t nSrcPitch, const uint8_t *pRef8,
+                   intptr_t nRefPitch) {
     unsigned int sum = 0;
-    for ( int y = 0; y < nBlkHeight; y++ )
-    {
-        for ( int x = 0; x < nBlkWidth; x++ ) {
+    for (int y = 0; y < nBlkHeight; y++) {
+        for (int x = 0; x < nBlkWidth; x++) {
             const PixelType *pSrc = (const PixelType *)pSrc8;
             const PixelType *pRef = (const PixelType *)pRef8;
             sum += SADABS(pSrc[x] - pRef[x]);
@@ -47,82 +47,83 @@ unsigned int Sad_C(const uint8_t *pSrc8, intptr_t nSrcPitch,const uint8_t *pRef8
 }
 
 
-#define HADAMARD4(d0, d1, d2, d3, s0, s1, s2, s3) {\
-    SumType2 t0 = s0 + s1;\
-    SumType2 t1 = s0 - s1;\
-    SumType2 t2 = s2 + s3;\
-    SumType2 t3 = s2 - s3;\
-    d0 = t0 + t2;\
-    d2 = t0 - t2;\
-    d1 = t1 + t3;\
-    d3 = t1 - t3;\
-}
+#define HADAMARD4(d0, d1, d2, d3, s0, s1, s2, s3) \
+    {                                             \
+        SumType2 t0 = s0 + s1;                    \
+        SumType2 t1 = s0 - s1;                    \
+        SumType2 t2 = s2 + s3;                    \
+        SumType2 t3 = s2 - s3;                    \
+        d0 = t0 + t2;                             \
+        d2 = t0 - t2;                             \
+        d1 = t1 + t3;                             \
+        d3 = t1 - t3;                             \
+    }
 
-#define HADAMARD8(d0, d1, d2, d3, d4, d5, d6, d7, s0, s1, s2, s3, s4, s5, s6, s7) {\
-    SumType2 t0 = s0 + s1;\
-    SumType2 t1 = s0 - s1;\
-    SumType2 t2 = s2 + s3;\
-    SumType2 t3 = s2 - s3;\
-    SumType2 t4 = s4 + s5;\
-    SumType2 t5 = s4 - s5;\
-    SumType2 t6 = s6 + s7;\
-    SumType2 t7 = s6 - s7;\
-    d0 = t0 + t4;\
-    d2 = t0 - t4;\
-    d1 = t1 + t5;\
-    d3 = t1 - t5;\
-    d4 = t2 + t6;\
-    d5 = t2 - t6;\
-    d6 = t3 + t7;\
-    d7 = t3 - t7;\
-}
+#define HADAMARD8(d0, d1, d2, d3, d4, d5, d6, d7, s0, s1, s2, s3, s4, s5, s6, s7) \
+    {                                                                             \
+        SumType2 t0 = s0 + s1;                                                    \
+        SumType2 t1 = s0 - s1;                                                    \
+        SumType2 t2 = s2 + s3;                                                    \
+        SumType2 t3 = s2 - s3;                                                    \
+        SumType2 t4 = s4 + s5;                                                    \
+        SumType2 t5 = s4 - s5;                                                    \
+        SumType2 t6 = s6 + s7;                                                    \
+        SumType2 t7 = s6 - s7;                                                    \
+        d0 = t0 + t4;                                                             \
+        d2 = t0 - t4;                                                             \
+        d1 = t1 + t5;                                                             \
+        d3 = t1 - t5;                                                             \
+        d4 = t2 + t6;                                                             \
+        d5 = t2 - t6;                                                             \
+        d6 = t3 + t7;                                                             \
+        d7 = t3 - t7;                                                             \
+    }
 
-#define HADAMARD16(d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15) {\
-    SumType2 t0 = s0 + s1;\
-    SumType2 t1 = s0 - s1;\
-    SumType2 t2 = s2 + s3;\
-    SumType2 t3 = s2 - s3;\
-    SumType2 t4 = s4 + s5;\
-    SumType2 t5 = s4 - s5;\
-    SumType2 t6 = s6 + s7;\
-    SumType2 t7 = s6 - s7;\
-    SumType2 t8 = s8 + s9;\
-    SumType2 t9 = s8 - s9;\
-    SumType2 t10 = s10 + s11;\
-    SumType2 t11 = s10 - s11;\
-    SumType2 t12 = s12 + s13;\
-    SumType2 t13 = s12 - s13;\
-    SumType2 t14 = s14 + s15;\
-    SumType2 t15 = s14 - s15;\
-    d0  = t0 + t8;\
-    d2  = t0 - t8;\
-    d1  = t1 + t9;\
-    d3  = t1 - t9;\
-    d4  = t2 + t10;\
-    d5  = t2 - t10;\
-    d6  = t3 + t11;\
-    d7  = t3 - t11;\
-    d8  = t4 + t12;\
-    d9  = t4 - t12;\
-    d10 = t5 + t13;\
-    d11 = t5 - t13;\
-    d12 = t6 + t14;\
-    d13 = t6 - t14;\
-    d14 = t7 + t15;\
-    d15 = t7 - t15;\
-}
-
+#define HADAMARD16(d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15) \
+    {                                                                                                                                                          \
+        SumType2 t0 = s0 + s1;                                                                                                                                 \
+        SumType2 t1 = s0 - s1;                                                                                                                                 \
+        SumType2 t2 = s2 + s3;                                                                                                                                 \
+        SumType2 t3 = s2 - s3;                                                                                                                                 \
+        SumType2 t4 = s4 + s5;                                                                                                                                 \
+        SumType2 t5 = s4 - s5;                                                                                                                                 \
+        SumType2 t6 = s6 + s7;                                                                                                                                 \
+        SumType2 t7 = s6 - s7;                                                                                                                                 \
+        SumType2 t8 = s8 + s9;                                                                                                                                 \
+        SumType2 t9 = s8 - s9;                                                                                                                                 \
+        SumType2 t10 = s10 + s11;                                                                                                                              \
+        SumType2 t11 = s10 - s11;                                                                                                                              \
+        SumType2 t12 = s12 + s13;                                                                                                                              \
+        SumType2 t13 = s12 - s13;                                                                                                                              \
+        SumType2 t14 = s14 + s15;                                                                                                                              \
+        SumType2 t15 = s14 - s15;                                                                                                                              \
+        d0 = t0 + t8;                                                                                                                                          \
+        d2 = t0 - t8;                                                                                                                                          \
+        d1 = t1 + t9;                                                                                                                                          \
+        d3 = t1 - t9;                                                                                                                                          \
+        d4 = t2 + t10;                                                                                                                                         \
+        d5 = t2 - t10;                                                                                                                                         \
+        d6 = t3 + t11;                                                                                                                                         \
+        d7 = t3 - t11;                                                                                                                                         \
+        d8 = t4 + t12;                                                                                                                                         \
+        d9 = t4 - t12;                                                                                                                                         \
+        d10 = t5 + t13;                                                                                                                                        \
+        d11 = t5 - t13;                                                                                                                                        \
+        d12 = t6 + t14;                                                                                                                                        \
+        d13 = t6 - t14;                                                                                                                                        \
+        d14 = t7 + t15;                                                                                                                                        \
+        d15 = t7 - t15;                                                                                                                                        \
+    }
 
 
 // in: a pseudo-simd number of the form x+(y<<16)
 // return: abs(x)+(abs(y)<<16)
 template <typename SumType, typename SumType2>
-static inline SumType2 abs2( SumType2 a )
-{
+static inline SumType2 abs2(SumType2 a) {
     int bitsPerSum = 8 * sizeof(SumType);
 
-    SumType2 s = ((a>>(bitsPerSum-1))&(((SumType2)1<<bitsPerSum)+1))*((SumType)-1);
-    return (a+s)^s;
+    SumType2 s = ((a >> (bitsPerSum - 1)) & (((SumType2)1 << bitsPerSum) + 1)) * ((SumType)-1);
+    return (a + s) ^ s;
 }
 
 
@@ -152,7 +153,7 @@ unsigned int Real_Satd_4x4_C(const uint8_t *pSrc8, intptr_t nSrcPitch, const uin
     }
 
     for (int i = 0; i < 2; i++) {
-        HADAMARD4( a0, a1, a2, a3, tmp[0][i], tmp[1][i], tmp[2][i], tmp[3][i] );
+        HADAMARD4(a0, a1, a2, a3, tmp[0][i], tmp[1][i], tmp[2][i], tmp[3][i]);
         a0 = abs2<SumType, SumType2>(a0) + abs2<SumType, SumType2>(a1) + abs2<SumType, SumType2>(a2) + abs2<SumType, SumType2>(a3);
         sum += ((SumType)a0) + (a0 >> bitsPerSum);
     }
@@ -186,13 +187,13 @@ unsigned int Real_Satd_8x4_C(const uint8_t *pSrc8, intptr_t nSrcPitch, const uin
         a1 = (pSrc[1] - pRef[1]) + ((SumType2)(pSrc[5] - pRef[5]) << bitsPerSum);
         a2 = (pSrc[2] - pRef[2]) + ((SumType2)(pSrc[6] - pRef[6]) << bitsPerSum);
         a3 = (pSrc[3] - pRef[3]) + ((SumType2)(pSrc[7] - pRef[7]) << bitsPerSum);
-        HADAMARD4( tmp[i][0], tmp[i][1], tmp[i][2], tmp[i][3], a0, a1, a2, a3 );
+        HADAMARD4(tmp[i][0], tmp[i][1], tmp[i][2], tmp[i][3], a0, a1, a2, a3);
 
         pSrc8 += nSrcPitch;
         pRef8 += nRefPitch;
     }
     for (int i = 0; i < 4; i++) {
-        HADAMARD4( a0, a1, a2, a3, tmp[0][i], tmp[1][i], tmp[2][i], tmp[3][i] );
+        HADAMARD4(a0, a1, a2, a3, tmp[0][i], tmp[1][i], tmp[2][i], tmp[3][i]);
         sum += abs2<SumType, SumType2>(a0) + abs2<SumType, SumType2>(a1) + abs2<SumType, SumType2>(a2) + abs2<SumType, SumType2>(a3);
     }
 
@@ -242,7 +243,7 @@ unsigned int Real_Satd_8x8_C(const uint8_t *pSrc8, intptr_t nSrcPitch, const uin
 
     for (int i = 0; i < 4; i++) {
         HADAMARD8(a0, a1, a2, a3, a4, a5, a6, a7, tmp[0][i], tmp[1][i], tmp[2][i], tmp[3][i], tmp[4][i], tmp[5][i], tmp[6][i], tmp[7][i]);
-        a0 = abs2<SumType, SumType2>(a0) +abs2<SumType, SumType2>(a1) +abs2<SumType, SumType2>(a2) +abs2<SumType, SumType2>(a3) +abs2<SumType, SumType2>(a4) +abs2<SumType, SumType2>(a5) +abs2<SumType, SumType2>(a6) +abs2<SumType, SumType2>(a7);
+        a0 = abs2<SumType, SumType2>(a0) + abs2<SumType, SumType2>(a1) + abs2<SumType, SumType2>(a2) + abs2<SumType, SumType2>(a3) + abs2<SumType, SumType2>(a4) + abs2<SumType, SumType2>(a5) + abs2<SumType, SumType2>(a6) + abs2<SumType, SumType2>(a7);
         sum += ((SumType)a0) + (a0 >> bitsPerSum);
     }
 
@@ -308,7 +309,7 @@ unsigned int Real_Satd_16x16_C(const uint8_t *pSrc8, intptr_t nSrcPitch, const u
 
     for (int i = 0; i < 8; i++) {
         HADAMARD16(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, tmp[0][i], tmp[1][i], tmp[2][i], tmp[3][i], tmp[4][i], tmp[5][i], tmp[6][i], tmp[7][i], tmp[8][i], tmp[9][i], tmp[10][i], tmp[11][i], tmp[12][i], tmp[13][i], tmp[14][i], tmp[15][i]);
-        a0 = abs2<SumType, SumType2>(a0) +abs2<SumType, SumType2>(a1) +abs2<SumType, SumType2>(a2) +abs2<SumType, SumType2>(a3) +abs2<SumType, SumType2>(a4) +abs2<SumType, SumType2>(a5) +abs2<SumType, SumType2>(a6) +abs2<SumType, SumType2>(a7) +abs2<SumType, SumType2>(a8) +abs2<SumType, SumType2>(a9) +abs2<SumType, SumType2>(a10) +abs2<SumType, SumType2>(a11) +abs2<SumType, SumType2>(a12) +abs2<SumType, SumType2>(a13) +abs2<SumType, SumType2>(a14) +abs2<SumType, SumType2>(a15);
+        a0 = abs2<SumType, SumType2>(a0) + abs2<SumType, SumType2>(a1) + abs2<SumType, SumType2>(a2) + abs2<SumType, SumType2>(a3) + abs2<SumType, SumType2>(a4) + abs2<SumType, SumType2>(a5) + abs2<SumType, SumType2>(a6) + abs2<SumType, SumType2>(a7) + abs2<SumType, SumType2>(a8) + abs2<SumType, SumType2>(a9) + abs2<SumType, SumType2>(a10) + abs2<SumType, SumType2>(a11) + abs2<SumType, SumType2>(a12) + abs2<SumType, SumType2>(a13) + abs2<SumType, SumType2>(a14) + abs2<SumType, SumType2>(a15);
         sum += ((SumType)a0) + (a0 >> bitsPerSum);
     }
 
@@ -337,23 +338,20 @@ unsigned int Satd_C(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef
     else {
         int bytesPerSample = sizeof(PixelType);
 
-        unsigned int sum = Satd_8x4_C<PixelType>(pSrc, nSrcPitch, pRef, nRefPitch)
-                         + Satd_8x4_C<PixelType>(pSrc + 4*nSrcPitch, nSrcPitch, pRef + 4*nRefPitch, nRefPitch);
+        unsigned int sum = Satd_8x4_C<PixelType>(pSrc, nSrcPitch, pRef, nRefPitch) + Satd_8x4_C<PixelType>(pSrc + 4 * nSrcPitch, nSrcPitch, pRef + 4 * nRefPitch, nRefPitch);
 
         if (nBlkWidth == 16)
-            sum += Satd_8x4_C<PixelType>(pSrc + 8*bytesPerSample, nSrcPitch, pRef + 8*bytesPerSample, nRefPitch)
-                + Satd_8x4_C<PixelType>(pSrc + 8*bytesPerSample + 4*nSrcPitch, nSrcPitch, pRef + 8*bytesPerSample + 4*nSrcPitch, nRefPitch);
+            sum += Satd_8x4_C<PixelType>(pSrc + 8 * bytesPerSample, nSrcPitch, pRef + 8 * bytesPerSample, nRefPitch) + Satd_8x4_C<PixelType>(pSrc + 8 * bytesPerSample + 4 * nSrcPitch, nSrcPitch, pRef + 8 * bytesPerSample + 4 * nSrcPitch, nRefPitch);
 
         if (nBlkHeight == 16)
-            sum += Satd_8x4_C<PixelType>(pSrc + 8*nSrcPitch, nSrcPitch, pRef + 8*nRefPitch, nRefPitch)
-                + Satd_8x4_C<PixelType>(pSrc + 12*nSrcPitch, nSrcPitch, pRef + 12*nRefPitch, nRefPitch);
+            sum += Satd_8x4_C<PixelType>(pSrc + 8 * nSrcPitch, nSrcPitch, pRef + 8 * nRefPitch, nRefPitch) + Satd_8x4_C<PixelType>(pSrc + 12 * nSrcPitch, nSrcPitch, pRef + 12 * nRefPitch, nRefPitch);
 
         return sum;
     }
 }
 
 
-#define MK_CFUNC(functionname) extern "C" unsigned int  functionname (const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch)
+#define MK_CFUNC(functionname) extern "C" unsigned int functionname(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch)
 
 // From SAD.asm
 MK_CFUNC(mvtools_sad_4x2_sse2);
@@ -401,14 +399,14 @@ MK_CFUNC(mvtools_pixel_sad_8x8_cache64_mmx2);
 MK_CFUNC(mvtools_pixel_sad_8x16_cache64_mmx2);
 
 MK_CFUNC(mvtools_pixel_sad_8x16_sse2);
-MK_CFUNC(mvtools_pixel_sad_16x8_sse2);     //non optimized cache access, for AMD?
+MK_CFUNC(mvtools_pixel_sad_16x8_sse2);  //non optimized cache access, for AMD?
 MK_CFUNC(mvtools_pixel_sad_16x16_sse2); //non optimized cache access, for AMD?
 
 MK_CFUNC(mvtools_pixel_sad_16x8_sse3);  //LDDQU Pentium4E (Core1?), not for Core2!
 MK_CFUNC(mvtools_pixel_sad_16x16_sse3); //LDDQU Pentium4E (Core1?), not for Core2!
 
-MK_CFUNC(mvtools_pixel_sad_16x8_cache64_ssse3); //core2 optimized
-MK_CFUNC(mvtools_pixel_sad_16x16_cache64_ssse3);//core2 optimized
+MK_CFUNC(mvtools_pixel_sad_16x8_cache64_ssse3);  //core2 optimized
+MK_CFUNC(mvtools_pixel_sad_16x16_cache64_ssse3); //core2 optimized
 
 // From pixel-a.asm - stolen from x264
 /* alternative to SAD - SSD: squared sum of differences, VERY sensitive to noise */

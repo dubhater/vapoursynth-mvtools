@@ -10,10 +10,12 @@ class FakeGroupOfPlanes {
     int nHeight_B;
     int yRatioUV_B;
     FakePlaneOfBlocks **planes;
-    inline static bool GetValidity(const int *array) { return (array[1] == 1); }
+    inline static bool GetValidity(const int *array) {
+        return (array[1] == 1);
+    }
     //CRITICAL_SECTION cs;
 
-    public :
+public:
     FakeGroupOfPlanes();
     ~FakeGroupOfPlanes();
 
@@ -22,17 +24,24 @@ class FakeGroupOfPlanes {
     void Update(const int *array);
     bool IsSceneChange(int nThSCD1, int nThSCD2) const;
 
-    inline const FakePlaneOfBlocks& operator[](const int i) const {
+    inline const FakePlaneOfBlocks &operator[](const int i) const {
         return *(planes[i]);
     }
 
 
-    inline bool IsValid() const { return validity; }
-    inline int GetPitch() const { return nWidth_B; }
-    inline int GetPitchUV() const { return nWidth_B / 2; } // FIXME: lol
+    inline bool IsValid() const {
+        return validity;
+    }
+    inline int GetPitch() const {
+        return nWidth_B;
+    }
+    inline int GetPitchUV() const {
+        return nWidth_B / 2;
+    } // FIXME: lol
 
-    inline const FakePlaneOfBlocks& GetPlane(int i) const { return *(planes[i]); }
+    inline const FakePlaneOfBlocks &GetPlane(int i) const {
+        return *(planes[i]);
+    }
 };
 
 #endif // MVTOOLS_FAKEGROUPOFPLANES_H
-

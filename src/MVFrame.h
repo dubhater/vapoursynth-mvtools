@@ -45,12 +45,11 @@ class MVPlane {
     template <typename PixelType>
     void RefineExtPel4(const uint8_t *pSrc2x, int nSrc2xPitch, bool isExtPadded);
 
-    public :
-
+public:
     MVPlane(int _nWidth, int _nHeight, int _nPel, int _nHPad, int _nVPad, bool _isse, int _bitsPerSample);
     ~MVPlane();
 
-    void Update(uint8_t* pSrc, int _nPitch);
+    void Update(uint8_t *pSrc, int _nPitch);
     void ChangePlane(const uint8_t *pNewPlane, int nNewPitch);
     void Pad();
     void Refine(int interType);
@@ -58,21 +57,18 @@ class MVPlane {
     void ReduceTo(MVPlane *pReducedPlane, int rfilter);
     void WritePlane(FILE *pFile);
 
-    inline const uint8_t *GetAbsolutePointer(int nX, int nY) const
-    {
-        if ( nPel == 1 )
+    inline const uint8_t *GetAbsolutePointer(int nX, int nY) const {
+        if (nPel == 1)
             return pPlane[0] + nX * bytesPerSample + nY * nPitch;
         else if (nPel == 2) {
-            int idx = (nX&1) | ((nY&1)<<1);
+            int idx = (nX & 1) | ((nY & 1) << 1);
 
             nX >>= 1;
             nY >>= 1;
 
             return pPlane[idx] + nX * bytesPerSample + nY * nPitch;
-        }
-        else // nPel = 4
-        {
-            int idx = (nX&3) | ((nY&3)<<2);
+        } else { // nPel = 4
+            int idx = (nX & 3) | ((nY & 3) << 2);
 
             nX >>= 2;
             nY >>= 2;
@@ -81,14 +77,12 @@ class MVPlane {
         }
     }
 
-    inline const uint8_t *GetAbsolutePointerPel1(int nX, int nY) const
-    {
+    inline const uint8_t *GetAbsolutePointerPel1(int nX, int nY) const {
         return pPlane[0] + nX * bytesPerSample + nY * nPitch;
     }
 
-    inline const uint8_t *GetAbsolutePointerPel2(int nX, int nY) const
-    {
-        int idx = (nX&1) | ((nY&1)<<1);
+    inline const uint8_t *GetAbsolutePointerPel2(int nX, int nY) const {
+        int idx = (nX & 1) | ((nY & 1) << 1);
 
         nX >>= 1;
         nY >>= 1;
@@ -96,9 +90,8 @@ class MVPlane {
         return pPlane[idx] + nX * bytesPerSample + nY * nPitch;
     }
 
-    inline const uint8_t *GetAbsolutePointerPel4(int nX, int nY) const
-    {
-        int idx = (nX&3) | ((nY&3)<<2);
+    inline const uint8_t *GetAbsolutePointerPel4(int nX, int nY) const {
+        int idx = (nX & 3) | ((nY & 3) << 2);
 
         nX >>= 2;
         nY >>= 2;
@@ -106,38 +99,50 @@ class MVPlane {
         return pPlane[idx] + nX * bytesPerSample + nY * nPitch;
     }
 
-    inline const uint8_t *GetPointer(int nX, int nY) const
-    {
+    inline const uint8_t *GetPointer(int nX, int nY) const {
         return GetAbsolutePointer(nX + nHPaddingPel, nY + nVPaddingPel);
     }
 
-    inline const uint8_t *GetPointerPel1(int nX, int nY) const
-    {
+    inline const uint8_t *GetPointerPel1(int nX, int nY) const {
         return GetAbsolutePointerPel1(nX + nHPaddingPel, nY + nVPaddingPel);
     }
 
-    inline const uint8_t *GetPointerPel2(int nX, int nY) const
-    {
+    inline const uint8_t *GetPointerPel2(int nX, int nY) const {
         return GetAbsolutePointerPel2(nX + nHPaddingPel, nY + nVPaddingPel);
     }
 
-    inline const uint8_t *GetPointerPel4(int nX, int nY) const
-    {
+    inline const uint8_t *GetPointerPel4(int nX, int nY) const {
         return GetAbsolutePointerPel4(nX + nHPaddingPel, nY + nVPaddingPel);
     }
 
-    inline const uint8_t *GetAbsolutePelPointer(int nX, int nY) const
-    {  return pPlane[0] + nX * bytesPerSample + nY * nPitch; }
+    inline const uint8_t *GetAbsolutePelPointer(int nX, int nY) const {
+        return pPlane[0] + nX * bytesPerSample + nY * nPitch;
+    }
 
-    inline int GetPitch() const { return nPitch; }
-    inline int GetWidth() const { return nWidth; }
-    inline int GetHeight() const { return nHeight; }
-    inline int GetExtendedWidth() const { return nExtendedWidth; }
-    inline int GetExtendedHeight() const { return nExtendedHeight; }
-    inline int GetHPadding() const { return nHPadding; }
-    inline int GetVPadding() const { return nVPadding; }
-    inline void ResetState() { isRefined = isFilled = isPadded = false; }
-
+    inline int GetPitch() const {
+        return nPitch;
+    }
+    inline int GetWidth() const {
+        return nWidth;
+    }
+    inline int GetHeight() const {
+        return nHeight;
+    }
+    inline int GetExtendedWidth() const {
+        return nExtendedWidth;
+    }
+    inline int GetExtendedHeight() const {
+        return nExtendedHeight;
+    }
+    inline int GetHPadding() const {
+        return nHPadding;
+    }
+    inline int GetVPadding() const {
+        return nVPadding;
+    }
+    inline void ResetState() {
+        isRefined = isFilled = isPadded = false;
+    }
 };
 
 class MVFrame {
@@ -152,11 +157,11 @@ class MVFrame {
     int yRatioUV;
     int bitsPerSample;
 
-    public:
+public:
     MVFrame(int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int _nMode, bool _isse, int _xRatioUV, int _yRatioUV, int _bitsPerSample);
     ~MVFrame();
 
-    void Update(int _nMode, uint8_t * pSrcY, int pitchY, uint8_t * pSrcU, int pitchU, uint8_t *pSrcV, int pitchV);
+    void Update(int _nMode, uint8_t *pSrcY, int pitchY, uint8_t *pSrcU, int pitchU, uint8_t *pSrcV, int pitchV);
     void ChangePlane(const uint8_t *pNewSrc, int nNewPitch, MVPlaneSet _nMode);
     void Refine(MVPlaneSet _nMode, int interType);
     void Pad(MVPlaneSet _nMode);
@@ -164,25 +169,25 @@ class MVFrame {
     void ResetState();
     void WriteFrame(FILE *pFile);
 
-    inline MVPlane *GetPlane(MVPlaneSet _nMode)
-    {
+    inline MVPlane *GetPlane(MVPlaneSet _nMode) {
         // no reason to test for nMode because returning NULL isn't expected in other parts
         // assert(nMode & _nMode & (YPLANE | UPLANE | VPLANE));
 
-        if ( _nMode & YPLANE ) // ( nMode & _nMode & YPLANE )
+        if (_nMode & YPLANE) // ( nMode & _nMode & YPLANE )
             return pYPlane;
 
-        if ( _nMode & UPLANE ) // ( nMode & _nMode & UPLANE )
+        if (_nMode & UPLANE) // ( nMode & _nMode & UPLANE )
             return pUPlane;
 
-        if ( _nMode & VPLANE ) // ( nMode & _nMode & VPLANE )
+        if (_nMode & VPLANE) // ( nMode & _nMode & VPLANE )
             return pVPlane;
 
         return 0;
     }
 
-    inline int GetMode() { return nMode; }
-
+    inline int GetMode() {
+        return nMode;
+    }
 };
 
 
@@ -199,11 +204,10 @@ class MVGroupOfFrames {
     int yRatioUV;
     int bitsPerSample;
 
-    public :
-
+public:
     MVGroupOfFrames(int _nLevelCount, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int nMode, bool isse, int _xRatioUV, int yRatioUV, int _bitsPerSample);
     ~MVGroupOfFrames();
-    void Update(int nModeYUV, uint8_t * pSrcY, int pitchY, uint8_t * pSrcU, int pitchU, uint8_t *pSrcV, int pitchV);
+    void Update(int nModeYUV, uint8_t *pSrcY, int pitchY, uint8_t *pSrcU, int pitchU, uint8_t *pSrcV, int pitchV);
 
     MVFrame *GetFrame(int nLevel);
     void SetPlane(const uint8_t *pNewSrc, int nNewPitch, MVPlaneSet nMode);
@@ -214,4 +218,3 @@ class MVGroupOfFrames {
 };
 
 #endif // MVTOOLS_MVFRAME_H
-

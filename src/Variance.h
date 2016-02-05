@@ -7,13 +7,11 @@
 typedef unsigned int (*LUMAFunction)(const uint8_t *pSrc, intptr_t nSrcPitch);
 
 
-template<int nBlkWidth, int nBlkHeight, typename PixelType>
-unsigned int Luma_C(const uint8_t *pSrc8, intptr_t nSrcPitch)
-{
+template <int nBlkWidth, int nBlkHeight, typename PixelType>
+unsigned int Luma_C(const uint8_t *pSrc8, intptr_t nSrcPitch) {
     unsigned int meanLuma = 0;
-    for ( int j = 0; j < nBlkHeight; j++ )
-    {
-        for ( int i = 0; i < nBlkWidth; i++ ) {
+    for (int j = 0; j < nBlkHeight; j++) {
+        for (int i = 0; i < nBlkWidth; i++) {
             const PixelType *pSrc = (const PixelType *)pSrc8;
             meanLuma += pSrc[i];
         }

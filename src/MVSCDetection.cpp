@@ -40,13 +40,13 @@ typedef struct {
 
 
 static void VS_CC mvscdetectionInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    MVSCDetectionData *d = (MVSCDetectionData *) * instanceData;
+    MVSCDetectionData *d = (MVSCDetectionData *)*instanceData;
     vsapi->setVideoInfo(d->vi, 1, node);
 }
 
 
 static const VSFrameRef *VS_CC mvscdetectionGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
-    MVSCDetectionData *d = (MVSCDetectionData *) * instanceData;
+    MVSCDetectionData *d = (MVSCDetectionData *)*instanceData;
 
     if (activationReason == arInitial) {
         vsapi->requestFrameFilter(n, d->vectors, frameCtx);
@@ -131,9 +131,9 @@ static void VS_CC mvscdetectionCreate(const VSMap *in, VSMap *out, void *userDat
 
 extern "C" void mvscdetectionRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("SCDetection",
-            "clip:clip;"
-            "vectors:clip;"
-            "thscd1:int:opt;"
-            "thscd2:int:opt;"
-            , mvscdetectionCreate, 0, plugin);
+                 "clip:clip;"
+                 "vectors:clip;"
+                 "thscd1:int:opt;"
+                 "thscd2:int:opt;",
+                 mvscdetectionCreate, 0, plugin);
 }
