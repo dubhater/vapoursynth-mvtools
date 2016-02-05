@@ -727,8 +727,8 @@ void PlaneOfBlocks::RecalculateMVs(MVClipBalls & mvClip, MVFrame *_pSrcFrame, MV
             }
 
             // scale vector to new nPel
-            vectorOld.x = (vectorOld.x << nLogPel) >> nLogPelold;
-            vectorOld.y = (vectorOld.y << nLogPel) >> nLogPelold;
+			vectorOld.x = vectorOld.x ? vectorOld.x / abs(vectorOld.x) * ((abs(vectorOld.x) << nLogPel) >> nLogPelold) : 0;
+			vectorOld.y = vectorOld.y ? vectorOld.y / abs(vectorOld.y) * ((abs(vectorOld.y) << nLogPel) >> nLogPelold) : 0;
 
             predictor = ClipMV(vectorOld); // predictor
             predictor.sad = (int64_t)vectorOld.sad * (nBlkSizeX*nBlkSizeY)/(nBlkSizeXold*nBlkSizeYold); // normalized to new block size
@@ -927,8 +927,8 @@ void PlaneOfBlocks::InterpolatePrediction(const PlaneOfBlocks &pob)
                 vectors[index].y = (v1.y + v2.y + v3.y + v4.y) <<2;
                 temp_sad = (int64_t)(v1.sad + v2.sad + v3.sad + v4.sad + 2) << 2;
             }
-            vectors[index].x = (vectors[index].x >> normFactor) << mulFactor;
-            vectors[index].y = (vectors[index].y >> normFactor) << mulFactor;
+			vectors[index].x = vectors[index].x ? vectors[index].x / abs(vectors[index].x) * ((abs(vectors[index].x) >> normFactor) << mulFactor) : 0;
+			vectors[index].y = vectors[index].y ? vectors[index].y / abs(vectors[index].y) * ((abs(vectors[index].y) >> normFactor) << mulFactor) : 0;
             vectors[index].sad = temp_sad >> 4;
         }
     }
@@ -1104,7 +1104,7 @@ void PlaneOfBlocks::PseudoEPZSearch()
     sad = LumaSAD(GetRefBlock(0, zeroMVfieldShifted.y));
     sad += saduv;
     bestMV.sad = sad;
-    nMinCost = sad + ((penaltyZero*sad)>>8); // v.1.11.0.2
+    nMinCost = sad + static_cast<int>((penaltyZero*(int64_t)sad)>>8); // v.1.11.0.2
 
     VECTOR bestMVMany[8];
     int nMinCostMany[8];
@@ -1123,7 +1123,7 @@ void PlaneOfBlocks::PseudoEPZSearch()
         + SADCHROMA(pSrc[2], nSrcPitch[2], GetRefBlockV(globalMVPredictor.x, globalMVPredictor.y), nRefPitch[2]) : 0;
     sad = LumaSAD(GetRefBlock(globalMVPredictor.x, globalMVPredictor.y));
     sad += saduv;
-    int cost = sad + ((pglobal*sad)>>8);
+    int cost = sad + static_cast<int>((pglobal*(int64_t)sad)>>8);
 
     if ( cost  < nMinCost || tryMany)
     {
