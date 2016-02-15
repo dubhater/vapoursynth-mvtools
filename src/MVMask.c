@@ -271,7 +271,7 @@ static void VS_CC mvmaskCreate(const VSMap *in, VSMap *out, void *userData, VSCo
     d.vectors = vsapi->propGetNode(in, "vectors", 0, NULL);
 
 #define ERROR_SIZE 512
-    char error[ERROR_SIZE] = { 0 };
+    char error[ERROR_SIZE + 1] = { 0 };
     const char *filter_name = "Mask";
 
     adataFromVectorClip(&d.vectors_data, d.vectors, filter_name, "vectors", vsapi, error, ERROR_SIZE);

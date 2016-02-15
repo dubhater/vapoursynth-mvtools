@@ -25,6 +25,7 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
+#include "Bullshit.h"
 #include "MVAnalysisData.h"
 #include "CommonFunctions.h"
 #include "MaskFun.h"
@@ -709,7 +710,7 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
 
     {
 #define ERROR_SIZE 512
-        char error[ERROR_SIZE] = { 0 };
+        char error[ERROR_SIZE + 1] = { 0 };
         const char *filter_name = "FlowFPS";
 
         adataFromVectorClip(&d.mvbw_data, d.mvbw, filter_name, "mvbw", vsapi, error, ERROR_SIZE);
@@ -765,7 +766,7 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
         VSMap *ret = vsapi->invoke(mvtoolsPlugin, "Finest", args);
         if (vsapi->getError(ret)) {
 #define ERROR_SIZE 512
-            char error_msg[ERROR_SIZE] = { 0 };
+            char error_msg[ERROR_SIZE + 1] = { 0 };
             snprintf(error_msg, ERROR_SIZE, "FlowFPS: %s", vsapi->getError(ret));
 #undef ERROR_SIZE
             vsapi->setError(out, error_msg);
@@ -787,7 +788,7 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
         vsapi->freeMap(args);
         if (vsapi->getError(ret)) {
 #define ERROR_SIZE 512
-            char error_msg[ERROR_SIZE] = { 0 };
+            char error_msg[ERROR_SIZE + 1] = { 0 };
             snprintf(error_msg, ERROR_SIZE, "FlowFPS: %s", vsapi->getError(ret));
 #undef ERROR_SIZE
             vsapi->setError(out, error_msg);
@@ -992,7 +993,7 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
     VSMap *ret = vsapi->invoke(stdPlugin, "AssumeFPS", args);
     if (vsapi->getError(ret)) {
 #define ERROR_SIZE 512
-        char error_msg[ERROR_SIZE] = { 0 };
+        char error_msg[ERROR_SIZE + 1] = { 0 };
         snprintf(error_msg, ERROR_SIZE, "FlowFPS: Failed to invoke AssumeFPS. Error message: %s", vsapi->getError(ret));
 #undef ERROR_SIZE
         vsapi->setError(out, error_msg);
@@ -1010,7 +1011,7 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
     vsapi->freeMap(args);
     if (vsapi->getError(ret)) {
 #define ERROR_SIZE 512
-        char error_msg[ERROR_SIZE] = { 0 };
+        char error_msg[ERROR_SIZE + 1] = { 0 };
         snprintf(error_msg, ERROR_SIZE, "FlowFPS: Failed to invoke Cache. Error message: %s", vsapi->getError(ret));
 #undef ERROR_SIZE
         vsapi->setError(out, error_msg);

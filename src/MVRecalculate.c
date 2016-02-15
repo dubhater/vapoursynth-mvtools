@@ -541,7 +541,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
 
 #define ERROR_SIZE 512
-    char error[ERROR_SIZE] = { 0 };
+    char error[ERROR_SIZE + 1] = { 0 };
     const char *filter_name = "Recalculate";
 
     adataFromVectorClip(&d.vectors_data, d.vectors, filter_name, "vectors", vsapi, error, ERROR_SIZE);

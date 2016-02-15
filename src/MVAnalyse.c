@@ -5,6 +5,7 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
+#include "Bullshit.h"
 #include "CPU.h"
 #include "DCTFFTW.h"
 #include "GroupOfPlanes.h"
@@ -626,7 +627,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     if (d.analysisData.nLvCount > d.nSuperLevels) { //x
 #define ERROR_SIZE 512
-        char error_msg[ERROR_SIZE];
+        char error_msg[ERROR_SIZE + 1] = { 0 };
         snprintf(error_msg, ERROR_SIZE, "Analyse: super clip has %d levels. Analyse needs %d levels.", d.nSuperLevels, d.analysisData.nLvCount);
 #undef ERROR_SIZE
         vsapi->setError(out, error_msg);

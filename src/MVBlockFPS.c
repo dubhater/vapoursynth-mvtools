@@ -25,6 +25,7 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
+#include "Bullshit.h"
 #include "CopyCode.h"
 #include "CommonFunctions.h"
 #include "MaskFun.h"
@@ -841,7 +842,7 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     // There is another variable called "error" a bit lower.
     {
 #define ERROR_SIZE 512
-        char error[ERROR_SIZE] = { 0 };
+        char error[ERROR_SIZE + 1] = { 0 };
         const char *filter_name = "BlockFPS";
 
         adataFromVectorClip(&d.mvbw_data, d.mvbw, filter_name, "mvbw", vsapi, error, ERROR_SIZE);
@@ -1003,7 +1004,7 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     VSMap *ret = vsapi->invoke(stdPlugin, "AssumeFPS", args);
     if (vsapi->getError(ret)) {
 #define ERROR_SIZE 512
-        char error_msg[ERROR_SIZE] = { 0 };
+        char error_msg[ERROR_SIZE + 1] = { 0 };
         snprintf(error_msg, ERROR_SIZE, "BlockFPS: Failed to invoke AssumeFPS. Error message: %s", vsapi->getError(ret));
 #undef ERROR_SIZE
         vsapi->setError(out, error_msg);
@@ -1021,7 +1022,7 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     vsapi->freeMap(args);
     if (vsapi->getError(ret)) {
 #define ERROR_SIZE 512
-        char error_msg[ERROR_SIZE] = { 0 };
+        char error_msg[ERROR_SIZE + 1] = { 0 };
         snprintf(error_msg, ERROR_SIZE, "BlockFPS: Failed to invoke Cache. Error message: %s", vsapi->getError(ret));
 #undef ERROR_SIZE
         vsapi->setError(out, error_msg);

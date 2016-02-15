@@ -25,6 +25,7 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
+#include "Bullshit.h"
 #include "Fakery.h"
 #include "MaskFun.h"
 #include "MVAnalysisData.h"
@@ -501,7 +502,7 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
     d.mvfw = vsapi->propGetNode(in, "mvfw", 0, NULL);
 
 #define ERROR_SIZE 512
-    char error[ERROR_SIZE] = { 0 };
+    char error[ERROR_SIZE + 1] = { 0 };
     const char *filter_name = "FlowBlur";
 
     adataFromVectorClip(&d.mvbw_data, d.mvbw, filter_name, "mvbw", vsapi, error, ERROR_SIZE);
@@ -556,7 +557,7 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
         VSMap *ret = vsapi->invoke(mvtoolsPlugin, "Finest", args);
         if (vsapi->getError(ret)) {
 #define ERROR_SIZE 512
-            char error_msg[ERROR_SIZE] = { 0 };
+            char error_msg[ERROR_SIZE + 1] = { 0 };
             snprintf(error_msg, ERROR_SIZE, "FlowBlur: %s", vsapi->getError(ret));
 #undef ERROR_SIZE
             vsapi->setError(out, error_msg);
@@ -578,7 +579,7 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
         vsapi->freeMap(args);
         if (vsapi->getError(ret)) {
 #define ERROR_SIZE 512
-            char error_msg[ERROR_SIZE] = { 0 };
+            char error_msg[ERROR_SIZE + 1] = { 0 };
             snprintf(error_msg, ERROR_SIZE, "FlowBlur: %s", vsapi->getError(ret));
 #undef ERROR_SIZE
             vsapi->setError(out, error_msg);

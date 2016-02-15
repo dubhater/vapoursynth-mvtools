@@ -22,6 +22,7 @@
 #include <VapourSynth.h>
 #include <VSHelper.h>
 
+#include "Bullshit.h"
 #include "Fakery.h"
 #include "MVAnalysisData.h"
 #include "MVDegrains.h"
@@ -589,7 +590,7 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
 
 #define ERROR_SIZE 512
 
-    char error[ERROR_SIZE] = { 0 };
+    char error[ERROR_SIZE + 1] = { 0 };
 
     const char *vector_names[] = { "mvbw", "mvfw", "mvbw2", "mvfw2", "mvbw3", "mvfw3" };
 
