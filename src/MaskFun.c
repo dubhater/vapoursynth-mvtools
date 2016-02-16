@@ -307,7 +307,7 @@ void Create_LUTV(int time256, int *LUTVB, int *LUTVF) {
 
 #define RealFlowInter(PixelType) \
 static void RealFlowInter_##PixelType(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch, \
-                   uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF, \
+                   const uint8_t *VXFullB, const uint8_t *VXFullF, const uint8_t *VYFullB, const uint8_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF, \
                    int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int *LUTVF) { \
     const PixelType *prefB = (const PixelType *)prefB8; \
     const PixelType *prefF = (const PixelType *)prefF8; \
@@ -399,7 +399,7 @@ RealFlowInter(uint16_t)
 
 
 void FlowInter(uint8_t *pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
-               uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,
+               const uint8_t *VXFullB, const uint8_t *VXFullF, const uint8_t *VYFullB, const uint8_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
                int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int *LUTVF, int bitsPerSample) {
     if (bitsPerSample == 8)
         RealFlowInter_uint8_t(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, LUTVB, LUTVF);
@@ -441,9 +441,9 @@ static inline int Median3r(int a, int b, int c) {
 
 #define RealFlowInterExtra(PixelType) \
 static void RealFlowInterExtra_##PixelType(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch, \
-                        uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF, \
+                        const uint8_t *VXFullB, const uint8_t *VXFullF, const uint8_t *VYFullB, const uint8_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF, \
                         int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int *LUTVF, \
-                        uint8_t *VXFullBB, uint8_t *VXFullFF, uint8_t *VYFullBB, uint8_t *VYFullFF) { \
+                        const uint8_t *VXFullBB, const uint8_t *VXFullFF, const uint8_t *VYFullBB, const uint8_t *VYFullFF) { \
     const PixelType *prefB = (const PixelType *)prefB8; \
     const PixelType *prefF = (const PixelType *)prefF8; \
     PixelType *pdst = (PixelType *)pdst8; \
@@ -603,9 +603,9 @@ RealFlowInterExtra(uint16_t)
 
 
 void FlowInterExtra(uint8_t *pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
-                    uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,
+                    const uint8_t *VXFullB, const uint8_t *VXFullF, const uint8_t *VYFullB, const uint8_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
                     int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int *LUTVF,
-                    uint8_t *VXFullBB, uint8_t *VXFullFF, uint8_t *VYFullBB, uint8_t *VYFullFF, int bitsPerSample) {
+                    const uint8_t *VXFullBB, const uint8_t *VXFullFF, const uint8_t *VYFullBB, const uint8_t *VYFullFF, int bitsPerSample) {
     if (bitsPerSample == 8)
         RealFlowInterExtra_uint8_t(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, LUTVB, LUTVF, VXFullBB, VXFullFF, VYFullBB, VYFullFF);
     else
@@ -615,8 +615,8 @@ void FlowInterExtra(uint8_t *pdst, int dst_pitch, const uint8_t *prefB, const ui
 
 #define RealFlowInterSimple(PixelType) \
 static void RealFlowInterSimple_##PixelType(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch, \
-                         uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF, \
-                         int VPitch, int width, int height, int time256, int nPel, int *LUTVB, int *LUTVF) { \
+                         const uint8_t *VXFullB, const uint8_t *VXFullF, const uint8_t *VYFullB, const uint8_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF, \
+                         int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int *LUTVF) { \
     const PixelType *prefB = (const PixelType *)prefB8; \
     const PixelType *prefF = (const PixelType *)prefF8; \
     PixelType *pdst = (PixelType *)pdst8; \
@@ -780,8 +780,8 @@ RealFlowInterSimple(uint16_t)
 
 
 void FlowInterSimple(uint8_t *pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
-                     uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,
-                     int VPitch, int width, int height, int time256, int nPel, int *LUTVB, int *LUTVF, int bitsPerSample) {
+                     const uint8_t *VXFullB, const uint8_t *VXFullF, const uint8_t *VYFullB, const uint8_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
+                     int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int *LUTVF, int bitsPerSample) {
     if (bitsPerSample == 8)
         RealFlowInterSimple_uint8_t(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, LUTVB, LUTVF);
     else

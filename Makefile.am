@@ -31,6 +31,7 @@ libmvtools_la_SOURCES =	src/CopyCode.c \
 						src/MVFinest.c \
 						src/MVFlowBlur.c \
 						src/MVFlowFPS.c \
+						src/MVFlowFPSHelper.c \
 						src/MVFlowInter.c \
 						src/MVFrame.c \
 						src/MVMask.c \

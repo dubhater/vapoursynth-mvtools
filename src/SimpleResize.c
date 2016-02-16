@@ -71,7 +71,7 @@ void simpleDeinit(SimpleResize *simple) {
 
 
 // Thread-safe.
-void simpleResize(SimpleResize *simple, uint8_t *dstp, int dst_stride, const uint8_t *srcp, int src_stride) {
+void simpleResize(const SimpleResize *simple, uint8_t *dstp, int dst_stride, const uint8_t *srcp, int src_stride) {
     const uint8_t *srcp1;
     const uint8_t *srcp2;
 
