@@ -34,7 +34,7 @@ static inline void ByteOccMask(uint8_t *occMask, int occlusion, double occnorm, 
 }
 
 void MakeVectorOcclusionMaskTime(const FakeGroupOfPlanes *fgop, int nBlkX, int nBlkY, double dMaskNormFactor, double fGamma, int nPel, uint8_t *occMask, int occMaskPitch, int time256, int blkSizeX, int blkSizeY) { // analyse vectors field to detect occlusion
-    memset(occMask, 0, nBlkX * nBlkY);
+    memset(occMask, 0, occMaskPitch * nBlkY);
     int time4096X = time256 * 16 / blkSizeX;
     int time4096Y = time256 * 16 / blkSizeY;
     double occnorm = 10 / dMaskNormFactor / nPel;
