@@ -47,18 +47,15 @@ typedef struct VECTOR {
 
 /*! \brief Search type : defines the algorithm used for minimizing the SAD */
 typedef enum SearchType {
-    ONETIME = 1,
-    NSTEP = 2,
-    LOGARITHMIC = 4,
-    EXHAUSTIVE = 8,
-    HEX2SEARCH = 16, // v.2
-    UMHSEARCH = 32,  // v.2
-    HSEARCH = 64,    // v.2.5.11
-    VSEARCH = 128    // v.2.5.11
+    SearchOnetime               = (1 << 0),
+    SearchNstep                 = (1 << 1),
+    SearchLogarithmic           = (1 << 2),
+    SearchExhaustive            = (1 << 3),
+    SearchHex2                  = (1 << 4),
+    SearchUnevenMultiHexagon    = (1 << 5),
+    SearchHorizontal            = (1 << 6),
+    SearchVertical              = (1 << 7)
 } SearchType;
-
-#define MAX(a, b) (((a) < (b)) ? (b) : (a))
-#define MIN(a, b) (((a) > (b)) ? (b) : (a))
 
 
 #define MOTION_USE_ISSE             0x00000001

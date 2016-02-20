@@ -71,8 +71,8 @@ void gopDeinit(GroupOfPlanes *gop) {
 void gopSearchMVs(GroupOfPlanes *gop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
                   SearchType searchType, int nSearchParam, int nPelSearch, int nLambda,
                   int lsad, int pnew, int plevel, int global,
-                  int *out, short *outfilebuf, int fieldShift, DCTFFTW *_DCT,
-                  int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int *vecPrev, int tryMany,
+                  int *out, int fieldShift, DCTFFTW *DCT,
+                  int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int tryMany,
                   SearchType coarseSearchType) {
     int i;
 
@@ -83,8 +83,6 @@ void gopSearchMVs(GroupOfPlanes *gop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames 
     out[1] = 1;
 
     out += 2;
-    if (vecPrev)
-        vecPrev += 2;
 
     int fieldShiftCur = (gop->nLevelCount - 1 == 0) ? fieldShift : 0; // may be non zero for finest level only
 
@@ -99,23 +97,21 @@ void gopSearchMVs(GroupOfPlanes *gop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames 
     int meanLumaChange = 0;
 
     // Search the motion vectors, for the low details interpolations first
-    SearchType searchTypeSmallest = (gop->nLevelCount == 1 || searchType == HSEARCH || searchType == VSEARCH) ? searchType : coarseSearchType; // full search for smallest coarse plane
+    SearchType searchTypeSmallest = (gop->nLevelCount == 1 || searchType == SearchHorizontal || searchType == SearchVertical) ? searchType : coarseSearchType; // full search for smallest coarse plane
     int nSearchParamSmallest = (gop->nLevelCount == 1) ? nPelSearch : nSearchParam;
     int tryManyLevel = tryMany && gop->nLevelCount > 1;
     pobSearchMVs(gop->planes[gop->nLevelCount - 1],
                  pSrcGOF->frames[gop->nLevelCount - 1],
                  pRefGOF->frames[gop->nLevelCount - 1],
                  searchTypeSmallest, nSearchParamSmallest, nLambda, lsad, pnew, plevel,
-                 out, &globalMV, outfilebuf, fieldShiftCur, _DCT, &meanLumaChange, gop->divideExtra,
-                 pzero, pglobal, badSAD, badrange, meander, vecPrev, tryManyLevel);
+                 out, &globalMV, fieldShiftCur, DCT, &meanLumaChange,
+                 pzero, pglobal, badSAD, badrange, meander, tryManyLevel);
     // Refining the search until we reach the highest detail interpolation.
 
     out += pobGetArraySize(gop->planes[gop->nLevelCount - 1], gop->divideExtra);
-    if (vecPrev)
-        vecPrev += pobGetArraySize(gop->planes[gop->nLevelCount - 1], gop->divideExtra);
 
     for (i = gop->nLevelCount - 2; i >= 0; i--) {
-        SearchType searchTypeLevel = (i == 0 || searchType == HSEARCH || searchType == VSEARCH) ? searchType : coarseSearchType; // full search for coarse planes
+        SearchType searchTypeLevel = (i == 0 || searchType == SearchHorizontal || searchType == SearchVertical) ? searchType : coarseSearchType; // full search for coarse planes
         int nSearchParamLevel = (i == 0) ? nPelSearch : nSearchParam;                                                            // special case for finest level
         if (global) {
             pobEstimateGlobalMVDoubled(gop->planes[i + 1], &globalMV); // get updated global MV (doubled)
@@ -125,11 +121,9 @@ void gopSearchMVs(GroupOfPlanes *gop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames 
         tryManyLevel = tryMany && i > 0;           // not for finest level to not decrease speed
         pobSearchMVs(gop->planes[i], pSrcGOF->frames[i], pRefGOF->frames[i],
                      searchTypeLevel, nSearchParamLevel, nLambda, lsad, pnew, plevel,
-                     out, &globalMV, outfilebuf, fieldShiftCur, _DCT, &meanLumaChange, gop->divideExtra,
-                     pzero, pglobal, badSAD, badrange, meander, vecPrev, tryManyLevel);
+                     out, &globalMV, fieldShiftCur, DCT, &meanLumaChange,
+                     pzero, pglobal, badSAD, badrange, meander, tryManyLevel);
         out += pobGetArraySize(gop->planes[i], gop->divideExtra);
-        if (vecPrev)
-            vecPrev += pobGetArraySize(gop->planes[i], gop->divideExtra);
     }
 }
 
@@ -137,7 +131,7 @@ void gopSearchMVs(GroupOfPlanes *gop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames 
 void gopRecalculateMVs(GroupOfPlanes *gop, FakeGroupOfPlanes *fgop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
                        SearchType searchType, int nSearchParam, int nLambda,
                        int pnew,
-                       int *out, short *outfilebuf, int fieldShift, int thSAD, DCTFFTW *_DCT, int smooth, int meander) {
+                       int *out, int fieldShift, int thSAD, DCTFFTW *DCT, int smooth, int meander) {
     // write group's size
     out[0] = gopGetArraySize(gop);
 
@@ -150,7 +144,7 @@ void gopRecalculateMVs(GroupOfPlanes *gop, FakeGroupOfPlanes *fgop, MVGroupOfFra
     // Refining the search until we reach the highest detail interpolation.
     pobRecalculateMVs(gop->planes[0], fgop, pSrcGOF->frames[0], pRefGOF->frames[0],
                       searchType, nSearchParam, nLambda, pnew,
-                      out, outfilebuf, fieldShift, thSAD, _DCT, gop->divideExtra, smooth, meander);
+                      out, fieldShift, thSAD, DCT, smooth, meander);
 
     out += pobGetArraySize(gop->planes[0], gop->divideExtra);
 }

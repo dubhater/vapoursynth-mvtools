@@ -229,7 +229,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             }
 
 
-            gopSearchMVs(&vectorFields, &pSrcGOF, &pRefGOF, d->searchType, d->nSearchParam, d->nPelSearch, d->nLambda, d->lsad, d->pnew, d->plevel, d->global, (int *)pDst, NULL, fieldShift, DCTc, d->pzero, d->pglobal, d->badSAD, d->badrange, d->meander, NULL, d->tryMany, d->searchTypeCoarse);
+            gopSearchMVs(&vectorFields, &pSrcGOF, &pRefGOF, d->searchType, d->nSearchParam, d->nPelSearch, d->nLambda, d->lsad, d->pnew, d->plevel, d->global, (int *)pDst, fieldShift, DCTc, d->pzero, d->pglobal, d->badSAD, d->badrange, d->meander, d->tryMany, d->searchTypeCoarse);
 
             if (d->divideExtra) {
                 // make extra level with divided sublocks with median (not estimated) motion
@@ -287,11 +287,11 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     d.search = int64ToIntS(vsapi->propGetInt(in, "search", 0, &err));
     if (err)
-        d.search = 4;
+        d.search = 4; // hex2
 
     d.search_coarse = int64ToIntS(vsapi->propGetInt(in, "search_coarse", 0, &err));
     if (err)
-        d.search_coarse = 3;
+        d.search_coarse = 3; // exhaustive
 
     d.searchparam = int64ToIntS(vsapi->propGetInt(in, "searchparam", 0, &err));
     if (err)
@@ -458,11 +458,20 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.analysisData.isBackward = d.isb;
 
 
-    SearchType searchTypes[] = { ONETIME, NSTEP, LOGARITHMIC, EXHAUSTIVE, HEX2SEARCH, UMHSEARCH, HSEARCH, VSEARCH };
+    SearchType searchTypes[] = {
+        SearchOnetime,
+        SearchNstep,
+        SearchLogarithmic,
+        SearchExhaustive,
+        SearchHex2,
+        SearchUnevenMultiHexagon,
+        SearchHorizontal,
+        SearchVertical
+    };
     d.searchType = searchTypes[d.search];
     d.searchTypeCoarse = searchTypes[d.search_coarse];
 
-    if (d.searchType == NSTEP)
+    if (d.searchType == SearchNstep)
         d.nSearchParam = (d.searchparam < 0) ? 0 : d.searchparam;
     else
         d.nSearchParam = (d.searchparam < 1) ? 1 : d.searchparam;

@@ -30,12 +30,6 @@
 
 #define MAX_PREDICTOR 20 // right now 5 should be enough (TSchniede)
 
-#define ALIGN_PLANES 64 // all luma/chroma planes of all frames will have the effective frame area
-// aligned to this (source plane can be accessed with aligned loads, 64 required for effective use of x264 sad on Core2) 1.9.5
-#define ALIGN_SOURCEBLOCK 16 // ALIGN_PLANES aligns the sourceblock UNLESS overlap != 0 OR special case: MMX function AND Block=16, Overlap = 8
-// ALIGN_SOURCEBLOCK creates aligned copy of Source block
-//this options make things usually slower
-#define ALLOW_DCT // complex check in lumaSAD & DCT code in SearchMV / PseudoEPZ
 //#define    ONLY_CHECK_NONDEFAULT_MV // make the check if it is no default reference (zero, global,...)
 
 
@@ -116,7 +110,7 @@ typedef struct PlaneOfBlocks {
     int penaltyZero;       // cost penalty factor for zero vector
     int pglobal;           // cost penalty factor for global predictor
     //   int nLambdaLen; //  penalty factor (lambda) for vector length
-    int badSAD;       // SAD threshold for more wide search
+    int64_t badSAD;   // SAD threshold for more wide search
     int badrange;     // wide search radius
     int64_t planeSAD; // summary SAD of plane
     int badcount;     // number of bad blocks refined
@@ -141,10 +135,8 @@ typedef struct PlaneOfBlocks {
     int freqSize;   // size of freqArray
     int verybigSAD;
 
-#ifdef ALIGN_SOURCEBLOCK
     int nSrcPitch_temp[3];
     uint8_t *pSrc_temp[3]; //for easy WRITE access to temp block
-#endif
 } PlaneOfBlocks;
 
 
@@ -158,9 +150,9 @@ int pobGetArraySize(PlaneOfBlocks *pob, int divideMode);
 
 void pobInterpolatePrediction(PlaneOfBlocks *pob, const PlaneOfBlocks *pob2);
 
-void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFrame *_pSrcFrame, MVFrame *_pRefFrame, SearchType st, int stp, int lambda, int pnew, int *out, short *outfilebuf, int fieldShift, int thSAD, DCTFFTW *_DCT, int divideExtra, int smooth, int meander);
+void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFrame *pSrcFrame, MVFrame *pRefFrame, SearchType st, int stp, int lambda, int pnew, int *out, int fieldShift, int thSAD, DCTFFTW *DCT, int smooth, int meander);
 
-void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *_pSrcFrame, MVFrame *_pRefFrame, SearchType st, int stp, int lambda, int lsad, int pnew, int plevel, int *out, VECTOR *globalMVec, short *outfilebuf, int fieldShift, DCTFFTW *_DCT, int *pmeanLumaChange, int divideExtra, int _pzero, int _pglobal, int64_t _badSAD, int _badrange, int meander, int *vecPrev, int _tryMany);
+void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame, SearchType st, int stp, int lambda, int lsad, int pnew, int plevel, int *out, VECTOR *globalMVec, int fieldShift, DCTFFTW *DCT, int *pmeanLumaChange, int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int tryMany);
 
 int pobWriteDefaultToArray(PlaneOfBlocks *pob, int *array, int divideMode);
 

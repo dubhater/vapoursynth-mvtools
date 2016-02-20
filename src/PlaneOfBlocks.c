@@ -88,10 +88,12 @@ static inline int pobMotionDistorsion(PlaneOfBlocks *pob, int vx, int vy) {
 }
 
 
-static int pobLumaSADx(PlaneOfBlocks *pob, const uint8_t *pRef0) {
-    int sad;
-    switch (pob->dctmode) {
-    case 1: // dct SAD
+static int pobLumaSAD(PlaneOfBlocks *pob, const uint8_t *pRef0) {
+    int sad = 0;
+
+    if (pob->dctmode == 0) {
+        sad = pob->SAD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]);
+    } else if (pob->dctmode == 1) { // dct SAD
         dctBytes2D(pob->DCT, pRef0, pob->nRefPitch[0], pob->dctRef, pob->dctpitch);
         if (pob->bytesPerSample == 1)
             sad = (pob->SAD(pob->dctSrc, pob->dctpitch, pob->dctRef, pob->dctpitch) + abs(pob->dctSrc[0] - pob->dctRef[0]) * 3) * pob->nBlkSizeX / 2; //correct reduced DC component
@@ -101,8 +103,7 @@ static int pobLumaSADx(PlaneOfBlocks *pob, const uint8_t *pRef0) {
 
             sad = (pob->SAD(pob->dctSrc, pob->dctpitch, pob->dctRef, pob->dctpitch) + abs(dctSrc16[0] - dctRef16[0]) * 3) * pob->nBlkSizeX / 2; //correct reduced DC component
         }
-        break;
-    case 2: //  globally (lumaChange) weighted spatial and DCT
+    } else if (pob->dctmode == 2) { //  globally (lumaChange) weighted spatial and DCT
         sad = pob->SAD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]);
         if (pob->dctweight16 > 0) {
             dctBytes2D(pob->DCT, pRef0, pob->nRefPitch[0], pob->dctRef, pob->dctpitch);
@@ -117,8 +118,7 @@ static int pobLumaSADx(PlaneOfBlocks *pob, const uint8_t *pRef0) {
             }
             sad = (sad * (16 - pob->dctweight16) + dctsad * pob->dctweight16) / 16;
         }
-        break;
-    case 3: // per block adaptive switched from spatial to equal mixed SAD (faster)
+    } else if (pob->dctmode == 3) { // per block adaptive switched from spatial to equal mixed SAD (faster)
         pob->refLuma = pob->LUMA(pRef0, pob->nRefPitch[0]);
         sad = pob->SAD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]);
         if (abs(pob->srcLuma - pob->refLuma) > (pob->srcLuma + pob->refLuma) >> 5) {
@@ -126,8 +126,7 @@ static int pobLumaSADx(PlaneOfBlocks *pob, const uint8_t *pRef0) {
             int dctsad = pob->SAD(pob->dctSrc, pob->dctpitch, pob->dctRef, pob->dctpitch) * pob->nBlkSizeX / 2;
             sad = sad / 2 + dctsad / 2;
         }
-        break;
-    case 4: //  per block adaptive switched from spatial to mixed SAD with more weight of DCT (best?)
+    } else if (pob->dctmode == 4) { //  per block adaptive switched from spatial to mixed SAD with more weight of DCT (best?)
         pob->refLuma = pob->LUMA(pRef0, pob->nRefPitch[0]);
         sad = pob->SAD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]);
         if (abs(pob->srcLuma - pob->refLuma) > (pob->srcLuma + pob->refLuma) >> 5) {
@@ -135,63 +134,45 @@ static int pobLumaSADx(PlaneOfBlocks *pob, const uint8_t *pRef0) {
             int dctsad = pob->SAD(pob->dctSrc, pob->dctpitch, pob->dctRef, pob->dctpitch) * pob->nBlkSizeX / 2;
             sad = sad / 4 + dctsad / 2 + dctsad / 4;
         }
-        break;
-    case 5: // dct SAD (SATD)
+    } else if (pob->dctmode == 5) { // dct SAD (SATD)
         sad = pob->SATD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]);
-        break;
-    case 6: //  globally (lumaChange) weighted spatial and DCT (better estimate)
+    } else if (pob->dctmode == 6) { //  globally (lumaChange) weighted spatial and DCT (better estimate)
         sad = pob->SAD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]);
         if (pob->dctweight16 > 0) {
             int dctsad = pob->SATD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]);
             sad = (sad * (16 - pob->dctweight16) + dctsad * pob->dctweight16) / 16;
         }
-        break;
-    case 7: // per block adaptive switched from spatial to equal mixed SAD (faster?)
+    } else if (pob->dctmode == 7) { // per block adaptive switched from spatial to equal mixed SAD (faster?)
         pob->refLuma = pob->LUMA(pRef0, pob->nRefPitch[0]);
         sad = pob->SAD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]);
         if (abs(pob->srcLuma - pob->refLuma) > (pob->srcLuma + pob->refLuma) >> 5) {
             int dctsad = pob->SATD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]);
             sad = sad / 2 + dctsad / 2;
         }
-        break;
-    case 8: //  per block adaptive switched from spatial to mixed SAD with more weight of DCT (faster?)
+    } else if (pob->dctmode == 8) { //  per block adaptive switched from spatial to mixed SAD with more weight of DCT (faster?)
         pob->refLuma = pob->LUMA(pRef0, pob->nRefPitch[0]);
         sad = pob->SAD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]);
         if (abs(pob->srcLuma - pob->refLuma) > (pob->srcLuma + pob->refLuma) >> 5) {
             int dctsad = pob->SATD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]);
             sad = sad / 4 + dctsad / 2 + dctsad / 4;
         }
-        break;
-    case 9: //  globally (lumaChange) weighted spatial and DCT (better estimate, only half weight on SATD)
+    } else if (pob->dctmode == 9) { //  globally (lumaChange) weighted spatial and DCT (better estimate, only half weight on SATD)
         sad = pob->SAD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]);
         if (pob->dctweight16 > 1) {
             int dctweighthalf = pob->dctweight16 / 2;
             int dctsad = pob->SATD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]);
             sad = (sad * (16 - dctweighthalf) + dctsad * dctweighthalf) / 16;
         }
-        break;
-    case 10: // per block adaptive switched from spatial to mixed SAD, weighted to SAD (faster)
+    } else if (pob->dctmode == 10) { // per block adaptive switched from spatial to mixed SAD, weighted to SAD (faster)
         pob->refLuma = pob->LUMA(pRef0, pob->nRefPitch[0]);
         sad = pob->SAD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]);
         if (abs(pob->srcLuma - pob->refLuma) > (pob->srcLuma + pob->refLuma) >> 4) {
             int dctsad = pob->SATD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]);
             sad = sad / 2 + dctsad / 4 + sad / 4;
         }
-        break;
-    default:
-        sad = pob->SAD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]);
     }
+
     return sad;
-}
-
-
-static inline int pobLumaSAD(PlaneOfBlocks *pob, const uint8_t *pRef0) {
-#ifdef ALLOW_DCT
-    // made simple SAD more prominent (~1% faster) while keeping DCT support (TSchniede)
-    return !pob->dctmode ? pob->SAD(pob->pSrc[0], pob->nSrcPitch[0], pRef0, pob->nRefPitch[0]) : pobLumaSADx(pob, pRef0);
-#else
-    return SAD(pSrc[0], nSrcPitch[0], pRef0, nRefPitch[0]);
-#endif
 }
 
 
@@ -222,10 +203,15 @@ static inline void pobCheckMV0(PlaneOfBlocks *pob, int vx, int vy) { //here the 
         if (cost >= pob->nMinCost)
             return;
 
-        int saduv = (pob->chroma) ? pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, vx, vy), pob->nRefPitch[1]) + pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, vx, vy), pob->nRefPitch[2]) : 0;
-        cost += saduv;
-        if (cost >= pob->nMinCost)
-            return;
+        int saduv = 0;
+        if (pob->chroma) {
+            saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, vx, vy), pob->nRefPitch[1]);
+            saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, vx, vy), pob->nRefPitch[2]);
+
+            cost += saduv;
+            if (cost >= pob->nMinCost)
+                return;
+        }
 
         pob->bestMV.x = vx;
         pob->bestMV.y = vy;
@@ -253,10 +239,15 @@ static inline void pobCheckMV(PlaneOfBlocks *pob, int vx, int vy) { //here the c
         if (cost >= pob->nMinCost)
             return;
 
-        int saduv = (pob->chroma) ? pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, vx, vy), pob->nRefPitch[1]) + pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, vx, vy), pob->nRefPitch[2]) : 0;
-        cost += saduv + ((pob->penaltyNew * saduv) >> 8);
-        if (cost >= pob->nMinCost)
-            return;
+        int saduv = 0;
+        if (pob->chroma) {
+            saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, vx, vy), pob->nRefPitch[1]);
+            saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, vx, vy), pob->nRefPitch[2]);
+
+            cost += saduv + ((pob->penaltyNew * saduv) >> 8);
+            if (cost >= pob->nMinCost)
+                return;
+        }
 
         pob->bestMV.x = vx;
         pob->bestMV.y = vy;
@@ -284,10 +275,15 @@ static inline void pobCheckMV2(PlaneOfBlocks *pob, int vx, int vy, int *dir, int
         if (cost >= pob->nMinCost)
             return;
 
-        int saduv = (pob->chroma) ? pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, vx, vy), pob->nRefPitch[1]) + pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, vx, vy), pob->nRefPitch[2]) : 0;
-        cost += saduv + ((pob->penaltyNew * saduv) >> 8);
-        if (cost >= pob->nMinCost)
-            return;
+        int saduv = 0;
+        if (pob->chroma) {
+            saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, vx, vy), pob->nRefPitch[1]);
+            saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, vx, vy), pob->nRefPitch[2]);
+
+            cost += saduv + ((pob->penaltyNew * saduv) >> 8);
+            if (cost >= pob->nMinCost)
+                return;
+        }
 
         pob->bestMV.x = vx;
         pob->bestMV.y = vy;
@@ -316,10 +312,15 @@ static inline void pobCheckMVdir(PlaneOfBlocks *pob, int vx, int vy, int *dir, i
         if (cost >= pob->nMinCost)
             return;
 
-        int saduv = (pob->chroma) ? pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, vx, vy), pob->nRefPitch[1]) + pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, vx, vy), pob->nRefPitch[2]) : 0;
-        cost += saduv + ((pob->penaltyNew * saduv) >> 8);
-        if (cost >= pob->nMinCost)
-            return;
+        int saduv = 0;
+        if (pob->chroma) {
+            saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, vx, vy), pob->nRefPitch[1]);
+            saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, vx, vy), pob->nRefPitch[2]);
+
+            cost += saduv + ((pob->penaltyNew * saduv) >> 8);
+            if (cost >= pob->nMinCost)
+                return;
+        }
 
         pob->nMinCost = cost;
         pob->bestMV.sad = sad + saduv;
@@ -656,7 +657,10 @@ void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nB
 
 
     pob->dctpitch = max(pob->nBlkSizeX, 16) * pob->bytesPerSample;
-#ifdef ALIGN_SOURCEBLOCK
+
+    // 64 required for effective use of x264 sad on Core2
+#define ALIGN_PLANES 64
+
     VS_ALIGNED_MALLOC(&pob->dctSrc, pob->nBlkSizeY * pob->dctpitch, ALIGN_PLANES);
     VS_ALIGNED_MALLOC(&pob->dctRef, pob->nBlkSizeY * pob->dctpitch, ALIGN_PLANES);
 
@@ -667,10 +671,8 @@ void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nB
     VS_ALIGNED_MALLOC(&pob->pSrc_temp[0], pob->nBlkSizeY * pob->nSrcPitch_temp[0], ALIGN_PLANES);
     VS_ALIGNED_MALLOC(&pob->pSrc_temp[1], pob->nBlkSizeY / pob->yRatioUV * pob->nSrcPitch_temp[1], ALIGN_PLANES);
     VS_ALIGNED_MALLOC(&pob->pSrc_temp[2], pob->nBlkSizeY / pob->yRatioUV * pob->nSrcPitch_temp[2], ALIGN_PLANES);
-#else
-    dctSrc = (uint8_t *)malloc(nBlkSizeY * dctpitch);
-    dctRef = (uint8_t *)malloc(nBlkSizeY * dctpitch);
-#endif
+
+#undef ALIGN_PLANES
 
     pob->freqSize = 8192 * pob->nPel * 2; // half must be more than max vector length, which is (framewidth + Padding) * nPel
     pob->freqArray = (int *)malloc(pob->freqSize * sizeof(int));
@@ -683,17 +685,12 @@ void pobDeinit(PlaneOfBlocks *pob) {
     free(pob->vectors);
     free(pob->freqArray);
 
-#ifdef ALIGN_SOURCEBLOCK
     VS_ALIGNED_FREE(pob->dctSrc);
     VS_ALIGNED_FREE(pob->dctRef);
 
     VS_ALIGNED_FREE(pob->pSrc_temp[0]);
     VS_ALIGNED_FREE(pob->pSrc_temp[1]);
     VS_ALIGNED_FREE(pob->pSrc_temp[2]);
-#else
-    free(dctSrc);
-    free(dctRef);
-#endif
 }
 
 
@@ -1051,31 +1048,31 @@ void pobUMHSearch(PlaneOfBlocks *pob, int i_me_range, int omx, int omy) { // rad
 
 void pobRefine(PlaneOfBlocks *pob) {
     // then, we refine, according to the search type
-    if (pob->searchType & ONETIME)
+    if (pob->searchType & SearchOnetime)
         for (int i = pob->nSearchParam; i > 0; i /= 2)
             pobOneTimeSearch(pob, i);
 
-    if (pob->searchType & NSTEP)
+    if (pob->searchType & SearchNstep)
         pobNStepSearch(pob, pob->nSearchParam);
 
-    if (pob->searchType & LOGARITHMIC)
+    if (pob->searchType & SearchLogarithmic)
         for (int i = pob->nSearchParam; i > 0; i /= 2)
             pobDiamondSearch(pob, i);
 
-    if (pob->searchType & EXHAUSTIVE) {
+    if (pob->searchType & SearchExhaustive) {
         int mvx = pob->bestMV.x;
         int mvy = pob->bestMV.y;
         for (int i = 1; i <= pob->nSearchParam; i++) // region is same as enhausted, but ordered by radius (from near to far)
             pobExpandingSearch(pob, i, 1, mvx, mvy);
     }
 
-    if (pob->searchType & HEX2SEARCH)
+    if (pob->searchType & SearchHex2)
         pobHex2Search(pob, pob->nSearchParam);
 
-    if (pob->searchType & UMHSEARCH)
+    if (pob->searchType & SearchUnevenMultiHexagon)
         pobUMHSearch(pob, pob->nSearchParam, pob->bestMV.x, pob->bestMV.y);
 
-    if (pob->searchType & HSEARCH) {
+    if (pob->searchType & SearchHorizontal) {
         int mvx = pob->bestMV.x;
         int mvy = pob->bestMV.y;
         for (int i = 1; i <= pob->nSearchParam; i++) {
@@ -1084,7 +1081,7 @@ void pobRefine(PlaneOfBlocks *pob) {
         }
     }
 
-    if (pob->searchType & VSEARCH) {
+    if (pob->searchType & SearchVertical) {
         int mvx = pob->bestMV.x;
         int mvy = pob->bestMV.y;
         for (int i = 1; i <= pob->nSearchParam; i++) {
@@ -1100,8 +1097,7 @@ void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
     pobFetchPredictors(pob);
 
     int sad;
-    int saduv;
-#ifdef ALLOW_DCT
+
     if (pob->dctmode != 0) { // DCT method (luma only - currently use normal spatial SAD chroma)
         // make dct of source block
         if (pob->dctmode <= 4) //don't do the slow dct conversion if SATD used
@@ -1109,15 +1105,16 @@ void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
     }
     if (pob->dctmode >= 3) // most use it and it should be fast anyway //if (dctmode == 3 || dctmode == 4) // check it
         pob->srcLuma = pob->LUMA(pob->pSrc[0], pob->nSrcPitch[0]);
-#endif
 
     // We treat zero alone
     // Do we bias zero with not taking into account distorsion ?
     pob->bestMV.x = pob->zeroMVfieldShifted.x;
     pob->bestMV.y = pob->zeroMVfieldShifted.y;
-    saduv = (pob->chroma) ? pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, 0, 0), pob->nRefPitch[1]) + pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, 0, 0), pob->nRefPitch[2]) : 0;
     sad = pobLumaSAD(pob, pobGetRefBlock(pob, 0, pob->zeroMVfieldShifted.y));
-    sad += saduv;
+    if (pob->chroma) {
+        sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, 0, 0), pob->nRefPitch[1]);
+        sad += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, 0, 0), pob->nRefPitch[2]);
+    }
     pob->bestMV.sad = sad;
     pob->nMinCost = sad + ((pob->penaltyZero * sad) >> 8); // v.1.11.0.2
 
@@ -1133,9 +1130,11 @@ void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
 
     // Global MV predictor  - added by Fizick
     pob->globalMVPredictor = pobClipMV(pob, pob->globalMVPredictor);
-    saduv = (pob->chroma) ? pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y), pob->nRefPitch[1]) + pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y), pob->nRefPitch[2]) : 0;
     sad = pobLumaSAD(pob, pobGetRefBlock(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y));
-    sad += saduv;
+    if (pob->chroma) {
+        sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y), pob->nRefPitch[1]);
+        sad += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y), pob->nRefPitch[2]);
+    }
     int cost = sad + ((pob->pglobal * sad) >> 8);
 
     if (cost < pob->nMinCost || pob->tryMany) {
@@ -1150,9 +1149,11 @@ void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
         bestMVMany[1] = pob->bestMV; // save bestMV
         nMinCostMany[1] = pob->nMinCost;
     }
-    saduv = (pob->chroma) ? pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, pob->predictor.x, pob->predictor.y), pob->nRefPitch[1]) + pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, pob->predictor.x, pob->predictor.y), pob->nRefPitch[2]) : 0;
     sad = pobLumaSAD(pob, pobGetRefBlock(pob, pob->predictor.x, pob->predictor.y));
-    sad += saduv;
+    if (pob->chroma) {
+        sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, pob->predictor.x, pob->predictor.y), pob->nRefPitch[1]);
+        sad += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, pob->predictor.x, pob->predictor.y), pob->nRefPitch[2]);
+    }
     cost = sad;
 
     if (cost < pob->nMinCost || pob->tryMany) {
@@ -1169,7 +1170,7 @@ void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
     }
 
     // then all the other predictors
-    int npred = (pob->temporal) ? 5 : 4;
+    int npred = 4;
 
     for (int i = 0; i < npred; i++) {
         if (pob->tryMany)
@@ -1234,21 +1235,19 @@ void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
 }
 
 
-void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
-                              SearchType st, int stp, int lambda, int lsad, int pnew,
-                              int plevel, int *out, VECTOR *globalMVec,
-                              short *outfilebuf, int fieldShift, DCTFFTW *_DCT, int *pmeanLumaChange,
-                              int divideExtra, int _pzero, int _pglobal, int64_t _badSAD, int _badrange, int meander, int *vecPrev, int _tryMany) {
-    pob->DCT = _DCT;
-#ifdef ALLOW_DCT
+void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame,
+                  SearchType st, int stp, int lambda, int lsad, int pnew,
+                  int plevel, int *out, VECTOR *globalMVec,
+                  int fieldShift, DCTFFTW *DCT, int *pmeanLumaChange,
+                  int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int tryMany) {
+    pob->DCT = DCT;
     if (pob->DCT == 0)
         pob->dctmode = 0;
     else
         pob->dctmode = pob->DCT->dctmode;
     pob->dctweight16 = min(16, abs(*pmeanLumaChange) / (pob->nBlkSizeX * pob->nBlkSizeY)); //equal dct and spatial weights for meanLumaChange=8 (empirical)
-#endif
-    pob->badSAD = _badSAD;
-    pob->badrange = _badrange;
+    pob->badSAD = badSAD;
+    pob->badrange = badrange;
     pob->zeroMVfieldShifted.x = 0;
     pob->zeroMVfieldShifted.y = fieldShift;
     pob->zeroMVfieldShifted.sad = 0;
@@ -1260,12 +1259,9 @@ void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
     pobWriteHeaderToArray(pob, out);
 
     int *pBlkData = out + 1;
-    pob->temporal = !!vecPrev;
-    if (vecPrev)
-        vecPrev += 1; // same as BlkData
 
-    pob->pSrcFrame = _pSrcFrame;
-    pob->pRefFrame = _pRefFrame;
+    pob->pSrcFrame = pSrcFrame;
+    pob->pRefFrame = pRefFrame;
 
 
     pob->y[0] = pob->pSrcFrame->planes[0]->nVPadding;
@@ -1298,11 +1294,11 @@ void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
     else if (plevel == 2)
         nLambdaLevel = nLambdaLevel * pob->nScale * pob->nScale;
 
-    pob->penaltyZero = _pzero;
-    pob->pglobal = _pglobal;
+    pob->penaltyZero = pzero;
+    pob->pglobal = pglobal;
     pob->planeSAD = 0;
     pob->badcount = 0;
-    pob->tryMany = _tryMany;
+    pob->tryMany = tryMany;
     // Functions using float must not be used here
 
     for (pob->blky = 0; pob->blky < pob->nBlkY; pob->blky++) {
@@ -1332,7 +1328,7 @@ void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
                 pob->pSrc[1] = mvpGetAbsolutePelPointer(pob->pSrcFrame->planes[1], pob->x[1], pob->y[1]);
                 pob->pSrc[2] = mvpGetAbsolutePelPointer(pob->pSrcFrame->planes[2], pob->x[2], pob->y[2]);
             }
-#ifdef ALIGN_SOURCEBLOCK
+
             pob->nSrcPitch[0] = pob->pSrcFrame->planes[0]->nPitch;
             //create aligned copy
             pob->BLITLUMA(pob->pSrc_temp[0], pob->nSrcPitch_temp[0], pob->pSrc[0], pob->nSrcPitch[0]);
@@ -1349,7 +1345,6 @@ void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
                 pob->nSrcPitch[1] = pob->nSrcPitch_temp[1];
                 pob->nSrcPitch[2] = pob->nSrcPitch_temp[2];
             }
-#endif
 
             if (pob->blky == 0)
                 pob->nLambda = 0;
@@ -1371,20 +1366,9 @@ void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
 
             /* search the mv */
             pob->predictor = pobClipMV(pob, pob->vectors[pob->blkIdx]);
-            if (pob->temporal)
-                pob->predictors[4] = pobClipMV(pob, *(VECTOR *)(&vecPrev[pob->blkIdx * N_PER_BLOCK])); // temporal predictor
-            else
-                pob->predictors[4] = pobClipMV(pob, zeroMV);
+            pob->predictors[4] = pobClipMV(pob, zeroMV);
 
             pobPseudoEPZSearch(pob);
-
-            if (outfilebuf != NULL) // write vector to outfile
-            {
-                outfilebuf[pob->blkx * 4 + 0] = pob->bestMV.x;
-                outfilebuf[pob->blkx * 4 + 1] = pob->bestMV.y;
-                outfilebuf[pob->blkx * 4 + 2] = (pob->bestMV.sad & 0x0000ffff); // low word
-                outfilebuf[pob->blkx * 4 + 3] = (pob->bestMV.sad >> 16);        // high word, usually null
-            }
 
             /* write the results */
             pBlkData[pob->blkx * N_PER_BLOCK + 0] = pob->bestMV.x;
@@ -1405,8 +1389,6 @@ void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
             }
         }
         pBlkData += pob->nBlkX * N_PER_BLOCK;
-        if (outfilebuf != NULL)      // write vector to outfile
-            outfilebuf += pob->nBlkX * 4; // 4 short word per block
 
         pob->y[0] += (pob->nBlkSizeY - pob->nOverlapY);
         if (pob->pSrcFrame->nMode & UPLANE)
@@ -1419,17 +1401,15 @@ void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
 }
 
 
-void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFrame *_pSrcFrame, MVFrame *_pRefFrame,
-                                   SearchType st, int stp, int lambda, int pnew, int *out,
-                                   short *outfilebuf, int fieldShift, int thSAD, DCTFFTW *_DCT, int divideExtra, int smooth, int meander) {
-    pob->DCT = _DCT;
-#ifdef ALLOW_DCT
+void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFrame *pSrcFrame, MVFrame *pRefFrame,
+                       SearchType st, int stp, int lambda, int pnew, int *out,
+                       int fieldShift, int thSAD, DCTFFTW *DCT, int smooth, int meander) {
+    pob->DCT = DCT;
     if (pob->DCT == 0)
         pob->dctmode = 0;
     else
         pob->dctmode = pob->DCT->dctmode;
     pob->dctweight16 = 8; //min(16,abs(*pmeanLumaChange)/(nBlkSizeX*nBlkSizeY)); //equal dct and spatial weights for meanLumaChange=8 (empirical)
-#endif
     pob->zeroMVfieldShifted.x = 0;
     pob->zeroMVfieldShifted.y = fieldShift;
     pob->globalMVPredictor.x = 0;          //nPel*globalMVec->x;// there is no global
@@ -1441,8 +1421,8 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
 
     int *pBlkData = out + 1;
 
-    pob->pSrcFrame = _pSrcFrame;
-    pob->pRefFrame = _pRefFrame;
+    pob->pSrcFrame = pSrcFrame;
+    pob->pRefFrame = pRefFrame;
 
     pob->x[0] = pob->pSrcFrame->planes[0]->nHPadding;
     pob->y[0] = pob->pSrcFrame->planes[0]->nVPadding;
@@ -1510,7 +1490,7 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
                 pob->pSrc[1] = mvpGetAbsolutePelPointer(pob->pSrcFrame->planes[1], pob->x[1], pob->y[1]);
                 pob->pSrc[2] = mvpGetAbsolutePelPointer(pob->pSrcFrame->planes[2], pob->x[2], pob->y[2]);
             }
-#ifdef ALIGN_SOURCEBLOCK
+
             pob->nSrcPitch[0] = pob->pSrcFrame->planes[0]->nPitch;
             //create aligned copy
             pob->BLITLUMA(pob->pSrc_temp[0], pob->nSrcPitch_temp[0], pob->pSrc[0], pob->nSrcPitch[0]);
@@ -1527,7 +1507,6 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
                 pob->nSrcPitch[1] = pob->nSrcPitch_temp[1];
                 pob->nSrcPitch[2] = pob->nSrcPitch_temp[2];
             }
-#endif
 
             if (pob->blky == 0)
                 pob->nLambda = 0;
@@ -1601,7 +1580,6 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
             pob->bestMV.sad = pob->predictor.sad;
 
             // update SAD
-#ifdef ALLOW_DCT
             if (pob->dctmode != 0) { // DCT method (luma only - currently use normal spatial SAD chroma)
                 // make dct of source block
                 if (pob->dctmode <= 4) //don't do the slow dct conversion if SATD used
@@ -1609,41 +1587,42 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
             }
             if (pob->dctmode >= 3) // most use it and it should be fast anyway //if (dctmode == 3 || dctmode == 4) // check it
                 pob->srcLuma = pob->LUMA(pob->pSrc[0], pob->nSrcPitch[0]);
-#endif
 
-            int saduv = (pob->chroma) ? pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, pob->predictor.x, pob->predictor.y), pob->nRefPitch[1]) + pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, pob->predictor.x, pob->predictor.y), pob->nRefPitch[2]) : 0;
             int sad = pobLumaSAD(pob, pobGetRefBlock(pob, pob->predictor.x, pob->predictor.y));
-            sad += saduv;
+            if (pob->chroma) {
+                sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, pob->predictor.x, pob->predictor.y), pob->nRefPitch[1]);
+                sad += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, pob->predictor.x, pob->predictor.y), pob->nRefPitch[2]);
+            }
             pob->bestMV.sad = sad;
             pob->nMinCost = sad;
 
             if (pob->bestMV.sad > thSAD) { // if old interpolated vector is bad
                 // then, we refine, according to the search type
-                if (pob->searchType & ONETIME)
+                if (pob->searchType & SearchOnetime)
                     for (int i = pob->nSearchParam; i > 0; i /= 2)
                         pobOneTimeSearch(pob, i);
 
-                if (pob->searchType & NSTEP)
+                if (pob->searchType & SearchNstep)
                     pobNStepSearch(pob, pob->nSearchParam);
 
-                if (pob->searchType & LOGARITHMIC)
+                if (pob->searchType & SearchLogarithmic)
                     for (int i = pob->nSearchParam; i > 0; i /= 2)
                         pobDiamondSearch(pob, i);
 
-                if (pob->searchType & EXHAUSTIVE) {
+                if (pob->searchType & SearchExhaustive) {
                     int mvx = pob->bestMV.x;
                     int mvy = pob->bestMV.y;
                     for (int i = 1; i <= pob->nSearchParam; i++) // region is same as exhaustive, but ordered by radius (from near to far)
                         pobExpandingSearch(pob, i, 1, mvx, mvy);
                 }
 
-                if (pob->searchType & HEX2SEARCH)
+                if (pob->searchType & SearchHex2)
                     pobHex2Search(pob, pob->nSearchParam);
 
-                if (pob->searchType & UMHSEARCH)
+                if (pob->searchType & SearchUnevenMultiHexagon)
                     pobUMHSearch(pob, pob->nSearchParam, pob->bestMV.x, pob->bestMV.y);
 
-                if (pob->searchType & HSEARCH) {
+                if (pob->searchType & SearchHorizontal) {
                     int mvx = pob->bestMV.x;
                     int mvy = pob->bestMV.y;
                     for (int i = 1; i <= pob->nSearchParam; i++) {
@@ -1652,7 +1631,7 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
                     }
                 }
 
-                if (pob->searchType & VSEARCH) {
+                if (pob->searchType & SearchVertical) {
                     int mvx = pob->bestMV.x;
                     int mvy = pob->bestMV.y;
                     for (int i = 1; i <= pob->nSearchParam; i++) {
@@ -1667,13 +1646,6 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
             pob->vectors[pob->blkIdx].y = pob->bestMV.y;
             pob->vectors[pob->blkIdx].sad = pob->bestMV.sad;
 
-
-            if (outfilebuf != NULL) { // write vector to outfile
-                outfilebuf[pob->blkx * 4 + 0] = pob->bestMV.x;
-                outfilebuf[pob->blkx * 4 + 1] = pob->bestMV.y;
-                outfilebuf[pob->blkx * 4 + 2] = (pob->bestMV.sad & 0x0000ffff); // low word
-                outfilebuf[pob->blkx * 4 + 3] = (pob->bestMV.sad >> 16);        // high word, usually null
-            }
 
             /* write the results */
             pBlkData[pob->blkx * N_PER_BLOCK + 0] = pob->bestMV.x;
@@ -1693,8 +1665,6 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
             }
         }
         pBlkData += pob->nBlkX * N_PER_BLOCK;
-        if (outfilebuf != NULL)      // write vector to outfile
-            outfilebuf += pob->nBlkX * 4; // 4 short word per block
 
         pob->y[0] += (pob->nBlkSizeY - pob->nOverlapY);
         if (pob->pSrcFrame->nMode & UPLANE)

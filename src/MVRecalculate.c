@@ -209,7 +209,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             }
 
 
-            gopRecalculateMVs(&vectorFields, &fgop, &pSrcGOF, &pRefGOF, d->searchType, d->nSearchParam, d->nLambda, d->pnew, (int *)pDst, NULL, fieldShift, d->thSAD, DCTc, d->smooth, d->meander);
+            gopRecalculateMVs(&vectorFields, &fgop, &pSrcGOF, &pRefGOF, d->searchType, d->nSearchParam, d->nLambda, d->pnew, (int *)pDst, fieldShift, d->thSAD, DCTc, d->smooth, d->meander);
 
             if (d->divideExtra) {
                 // make extra level with divided sublocks with median (not estimated) motion
@@ -276,7 +276,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
     d.search = int64ToIntS(vsapi->propGetInt(in, "search", 0, &err));
     if (err)
-        d.search = 4;
+        d.search = 4; // hex2
 
     d.searchparam = int64ToIntS(vsapi->propGetInt(in, "searchparam", 0, &err));
     if (err)
@@ -384,10 +384,19 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     d.analysisData.nOverlapX = d.overlap;
     d.analysisData.nOverlapY = d.overlapv;
 
-    SearchType searchTypes[] = { ONETIME, NSTEP, LOGARITHMIC, EXHAUSTIVE, HEX2SEARCH, UMHSEARCH, HSEARCH, VSEARCH };
+    SearchType searchTypes[] = {
+        SearchOnetime,
+        SearchNstep,
+        SearchLogarithmic,
+        SearchExhaustive,
+        SearchHex2,
+        SearchUnevenMultiHexagon,
+        SearchHorizontal,
+        SearchVertical
+    };
     d.searchType = searchTypes[d.search];
 
-    if (d.searchType == NSTEP)
+    if (d.searchType == SearchNstep)
         d.nSearchParam = (d.searchparam < 0) ? 0 : d.searchparam;
     else
         d.nSearchParam = (d.searchparam < 1) ? 1 : d.searchparam;
