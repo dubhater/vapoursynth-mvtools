@@ -12,7 +12,6 @@
 #include "MVAnalysisData.h"
 
 
-// FIXME: Redundant members. A few can go straight in analysisData.
 typedef struct MVRecalculateData {
     VSNodeRef *node;
     const VSVideoInfo *vi;
@@ -53,14 +52,10 @@ typedef struct MVRecalculateData {
     int nSuperPel;
     int nSuperModeYUV;
 
-    int blksize;
-    int blksizev;
     int search;
     int searchparam;
     int chroma;
     int truemotion;
-    int overlap;
-    int overlapv;
     int smooth;
     int thSAD;
     VSNodeRef *vectors;
@@ -210,7 +205,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             DCTFFTW *DCTc = NULL;
             if (d->dctmode != 0) {
                 DCTc = (DCTFFTW *)malloc(sizeof(DCTFFTW));
-                dctInit(DCTc, d->blksize, d->blksizev, d->dctmode, d->supervi->format->bitsPerSample);
+                dctInit(DCTc, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->dctmode, d->supervi->format->bitsPerSample);
             }
 
 
@@ -275,13 +270,13 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     if (err)
         d.smooth = 1;
 
-    d.blksize = int64ToIntS(vsapi->propGetInt(in, "blksize", 0, &err));
+    d.analysisData.nBlkSizeX = int64ToIntS(vsapi->propGetInt(in, "blksize", 0, &err));
     if (err)
-        d.blksize = 8;
+        d.analysisData.nBlkSizeX = 8;
 
-    d.blksizev = int64ToIntS(vsapi->propGetInt(in, "blksizev", 0, &err));
+    d.analysisData.nBlkSizeY = int64ToIntS(vsapi->propGetInt(in, "blksizev", 0, &err));
     if (err)
-        d.blksizev = d.blksize;
+        d.analysisData.nBlkSizeY = d.analysisData.nBlkSizeX;
 
     d.search = int64ToIntS(vsapi->propGetInt(in, "search", 0, &err));
     if (err)
@@ -301,17 +296,17 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
     d.nLambda = int64ToIntS(vsapi->propGetInt(in, "lambda", 0, &err));
     if (err)
-        d.nLambda = d.truemotion ? (1000 * d.blksize * d.blksizev / 64) : 0;
+        d.nLambda = d.truemotion ? (1000 * d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY / 64) : 0;
 
     d.pnew = int64ToIntS(vsapi->propGetInt(in, "pnew", 0, &err));
     if (err)
         d.pnew = d.truemotion ? 50 : 0; // relative to 256
 
-    d.overlap = int64ToIntS(vsapi->propGetInt(in, "overlap", 0, &err));
+    d.analysisData.nOverlapX = int64ToIntS(vsapi->propGetInt(in, "overlap", 0, &err));
 
-    d.overlapv = int64ToIntS(vsapi->propGetInt(in, "overlapv", 0, &err));
+    d.analysisData.nOverlapY = int64ToIntS(vsapi->propGetInt(in, "overlapv", 0, &err));
     if (err)
-        d.overlapv = d.overlap;
+        d.analysisData.nOverlapY = d.analysisData.nOverlapX;
 
     d.dctmode = int64ToIntS(vsapi->propGetInt(in, "dct", 0, &err));
 
@@ -342,11 +337,11 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     }
 
     if (d.dctmode >= 5 &&
-        !((d.blksize == 4 && d.blksizev == 4) ||
-          (d.blksize == 8 && d.blksizev == 4) ||
-          (d.blksize == 8 && d.blksizev == 8) ||
-          (d.blksize == 16 && d.blksizev == 8) ||
-          (d.blksize == 16 && d.blksizev == 16))) {
+        !((d.analysisData.nBlkSizeX == 4 && d.analysisData.nBlkSizeY == 4) ||
+          (d.analysisData.nBlkSizeX == 8 && d.analysisData.nBlkSizeY == 4) ||
+          (d.analysisData.nBlkSizeX == 8 && d.analysisData.nBlkSizeY == 8) ||
+          (d.analysisData.nBlkSizeX == 16 && d.analysisData.nBlkSizeY == 8) ||
+          (d.analysisData.nBlkSizeX == 16 && d.analysisData.nBlkSizeY == 16))) {
         vsapi->setError(out, "Recalculate: dct 5..10 can only work with 4x4, 8x4, 8x8, 16x8, and 16x16 blocks.");
         return;
     }
@@ -357,8 +352,6 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     }
 
 
-    d.analysisData.nBlkSizeX = d.blksize;
-    d.analysisData.nBlkSizeY = d.blksizev;
     if ((d.analysisData.nBlkSizeX != 4 || d.analysisData.nBlkSizeY != 4) &&
         (d.analysisData.nBlkSizeX != 8 || d.analysisData.nBlkSizeY != 4) &&
         (d.analysisData.nBlkSizeX != 8 || d.analysisData.nBlkSizeY != 8) &&
@@ -379,19 +372,16 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     }
 
 
-    if (d.overlap < 0 || d.overlap > d.blksize / 2 ||
-        d.overlapv < 0 || d.overlapv > d.blksizev / 2) {
+    if (d.analysisData.nOverlapX < 0 || d.analysisData.nOverlapX > d.analysisData.nBlkSizeX / 2 ||
+        d.analysisData.nOverlapY < 0 || d.analysisData.nOverlapY > d.analysisData.nBlkSizeY / 2) {
         vsapi->setError(out, "Recalculate: overlap must be at most half of blksize, overlapv must be at most half of blksizev, and they both need to be at least 0.");
         return;
     }
 
-    if (d.divideExtra && (d.blksize < 8 && d.blksizev < 8)) {
+    if (d.divideExtra && (d.analysisData.nBlkSizeX < 8 && d.analysisData.nBlkSizeY < 8)) {
         vsapi->setError(out, "Recalculate: blksize and blksizev must be at least 8 when divide=True.");
         return;
     }
-
-    d.analysisData.nOverlapX = d.overlap;
-    d.analysisData.nOverlapY = d.overlapv;
 
     SearchType searchTypes[] = {
         SearchOnetime,
@@ -417,15 +407,15 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     d.node = vsapi->propGetNode(in, "super", 0, 0);
     d.supervi = vsapi->getVideoInfo(d.node);
 
-    if (d.overlap % (1 << d.supervi->format->subSamplingW) ||
-        d.overlapv % (1 << d.supervi->format->subSamplingH)) {
+    if (d.analysisData.nOverlapX % (1 << d.supervi->format->subSamplingW) ||
+        d.analysisData.nOverlapY % (1 << d.supervi->format->subSamplingH)) {
         vsapi->setError(out, "Recalculate: The requested overlap is incompatible with the super clip's subsampling.");
         vsapi->freeNode(d.node);
         return;
     }
 
-    if (d.divideExtra && (d.overlap % (2 << d.supervi->format->subSamplingW) ||
-                          d.overlapv % (2 << d.supervi->format->subSamplingH))) { // subsampling times 2
+    if (d.divideExtra && (d.analysisData.nOverlapX % (2 << d.supervi->format->subSamplingW) ||
+                          d.analysisData.nOverlapY % (2 << d.supervi->format->subSamplingH))) { // subsampling times 2
         vsapi->setError(out, "Recalculate: overlap and overlapv must be multiples of 2 or 4 when divide=True, depending on the super clip's subsampling.");
         vsapi->freeNode(d.node);
         return;

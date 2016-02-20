@@ -11,7 +11,7 @@
 #include "GroupOfPlanes.h"
 #include "MVAnalysisData.h"
 
-// FIXME: Redundant members. A few can go straight in analysisData.
+
 typedef struct MVAnalyseData {
     VSNodeRef *node;
     VSVideoInfo vi;
@@ -61,18 +61,12 @@ typedef struct MVAnalyseData {
     int nSuperPel;
     int nSuperModeYUV;
 
-    int blksize;
-    int blksizev;
     int levels;
     int search;
     int search_coarse;
     int searchparam;
-    int isb;
     int chroma;
-    int delta;
     int truemotion;
-    int overlap;
-    int overlapv;
 
     int fields;
     int tff;
@@ -230,7 +224,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             DCTFFTW *DCTc = NULL;
             if (d->dctmode != 0) {
                 DCTc = (DCTFFTW *)malloc(sizeof(DCTFFTW));
-                dctInit(DCTc, d->blksize, d->blksizev, d->dctmode, d->supervi->format->bitsPerSample);
+                dctInit(DCTc, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->dctmode, d->supervi->format->bitsPerSample);
             }
 
 
@@ -284,13 +278,13 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     int err;
 
-    d.blksize = int64ToIntS(vsapi->propGetInt(in, "blksize", 0, &err));
+    d.analysisData.nBlkSizeX = int64ToIntS(vsapi->propGetInt(in, "blksize", 0, &err));
     if (err)
-        d.blksize = 8;
+        d.analysisData.nBlkSizeX = 8;
 
-    d.blksizev = int64ToIntS(vsapi->propGetInt(in, "blksizev", 0, &err));
+    d.analysisData.nBlkSizeY = int64ToIntS(vsapi->propGetInt(in, "blksizev", 0, &err));
     if (err)
-        d.blksizev = d.blksize;
+        d.analysisData.nBlkSizeY = d.analysisData.nBlkSizeX;
 
     d.levels = int64ToIntS(vsapi->propGetInt(in, "levels", 0, &err));
 
@@ -308,15 +302,15 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     d.nPelSearch = int64ToIntS(vsapi->propGetInt(in, "pelsearch", 0, &err));
 
-    d.isb = !!vsapi->propGetInt(in, "isb", 0, &err);
+    d.analysisData.isBackward = !!vsapi->propGetInt(in, "isb", 0, &err);
 
     d.chroma = !!vsapi->propGetInt(in, "chroma", 0, &err);
     if (err)
         d.chroma = 1;
 
-    d.delta = int64ToIntS(vsapi->propGetInt(in, "delta", 0, &err));
+    d.analysisData.nDeltaFrame = int64ToIntS(vsapi->propGetInt(in, "delta", 0, &err));
     if (err)
-        d.delta = 1;
+        d.analysisData.nDeltaFrame = 1;
 
     d.truemotion = !!vsapi->propGetInt(in, "truemotion", 0, &err);
     if (err)
@@ -324,7 +318,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     d.nLambda = int64ToIntS(vsapi->propGetInt(in, "lambda", 0, &err));
     if (err)
-        d.nLambda = d.truemotion ? (1000 * d.blksize * d.blksizev / 64) : 0;
+        d.nLambda = d.truemotion ? (1000 * d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY / 64) : 0;
 
     d.lsad = int64ToIntS(vsapi->propGetInt(in, "lsad", 0, &err));
     if (err)
@@ -348,11 +342,11 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     d.pglobal = int64ToIntS(vsapi->propGetInt(in, "pglobal", 0, &err));
 
-    d.overlap = int64ToIntS(vsapi->propGetInt(in, "overlap", 0, &err));
+    d.analysisData.nOverlapX = int64ToIntS(vsapi->propGetInt(in, "overlap", 0, &err));
 
-    d.overlapv = int64ToIntS(vsapi->propGetInt(in, "overlapv", 0, &err));
+    d.analysisData.nOverlapY = int64ToIntS(vsapi->propGetInt(in, "overlapv", 0, &err));
     if (err)
-        d.overlapv = d.overlap;
+        d.analysisData.nOverlapY = d.analysisData.nOverlapX;
 
     d.dctmode = int64ToIntS(vsapi->propGetInt(in, "dct", 0, &err));
 
@@ -398,11 +392,11 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     }
 
     if (d.dctmode >= 5 &&
-        !((d.blksize == 4 && d.blksizev == 4) ||
-          (d.blksize == 8 && d.blksizev == 4) ||
-          (d.blksize == 8 && d.blksizev == 8) ||
-          (d.blksize == 16 && d.blksizev == 8) ||
-          (d.blksize == 16 && d.blksizev == 16))) {
+        !((d.analysisData.nBlkSizeX == 4 && d.analysisData.nBlkSizeY == 4) ||
+          (d.analysisData.nBlkSizeX == 8 && d.analysisData.nBlkSizeY == 4) ||
+          (d.analysisData.nBlkSizeX == 8 && d.analysisData.nBlkSizeY == 8) ||
+          (d.analysisData.nBlkSizeX == 16 && d.analysisData.nBlkSizeY == 8) ||
+          (d.analysisData.nBlkSizeX == 16 && d.analysisData.nBlkSizeY == 16))) {
         vsapi->setError(out, "Analyse: dct 5..10 can only work with 4x4, 8x4, 8x8, 16x8, and 16x16 blocks.");
         return;
     }
@@ -413,8 +407,6 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     }
 
 
-    d.analysisData.nBlkSizeX = d.blksize;
-    d.analysisData.nBlkSizeY = d.blksizev;
     if ((d.analysisData.nBlkSizeX != 4 || d.analysisData.nBlkSizeY != 4) &&
         (d.analysisData.nBlkSizeX != 8 || d.analysisData.nBlkSizeY != 4) &&
         (d.analysisData.nBlkSizeX != 8 || d.analysisData.nBlkSizeY != 8) &&
@@ -427,9 +419,6 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         vsapi->setError(out, "Analyse: the block size must be 4x4, 8x4, 8x8, 16x2, 16x8, 16x16, 32x16, or 32x32.");
         return;
     }
-
-
-    d.analysisData.nDeltaFrame = d.delta;
 
 
     if (d.pnew < 0 || d.pnew > 256) {
@@ -450,21 +439,16 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     }
 
 
-    if (d.overlap < 0 || d.overlap > d.blksize / 2 ||
-        d.overlapv < 0 || d.overlapv > d.blksizev / 2) {
+    if (d.analysisData.nOverlapX < 0 || d.analysisData.nOverlapX > d.analysisData.nBlkSizeX / 2 ||
+        d.analysisData.nOverlapY < 0 || d.analysisData.nOverlapY > d.analysisData.nBlkSizeY / 2) {
         vsapi->setError(out, "Analyse: overlap must be at most half of blksize, overlapv must be at most half of blksizev, and they both need to be at least 0.");
         return;
     }
 
-    if (d.divideExtra && (d.blksize < 8 && d.blksizev < 8)) {
+    if (d.divideExtra && (d.analysisData.nBlkSizeX < 8 && d.analysisData.nBlkSizeY < 8)) {
         vsapi->setError(out, "Analyse: blksize and blksizev must be at least 8 when divide=True.");
         return;
     }
-
-    d.analysisData.nOverlapX = d.overlap;
-    d.analysisData.nOverlapY = d.overlapv;
-
-    d.analysisData.isBackward = d.isb;
 
 
     SearchType searchTypes[] = {
@@ -517,8 +501,8 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.lsad = (int)((double)d.lsad * pixelMax / 255.0 + 0.5);
     d.badSAD = (int)((double)d.badSAD * pixelMax / 255.0 + 0.5);
 
-    d.lsad = d.lsad * (d.blksize * d.blksizev) / 64;
-    d.badSAD = d.badSAD * (d.blksize * d.blksizev) / 64;
+    d.lsad = d.lsad * (d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY) / 64;
+    d.badSAD = d.badSAD * (d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY) / 64;
 
 
     d.analysisData.nMotionFlags = 0;
@@ -534,15 +518,15 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     if (d.vi.format->bitsPerSample > 8)
         d.isse = 0; // needed here because MVPlane can't have isse=1 with more than 8 bits
 
-    if (d.overlap % (1 << d.vi.format->subSamplingW) ||
-        d.overlapv % (1 << d.vi.format->subSamplingH)) {
+    if (d.analysisData.nOverlapX % (1 << d.vi.format->subSamplingW) ||
+        d.analysisData.nOverlapY % (1 << d.vi.format->subSamplingH)) {
         vsapi->setError(out, "Analyse: The requested overlap is incompatible with the super clip's subsampling.");
         vsapi->freeNode(d.node);
         return;
     }
 
-    if (d.divideExtra && (d.overlap % (2 << d.vi.format->subSamplingW) ||
-                          d.overlapv % (2 << d.vi.format->subSamplingH))) { // subsampling times 2
+    if (d.divideExtra && (d.analysisData.nOverlapX % (2 << d.vi.format->subSamplingW) ||
+                          d.analysisData.nOverlapY % (2 << d.vi.format->subSamplingH))) { // subsampling times 2
         vsapi->setError(out, "Analyse: overlap and overlapv must be multiples of 2 or 4 when divide=True, depending on the super clip's subsampling.");
         vsapi->freeNode(d.node);
         return;
@@ -607,11 +591,6 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.analysisData.nHeight = nHeight; //x
 
     d.analysisData.nPel = d.nSuperPel; //x
-    // mv.Super already checks this
-    /*
-       if (( d.analysisData.nPel != 1 ) && ( d.analysisData.nPel != 2 ) && ( d.analysisData.nPel != 4 ))
-       env->ThrowError("MAnalyse: pel has to be 1 or 2 or 4");
-       */
 
     d.analysisData.nHPadding = d.nSuperHPad; //v2.0    //x
     d.analysisData.nVPadding = d.nSuperVPad;
