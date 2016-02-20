@@ -59,6 +59,9 @@ typedef struct MVMaskData {
 
 
 static void VS_CC mvmaskInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
+    (void)in;
+    (void)out;
+    (void)core;
     MVMaskData *d = (MVMaskData *)*instanceData;
     vsapi->setVideoInfo(&d->vi, 1, node);
 }
@@ -79,6 +82,8 @@ static inline uint8_t mvmaskSAD(unsigned int s, float fMaskNormFactor, float fGa
 
 
 static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+    (void)frameData;
+
     MVMaskData *d = (MVMaskData *)*instanceData;
 
     if (activationReason == arInitial) {
@@ -215,6 +220,8 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
 
 
 static void VS_CC mvmaskFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
+    (void)core;
+
     MVMaskData *d = (MVMaskData *)instanceData;
 
     vsapi->freeNode(d->node);
@@ -226,6 +233,8 @@ static void VS_CC mvmaskFree(void *instanceData, VSCore *core, const VSAPI *vsap
 
 
 static void VS_CC mvmaskCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
+    (void)userData;
+
     MVMaskData d;
     MVMaskData *data;
 

@@ -67,6 +67,9 @@ typedef struct MVFlowBlurData {
 
 
 static void VS_CC mvflowblurInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
+    (void)in;
+    (void)out;
+    (void)core;
     MVFlowBlurData *d = (MVFlowBlurData *)*instanceData;
     vsapi->setVideoInfo(d->vi, 1, node);
 }
@@ -230,6 +233,8 @@ static void FlowBlur(uint8_t *pdst, int dst_pitch, const uint8_t *pref, int ref_
 
 
 static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+    (void)frameData;
+
     MVFlowBlurData *d = (MVFlowBlurData *)*instanceData;
 
     if (activationReason == arInitial) {
@@ -417,6 +422,8 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
 
 
 static void VS_CC mvflowblurFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
+    (void)core;
+
     MVFlowBlurData *d = (MVFlowBlurData *)instanceData;
 
     simpleDeinit(&d->upsizer);
@@ -433,6 +440,8 @@ static void VS_CC mvflowblurFree(void *instanceData, VSCore *core, const VSAPI *
 
 
 static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
+    (void)userData;
+
     MVFlowBlurData d;
     MVFlowBlurData *data;
 

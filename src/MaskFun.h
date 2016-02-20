@@ -51,7 +51,7 @@ void Merge16PlanesToBig(uint8_t *pel4Plane, int pel4Pitch,
 
 uint8_t SADToMask(unsigned int sad, unsigned int sadnorm1024);
 
-void Blend(uint8_t *pdst, const uint8_t *psrc, const uint8_t *pref, int height, int width, int dst_pitch, int src_pitch, int ref_pitch, int time256, int isse, int bitsPerSample);
+void Blend(uint8_t *pdst, const uint8_t *psrc, const uint8_t *pref, int height, int width, int dst_pitch, int src_pitch, int ref_pitch, int time256, int bitsPerSample);
 
 
 // lookup table size 256

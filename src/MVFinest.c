@@ -43,12 +43,17 @@ typedef struct MVFinestData {
 
 
 static void VS_CC mvfinestInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
+    (void)in;
+    (void)out;
+    (void)core;
     MVFinestData *d = (MVFinestData *)*instanceData;
     vsapi->setVideoInfo(&d->vi, 1, node);
 }
 
 
 static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+    (void)frameData;
+
     MVFinestData *d = (MVFinestData *)*instanceData;
 
     if (activationReason == arInitial) {
@@ -131,6 +136,8 @@ static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, voi
 
 
 static void VS_CC mvfinestFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
+    (void)core;
+
     MVFinestData *d = (MVFinestData *)instanceData;
 
     vsapi->freeNode(d->super);
@@ -139,6 +146,8 @@ static void VS_CC mvfinestFree(void *instanceData, VSCore *core, const VSAPI *vs
 
 
 static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
+    (void)userData;
+
     MVFinestData d;
     MVFinestData *data;
 

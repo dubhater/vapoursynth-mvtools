@@ -39,12 +39,17 @@ typedef struct MVSuperData {
 
 
 static void VS_CC mvsuperInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
+    (void)in;
+    (void)out;
+    (void)core;
     MVSuperData *d = (MVSuperData *)*instanceData;
     vsapi->setVideoInfo(&d->vi, 1, node);
 }
 
 
 static const VSFrameRef *VS_CC mvsuperGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+    (void)frameData;
+
     MVSuperData *d = (MVSuperData *)*instanceData;
 
     if (activationReason == arInitial) {
@@ -129,6 +134,8 @@ static const VSFrameRef *VS_CC mvsuperGetFrame(int n, int activationReason, void
 
 
 static void VS_CC mvsuperFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
+    (void)core;
+
     MVSuperData *d = (MVSuperData *)instanceData;
 
     vsapi->freeNode(d->node);
@@ -137,6 +144,8 @@ static void VS_CC mvsuperFree(void *instanceData, VSCore *core, const VSAPI *vsa
 
 
 static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
+    (void)userData;
+
     MVSuperData d;
     MVSuperData *data;
 

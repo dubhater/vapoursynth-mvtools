@@ -76,12 +76,17 @@ typedef struct MVFlowFPSData {
 
 
 static void VS_CC mvflowfpsInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
+    (void)in;
+    (void)out;
+    (void)core;
     MVFlowFPSData *d = (MVFlowFPSData *)*instanceData;
     vsapi->setVideoInfo(&d->vi, 1, node);
 }
 
 
 static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+    (void)frameData;
+
     const MVFlowFPSData *d = (const MVFlowFPSData *)*instanceData;
 
     if (activationReason == arInitial) {
@@ -171,7 +176,6 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
         const int nHeightPUV = d->nHeightPUV;
         const int maskmode = d->maskmode;
         const int blend = d->blend;
-        const int isse = d->isse;
         const double ml = d->ml;
         const int xRatioUV = d->mvbw_data.xRatioUV;
         const int yRatioUV = d->mvbw_data.yRatioUV;
@@ -512,10 +516,10 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
                 }
 
                 // blend with time weight
-                Blend(pDst[0], pSrc[0], pRef[0], nHeight, nWidth, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, isse, bitsPerSample);
+                Blend(pDst[0], pSrc[0], pRef[0], nHeight, nWidth, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, bitsPerSample);
                 if (d->vi.format->colorFamily != cmGray) {
-                    Blend(pDst[1], pSrc[1], pRef[1], nHeightUV, nWidthUV, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, isse, bitsPerSample);
-                    Blend(pDst[2], pSrc[2], pRef[2], nHeightUV, nWidthUV, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, isse, bitsPerSample);
+                    Blend(pDst[1], pSrc[1], pRef[1], nHeightUV, nWidthUV, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, bitsPerSample);
+                    Blend(pDst[2], pSrc[2], pRef[2], nHeightUV, nWidthUV, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, bitsPerSample);
                 }
 
                 vsapi->freeFrame(src);
@@ -533,6 +537,8 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
 
 
 static void VS_CC mvflowfpsFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
+    (void)core;
+
     MVFlowFPSData *d = (MVFlowFPSData *)instanceData;
 
 
@@ -569,6 +575,8 @@ static inline void setFPS(VSVideoInfo *vi, int64_t num, int64_t den) {
 
 
 static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
+    (void)userData;
+
     MVFlowFPSData d;
     MVFlowFPSData *data;
 

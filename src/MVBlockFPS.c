@@ -81,6 +81,9 @@ typedef struct MVBlockFPSData {
 
 
 static void VS_CC mvblockfpsInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
+    (void)in;
+    (void)out;
+    (void)core;
     MVBlockFPSData *d = (MVBlockFPSData *)*instanceData;
     vsapi->setVideoInfo(&d->vi, 1, node);
 }
@@ -294,6 +297,8 @@ static void ResultBlock(uint8_t *pDst, int dst_pitch, const uint8_t *pMCB, int M
 
 
 static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+    (void)frameData;
+
     MVBlockFPSData *d = (MVBlockFPSData *)*instanceData;
 
     if (activationReason == arInitial) {
@@ -596,7 +601,7 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
 
                 if (!((i + 1) % nBlkX)) {
                     // blend rest right with time weight
-                    Blend(pDst[0], pSrc[0], pRef[0], nBlkSizeY, nWidth - nBlkSizeX * nBlkX, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, isse, bitsPerSample);
+                    Blend(pDst[0], pSrc[0], pRef[0], nBlkSizeY, nWidth - nBlkSizeX * nBlkX, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, bitsPerSample);
 
                     pDst[0] += nBlkSizeY * nDstPitches[0] - nBlkSizeX * nBlkX * bytesPerSample;
                     pRef[0] += nBlkSizeY * nRefPitches[0] - nBlkSizeX * nBlkX * bytesPerSample;
@@ -606,8 +611,8 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
                     pMaskOccY += nBlkSizeY * nPitchY - nBlkSizeX * nBlkX;
 
                     if (nSuperModeYUV & UVPLANES) {
-                        Blend(pDst[1], pSrc[1], pRef[1], nBlkSizeY / yRatioUV, nWidthUV - (nBlkSizeX / xRatioUV) * nBlkX, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, isse, bitsPerSample);
-                        Blend(pDst[2], pSrc[2], pRef[2], nBlkSizeY / yRatioUV, nWidthUV - (nBlkSizeX / xRatioUV) * nBlkX, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, isse, bitsPerSample);
+                        Blend(pDst[1], pSrc[1], pRef[1], nBlkSizeY / yRatioUV, nWidthUV - (nBlkSizeX / xRatioUV) * nBlkX, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, bitsPerSample);
+                        Blend(pDst[2], pSrc[2], pRef[2], nBlkSizeY / yRatioUV, nWidthUV - (nBlkSizeX / xRatioUV) * nBlkX, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, bitsPerSample);
 
                         pDst[1] += (nBlkSizeY / yRatioUV) * nDstPitches[1] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
                         pDst[2] += (nBlkSizeY / yRatioUV) * nDstPitches[2] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
@@ -622,10 +627,10 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
                 }
             }
             // blend rest bottom with time weight
-            Blend(pDst[0], pSrc[0], pRef[0], nHeight - nBlkSizeY * nBlkY, nWidth, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, isse, bitsPerSample);
+            Blend(pDst[0], pSrc[0], pRef[0], nHeight - nBlkSizeY * nBlkY, nWidth, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, bitsPerSample);
             if (nSuperModeYUV & UVPLANES) {
-                Blend(pDst[1], pSrc[1], pRef[1], nHeightUV - (nBlkSizeY / yRatioUV) * nBlkY, nWidthUV, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, isse, bitsPerSample);
-                Blend(pDst[2], pSrc[2], pRef[2], nHeightUV - (nBlkSizeY / yRatioUV) * nBlkY, nWidthUV, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, isse, bitsPerSample);
+                Blend(pDst[1], pSrc[1], pRef[1], nHeightUV - (nBlkSizeY / yRatioUV) * nBlkY, nWidthUV, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, bitsPerSample);
+                Blend(pDst[2], pSrc[2], pRef[2], nHeightUV - (nBlkSizeY / yRatioUV) * nBlkY, nWidthUV, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, bitsPerSample);
             }
 
 
@@ -678,10 +683,10 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
                 }
 
                 // blend with time weight
-                Blend(pDst[0], pSrc[0], pRef[0], nHeight, nWidth, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, isse, bitsPerSample);
+                Blend(pDst[0], pSrc[0], pRef[0], nHeight, nWidth, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, bitsPerSample);
                 if (nSuperModeYUV & UVPLANES) {
-                    Blend(pDst[1], pSrc[1], pRef[1], nHeightUV, nWidthUV, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, isse, bitsPerSample);
-                    Blend(pDst[2], pSrc[2], pRef[2], nHeightUV, nWidthUV, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, isse, bitsPerSample);
+                    Blend(pDst[1], pSrc[1], pRef[1], nHeightUV, nWidthUV, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, bitsPerSample);
+                    Blend(pDst[2], pSrc[2], pRef[2], nHeightUV, nWidthUV, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, bitsPerSample);
                 }
 
                 vsapi->freeFrame(src);
@@ -699,6 +704,8 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
 
 
 static void VS_CC mvblockfpsFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
+    (void)core;
+
     MVBlockFPSData *d = (MVBlockFPSData *)instanceData;
 
     simpleDeinit(&d->upsizer);
@@ -765,6 +772,8 @@ static void selectFunctions(MVBlockFPSData *d) {
 
 
 static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
+    (void)userData;
+
     MVBlockFPSData d;
     MVBlockFPSData *data;
 

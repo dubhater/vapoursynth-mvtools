@@ -77,12 +77,17 @@ typedef struct MVFlowInterData {
 
 
 static void VS_CC mvflowinterInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
+    (void)in;
+    (void)out;
+    (void)core;
     MVFlowInterData *d = (MVFlowInterData *)*instanceData;
     vsapi->setVideoInfo(d->vi, 1, node);
 }
 
 
 static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+    (void)frameData;
+
     MVFlowInterData *d = (MVFlowInterData *)*instanceData;
 
     if (activationReason == arInitial) {
@@ -140,7 +145,6 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
         const int nHeightUV = d->nHeightUV;
         const int time256 = d->time256;
         const int blend = d->blend;
-        const int isse = d->isse;
 
         int bitsPerSample = d->vi->format->bitsPerSample;
         int bytesPerSample = d->vi->format->bytesPerSample;
@@ -467,10 +471,10 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
                 }
 
                 // blend with time weight
-                Blend(pDst[0], pSrc[0], pRef[0], nHeight, nWidth, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, isse, bitsPerSample);
+                Blend(pDst[0], pSrc[0], pRef[0], nHeight, nWidth, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, bitsPerSample);
                 if (d->vi->format->colorFamily != cmGray) {
-                    Blend(pDst[1], pSrc[1], pRef[1], nHeightUV, nWidthUV, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, isse, bitsPerSample);
-                    Blend(pDst[2], pSrc[2], pRef[2], nHeightUV, nWidthUV, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, isse, bitsPerSample);
+                    Blend(pDst[1], pSrc[1], pRef[1], nHeightUV, nWidthUV, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, bitsPerSample);
+                    Blend(pDst[2], pSrc[2], pRef[2], nHeightUV, nWidthUV, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, bitsPerSample);
                 }
 
                 vsapi->freeFrame(src);
@@ -488,6 +492,8 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
 
 
 static void VS_CC mvflowinterFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
+    (void)core;
+
     MVFlowInterData *d = (MVFlowInterData *)instanceData;
 
     simpleDeinit(&d->upsizer);
@@ -507,6 +513,8 @@ static void VS_CC mvflowinterFree(void *instanceData, VSCore *core, const VSAPI 
 
 
 static void VS_CC mvflowinterCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
+    (void)userData;
+
     MVFlowInterData d;
     MVFlowInterData *data;
 

@@ -39,12 +39,17 @@ typedef struct MVSCDetectionData {
 
 
 static void VS_CC mvscdetectionInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
+    (void)in;
+    (void)out;
+    (void)core;
     MVSCDetectionData *d = (MVSCDetectionData *)*instanceData;
     vsapi->setVideoInfo(d->vi, 1, node);
 }
 
 
 static const VSFrameRef *VS_CC mvscdetectionGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+    (void)frameData;
+
     MVSCDetectionData *d = (MVSCDetectionData *)*instanceData;
 
     if (activationReason == arInitial) {
@@ -76,6 +81,8 @@ static const VSFrameRef *VS_CC mvscdetectionGetFrame(int n, int activationReason
 
 
 static void VS_CC mvscdetectionFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
+    (void)core;
+
     MVSCDetectionData *d = (MVSCDetectionData *)instanceData;
 
     vsapi->freeNode(d->node);
@@ -85,6 +92,8 @@ static void VS_CC mvscdetectionFree(void *instanceData, VSCore *core, const VSAP
 
 
 static void VS_CC mvscdetectionCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
+    (void)userData;
+
     MVSCDetectionData d;
     MVSCDetectionData *data;
 

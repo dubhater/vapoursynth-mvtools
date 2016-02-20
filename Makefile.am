@@ -1,4 +1,4 @@
-warningflags = -Wall -Wextra -Wno-unused-parameter -Wshadow
+warningflags = -Wall -Wextra -Wshadow
 commonflags = -O2 -msse2 -mfpmath=sse $(STACKREALIGN) $(warningflags)
 AM_CFLAGS = -std=c99 $(commonflags)
 AM_CXXFLAGS = -std=c++11 $(commonflags)

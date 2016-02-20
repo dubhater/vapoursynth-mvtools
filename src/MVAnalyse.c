@@ -81,12 +81,17 @@ typedef struct MVAnalyseData {
 
 
 static void VS_CC mvanalyseInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
+    (void)in;
+    (void)out;
+    (void)core;
     MVAnalyseData *d = (MVAnalyseData *)*instanceData;
     vsapi->setVideoInfo(&d->vi, 1, node);
 }
 
 
 static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+    (void)frameData;
+
     MVAnalyseData *d = (MVAnalyseData *)*instanceData;
 
     if (activationReason == arInitial) {
@@ -262,6 +267,8 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
 
 
 static void VS_CC mvanalyseFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
+    (void)core;
+
     MVAnalyseData *d = (MVAnalyseData *)instanceData;
 
     vsapi->freeNode(d->node);
@@ -270,6 +277,8 @@ static void VS_CC mvanalyseFree(void *instanceData, VSCore *core, const VSAPI *v
 
 
 static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
+    (void)userData;
+
     MVAnalyseData d;
     MVAnalyseData *data;
 

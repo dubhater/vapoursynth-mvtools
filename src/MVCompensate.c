@@ -68,12 +68,17 @@ typedef struct MVCompensateData {
 
 
 static void VS_CC mvcompensateInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
+    (void)in;
+    (void)out;
+    (void)core;
     MVCompensateData *d = (MVCompensateData *)*instanceData;
     vsapi->setVideoInfo(d->vi, 1, node);
 }
 
 
 static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+    (void)frameData;
+
     MVCompensateData *d = (MVCompensateData *)*instanceData;
 
     if (activationReason == arInitial) {
@@ -447,6 +452,8 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
 
 static void VS_CC mvcompensateFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
+    (void)core;
+
     MVCompensateData *d = (MVCompensateData *)instanceData;
 
     if (d->vectors_data.nOverlapX || d->vectors_data.nOverlapY) {
@@ -603,6 +610,8 @@ static void selectFunctions(MVCompensateData *d) {
 
 
 static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
+    (void)userData;
+
     MVCompensateData d;
     MVCompensateData *data;
 

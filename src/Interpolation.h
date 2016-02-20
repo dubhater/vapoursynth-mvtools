@@ -72,6 +72,8 @@ void mvtools_HorizontalWiener_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t 
 #define VerticalBilinear(PixelType) \
 static void VerticalBilinear_##PixelType(uint8_t *pDst8, const uint8_t *pSrc8, \
                       intptr_t nPitch, intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample) { \
+    (void)bitsPerSample; \
+ \
     PixelType *pDst = (PixelType *)pDst8;                       \
     PixelType *pSrc = (PixelType *)pSrc8;                       \
                                                                 \
@@ -95,6 +97,8 @@ VerticalBilinear(uint16_t)
 #define HorizontalBilinear(PixelType) \
 static void HorizontalBilinear_##PixelType(uint8_t *pDst8, const uint8_t *pSrc8, \
                         intptr_t nPitch, intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample) { \
+    (void)bitsPerSample; \
+ \
     PixelType *pDst = (PixelType *)pDst8; \
     PixelType *pSrc = (PixelType *)pSrc8; \
  \
@@ -117,6 +121,8 @@ HorizontalBilinear(uint16_t)
 #define DiagonalBilinear(PixelType) \
 static void DiagonalBilinear_##PixelType(uint8_t *pDst8, const uint8_t *pSrc8, \
                       intptr_t nPitch, intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample) { \
+    (void)bitsPerSample; \
+ \
     PixelType *pDst = (PixelType *)pDst8; \
     PixelType *pSrc = (PixelType *)pSrc8; \
  \
@@ -142,6 +148,8 @@ DiagonalBilinear(uint16_t)
 #define RB2F_C(PixelType) \
 static void RB2F_C_##PixelType(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch, \
             int nSrcPitch, int nWidth, int nHeight, int isse) { \
+    (void)isse; \
+ \
     PixelType *pDst = (PixelType *)pDst8; \
     PixelType *pSrc = (PixelType *)pSrc8; \
  \
@@ -167,6 +175,8 @@ RB2F_C(uint16_t)
 #define RB2FilteredVertical(PixelType) \
 static void RB2FilteredVertical_##PixelType(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch, \
                          int nSrcPitch, int nWidth, int nHeight, int isse) { \
+    (void)isse; \
+ \
     /* int nWidthMMX = (nWidth/4)*4; */ \
  \
     PixelType *pDst = (PixelType *)pDst8; \
@@ -217,6 +227,8 @@ RB2FilteredVertical(uint16_t)
 // nWidth is dst height which is reduced by 2 source width
 #define RB2FilteredHorizontalInplace(PixelType) \
 static void RB2FilteredHorizontalInplace_##PixelType(uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, int isse) { \
+    (void)isse; \
+ \
     /* int nWidthMMX = 1 + ((nWidth-2)/4)*4; */ \
  \
     PixelType *pSrc = (PixelType *)pSrc8; \

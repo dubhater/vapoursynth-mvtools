@@ -78,6 +78,9 @@ struct MVDegrainData {
 
 
 static void VS_CC mvdegrainInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
+    (void)in;
+    (void)out;
+    (void)core;
     MVDegrainData *d = (MVDegrainData *)*instanceData;
     vsapi->setVideoInfo(d->vi, 1, node);
 }
@@ -85,6 +88,8 @@ static void VS_CC mvdegrainInit(VSMap *in, VSMap *out, void **instanceData, VSNo
 
 template <int radius>
 static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+    (void)frameData;
+
     MVDegrainData *d = (MVDegrainData *)*instanceData;
 
     if (activationReason == arInitial) {
@@ -355,6 +360,8 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
 
 template <int radius>
 static void VS_CC mvdegrainFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
+    (void)core;
+
     MVDegrainData *d = (MVDegrainData *)instanceData;
 
     if (d->nOverlapX[0] || d->nOverlapY[0]) {
@@ -519,6 +526,8 @@ static void selectFunctions(MVDegrainData *d) {
 
 template <int radius>
 static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
+    (void)userData;
+
     std::string filter = "Degrain";
     filter.append(std::to_string(radius));
 

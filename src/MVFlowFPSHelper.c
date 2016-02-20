@@ -9,12 +9,17 @@
 
 
 void VS_CC mvflowfpshelperInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
+    (void)in;
+    (void)out;
+    (void)core;
     MVFlowFPSHelperData *d = (MVFlowFPSHelperData *)*instanceData;
     vsapi->setVideoInfo(d->vi, 1, node);
 }
 
 
 const VSFrameRef *VS_CC mvflowfpshelperGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+    (void)frameData;
+
     MVFlowFPSHelperData *d = (MVFlowFPSHelperData *)*instanceData;
 
     if (activationReason == arInitial) {
@@ -128,6 +133,8 @@ const VSFrameRef *VS_CC mvflowfpshelperGetFrame(int n, int activationReason, voi
 
 
 void VS_CC mvflowfpshelperFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
+    (void)core;
+
     MVFlowFPSHelperData *d = (MVFlowFPSHelperData *)instanceData;
 
     vsapi->freeNode(d->vectors);

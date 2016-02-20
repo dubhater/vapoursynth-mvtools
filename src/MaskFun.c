@@ -268,8 +268,7 @@ uint8_t SADToMask(unsigned int sad, unsigned int sadnorm1024) {
 
 // time-weihted blend src with ref frames (used for interpolation for poor motion estimation)
 #define RealBlend(PixelType) \
-static void RealBlend_##PixelType(uint8_t *pdst, const uint8_t *psrc, const uint8_t *pref, int height, int width, int dst_pitch, int src_pitch, int ref_pitch, int time256, int isse) { \
-    /* add isse */ \
+static void RealBlend_##PixelType(uint8_t *pdst, const uint8_t *psrc, const uint8_t *pref, int height, int width, int dst_pitch, int src_pitch, int ref_pitch, int time256) { \
     int h, w; \
     for (h = 0; h < height; h++) { \
         for (w = 0; w < width; w++) { \
@@ -289,11 +288,11 @@ RealBlend(uint8_t)
 RealBlend(uint16_t)
 
 
-void Blend(uint8_t *pdst, const uint8_t *psrc, const uint8_t *pref, int height, int width, int dst_pitch, int src_pitch, int ref_pitch, int time256, int isse, int bitsPerSample) {
+void Blend(uint8_t *pdst, const uint8_t *psrc, const uint8_t *pref, int height, int width, int dst_pitch, int src_pitch, int ref_pitch, int time256, int bitsPerSample) {
     if (bitsPerSample == 8)
-        RealBlend_uint8_t(pdst, psrc, pref, height, width, dst_pitch, src_pitch, ref_pitch, time256, isse);
+        RealBlend_uint8_t(pdst, psrc, pref, height, width, dst_pitch, src_pitch, ref_pitch, time256);
     else
-        RealBlend_uint16_t(pdst, psrc, pref, height, width, dst_pitch, src_pitch, ref_pitch, time256, isse);
+        RealBlend_uint16_t(pdst, psrc, pref, height, width, dst_pitch, src_pitch, ref_pitch, time256);
 }
 
 
