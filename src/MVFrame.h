@@ -19,6 +19,22 @@ typedef enum MVPlaneSet {
 } MVPlaneSet;
 
 
+typedef enum SharpParam {
+    SharpBilinear = 0,
+    SharpBicubic = 1,
+    SharpWiener = 2
+} SharpParam;
+
+
+typedef enum RfilterParam {
+    RfilterSimple = 0,
+    RfilterTriangle = 1,
+    RfilterBilinear = 2,
+    RfilterQuadratic = 3,
+    RfilterCubic = 4
+} RfilterParam;
+
+
 int PlaneHeightLuma(int src_height, int level, int yRatioUV, int vpad);
 
 int PlaneWidthLuma(int src_width, int level, int xRatioUV, int hpad);

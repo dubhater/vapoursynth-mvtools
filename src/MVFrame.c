@@ -216,7 +216,7 @@ void mvpRefine(MVPlane *mvp, int sharp) {
 
     RefineFunction refine[3];
 
-    if (sharp == 0) { // bilinear
+    if (sharp == SharpBilinear) {
         if (mvp->bytesPerSample == 1) {
             if (mvp->isse) {
                 refine[0] = mvtools_HorizontalBilinear_sse2;
@@ -232,7 +232,7 @@ void mvpRefine(MVPlane *mvp, int sharp) {
             refine[1] = VerticalBilinear_uint16_t;
             refine[2] = DiagonalBilinear_uint16_t;
         }
-    } else if (sharp == 1) { // bicubic
+    } else if (sharp == SharpBicubic) {
         if (mvp->bytesPerSample == 1) {
             /* TODO: port the asm
                if (isse)
@@ -441,7 +441,7 @@ void mvpReduceTo(MVPlane *mvp, MVPlane *pReducedPlane, int rfilter) {
 
     ReduceFunction reduce = NULL;
 
-    if (rfilter == 0) {
+    if (rfilter == RfilterSimple) {
         /* TODO: port the asm
                if (isse)
                {
@@ -456,22 +456,22 @@ void mvpReduceTo(MVPlane *mvp, MVPlane *pReducedPlane, int rfilter) {
             else
                 reduce = RB2F_C_uint16_t;
         }
-    } else if (rfilter == 1) {
+    } else if (rfilter == RfilterTriangle) {
         if (mvp->bytesPerSample == 1)
             reduce = RB2Filtered_uint8_t;
         else
             reduce = RB2Filtered_uint16_t;
-    } else if (rfilter == 2) {
+    } else if (rfilter == RfilterBilinear) {
         if (mvp->bytesPerSample == 1)
             reduce = RB2BilinearFiltered_uint8_t;
         else
             reduce = RB2BilinearFiltered_uint16_t;
-    } else if (rfilter == 3) {
+    } else if (rfilter == RfilterQuadratic) {
         if (mvp->bytesPerSample == 1)
             reduce = RB2Quadratic_uint8_t;
         else
             reduce = RB2Quadratic_uint16_t;
-    } else if (rfilter == 4) {
+    } else if (rfilter == RfilterCubic) {
         if (mvp->bytesPerSample == 1)
             reduce = RB2Cubic_uint8_t;
         else

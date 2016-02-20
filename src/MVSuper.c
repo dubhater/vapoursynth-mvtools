@@ -171,11 +171,11 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
 
     d.sharp = int64ToIntS(vsapi->propGetInt(in, "sharp", 0, &err)); // pel2 interpolation type
     if (err)
-        d.sharp = 2;
+        d.sharp = SharpWiener;
 
     d.rfilter = int64ToIntS(vsapi->propGetInt(in, "rfilter", 0, &err));
     if (err)
-        d.rfilter = 2;
+        d.rfilter = RfilterBilinear;
 
     d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
     if (err)
@@ -187,12 +187,12 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
         return;
     }
 
-    if (d.sharp < 0 || d.sharp > 2) {
+    if (d.sharp < SharpBilinear || d.sharp > SharpWiener) {
         vsapi->setError(out, "Super: sharp must be between 0 and 2 (inclusive).");
         return;
     }
 
-    if (d.rfilter < 0 || d.rfilter > 4) {
+    if (d.rfilter < RfilterSimple || d.rfilter > RfilterCubic) {
         vsapi->setError(out, "Super: rfilter must be between 0 and 4 (inclusive).");
         return;
     }
