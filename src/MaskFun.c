@@ -407,22 +407,6 @@ void FlowInter(uint8_t *pdst, int dst_pitch, const uint8_t *prefB, const uint8_t
 }
 
 
-// FIND MEDIAN OF 3 ELEMENTS
-//
-static inline int Median3(int a, int b, int c) {
-    // b a c || c a b
-    if (((b <= a) && (a <= c)) || ((c <= a) && (a <= b)))
-        return a;
-
-    // a b c || c b a
-    else if (((a <= b) && (b <= c)) || ((c <= b) && (b <= a)))
-        return b;
-
-    // b c a || a c b
-    else
-        return c;
-}
-
 static inline int Median3r(int a, int b, int c) {
     // reduced median - if it is known that a <= c (more fast)
 

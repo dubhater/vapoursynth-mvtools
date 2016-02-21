@@ -381,12 +381,6 @@ static inline int Median(int a, int b, int c) {
 }
 
 
-/* check if an index is inside the block's min and max indexes */
-static inline int pobIsInFrame(PlaneOfBlocks *pob, int i) {
-    return ((i >= 0) && (i < pob->nBlkCount));
-}
-
-
 void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int _nMotionFlags, int _nCPUFlags, int _nOverlapX, int _nOverlapY, int _xRatioUV, int _yRatioUV, int _bitsPerSample) {
 
     /* constant fields */
