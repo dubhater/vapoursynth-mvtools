@@ -662,9 +662,10 @@ void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nB
     pob->nSrcPitch_temp[1] = pob->nBlkSizeX / pob->xRatioUV * pob->bytesPerSample;
     pob->nSrcPitch_temp[2] = pob->nSrcPitch_temp[1];
 
-    VS_ALIGNED_MALLOC(&pob->pSrc_temp[0], pob->nBlkSizeY * pob->nSrcPitch_temp[0], ALIGN_PLANES);
-    VS_ALIGNED_MALLOC(&pob->pSrc_temp[1], pob->nBlkSizeY / pob->yRatioUV * pob->nSrcPitch_temp[1], ALIGN_PLANES);
-    VS_ALIGNED_MALLOC(&pob->pSrc_temp[2], pob->nBlkSizeY / pob->yRatioUV * pob->nSrcPitch_temp[2], ALIGN_PLANES);
+    // Four extra bytes because pixel_sad_4x4_mmx2 reads four bytes more than it should (but doesn't use them in any way).
+    VS_ALIGNED_MALLOC(&pob->pSrc_temp[0], pob->nBlkSizeY * pob->nSrcPitch_temp[0] + 4, ALIGN_PLANES);
+    VS_ALIGNED_MALLOC(&pob->pSrc_temp[1], pob->nBlkSizeY / pob->yRatioUV * pob->nSrcPitch_temp[1] + 4, ALIGN_PLANES);
+    VS_ALIGNED_MALLOC(&pob->pSrc_temp[2], pob->nBlkSizeY / pob->yRatioUV * pob->nSrcPitch_temp[2] + 4, ALIGN_PLANES);
 
 #undef ALIGN_PLANES
 
