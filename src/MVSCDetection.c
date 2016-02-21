@@ -61,10 +61,10 @@ static const VSFrameRef *VS_CC mvscdetectionGetFrame(int n, int activationReason
         vsapi->freeFrame(src);
 
         const VSFrameRef *mvn = vsapi->getFrameFilter(n, d->vectors, frameCtx);
-        const int *mvs = (const int *)vsapi->getReadPtr(mvn, 0);
         FakeGroupOfPlanes fgop;
         fgopInit(&fgop, &d->vectors_data);
-        fgopUpdate(&fgop, mvs + mvs[0] / sizeof(int));
+        const VSMap *mvprops = vsapi->getFramePropsRO(mvn);
+        fgopUpdate(&fgop, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
         vsapi->freeFrame(mvn);
 
         const char *propNames[2] = { "_SceneChangePrev", "_SceneChangeNext" };

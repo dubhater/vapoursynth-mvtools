@@ -14,7 +14,7 @@
 
 typedef struct MVAnalyseData {
     VSNodeRef *node;
-    VSVideoInfo vi;
+    const VSVideoInfo *vi;
     const VSVideoInfo *supervi;
 
     MVAnalysisData analysisData;
@@ -53,8 +53,6 @@ typedef struct MVAnalyseData {
 
     int nModeYUV;
 
-    int headerSize;
-
     int nSuperLevels;
     int nSuperHPad;
     int nSuperVPad;
@@ -79,7 +77,7 @@ static void VS_CC mvanalyseInit(VSMap *in, VSMap *out, void **instanceData, VSNo
     (void)out;
     (void)core;
     MVAnalyseData *d = (MVAnalyseData *)*instanceData;
-    vsapi->setVideoInfo(&d->vi, 1, node);
+    vsapi->setVideoInfo(d->vi, 1, node);
 }
 
 
@@ -95,7 +93,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             int offset = (d->analysisData.isBackward) ? d->analysisData.nDeltaFrame : -d->analysisData.nDeltaFrame;
             nref = n + offset;
 
-            if (nref >= 0 && (nref < d->vi.numFrames || !d->vi.numFrames)) {
+            if (nref >= 0 && (nref < d->vi->numFrames || !d->vi->numFrames)) {
                 if (n < nref) {
                     vsapi->requestFrameFilter(n, d->node, frameCtx);
                     vsapi->requestFrameFilter(nref, d->node, frameCtx);
@@ -126,7 +124,6 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
 
         const uint8_t *pSrc[3] = { NULL };
         const uint8_t *pRef[3] = { NULL };
-        uint8_t *pDst = { NULL };
         int nSrcPitch[3] = { 0 };
         int nRefPitch[3] = { 0 };
 
@@ -160,28 +157,12 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             nSrcPitch[plane] = vsapi->getStride(src, plane);
         }
 
-        int dst_height = 1;
-        int dst_width = d->headerSize / sizeof(int) + gopGetArraySize(&vectorFields); //v1.8.1
-        // In Avisynth the frame was packed BGR32, which has 4 bytes per pixel.
-        // It's GRAY8 here.
-        dst_width *= 4;
-        VSFrameRef *dst = vsapi->newVideoFrame(d->vi.format, dst_width, dst_height, src, core);
 
-        // XXX Frame properties.
-        pDst = vsapi->getWritePtr(dst, 0);
-
-        // write analysis parameters as a header to frame
-        memcpy(pDst, &d->headerSize, sizeof(int));
-
-        if (d->divideExtra)
-            memcpy(pDst + sizeof(int), &d->analysisDataDivided, sizeof(d->analysisData));
-        else
-            memcpy(pDst + sizeof(int), &d->analysisData, sizeof(d->analysisData));
-
-        pDst += d->headerSize;
+        int vectors_size = gopGetArraySize(&vectorFields) * sizeof(int);
+        int *vectors = (int *)malloc(vectors_size);
 
 
-        if (nref >= 0 && (nref < d->vi.numFrames || !d->vi.numFrames)) {
+        if (nref >= 0 && (nref < d->vi->numFrames || !d->vi->numFrames)) {
             const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->node, frameCtx);
             const VSMap *refprops = vsapi->getFramePropsRO(ref);
 
@@ -191,7 +172,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
                 gopDeinit(&vectorFields);
                 vsapi->freeFrame(src);
                 vsapi->freeFrame(ref);
-                vsapi->freeFrame(dst);
+                free(vectors);
                 return NULL;
             }
 
@@ -228,11 +209,11 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             }
 
 
-            gopSearchMVs(&vectorFields, &pSrcGOF, &pRefGOF, d->searchType, d->nSearchParam, d->nPelSearch, d->nLambda, d->lsad, d->pnew, d->plevel, d->global, (int *)pDst, fieldShift, DCTc, d->pzero, d->pglobal, d->badSAD, d->badrange, d->meander, d->tryMany, d->searchTypeCoarse);
+            gopSearchMVs(&vectorFields, &pSrcGOF, &pRefGOF, d->searchType, d->nSearchParam, d->nPelSearch, d->nLambda, d->lsad, d->pnew, d->plevel, d->global, vectors, fieldShift, DCTc, d->pzero, d->pglobal, d->badSAD, d->badrange, d->meander, d->tryMany, d->searchTypeCoarse);
 
             if (d->divideExtra) {
                 // make extra level with divided sublocks with median (not estimated) motion
-                gopExtraDivide(&vectorFields, (int *)pDst);
+                gopExtraDivide(&vectorFields, vectors);
             }
 
             gopDeinit(&vectorFields);
@@ -244,9 +225,26 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             mvgofDeinit(&pRefGOF);
             vsapi->freeFrame(ref);
         } else { // too close to the beginning or end to do anything
-            gopWriteDefaultToArray(&vectorFields, (int *)pDst);
+            gopWriteDefaultToArray(&vectorFields, vectors);
             gopDeinit(&vectorFields);
         }
+
+        VSFrameRef *dst = vsapi->copyFrame(src, core);
+        VSMap *dstprops = vsapi->getFramePropsRW(dst);
+
+        vsapi->propSetData(dstprops,
+                           prop_MVTools_MVAnalysisData,
+                           (const char *)(d->divideExtra ? &d->analysisDataDivided : &d->analysisData),
+                           sizeof(MVAnalysisData),
+                           paReplace);
+
+        vsapi->propSetData(dstprops,
+                           prop_MVTools_vectors,
+                           (const char *)vectors,
+                           vectors_size,
+                           paReplace);
+
+        free(vectors);
 
         // FIXME: Get rid of all mmx shit.
         mvtools_cpu_emms();
@@ -470,34 +468,25 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         d.nSearchParam = (d.searchparam < 1) ? 1 : d.searchparam;
 
 
-    // XXX maybe get rid of these two
-    // Bleh, they're checked by client filters. Though it's kind of pointless.
-    d.analysisData.nMagicKey = MOTION_MAGIC_KEY;
-    d.analysisData.nVersion = MVANALYSIS_DATA_VERSION; // MVAnalysisData and outfile format version: last update v1.8.1
-
-
-    d.headerSize = VSMAX(4 + sizeof(d.analysisData), 256); // include itself, but usually equal to 256 :-)
-
-
     d.node = vsapi->propGetNode(in, "super", 0, 0);
     d.supervi = vsapi->getVideoInfo(d.node);
-    d.vi = *d.supervi;
+    d.vi = d.supervi;
 
-    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 16 || d.vi.format->sampleType != stInteger || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || (d.vi.format->colorFamily != cmYUV && d.vi.format->colorFamily != cmGray)) {
+    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 16 || d.vi->format->sampleType != stInteger || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || (d.vi->format->colorFamily != cmYUV && d.vi->format->colorFamily != cmGray)) {
         vsapi->setError(out, "Analyse: Input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant format and dimensions.");
         vsapi->freeNode(d.node);
         return;
     }
 
-    if (d.vi.format->colorFamily == cmGray)
+    if (d.vi->format->colorFamily == cmGray)
         d.chroma = 0;
 
     d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
 
 
-    d.analysisData.bitsPerSample = d.vi.format->bitsPerSample;
+    d.analysisData.bitsPerSample = d.vi->format->bitsPerSample;
 
-    int pixelMax = (1 << d.vi.format->bitsPerSample) - 1;
+    int pixelMax = (1 << d.vi->format->bitsPerSample) - 1;
     d.lsad = (int)((double)d.lsad * pixelMax / 255.0 + 0.5);
     d.badSAD = (int)((double)d.badSAD * pixelMax / 255.0 + 0.5);
 
@@ -515,31 +504,31 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         d.analysisData.nCPUFlags = cpu_detect();
     }
 
-    if (d.vi.format->bitsPerSample > 8)
+    if (d.vi->format->bitsPerSample > 8)
         d.isse = 0; // needed here because MVPlane can't have isse=1 with more than 8 bits
 
-    if (d.analysisData.nOverlapX % (1 << d.vi.format->subSamplingW) ||
-        d.analysisData.nOverlapY % (1 << d.vi.format->subSamplingH)) {
+    if (d.analysisData.nOverlapX % (1 << d.vi->format->subSamplingW) ||
+        d.analysisData.nOverlapY % (1 << d.vi->format->subSamplingH)) {
         vsapi->setError(out, "Analyse: The requested overlap is incompatible with the super clip's subsampling.");
         vsapi->freeNode(d.node);
         return;
     }
 
-    if (d.divideExtra && (d.analysisData.nOverlapX % (2 << d.vi.format->subSamplingW) ||
-                          d.analysisData.nOverlapY % (2 << d.vi.format->subSamplingH))) { // subsampling times 2
+    if (d.divideExtra && (d.analysisData.nOverlapX % (2 << d.vi->format->subSamplingW) ||
+                          d.analysisData.nOverlapY % (2 << d.vi->format->subSamplingH))) { // subsampling times 2
         vsapi->setError(out, "Analyse: overlap and overlapv must be multiples of 2 or 4 when divide=True, depending on the super clip's subsampling.");
         vsapi->freeNode(d.node);
         return;
     }
 
-    if (d.analysisData.nDeltaFrame <= 0 && d.vi.numFrames && (-d.analysisData.nDeltaFrame) >= d.vi.numFrames) {
+    if (d.analysisData.nDeltaFrame <= 0 && d.vi->numFrames && (-d.analysisData.nDeltaFrame) >= d.vi->numFrames) {
         vsapi->setError(out, "Analyse: delta points to frame past the input clip's end.");
         vsapi->freeNode(d.node);
         return;
     }
 
-    d.analysisData.yRatioUV = 1 << d.vi.format->subSamplingH;
-    d.analysisData.xRatioUV = 1 << d.vi.format->subSamplingW;
+    d.analysisData.yRatioUV = 1 << d.vi->format->subSamplingH;
+    d.analysisData.xRatioUV = 1 << d.vi->format->subSamplingW;
 
 
 #define ERROR_SIZE 1024
@@ -570,7 +559,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         }
 
     // check sanity
-    if (nHeight <= 0 || d.nSuperHPad < 0 || d.nSuperHPad >= d.vi.width / 2 ||
+    if (nHeight <= 0 || d.nSuperHPad < 0 || d.nSuperHPad >= d.vi->width / 2 ||
         d.nSuperVPad < 0 || d.nSuperPel < 1 || d.nSuperPel > 4 ||
         d.nSuperModeYUV < 0 || d.nSuperModeYUV > YUVPLANES || d.nSuperLevels < 1) {
         vsapi->setError(out, "Analyse: parameters from super clip appear to be wrong.");
@@ -586,7 +575,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
 
     // fill in missing fields
-    d.analysisData.nWidth = d.vi.width - d.nSuperHPad * 2; //x
+    d.analysisData.nWidth = d.vi->width - d.nSuperHPad * 2; //x
 
     d.analysisData.nHeight = nHeight; //x
 
@@ -647,21 +636,6 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         d.analysisDataDivided.nOverlapY = d.analysisData.nOverlapY / 2;
         d.analysisDataDivided.nLvCount = d.analysisData.nLvCount + 1;
     }
-
-
-    // XXX Can't know the output width yet, because vectorFields doesn't exist here. Will just return a clip with unknown dimensions.
-    /*
-    // vector steam packed in
-    d.vi.height = 1;
-    d.vi.width = d.headerSize / sizeof(int) + vectorFields->GetArraySize(); //v1.8.1
-    vi.pixel_type = VideoInfo::CS_BGR32;
-    vi.audio_samples_per_second = 0; //v1.8.1
-    */
-
-    d.vi.width = d.vi.height = 0;
-
-    // Most similar to packed BGR32.
-    d.vi.format = vsapi->getFormatPreset(pfGray8, core);
 
 
     data = (MVAnalyseData *)malloc(sizeof(d));

@@ -264,17 +264,15 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
         int off = d->mvbw_data.nDeltaFrame; // integer offset of reference frame
 
         if (n - off >= 0 && (n + off < d->vi->numFrames || !d->vi->numFrames)) {
-            const int *mvs;
-
             const VSFrameRef *mvF = vsapi->getFrameFilter(n + off, d->mvfw, frameCtx);
-            mvs = (const int *)vsapi->getReadPtr(mvF, 0);
-            fgopUpdate(&fgopF, mvs + mvs[0] / sizeof(int));
+            const VSMap *mvprops = vsapi->getFramePropsRO(mvF);
+            fgopUpdate(&fgopF, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
             isUsableF = fgopIsUsable(&fgopF, d->thscd1, d->thscd2);
             vsapi->freeFrame(mvF);
 
             const VSFrameRef *mvB = vsapi->getFrameFilter(n - off, d->mvbw, frameCtx);
-            mvs = (const int *)vsapi->getReadPtr(mvB, 0);
-            fgopUpdate(&fgopB, mvs + mvs[0] / sizeof(int));
+            mvprops = vsapi->getFramePropsRO(mvB);
+            fgopUpdate(&fgopB, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
             isUsableB = fgopIsUsable(&fgopB, d->thscd1, d->thscd2);
             vsapi->freeFrame(mvB);
         }

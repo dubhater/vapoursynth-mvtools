@@ -44,8 +44,6 @@ typedef struct MVRecalculateData {
 
     int nModeYUV;
 
-    int headerSize;
-
     int nSuperLevels;
     int nSuperHPad;
     int nSuperVPad;
@@ -106,7 +104,6 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
 
         const uint8_t *pSrc[3] = { NULL };
         const uint8_t *pRef[3] = { NULL };
-        uint8_t *pDst = { NULL };
         int nSrcPitch[3] = { 0 };
         int nRefPitch[3] = { 0 };
 
@@ -129,36 +126,24 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
         if (d->tffexists)
             srctff = d->tff && (n % 2 == 0); //child->GetParity(n); // int tff;
 
+
         for (int plane = 0; plane < d->supervi->format->numPlanes; plane++) {
             pSrc[plane] = vsapi->getReadPtr(src, plane);
             nSrcPitch[plane] = vsapi->getStride(src, plane);
         }
 
-        int dst_height = 1;
-        int dst_width = d->headerSize / sizeof(int) + gopGetArraySize(&vectorFields); //v1.8.1
-        // In Avisynth the frame was packed BGR32, which has 4 bytes per pixel.
-        // It's GRAY8 here.
-        dst_width *= 4;
-        VSFrameRef *dst = vsapi->newVideoFrame(d->vi->format, dst_width, dst_height, src, core);
-
-        pDst = vsapi->getWritePtr(dst, 0);
-
-        // write analysis parameters as a header to frame
-        memcpy(pDst, &d->headerSize, sizeof(int));
-
-        if (d->divideExtra)
-            memcpy(pDst + sizeof(int), &d->analysisDataDivided, sizeof(d->analysisData));
-        else
-            memcpy(pDst + sizeof(int), &d->analysisData, sizeof(d->analysisData));
-
-        pDst += d->headerSize;
 
         FakeGroupOfPlanes fgop;
         fgopInit(&fgop, &d->vectors_data);
+
         const VSFrameRef *mvn = vsapi->getFrameFilter(n, d->vectors, frameCtx);
-        const int *mvs = (const int *)vsapi->getReadPtr(mvn, 0);
-        fgopUpdate(&fgop, mvs + mvs[0] / sizeof(int));
+        const VSMap *mvprops = vsapi->getFramePropsRO(mvn);
+
+        fgopUpdate(&fgop, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
         vsapi->freeFrame(mvn);
+
+        int vectors_size = gopGetArraySize(&vectorFields) * sizeof(int);
+        int *vectors = (int *)malloc(vectors_size);
 
         if (fgopIsValid(&fgop) && nref >= 0 && (nref < d->vi->numFrames || !d->vi->numFrames)) {
             const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->node, frameCtx);
@@ -170,7 +155,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
                 gopDeinit(&vectorFields);
                 vsapi->freeFrame(src);
                 vsapi->freeFrame(ref);
-                vsapi->freeFrame(dst);
+                free(vectors);
                 fgopDeinit(&fgop);
                 return NULL;
             }
@@ -209,11 +194,11 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             }
 
 
-            gopRecalculateMVs(&vectorFields, &fgop, &pSrcGOF, &pRefGOF, d->searchType, d->nSearchParam, d->nLambda, d->pnew, (int *)pDst, fieldShift, d->thSAD, DCTc, d->smooth, d->meander);
+            gopRecalculateMVs(&vectorFields, &fgop, &pSrcGOF, &pRefGOF, d->searchType, d->nSearchParam, d->nLambda, d->pnew, vectors, fieldShift, d->thSAD, DCTc, d->smooth, d->meander);
 
             if (d->divideExtra) {
                 // make extra level with divided sublocks with median (not estimated) motion
-                gopExtraDivide(&vectorFields, (int *)pDst);
+                gopExtraDivide(&vectorFields, vectors);
             }
 
             gopDeinit(&vectorFields);
@@ -225,9 +210,26 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             mvgofDeinit(&pRefGOF);
             vsapi->freeFrame(ref);
         } else {// too close to the beginning or end to do anything
-            gopWriteDefaultToArray(&vectorFields, (int *)pDst);
+            gopWriteDefaultToArray(&vectorFields, vectors);
             gopDeinit(&vectorFields);
         }
+
+        VSFrameRef *dst = vsapi->copyFrame(src, core);
+        VSMap *dstprops = vsapi->getFramePropsRW(dst);
+
+        vsapi->propSetData(dstprops,
+                           prop_MVTools_MVAnalysisData,
+                           (const char *)(d->divideExtra ? &d->analysisDataDivided : &d->analysisData),
+                           sizeof(MVAnalysisData),
+                           paReplace);
+
+        vsapi->propSetData(dstprops,
+                           prop_MVTools_vectors,
+                           (const char *)vectors,
+                           vectors_size,
+                           paReplace);
+
+        free(vectors);
 
         // FIXME: Get rid of all mmx shit.
         mvtools_cpu_emms();
@@ -401,9 +403,6 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
         d.nSearchParam = (d.searchparam < 1) ? 1 : d.searchparam;
 
 
-    d.headerSize = VSMAX(4 + sizeof(d.analysisData), 256); // include itself, but usually equal to 256 :-)
-
-
     d.node = vsapi->propGetNode(in, "super", 0, 0);
     d.supervi = vsapi->getVideoInfo(d.node);
 
@@ -426,6 +425,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     char errorMsg[ERROR_SIZE] = "Recalculate: failed to retrieve first frame from super clip. Error message: ";
     size_t errorLen = strlen(errorMsg);
     const VSFrameRef *evil = vsapi->getFrame(0, d.node, errorMsg + errorLen, ERROR_SIZE - errorLen);
+#undef ERROR_SIZE
     if (!evil) {
         vsapi->setError(out, errorMsg);
         vsapi->freeNode(d.node);
@@ -463,29 +463,30 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     d.vectors = vsapi->propGetNode(in, "vectors", 0, NULL);
     d.vi = vsapi->getVideoInfo(d.vectors);
 
-    strcpy(errorMsg, "Recalculate: failed to retrieve first frame from vectors clip. Error message: ");
-    errorLen = strlen(errorMsg);
-    evil = vsapi->getFrame(0, d.vectors, errorMsg + errorLen, ERROR_SIZE - errorLen);
+#define ERROR_SIZE 512
+    char error[ERROR_SIZE + 1] = { 0 };
+    const char *filter_name = "Recalculate";
+
+    adataFromVectorClip(&d.vectors_data, d.vectors, filter_name, "vectors", vsapi, error, ERROR_SIZE);
 #undef ERROR_SIZE
-    if (!evil) {
-        vsapi->setError(out, errorMsg);
+
+    if (error[0]) {
+        vsapi->setError(out, error);
+
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.vectors);
         return;
     }
 
-    // XXX This really should be passed as a frame property.
-    const MVAnalysisData *pAnalyseFilter = (const MVAnalysisData *)(vsapi->getReadPtr(evil, 0) + sizeof(int));
 
-    d.analysisData.yRatioUV = pAnalyseFilter->yRatioUV;
-    d.analysisData.xRatioUV = pAnalyseFilter->xRatioUV;
+    d.analysisData.yRatioUV = d.vectors_data.yRatioUV;
+    d.analysisData.xRatioUV = d.vectors_data.xRatioUV;
 
-    d.analysisData.nWidth = pAnalyseFilter->nWidth;
-    d.analysisData.nHeight = pAnalyseFilter->nHeight;
+    d.analysisData.nWidth = d.vectors_data.nWidth;
+    d.analysisData.nHeight = d.vectors_data.nHeight;
 
-    d.analysisData.nDeltaFrame = pAnalyseFilter->nDeltaFrame;
-    d.analysisData.isBackward = pAnalyseFilter->isBackward;
-    vsapi->freeFrame(evil);
+    d.analysisData.nDeltaFrame = d.vectors_data.nDeltaFrame;
+    d.analysisData.isBackward = d.vectors_data.isBackward;
 
 
     d.analysisData.bitsPerSample = d.supervi->format->bitsPerSample;
@@ -547,21 +548,6 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
         d.analysisDataDivided.nLvCount = d.analysisData.nLvCount + 1;
     }
 
-
-#define ERROR_SIZE 512
-    char error[ERROR_SIZE + 1] = { 0 };
-    const char *filter_name = "Recalculate";
-
-    adataFromVectorClip(&d.vectors_data, d.vectors, filter_name, "vectors", vsapi, error, ERROR_SIZE);
-#undef ERROR_SIZE
-
-    if (error[0]) {
-        vsapi->setError(out, error);
-
-        vsapi->freeNode(d.node);
-        vsapi->freeNode(d.vectors);
-        return;
-    }
 
     data = (MVRecalculateData *)malloc(sizeof(d));
     *data = d;

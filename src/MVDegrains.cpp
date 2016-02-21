@@ -161,8 +161,8 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
         for (int r = 0; r < radius * 2; r++) {
             const VSFrameRef *frame = vsapi->getFrameFilter(n, d->vectors[r], frameCtx);
             fgopInit(&fgops[r], &d->vectors_data[r]);
-            const int *mvs = (const int *)vsapi->getReadPtr(frame, 0);
-            fgopUpdate(&fgops[r], mvs + mvs[0] / sizeof(int));
+            const VSMap *mvprops = vsapi->getFramePropsRO(frame);
+            fgopUpdate(&fgops[r], (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
             isUsable[r] = fgopIsUsable(&fgops[r], d->nSCD1, d->nSCD2);
             vsapi->freeFrame(frame);
 

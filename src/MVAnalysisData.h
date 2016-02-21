@@ -33,7 +33,9 @@ extern "C" {
 #include <VapourSynth.h>
 
 
-#define MOTION_MAGIC_KEY 0x564D //'MV' is IMHO better 31415926 :)
+static const char prop_MVTools_MVAnalysisData[] = "MVTools_MVAnalysisData";
+static const char prop_MVTools_vectors[] = "MVTools_vectors";
+
 
 typedef struct VECTOR {
     int x;

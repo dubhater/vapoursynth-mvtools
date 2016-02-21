@@ -122,8 +122,8 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
         const VSFrameRef *mvn = vsapi->getFrameFilter(n, d->vectors, frameCtx);
         FakeGroupOfPlanes fgop;
         fgopInit(&fgop, &d->vectors_data);
-        const int *mvs = (const int *)vsapi->getReadPtr(mvn, 0);
-        fgopUpdate(&fgop, mvs + mvs[0] / sizeof(int));
+        const VSMap *mvprops = vsapi->getFramePropsRO(mvn);
+        fgopUpdate(&fgop, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
         vsapi->freeFrame(mvn);
 
         int off, nref;

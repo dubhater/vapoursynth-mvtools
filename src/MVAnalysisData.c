@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "Bullshit.h"
 #include "MVAnalysisData.h"
 
@@ -43,10 +45,21 @@ void adataFromVectorClip(struct MVAnalysisData *ad, VSNodeRef *clip, const char 
         return;
     }
 
-    // XXX This really should be passed as a frame property.
-    const MVAnalysisData *pAnalyseFilter = (const MVAnalysisData *)(vsapi->getReadPtr(evil, 0) + sizeof(int));
+    const VSMap *props = vsapi->getFramePropsRO(evil);
+    int err;
+    const char *data = vsapi->propGetData(props, prop_MVTools_MVAnalysisData, 0, &err);
+    if (err) {
+        snprintf(error, error_size, "%s: Property '%s' not found in first frame of %s.", filter_name, prop_MVTools_MVAnalysisData, vector_name);
+        return;
+    }
 
-    *ad = *pAnalyseFilter;
+    int data_size = vsapi->propGetDataSize(props, prop_MVTools_MVAnalysisData, 0, NULL);
+    if (data_size != sizeof(MVAnalysisData)) {
+        snprintf(error, error_size, "%s: Property '%s' in first frame of %s has wrong size (%d instead of %d).", filter_name, prop_MVTools_MVAnalysisData, vector_name, data_size, (int)sizeof(MVAnalysisData));
+        return;
+    }
+
+    memcpy(ad, data, sizeof(MVAnalysisData));
 
     vsapi->freeFrame(evil);
 }

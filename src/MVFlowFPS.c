@@ -153,18 +153,16 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
         const VSFrameRef *mvF = NULL, *mvB = NULL;
 
         if ((nleft < d->vi.numFrames && nright < d->vi.numFrames) || !d->vi.numFrames) {
-            const int *mvs;
-
             // forward from current to next
             mvF = vsapi->getFrameFilter(nright, d->mvfw, frameCtx);
-            mvs = (const int *)vsapi->getReadPtr(mvF, 0);
-            fgopUpdate(&fgopF, mvs + mvs[0] / sizeof(int));
+            const VSMap *mvprops = vsapi->getFramePropsRO(mvF);
+            fgopUpdate(&fgopF, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
             isUsableF = fgopIsUsable(&fgopF, d->thscd1, d->thscd2);
 
             // backward from next to current
             mvB = vsapi->getFrameFilter(nleft, d->mvbw, frameCtx);
-            mvs = (const int *)vsapi->getReadPtr(mvB, 0);
-            fgopUpdate(&fgopB, mvs + mvs[0] / sizeof(int));
+            mvprops = vsapi->getFramePropsRO(mvB);
+            fgopUpdate(&fgopB, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
             isUsableB = fgopIsUsable(&fgopB, d->thscd1, d->thscd2);
         }
 
@@ -348,19 +346,18 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
 
             if (maskmode == 2) { // These motion vectors should only be needed with maskmode 2. Why was the Avisynth plugin requesting them for all mask modes?
                 // Get motion info from more frames for occlusion areas
-                const int *mvs;
 
                 // forward from previous to current
                 const VSFrameRef *mvFF = vsapi->getFrameFilter(nleft, d->mvfw, frameCtx);
-                mvs = (const int *)vsapi->getReadPtr(mvFF, 0);
-                fgopUpdate(&fgopF, mvs + mvs[0] / sizeof(int));
+                const VSMap *mvprops = vsapi->getFramePropsRO(mvFF);
+                fgopUpdate(&fgopF, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
                 isUsableF = fgopIsUsable(&fgopF, d->thscd1, d->thscd2);
                 vsapi->freeFrame(mvFF);
 
                 // backward from next next to next
                 const VSFrameRef *mvBB = vsapi->getFrameFilter(nright, d->mvbw, frameCtx);
-                mvs = (const int *)vsapi->getReadPtr(mvBB, 0);
-                fgopUpdate(&fgopB, mvs + mvs[0] / sizeof(int));
+                mvprops = vsapi->getFramePropsRO(mvBB);
+                fgopUpdate(&fgopB, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
                 isUsableB = fgopIsUsable(&fgopB, d->thscd1, d->thscd2);
                 vsapi->freeFrame(mvBB);
             }
