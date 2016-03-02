@@ -100,7 +100,7 @@ static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, voi
                                           pPlanes[i]->nPaddedWidth, pPlanes[i]->nPaddedHeight,
                                           pPlanes[i]->nPitch, bitsPerSample);
                     } else if (d->nPel == 4) {
-                        Merge16PlanesToBig(pDst[0], nDstPitches[0],
+                        Merge16PlanesToBig(pDst[i], nDstPitches[i],
                                            mvpGetAbsolutePointer(pPlanes[i], 0, 0),
                                            mvpGetAbsolutePointer(pPlanes[i], 1, 0),
                                            mvpGetAbsolutePointer(pPlanes[i], 2, 0),
@@ -117,8 +117,8 @@ static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, voi
                                            mvpGetAbsolutePointer(pPlanes[i], 1, 3),
                                            mvpGetAbsolutePointer(pPlanes[i], 2, 3),
                                            mvpGetAbsolutePointer(pPlanes[i], 3, 3),
-                                           pPlanes[0]->nPaddedWidth, pPlanes[0]->nPaddedHeight,
-                                           pPlanes[0]->nPitch, bitsPerSample);
+                                           pPlanes[i]->nPaddedWidth, pPlanes[i]->nPaddedHeight,
+                                           pPlanes[i]->nPitch, bitsPerSample);
                     }
                 }
             }
