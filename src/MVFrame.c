@@ -212,6 +212,11 @@ void mvpRefine(MVPlane *mvp, int sharp) {
     if (mvp->isRefined)
         return;
 
+    if (mvp->nPel == 1) {
+        mvp->isRefined = 1;
+        return;
+    }
+
     typedef void (*RefineFunction)(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch, intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample);
 
     RefineFunction refine[3];
