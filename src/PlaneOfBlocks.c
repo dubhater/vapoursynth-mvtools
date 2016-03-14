@@ -1564,8 +1564,8 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
             }
 
             // scale vector to new nPel
-            vectorOld.x = (vectorOld.x << pob->nLogPel) >> nLogPelold;
-            vectorOld.y = (vectorOld.y << pob->nLogPel) >> nLogPelold;
+            vectorOld.x = (vectorOld.x * pob->nPel) >> nLogPelold;
+            vectorOld.y = (vectorOld.y * pob->nPel) >> nLogPelold;
 
             pob->predictor = pobClipMV(pob, vectorOld);                                                                    // predictor
             pob->predictor.sad = (int64_t)vectorOld.sad * (pob->nBlkSizeX * pob->nBlkSizeY) / (nBlkSizeXold * nBlkSizeYold); // normalized to new block size
@@ -1730,8 +1730,8 @@ void pobInterpolatePrediction(PlaneOfBlocks *pob, const PlaneOfBlocks *pob2) {
                 pob->vectors[index].y = (v1.y + v2.y + v3.y + v4.y) << 2;
                 temp_sad = (int64_t)(v1.sad + v2.sad + v3.sad + v4.sad + 2) << 2;
             }
-            pob->vectors[index].x = (pob->vectors[index].x >> normFactor) << mulFactor;
-            pob->vectors[index].y = (pob->vectors[index].y >> normFactor) << mulFactor;
+            pob->vectors[index].x = (pob->vectors[index].x >> normFactor) * (1 << mulFactor);
+            pob->vectors[index].y = (pob->vectors[index].y >> normFactor) * (1 << mulFactor);
             pob->vectors[index].sad = temp_sad >> 4;
         }
     }
