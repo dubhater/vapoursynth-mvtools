@@ -83,7 +83,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
         int offset = (d->analysisData.isBackward) ? d->analysisData.nDeltaFrame : -d->analysisData.nDeltaFrame;
         int nref = n + offset;
 
-        if (nref >= 0 && (nref < d->vi->numFrames || !d->vi->numFrames)) {
+        if (nref >= 0 && nref < d->vi->numFrames) {
             if (n < nref) {
                 vsapi->requestFrameFilter(n, d->node, frameCtx);
                 vsapi->requestFrameFilter(nref, d->node, frameCtx);
@@ -144,7 +144,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
         int vectors_size = gopGetArraySize(&vectorFields) * sizeof(int);
         int *vectors = (int *)malloc(vectors_size);
 
-        if (fgopIsValid(&fgop) && nref >= 0 && (nref < d->vi->numFrames || !d->vi->numFrames)) {
+        if (fgopIsValid(&fgop) && nref >= 0 && nref < d->vi->numFrames) {
             const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->node, frameCtx);
             const VSMap *refprops = vsapi->getFramePropsRO(ref);
 

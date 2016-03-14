@@ -121,18 +121,18 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
             vsapi->requestFrameFilter(n + offF, d->super, frameCtx);
 
         int offB = d->vectors_data[Backward1].nDeltaFrame;
-        if (n + offB < d->vi->numFrames || !d->vi->numFrames)
+        if (n + offB < d->vi->numFrames)
             vsapi->requestFrameFilter(n + offB, d->super, frameCtx);
 
         if (radius > 1) {
             int offB2 = d->vectors_data[Backward2].nDeltaFrame;
-            if (n + offB2 < d->vi->numFrames || !d->vi->numFrames)
+            if (n + offB2 < d->vi->numFrames)
                 vsapi->requestFrameFilter(n + offB2, d->super, frameCtx);
         }
 
         if (radius > 2) {
             int offB3 = d->vectors_data[Backward3].nDeltaFrame;
-            if (n + offB3 < d->vi->numFrames || !d->vi->numFrames)
+            if (n + offB3 < d->vi->numFrames)
                 vsapi->requestFrameFilter(n + offB3, d->super, frameCtx);
         }
 

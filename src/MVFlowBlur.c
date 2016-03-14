@@ -240,7 +240,7 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
     if (activationReason == arInitial) {
         int off = d->mvbw_data.nDeltaFrame; // integer offset of reference frame
 
-        if (n - off >= 0 && (n + off < d->vi->numFrames || !d->vi->numFrames)) {
+        if (n - off >= 0 && n + off < d->vi->numFrames) {
             vsapi->requestFrameFilter(n - off, d->mvbw, frameCtx);
             vsapi->requestFrameFilter(n + off, d->mvfw, frameCtx);
         }
@@ -263,7 +263,7 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
 
         int off = d->mvbw_data.nDeltaFrame; // integer offset of reference frame
 
-        if (n - off >= 0 && (n + off < d->vi->numFrames || !d->vi->numFrames)) {
+        if (n - off >= 0 && n + off < d->vi->numFrames) {
             const VSFrameRef *mvF = vsapi->getFrameFilter(n + off, d->mvfw, frameCtx);
             const VSMap *mvprops = vsapi->getFramePropsRO(mvF);
             fgopUpdate(&fgopF, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));

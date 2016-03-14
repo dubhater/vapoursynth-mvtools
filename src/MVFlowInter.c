@@ -93,7 +93,7 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
     if (activationReason == arInitial) {
         int off = d->mvbw_data.nDeltaFrame; // integer offset of reference frame
 
-        if (n + off < d->vi->numFrames || !d->vi->numFrames) {
+        if (n + off < d->vi->numFrames) {
             vsapi->requestFrameFilter(n, d->mvfw, frameCtx);
             vsapi->requestFrameFilter(n + off, d->mvfw, frameCtx);
 
@@ -105,7 +105,7 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
         }
 
         vsapi->requestFrameFilter(n, d->node, frameCtx);
-        vsapi->requestFrameFilter(d->vi->numFrames ? VSMIN(n + off, d->vi->numFrames - 1) : n + off, d->node, frameCtx);
+        vsapi->requestFrameFilter(VSMIN(n + off, d->vi->numFrames - 1), d->node, frameCtx);
     } else if (activationReason == arAllFramesReady) {
         uint8_t *pDst[3];
         const uint8_t *pRef[3], *pSrc[3];
@@ -123,7 +123,7 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
 
         int off = d->mvbw_data.nDeltaFrame; // integer offset of reference frame
 
-        if (n + off < d->vi->numFrames || !d->vi->numFrames) {
+        if (n + off < d->vi->numFrames) {
             const VSFrameRef *mvF = vsapi->getFrameFilter(n + off, d->mvfw, frameCtx);
             const VSMap *mvprops = vsapi->getFramePropsRO(mvF);
             fgopUpdate(&fgopF, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
@@ -453,7 +453,7 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
 
             if (blend) //let's blend src with ref frames like ConvertFPS
             {
-                const VSFrameRef *ref = vsapi->getFrameFilter(d->vi->numFrames ? VSMIN(n + off, d->vi->numFrames - 1) : n + off, d->node, frameCtx);
+                const VSFrameRef *ref = vsapi->getFrameFilter(VSMIN(n + off, d->vi->numFrames - 1), d->node, frameCtx);
 
                 VSFrameRef *dst = vsapi->newVideoFrame(d->vi->format, d->vi->width, d->vi->height, src, core);
 

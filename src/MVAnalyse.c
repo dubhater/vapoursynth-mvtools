@@ -91,7 +91,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             int offset = (d->analysisData.isBackward) ? d->analysisData.nDeltaFrame : -d->analysisData.nDeltaFrame;
             nref = n + offset;
 
-            if (nref >= 0 && (nref < d->vi->numFrames || !d->vi->numFrames)) {
+            if (nref >= 0 && nref < d->vi->numFrames) {
                 if (n < nref) {
                     vsapi->requestFrameFilter(n, d->node, frameCtx);
                     vsapi->requestFrameFilter(nref, d->node, frameCtx);
@@ -160,7 +160,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         int *vectors = (int *)malloc(vectors_size);
 
 
-        if (nref >= 0 && (nref < d->vi->numFrames || !d->vi->numFrames)) {
+        if (nref >= 0 && nref < d->vi->numFrames) {
             const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->node, frameCtx);
             const VSMap *refprops = vsapi->getFramePropsRO(ref);
 
@@ -512,7 +512,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         return;
     }
 
-    if (d.analysisData.nDeltaFrame <= 0 && d.vi->numFrames && (-d.analysisData.nDeltaFrame) >= d.vi->numFrames) {
+    if (d.analysisData.nDeltaFrame <= 0 && (-d.analysisData.nDeltaFrame) >= d.vi->numFrames) {
         vsapi->setError(out, "Analyse: delta points to frame past the input clip's end.");
         vsapi->freeNode(d.node);
         return;

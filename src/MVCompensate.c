@@ -99,7 +99,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
         vsapi->requestFrameFilter(n, d->super, frameCtx);
 
-        if (nref >= n && (!d->vi->numFrames || nref < d->vi->numFrames))
+        if (nref >= n && nref < d->vi->numFrames)
             vsapi->requestFrameFilter(nref, d->super, frameCtx);
     } else if (activationReason == arAllFramesReady) {
         const VSFrameRef *src = vsapi->getFrameFilter(n, d->super, frameCtx);
@@ -415,7 +415,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
             vsapi->freeFrame(ref);
         } else { // balls.IsUsable()
-            if (!scBehavior && (nref < d->vi->numFrames || !d->vi->numFrames) && (nref >= 0)) {
+            if (!scBehavior && nref < d->vi->numFrames && nref >= 0) {
                 vsapi->freeFrame(src);
                 src = vsapi->getFrameFilter(nref, d->super, frameCtx);
             }

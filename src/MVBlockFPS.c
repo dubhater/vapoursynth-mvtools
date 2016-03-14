@@ -312,25 +312,25 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
             time256 = time256 / off;
 
         if (time256 == 0) {
-            vsapi->requestFrameFilter(d->vi.numFrames ? VSMIN(nleft, d->vi.numFrames - 1) : nleft, d->node, frameCtx);
+            vsapi->requestFrameFilter(VSMIN(nleft, d->vi.numFrames - 1), d->node, frameCtx);
             return 0;
         } else if (time256 == 256) {
-            vsapi->requestFrameFilter(d->vi.numFrames ? VSMIN(nright, d->vi.numFrames - 1) : nright, d->node, frameCtx);
+            vsapi->requestFrameFilter(VSMIN(nright, d->vi.numFrames - 1), d->node, frameCtx);
             return 0;
         }
 
-        if ((nleft < d->vi.numFrames && nright < d->vi.numFrames) || !d->vi.numFrames) { // for the good estimation case
-            vsapi->requestFrameFilter(nright, d->mvfw, frameCtx);                        // requests nleft, nleft + off
-            vsapi->requestFrameFilter(nleft, d->mvbw, frameCtx);                         // requests nleft, nleft + off
+        if (nleft < d->vi.numFrames && nright < d->vi.numFrames) { // for the good estimation case
+            vsapi->requestFrameFilter(nright, d->mvfw, frameCtx);  // requests nleft, nleft + off
+            vsapi->requestFrameFilter(nleft, d->mvbw, frameCtx);   // requests nleft, nleft + off
 
             vsapi->requestFrameFilter(nleft, d->super, frameCtx);
             vsapi->requestFrameFilter(nright, d->super, frameCtx);
         }
 
-        vsapi->requestFrameFilter(d->vi.numFrames ? VSMIN(nleft, d->vi.numFrames - 1) : nleft, d->node, frameCtx);
+        vsapi->requestFrameFilter(VSMIN(nleft, d->vi.numFrames - 1), d->node, frameCtx);
 
         if (d->blend)
-            vsapi->requestFrameFilter(d->vi.numFrames ? VSMIN(nright, d->vi.numFrames - 1) : nright, d->node, frameCtx);
+            vsapi->requestFrameFilter(VSMIN(nright, d->vi.numFrames - 1), d->node, frameCtx);
 
     } else if (activationReason == arAllFramesReady) {
         int nleft = (int)(n * d->fa / d->fb);
@@ -345,9 +345,9 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
         int nright = nleft + off;
 
         if (time256 == 0)
-            return vsapi->getFrameFilter(d->vi.numFrames ? VSMIN(nleft, d->vi.numFrames - 1) : nleft, d->node, frameCtx); // simply left
+            return vsapi->getFrameFilter(VSMIN(nleft, d->vi.numFrames - 1), d->node, frameCtx); // simply left
         else if (time256 == 256)
-            return vsapi->getFrameFilter(d->vi.numFrames ? VSMIN(nright, d->vi.numFrames - 1) : nright, d->node, frameCtx); // simply right
+            return vsapi->getFrameFilter(VSMIN(nright, d->vi.numFrames - 1), d->node, frameCtx); // simply right
 
         FakeGroupOfPlanes fgopF, fgopB;
 
@@ -357,7 +357,7 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
         int isUsableF = 0;
         int isUsableB = 0;
 
-        if ((nleft < d->vi.numFrames && nright < d->vi.numFrames) || !d->vi.numFrames) {
+        if (nleft < d->vi.numFrames && nright < d->vi.numFrames) {
             // forward from current to next
             const VSFrameRef *mvF = vsapi->getFrameFilter(nright, d->mvfw, frameCtx);
             const VSMap *mvprops = vsapi->getFramePropsRO(mvF);
@@ -660,14 +660,14 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
             fgopDeinit(&fgopF);
             fgopDeinit(&fgopB);
 
-            const VSFrameRef *src = vsapi->getFrameFilter(d->vi.numFrames ? VSMIN(nleft, d->vi.numFrames - 1) : nleft, d->node, frameCtx);
+            const VSFrameRef *src = vsapi->getFrameFilter(VSMIN(nleft, d->vi.numFrames - 1), d->node, frameCtx);
 
             if (blend) { //let's blend src with ref frames like ConvertFPS
                 uint8_t *pDst[3];
                 const uint8_t *pRef[3], *pSrc[3];
                 int nDstPitches[3], nRefPitches[3], nSrcPitches[3];
 
-                const VSFrameRef *ref = vsapi->getFrameFilter(d->vi.numFrames ? VSMIN(nright, d->vi.numFrames - 1) : nright, d->node, frameCtx);
+                const VSFrameRef *ref = vsapi->getFrameFilter(VSMIN(nright, d->vi.numFrames - 1), d->node, frameCtx);
 
                 VSFrameRef *dst = vsapi->newVideoFrame(d->vi.format, d->vi.width, d->vi.height, src, core);
 
@@ -938,8 +938,7 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
 
     setFPS(&d.vi, numerator, denominator);
 
-    if (d.vi.numFrames)
-        d.vi.numFrames = (int)(1 + (d.vi.numFrames - 1) * d.fb / d.fa);
+    d.vi.numFrames = (int)(1 + (d.vi.numFrames - 1) * d.fb / d.fa);
 
 
     d.supervi = vsapi->getVideoInfo(d.super);
