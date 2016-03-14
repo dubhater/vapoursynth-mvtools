@@ -60,8 +60,6 @@ typedef struct MVAnalyseData {
     int nSuperModeYUV;
 
     int levels;
-    int search;
-    int search_coarse;
     int searchparam;
     int chroma;
     int truemotion;
@@ -286,13 +284,13 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     d.levels = int64ToIntS(vsapi->propGetInt(in, "levels", 0, &err));
 
-    d.search = int64ToIntS(vsapi->propGetInt(in, "search", 0, &err));
+    d.searchType = (SearchType)int64ToIntS(vsapi->propGetInt(in, "search", 0, &err));
     if (err)
-        d.search = 4; // hex2
+        d.searchType = SearchHex2;
 
-    d.search_coarse = int64ToIntS(vsapi->propGetInt(in, "search_coarse", 0, &err));
+    d.searchTypeCoarse = (SearchType)int64ToIntS(vsapi->propGetInt(in, "search_coarse", 0, &err));
     if (err)
-        d.search_coarse = 3; // exhaustive
+        d.searchTypeCoarse = SearchExhaustive;
 
     d.searchparam = int64ToIntS(vsapi->propGetInt(in, "searchparam", 0, &err));
     if (err)
@@ -374,12 +372,12 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.tffexists = err;
 
 
-    if (d.search < 0 || d.search > 7) {
+    if (d.searchType < 0 || d.searchType > 7) {
         vsapi->setError(out, "Analyse: search must be between 0 and 7 (inclusive).");
         return;
     }
 
-    if (d.search_coarse < 0 || d.search_coarse > 7) {
+    if (d.searchTypeCoarse < 0 || d.searchTypeCoarse > 7) {
         vsapi->setError(out, "Analyse: search_coarse must be between 0 and 7 (inclusive).");
         return;
     }
@@ -454,19 +452,6 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         return;
     }
 
-
-    SearchType searchTypes[] = {
-        SearchOnetime,
-        SearchNstep,
-        SearchLogarithmic,
-        SearchExhaustive,
-        SearchHex2,
-        SearchUnevenMultiHexagon,
-        SearchHorizontal,
-        SearchVertical
-    };
-    d.searchType = searchTypes[d.search];
-    d.searchTypeCoarse = searchTypes[d.search_coarse];
 
     if (d.searchType == SearchNstep)
         d.nSearchParam = (d.searchparam < 0) ? 0 : d.searchparam;

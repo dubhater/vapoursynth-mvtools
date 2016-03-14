@@ -50,7 +50,6 @@ typedef struct MVRecalculateData {
     int nSuperPel;
     int nSuperModeYUV;
 
-    int search;
     int searchparam;
     int chroma;
     int truemotion;
@@ -280,9 +279,9 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     if (err)
         d.analysisData.nBlkSizeY = d.analysisData.nBlkSizeX;
 
-    d.search = int64ToIntS(vsapi->propGetInt(in, "search", 0, &err));
+    d.searchType = (SearchType)int64ToIntS(vsapi->propGetInt(in, "search", 0, &err));
     if (err)
-        d.search = 4; // hex2
+        d.searchType = SearchHex2;
 
     d.searchparam = int64ToIntS(vsapi->propGetInt(in, "searchparam", 0, &err));
     if (err)
@@ -328,7 +327,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     d.tffexists = err;
 
 
-    if (d.search < 0 || d.search > 7) {
+    if (d.searchType < 0 || d.searchType > 7) {
         vsapi->setError(out, "Recalculate: search must be between 0 and 7 (inclusive).");
         return;
     }
@@ -385,17 +384,6 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
         return;
     }
 
-    SearchType searchTypes[] = {
-        SearchOnetime,
-        SearchNstep,
-        SearchLogarithmic,
-        SearchExhaustive,
-        SearchHex2,
-        SearchUnevenMultiHexagon,
-        SearchHorizontal,
-        SearchVertical
-    };
-    d.searchType = searchTypes[d.search];
 
     if (d.searchType == SearchNstep)
         d.nSearchParam = (d.searchparam < 0) ? 0 : d.searchparam;

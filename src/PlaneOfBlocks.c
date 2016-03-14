@@ -1043,31 +1043,31 @@ void pobUMHSearch(PlaneOfBlocks *pob, int i_me_range, int omx, int omy) { // rad
 
 void pobRefine(PlaneOfBlocks *pob) {
     // then, we refine, according to the search type
-    if (pob->searchType & SearchOnetime)
+    if (pob->searchType == SearchOnetime)
         for (int i = pob->nSearchParam; i > 0; i /= 2)
             pobOneTimeSearch(pob, i);
 
-    if (pob->searchType & SearchNstep)
+    if (pob->searchType == SearchNstep)
         pobNStepSearch(pob, pob->nSearchParam);
 
-    if (pob->searchType & SearchLogarithmic)
+    if (pob->searchType == SearchLogarithmic)
         for (int i = pob->nSearchParam; i > 0; i /= 2)
             pobDiamondSearch(pob, i);
 
-    if (pob->searchType & SearchExhaustive) {
+    if (pob->searchType == SearchExhaustive) {
         int mvx = pob->bestMV.x;
         int mvy = pob->bestMV.y;
         for (int i = 1; i <= pob->nSearchParam; i++) // region is same as enhausted, but ordered by radius (from near to far)
             pobExpandingSearch(pob, i, 1, mvx, mvy);
     }
 
-    if (pob->searchType & SearchHex2)
+    if (pob->searchType == SearchHex2)
         pobHex2Search(pob, pob->nSearchParam);
 
-    if (pob->searchType & SearchUnevenMultiHexagon)
+    if (pob->searchType == SearchUnevenMultiHexagon)
         pobUMHSearch(pob, pob->nSearchParam, pob->bestMV.x, pob->bestMV.y);
 
-    if (pob->searchType & SearchHorizontal) {
+    if (pob->searchType == SearchHorizontal) {
         int mvx = pob->bestMV.x;
         int mvy = pob->bestMV.y;
         for (int i = 1; i <= pob->nSearchParam; i++) {
@@ -1076,7 +1076,7 @@ void pobRefine(PlaneOfBlocks *pob) {
         }
     }
 
-    if (pob->searchType & SearchVertical) {
+    if (pob->searchType == SearchVertical) {
         int mvx = pob->bestMV.x;
         int mvy = pob->bestMV.y;
         for (int i = 1; i <= pob->nSearchParam; i++) {
@@ -1593,31 +1593,31 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
 
             if (pob->bestMV.sad > thSAD) { // if old interpolated vector is bad
                 // then, we refine, according to the search type
-                if (pob->searchType & SearchOnetime)
+                if (pob->searchType == SearchOnetime)
                     for (int i = pob->nSearchParam; i > 0; i /= 2)
                         pobOneTimeSearch(pob, i);
 
-                if (pob->searchType & SearchNstep)
+                if (pob->searchType == SearchNstep)
                     pobNStepSearch(pob, pob->nSearchParam);
 
-                if (pob->searchType & SearchLogarithmic)
+                if (pob->searchType == SearchLogarithmic)
                     for (int i = pob->nSearchParam; i > 0; i /= 2)
                         pobDiamondSearch(pob, i);
 
-                if (pob->searchType & SearchExhaustive) {
+                if (pob->searchType == SearchExhaustive) {
                     int mvx = pob->bestMV.x;
                     int mvy = pob->bestMV.y;
                     for (int i = 1; i <= pob->nSearchParam; i++) // region is same as exhaustive, but ordered by radius (from near to far)
                         pobExpandingSearch(pob, i, 1, mvx, mvy);
                 }
 
-                if (pob->searchType & SearchHex2)
+                if (pob->searchType == SearchHex2)
                     pobHex2Search(pob, pob->nSearchParam);
 
-                if (pob->searchType & SearchUnevenMultiHexagon)
+                if (pob->searchType == SearchUnevenMultiHexagon)
                     pobUMHSearch(pob, pob->nSearchParam, pob->bestMV.x, pob->bestMV.y);
 
-                if (pob->searchType & SearchHorizontal) {
+                if (pob->searchType == SearchHorizontal) {
                     int mvx = pob->bestMV.x;
                     int mvy = pob->bestMV.y;
                     for (int i = 1; i <= pob->nSearchParam; i++) {
@@ -1626,7 +1626,7 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
                     }
                 }
 
-                if (pob->searchType & SearchVertical) {
+                if (pob->searchType == SearchVertical) {
                     int mvx = pob->bestMV.x;
                     int mvy = pob->bestMV.y;
                     for (int i = 1; i <= pob->nSearchParam; i++) {

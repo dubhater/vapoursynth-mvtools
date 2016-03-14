@@ -49,14 +49,14 @@ typedef struct VECTOR {
 
 /*! \brief Search type : defines the algorithm used for minimizing the SAD */
 typedef enum SearchType {
-    SearchOnetime               = (1 << 0),
-    SearchNstep                 = (1 << 1),
-    SearchLogarithmic           = (1 << 2),
-    SearchExhaustive            = (1 << 3),
-    SearchHex2                  = (1 << 4),
-    SearchUnevenMultiHexagon    = (1 << 5),
-    SearchHorizontal            = (1 << 6),
-    SearchVertical              = (1 << 7)
+    SearchOnetime,
+    SearchNstep,
+    SearchLogarithmic,
+    SearchExhaustive,
+    SearchHex2,
+    SearchUnevenMultiHexagon,
+    SearchHorizontal,
+    SearchVertical
 } SearchType;
 
 
