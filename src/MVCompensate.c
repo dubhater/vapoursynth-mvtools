@@ -307,7 +307,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                         int i = by * nBlkX + bx;
                         const FakeBlockData *block = fgopGetBlock(&fgop, 0, i);
 
-                        blx = block->y * nPel + block->vector.x;
+                        blx = block->x * nPel + block->vector.x;
                         bly = block->y * nPel + block->vector.y + fieldShift;
 
                         if (block->vector.sad < thSAD) {
