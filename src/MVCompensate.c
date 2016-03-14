@@ -738,7 +738,7 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
         d.OverWins = (OverlapWindows *)malloc(sizeof(OverlapWindows));
         overInit(d.OverWins, d.vectors_data.nBlkSizeX, d.vectors_data.nBlkSizeY, d.vectors_data.nOverlapX, d.vectors_data.nOverlapY);
         if (d.nSuperModeYUV & UVPLANES) {
-            d.OverWins = (OverlapWindows *)malloc(sizeof(OverlapWindows));
+            d.OverWinsUV = (OverlapWindows *)malloc(sizeof(OverlapWindows));
             overInit(d.OverWinsUV, d.vectors_data.nBlkSizeX / d.vectors_data.xRatioUV, d.vectors_data.nBlkSizeY / d.vectors_data.yRatioUV, d.vectors_data.nOverlapX / d.vectors_data.xRatioUV, d.vectors_data.nOverlapY / d.vectors_data.yRatioUV);
         }
     }
