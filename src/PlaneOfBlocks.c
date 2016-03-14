@@ -235,7 +235,7 @@ static inline void pobCheckMV(PlaneOfBlocks *pob, int vx, int vy) { //here the c
             return;
 
         int sad = pobLumaSAD(pob, pobGetRefBlock(pob, vx, vy));
-        cost += sad + ((pob->penaltyNew * sad) >> 8);
+        cost += sad + (int)(((int64_t)pob->penaltyNew * sad) >> 8);
         if (cost >= pob->nMinCost)
             return;
 
@@ -244,7 +244,7 @@ static inline void pobCheckMV(PlaneOfBlocks *pob, int vx, int vy) { //here the c
             saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, vx, vy), pob->nRefPitch[1]);
             saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, vx, vy), pob->nRefPitch[2]);
 
-            cost += saduv + ((pob->penaltyNew * saduv) >> 8);
+            cost += saduv + (int)(((int64_t)pob->penaltyNew * saduv) >> 8);
             if (cost >= pob->nMinCost)
                 return;
         }
@@ -271,7 +271,7 @@ static inline void pobCheckMV2(PlaneOfBlocks *pob, int vx, int vy, int *dir, int
             return;
 
         int sad = pobLumaSAD(pob, pobGetRefBlock(pob, vx, vy));
-        cost += sad + ((pob->penaltyNew * sad) >> 8);
+        cost += sad + (int)(((int64_t)pob->penaltyNew * sad) >> 8);
         if (cost >= pob->nMinCost)
             return;
 
@@ -280,7 +280,7 @@ static inline void pobCheckMV2(PlaneOfBlocks *pob, int vx, int vy, int *dir, int
             saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, vx, vy), pob->nRefPitch[1]);
             saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, vx, vy), pob->nRefPitch[2]);
 
-            cost += saduv + ((pob->penaltyNew * saduv) >> 8);
+            cost += saduv + (int)(((int64_t)pob->penaltyNew * saduv) >> 8);
             if (cost >= pob->nMinCost)
                 return;
         }
@@ -308,7 +308,7 @@ static inline void pobCheckMVdir(PlaneOfBlocks *pob, int vx, int vy, int *dir, i
             return;
 
         int sad = pobLumaSAD(pob, pobGetRefBlock(pob, vx, vy));
-        cost += sad + ((pob->penaltyNew * sad) >> 8);
+        cost += sad + (int)(((int64_t)pob->penaltyNew * sad) >> 8);
         if (cost >= pob->nMinCost)
             return;
 
@@ -317,7 +317,7 @@ static inline void pobCheckMVdir(PlaneOfBlocks *pob, int vx, int vy, int *dir, i
             saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, vx, vy), pob->nRefPitch[1]);
             saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, vx, vy), pob->nRefPitch[2]);
 
-            cost += saduv + ((pob->penaltyNew * saduv) >> 8);
+            cost += saduv + (int)(((int64_t)pob->penaltyNew * saduv) >> 8);
             if (cost >= pob->nMinCost)
                 return;
         }
@@ -1111,7 +1111,7 @@ void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
         sad += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, 0, 0), pob->nRefPitch[2]);
     }
     pob->bestMV.sad = sad;
-    pob->nMinCost = sad + ((pob->penaltyZero * sad) >> 8); // v.1.11.0.2
+    pob->nMinCost = sad + (int)(((int64_t)pob->penaltyZero * sad) >> 8); // v.1.11.0.2
 
     VECTOR bestMVMany[8];
     int nMinCostMany[8];
@@ -1130,7 +1130,7 @@ void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
         sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y), pob->nRefPitch[1]);
         sad += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y), pob->nRefPitch[2]);
     }
-    int cost = sad + ((pob->pglobal * sad) >> 8);
+    int cost = sad + (int)(((int64_t)pob->pglobal * sad) >> 8);
 
     if (cost < pob->nMinCost || pob->tryMany) {
         pob->bestMV.x = pob->globalMVPredictor.x;
