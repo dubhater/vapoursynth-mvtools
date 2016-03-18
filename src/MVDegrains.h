@@ -4,8 +4,6 @@
 #include <cstdint>
 #include <cstring>
 
-#include <emmintrin.h>
-
 #include "Fakery.h"
 #include "MVFrame.h"
 
@@ -48,6 +46,10 @@ void Degrain_C(uint8_t *pDst8, int nDstPitch, const uint8_t *pSrc8, int nSrcPitc
     }
 }
 
+
+#if defined(MVTOOLS_X86)
+
+#include <emmintrin.h>
 
 // XXX Moves the pointers passed in pRefs. This is okay because they are not
 // used after this function is done with them.
@@ -161,10 +163,12 @@ void Degrain_sse2(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPit
 }
 
 
-typedef void (*LimitFunction)(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidth, intptr_t nHeight, intptr_t nLimit);
-
-
 extern "C" void mvtools_LimitChanges_sse2(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidth, intptr_t nHeight, intptr_t nLimit);
+
+#endif // MVTOOLS_X86
+
+
+typedef void (*LimitFunction)(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidth, intptr_t nHeight, intptr_t nLimit);
 
 
 template <typename PixelType>

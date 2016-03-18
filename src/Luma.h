@@ -31,6 +31,7 @@ DECLARE_LUMA(16, 16, 16, c)
 DECLARE_LUMA(32, 16, 16, c)
 DECLARE_LUMA(32, 32, 16, c)
 
+#if defined(MVTOOLS_X86)
 DECLARE_LUMA(4, 4, 8, sse2)
 DECLARE_LUMA(8, 4, 8, sse2)
 DECLARE_LUMA(8, 8, 8, sse2)
@@ -39,6 +40,7 @@ DECLARE_LUMA(16, 8, 8, sse2)
 DECLARE_LUMA(16, 16, 8, sse2)
 DECLARE_LUMA(32, 16, 8, sse2)
 DECLARE_LUMA(32, 32, 8, sse2)
+#endif
 
 #undef DECLARE_LUMA
 

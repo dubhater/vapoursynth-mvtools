@@ -28,6 +28,8 @@
 #include "CPU.h"
 
 
+#if defined(MVTOOLS_X86)
+
 uint32_t cpu_detect(void) {
     uint32_t cpu = 0;
     uint32_t eax, ebx, ecx, edx;
@@ -194,3 +196,11 @@ uint32_t cpu_detect(void) {
 
     return cpu;
 }
+
+#else // not MVTOOLS_X86
+
+uint32_t cpu_detect(void) {
+    return 0;
+}
+
+#endif

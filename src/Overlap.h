@@ -89,6 +89,7 @@ MK_CFUNC(mvtools_overlaps_32x8_uint32_t_uint16_t_c);
 MK_CFUNC(mvtools_overlaps_32x16_uint32_t_uint16_t_c);
 MK_CFUNC(mvtools_overlaps_32x32_uint32_t_uint16_t_c);
 
+#if defined(MVTOOLS_X86)
 MK_CFUNC(mvtools_overlaps_2x2_sse2);
 MK_CFUNC(mvtools_overlaps_2x4_sse2);
 MK_CFUNC(mvtools_overlaps_4x2_sse2);
@@ -108,6 +109,7 @@ MK_CFUNC(mvtools_overlaps_16x32_sse2);
 MK_CFUNC(mvtools_overlaps_32x8_sse2);
 MK_CFUNC(mvtools_overlaps_32x16_sse2);
 MK_CFUNC(mvtools_overlaps_32x32_sse2);
+#endif
 
 #undef MK_CFUNC
 

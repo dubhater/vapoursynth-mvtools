@@ -1,5 +1,5 @@
 warningflags = -Wall -Wextra -Wshadow
-commonflags = -O2 -msse2 -mfpmath=sse $(STACKREALIGN) $(warningflags)
+commonflags = -O2 $(MFLAGS) $(STACKREALIGN) $(warningflags)
 AM_CFLAGS = -std=c99 $(commonflags)
 AM_CXXFLAGS = -std=c++11 $(commonflags)
 
@@ -13,7 +13,7 @@ am__v_YASM_0 = @echo "  YASM    " $@;
 am__v_YASM_1 =
 
 .asm.lo:
-	$(AM_V_YASM)$(LIBTOOL) $(AM_V_lt) --mode=compile --tag=CC $(AS) $(ASFLAGS) -o $@ $< -prefer-non-pic
+	$(AM_V_YASM)$(LIBTOOL) $(AM_V_lt) --mode=compile --tag=CC $(YASM) $(YASMFLAGS) -o $@ $< -prefer-non-pic
 
 libmvtools_la_SOURCES =	src/Bullshit.h \
 						src/CommonFunctions.h \
@@ -59,16 +59,19 @@ libmvtools_la_SOURCES =	src/Bullshit.h \
 						src/SADFunctions.cpp \
 						src/SADFunctions.h \
 						src/SimpleResize.c \
-						src/SimpleResize.h \
-						src/asm/const-a.asm \
-						src/asm/cpu-a.asm \
-						src/asm/pixel-a.asm \
-						src/asm/sad-a.asm \
-						src/asm/Interpolation.asm \
-						src/asm/Luma.asm \
-						src/asm/MVDegrains.asm \
-						src/asm/Overlap.asm \
-						src/asm/SAD.asm
+						src/SimpleResize.h
+
+if MVTOOLS_X86
+libmvtools_la_SOURCES += src/asm/const-a.asm \
+						 src/asm/cpu-a.asm \
+						 src/asm/pixel-a.asm \
+						 src/asm/sad-a.asm \
+						 src/asm/Interpolation.asm \
+						 src/asm/Luma.asm \
+						 src/asm/MVDegrains.asm \
+						 src/asm/Overlap.asm \
+						 src/asm/SAD.asm
+endif
 
 libmvtools_la_LDFLAGS = -no-undefined -avoid-version $(PLUGINLDFLAGS)
 

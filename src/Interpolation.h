@@ -36,6 +36,8 @@ extern "C" {
 #include <stdint.h>
 
 
+#if defined(MVTOOLS_X86)
+
 /* TODO: port these
    extern "C" void  VerticalBicubic_iSSE(uint8_t *pDst, const uint8_t *pSrc, intptr_t nDstPitch,
    intptr_t nWidth, intptr_t nHeight);
@@ -67,6 +69,8 @@ void mvtools_VerticalWiener_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nP
                                  intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample);
 void mvtools_HorizontalWiener_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
                                    intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample);
+
+#endif // MVTOOLS_X86
 
 
 #define VerticalBilinear(PixelType) \
@@ -275,6 +279,14 @@ RB2Filtered(uint8_t)
 RB2Filtered(uint16_t)
 
 
+#if defined(MVTOOLS_X86)
+#define RB2BilinearFilteredVertical_SIMD \
+    mvtools_RB2BilinearFilteredVerticalLine_sse2((uint8_t *)pDst, (const uint8_t *)pSrc, nSrcPitch, nWidthMMX); \
+    xstart = nWidthMMX;
+#else
+#define RB2BilinearFilteredVertical_SIMD
+#endif
+
 //  BilinearFiltered with 1/8, 3/8, 3/8, 1/8 filter for smoothing and anti-aliasing - Fizick
 // nHeight is dst height which is reduced by 2 source height
 #define RB2BilinearFilteredVertical(PixelType) \
@@ -296,24 +308,17 @@ static void RB2BilinearFilteredVertical_##PixelType(uint8_t *pDst8, const uint8_
         pSrc += nSrcPitch * 2; \
     } \
  \
-    if (sizeof(PixelType) == 1 && isse && nWidthMMX >= 8) { \
-        for (int y = 1; y < nHeight - 1; y++) { \
-            mvtools_RB2BilinearFilteredVerticalLine_sse2((uint8_t *)pDst, (const uint8_t *)pSrc, nSrcPitch, nWidthMMX); \
+    for (int y = 1; y < nHeight - 1; y++) { \
+        int xstart = 0; \
  \
-            for (int x = nWidthMMX; x < nWidth; x++) \
-                pDst[x] = (pSrc[x - nSrcPitch] + pSrc[x] * 3 + pSrc[x + nSrcPitch] * 3 + pSrc[x + nSrcPitch * 2] + 4) / 8; \
- \
-            pDst += nDstPitch; \
-            pSrc += nSrcPitch * 2; \
+        if (sizeof(PixelType) == 1 && isse && nWidthMMX >= 8) { \
+            RB2BilinearFilteredVertical_SIMD \
         } \
-    } else { \
-        for (int y = 1; y < nHeight - 1; y++) { \
-            for (int x = 0; x < nWidth; x++) \
-                pDst[x] = (pSrc[x - nSrcPitch] + pSrc[x] * 3 + pSrc[x + nSrcPitch] * 3 + pSrc[x + nSrcPitch * 2] + 4) / 8; \
- \
-            pDst += nDstPitch; \
-            pSrc += nSrcPitch * 2; \
-        } \
+        for (int x = xstart; x < nWidth; x++) \
+            pDst[x] = (pSrc[x - nSrcPitch] + pSrc[x] * 3 + pSrc[x + nSrcPitch] * 3 + pSrc[x + nSrcPitch * 2] + 4) / 8; \
+\
+        pDst += nDstPitch; \
+        pSrc += nSrcPitch * 2; \
     } \
     for (int y = max(nHeight - 1, 1); y < nHeight; y++) { \
         for (int x = 0; x < nWidth; x++) \
@@ -326,6 +331,14 @@ static void RB2BilinearFilteredVertical_##PixelType(uint8_t *pDst8, const uint8_
 RB2BilinearFilteredVertical(uint8_t)
 RB2BilinearFilteredVertical(uint16_t)
 
+
+#if defined(MVTOOLS_X86)
+#define RB2BilinearFilteredHorizontalInplace_SIMD \
+    mvtools_RB2BilinearFilteredHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX); /* very first is skipped */ \
+    xstart = nWidthMMX;
+#else
+#define RB2BilinearFilteredHorizontalInplace_SIMD
+#endif
 
 // BilinearFiltered with 1/8, 3/8, 3/8, 1/8 filter for smoothing and anti-aliasing - Fizick
 // nWidth is dst height which is reduced by 2 source width
@@ -342,14 +355,14 @@ static void RB2BilinearFilteredHorizontalInplace_##PixelType(uint8_t *pSrc8, int
         int x = 0; \
         int pSrc0 = (pSrc[x * 2] + pSrc[x * 2 + 1] + 1) / 2; \
  \
+        int xstart = 1; \
+ \
         if (sizeof(PixelType) == 1 && isse) { \
-            mvtools_RB2BilinearFilteredHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX); /* very first is skipped */ \
-            for (x = nWidthMMX; x < nWidth - 1; x++) \
-                pSrc[x] = (pSrc[x * 2 - 1] + pSrc[x * 2] * 3 + pSrc[x * 2 + 1] * 3 + pSrc[x * 2 + 2] + 4) / 8; \
-        } else { \
-            for (x = 1; x < nWidth - 1; x++) \
-                pSrc[x] = (pSrc[x * 2 - 1] + pSrc[x * 2] * 3 + pSrc[x * 2 + 1] * 3 + pSrc[x * 2 + 2] + 4) / 8; \
+            RB2BilinearFilteredHorizontalInplace_SIMD \
         } \
+        for (x = xstart; x < nWidth - 1; x++) \
+            pSrc[x] = (pSrc[x * 2 - 1] + pSrc[x * 2] * 3 + pSrc[x * 2 + 1] * 3 + pSrc[x * 2 + 2] + 4) / 8; \
+ \
         pSrc[0] = pSrc0; \
  \
         for (x = max(nWidth - 1, 1); x < nWidth; x++) \
@@ -376,6 +389,14 @@ RB2BilinearFiltered(uint8_t)
 RB2BilinearFiltered(uint16_t)
 
 
+#if defined(MVTOOLS_X86)
+#define RB2QuadraticVertical_SIMD \
+    mvtools_RB2QuadraticVerticalLine_sse2((uint8_t *)pDst, (const uint8_t *)pSrc, nSrcPitch, nWidthMMX); \
+    xstart = nWidthMMX;
+#else
+#define RB2QuadraticVertical_SIMD
+#endif
+
 // filtered Quadratic with 1/64, 9/64, 22/64, 22/64, 9/64, 1/64 filter for smoothing and anti-aliasing - Fizick
 // nHeight is dst height which is reduced by 2 source height
 #define RB2QuadraticVertical(PixelType) \
@@ -396,27 +417,19 @@ static void RB2QuadraticVertical_##PixelType(uint8_t *pDst8, const uint8_t *pSrc
         pSrc += nSrcPitch * 2; \
     } \
  \
-    if (sizeof(PixelType) == 1 && isse && nWidthMMX >= 8) { \
-        for (int y = 1; y < nHeight - 1; y++) { \
-            mvtools_RB2QuadraticVerticalLine_sse2((uint8_t *)pDst, (const uint8_t *)pSrc, nSrcPitch, nWidthMMX); \
+    for (int y = 1; y < nHeight - 1; y++) { \
+        int xstart = 0; \
  \
-            for (int x = nWidthMMX; x < nWidth; x++) \
-                pDst[x] = (pSrc[x - nSrcPitch * 2] + pSrc[x - nSrcPitch] * 9 + pSrc[x] * 22 + \
-                           pSrc[x + nSrcPitch] * 22 + pSrc[x + nSrcPitch * 2] * 9 + pSrc[x + nSrcPitch * 3] + 32) / 64; \
- \
-            pDst += nDstPitch; \
-            pSrc += nSrcPitch * 2; \
+        if (sizeof(PixelType) == 1 && isse && nWidthMMX >= 8) { \
+            RB2QuadraticVertical_SIMD \
         } \
-    } else { \
  \
-        for (int y = 1; y < nHeight - 1; y++) { \
-            for (int x = 0; x < nWidth; x++) \
-                pDst[x] = (pSrc[x - nSrcPitch * 2] + pSrc[x - nSrcPitch] * 9 + pSrc[x] * 22 + \
-                           pSrc[x + nSrcPitch] * 22 + pSrc[x + nSrcPitch * 2] * 9 + pSrc[x + nSrcPitch * 3] + 32) / 64; \
- \
-            pDst += nDstPitch; \
-            pSrc += nSrcPitch * 2; \
-        } \
+        for (int x = xstart; x < nWidth; x++) \
+            pDst[x] = (pSrc[x - nSrcPitch * 2] + pSrc[x - nSrcPitch] * 9 + pSrc[x] * 22 + \
+                       pSrc[x + nSrcPitch] * 22 + pSrc[x + nSrcPitch * 2] * 9 + pSrc[x + nSrcPitch * 3] + 32) / 64; \
+\
+        pDst += nDstPitch; \
+        pSrc += nSrcPitch * 2; \
     } \
     for (int y = max(nHeight - 1, 1); y < nHeight; y++) { \
         for (int x = 0; x < nWidth; x++) \
@@ -429,6 +442,14 @@ static void RB2QuadraticVertical_##PixelType(uint8_t *pDst8, const uint8_t *pSrc
 RB2QuadraticVertical(uint8_t)
 RB2QuadraticVertical(uint16_t)
 
+
+#if defined(MVTOOLS_X86)
+#define RB2QuadraticHorizontalInplace_SIMD \
+    mvtools_RB2QuadraticHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX); \
+    xstart = nWidthMMX;
+#else
+#define RB2QuadraticHorizontalInplace_SIMD
+#endif
 
 // filtered Quadratic with 1/64, 9/64, 22/64, 22/64, 9/64, 1/64 filter for smoothing and anti-aliasing - Fizick
 // nWidth is dst height which is reduced by 2 source width
@@ -444,14 +465,15 @@ static void RB2QuadraticHorizontalInplace_##PixelType(uint8_t *pSrc8, int nSrcPi
         int x = 0; \
         int pSrc0 = (pSrc[x * 2] + pSrc[x * 2 + 1] + 1) / 2; /* store temporary */ \
  \
+        int xstart = 1; \
+ \
         if (sizeof(PixelType) == 1 && isse) { \
-            mvtools_RB2QuadraticHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX); \
-            for (x = nWidthMMX; x < nWidth - 1; x++) \
-                pSrc[x] = (pSrc[x * 2 - 2] + pSrc[x * 2 - 1] * 9 + pSrc[x * 2] * 22 + pSrc[x * 2 + 1] * 22 + pSrc[x * 2 + 2] * 9 + pSrc[x * 2 + 3] + 32) / 64; \
-        } else { \
-            for (x = 1; x < nWidth - 1; x++) \
-                pSrc[x] = (pSrc[x * 2 - 2] + pSrc[x * 2 - 1] * 9 + pSrc[x * 2] * 22 + pSrc[x * 2 + 1] * 22 + pSrc[x * 2 + 2] * 9 + pSrc[x * 2 + 3] + 32) / 64; \
+            RB2QuadraticHorizontalInplace_SIMD \
         } \
+ \
+        for (x = xstart; x < nWidth - 1; x++) \
+            pSrc[x] = (pSrc[x * 2 - 2] + pSrc[x * 2 - 1] * 9 + pSrc[x * 2] * 22 + pSrc[x * 2 + 1] * 22 + pSrc[x * 2 + 2] * 9 + pSrc[x * 2 + 3] + 32) / 64; \
+ \
         pSrc[0] = pSrc0; \
  \
         for (x = max(nWidth - 1, 1); x < nWidth; x++) \
@@ -478,6 +500,14 @@ RB2Quadratic(uint8_t)
 RB2Quadratic(uint16_t)
 
 
+#if defined(MVTOOLS_X86)
+#define RB2CubicVertical_SIMD \
+    mvtools_RB2CubicVerticalLine_sse2((uint8_t *)pDst, (const uint8_t *)pSrc, nSrcPitch, nWidthMMX); \
+    xstart = nWidthMMX;
+#else
+#define RB2CubicVertical_SIMD
+#endif
+
 // filtered qubic with 1/32, 5/32, 10/32, 10/32, 5/32, 1/32 filter for smoothing and anti-aliasing - Fizick
 // nHeight is dst height which is reduced by 2 source height
 #define RB2CubicVertical(PixelType) \
@@ -497,26 +527,19 @@ static void RB2CubicVertical_##PixelType(uint8_t *pDst8, const uint8_t *pSrc8, i
         pSrc += nSrcPitch * 2; \
     } \
  \
-    if (sizeof(PixelType) == 1 && isse && nWidthMMX >= 8) { \
-        for (int y = 1; y < nHeight - 1; y++) { \
-            mvtools_RB2CubicVerticalLine_sse2((uint8_t *)pDst, (const uint8_t *)pSrc, nSrcPitch, nWidthMMX); \
+    for (int y = 1; y < nHeight - 1; y++) { \
+        int xstart = 0; \
  \
-            for (int x = nWidthMMX; x < nWidth; x++) \
-                pDst[x] = (pSrc[x - nSrcPitch * 2] + pSrc[x - nSrcPitch] * 5 + pSrc[x] * 10 + \
-                           pSrc[x + nSrcPitch] * 10 + pSrc[x + nSrcPitch * 2] * 5 + pSrc[x + nSrcPitch * 3] + 16) / 32; \
- \
-            pDst += nDstPitch; \
-            pSrc += nSrcPitch * 2; \
+        if (sizeof(PixelType) == 1 && isse && nWidthMMX >= 8) { \
+            RB2CubicVertical_SIMD \
         } \
-    } else { \
-        for (int y = 1; y < nHeight - 1; y++) { \
-            for (int x = 0; x < nWidth; x++) \
-                pDst[x] = (pSrc[x - nSrcPitch * 2] + pSrc[x - nSrcPitch] * 5 + pSrc[x] * 10 + \
-                           pSrc[x + nSrcPitch] * 10 + pSrc[x + nSrcPitch * 2] * 5 + pSrc[x + nSrcPitch * 3] + 16) / 32; \
  \
-            pDst += nDstPitch; \
-            pSrc += nSrcPitch * 2; \
-        } \
+        for (int x = xstart; x < nWidth; x++) \
+            pDst[x] = (pSrc[x - nSrcPitch * 2] + pSrc[x - nSrcPitch] * 5 + pSrc[x] * 10 + \
+                       pSrc[x + nSrcPitch] * 10 + pSrc[x + nSrcPitch * 2] * 5 + pSrc[x + nSrcPitch * 3] + 16) / 32; \
+ \
+        pDst += nDstPitch; \
+        pSrc += nSrcPitch * 2; \
     } \
     for (int y = max(nHeight - 1, 1); y < nHeight; y++) { \
         for (int x = 0; x < nWidth; x++) \
@@ -530,6 +553,14 @@ RB2CubicVertical(uint8_t)
 RB2CubicVertical(uint16_t)
 
 
+#if defined(MVTOOLS_X86)
+#define RB2CubicHorizontalInplace_SIMD \
+    mvtools_RB2CubicHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX); \
+    xstart = nWidthMMX;
+#else
+#define RB2CubicHorizontalInplace_SIMD
+#endif
+
 // filtered qubic with 1/32, 5/32, 10/32, 10/32, 5/32, 1/32 filter for smoothing and anti-aliasing - Fizick
 // nWidth is dst height which is reduced by 2 source width
 #define RB2CubicHorizontalInplace(PixelType) \
@@ -542,14 +573,16 @@ static void RB2CubicHorizontalInplace_##PixelType(uint8_t *pSrc8, int nSrcPitch,
     for (int y = 0; y < nHeight; y++) { \
         int x = 0; \
         int pSrcw0 = (pSrc[x * 2] + pSrc[x * 2 + 1] + 1) / 2; /* store temporary */ \
+ \
+        int xstart = 1; \
+ \
         if (sizeof(PixelType) == 1 && isse) { \
-            mvtools_RB2CubicHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX); \
-            for (x = nWidthMMX; x < nWidth - 1; x++) \
-                pSrc[x] = (pSrc[x * 2 - 2] + pSrc[x * 2 - 1] * 5 + pSrc[x * 2] * 10 + pSrc[x * 2 + 1] * 10 + pSrc[x * 2 + 2] * 5 + pSrc[x * 2 + 3] + 16) / 32; \
-        } else { \
-            for (x = 1; x < nWidth - 1; x++) \
-                pSrc[x] = (pSrc[x * 2 - 2] + pSrc[x * 2 - 1] * 5 + pSrc[x * 2] * 10 + pSrc[x * 2 + 1] * 10 + pSrc[x * 2 + 2] * 5 + pSrc[x * 2 + 3] + 16) / 32; \
+            RB2CubicHorizontalInplace_SIMD \
         } \
+ \
+        for (x = xstart; x < nWidth - 1; x++) \
+            pSrc[x] = (pSrc[x * 2 - 2] + pSrc[x * 2 - 1] * 5 + pSrc[x * 2] * 10 + pSrc[x * 2 + 1] * 10 + pSrc[x * 2 + 2] * 5 + pSrc[x * 2 + 3] + 16) / 32; \
+ \
         pSrc[0] = pSrcw0; \
  \
         for (x = max(nWidth - 1, 1); x < nWidth; x++) \

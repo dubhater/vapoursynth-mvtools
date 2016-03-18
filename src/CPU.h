@@ -8,6 +8,8 @@ extern "C" {
 #include <stdint.h>
 
 
+#if defined(MVTOOLS_X86)
+
 #define X264_CPU_CMOV            0x0000001
 #define X264_CPU_MMX             0x0000002
 #define X264_CPU_MMX2            0x0000004  /* MMX2 aka MMXEXT aka ISSE */
@@ -42,11 +44,13 @@ extern "C" {
 #define X264_CPU_SLOW_PSHUFB     0x2000000  /* such as on the Intel Atom */
 #define X264_CPU_SLOW_PALIGNR    0x4000000  /* such as on the AMD Bobcat */
 
-uint32_t cpu_detect(void);
-
 void mvtools_cpu_emms();
 uint32_t mvtools_cpu_cpuid(uint32_t op, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx);
 void mvtools_cpu_xgetbv(uint32_t op, uint32_t *eax, uint32_t *edx);
+
+#endif // MVTOOLS_X86
+
+uint32_t cpu_detect(void);
 
 #ifdef __cplusplus
 } // extern "C"

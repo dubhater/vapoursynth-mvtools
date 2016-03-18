@@ -1,5 +1,6 @@
-AC_INIT([MVTools], [1], [https://github.com/dubhater/vapoursynth-mvtools/issues], [MVTools], [https://github.com/dubhater/vapoursynth-mvtools/])
+AC_INIT([MVTools], [12], [https://github.com/dubhater/vapoursynth-mvtools/issues], [MVTools], [https://github.com/dubhater/vapoursynth-mvtools/])
 
+: ${CFLAGS=""}
 : ${CXXFLAGS=""}
 
 AM_INIT_AUTOMAKE([foreign no-dist-gzip dist-xz subdir-objects no-define])
@@ -7,6 +8,7 @@ AM_SILENT_RULES([yes])
 
 LT_INIT([disable-static win32-dll])
 
+AC_PROG_CC
 AC_PROG_CXX
 
 AC_CANONICAL_HOST
@@ -42,49 +44,79 @@ if test "$lt_cv_file_magic_cmd" = "func_win32_libid" ; then
     file_magic_cmd='$OBJDUMP -f'
 fi
 
+X86="false"
+PPC="false"
+ARM="false"
 
-AC_CHECK_PROGS([YASM], [yasm])
-AS_IF(
-   [test "x$YASM" = "x"],
-   [AC_MSG_ERROR([yasm required but not found])],
-   [AS="$YASM"]
-)
-
-ASFLAGS="$ASFLAGS -Dprivate_prefix=mvtools -DHIGH_BIT_DEPTH=0 -DBIT_DEPTH=8"
 
 AS_CASE(
   [$host_cpu],
-  [i?86],   [BITS="32" ASFLAGS="$ASFLAGS -DARCH_X86_64=0"],
-  [x86_64], [BITS="64" ASFLAGS="$ASFLAGS -DARCH_X86_64=1 -DPIC -m amd64"],
-  [AC_MSG_ERROR([Currently MVTools can only be compiled for Intel CPUs.])]
+  [i?86],     [BITS="32" YASMFLAGS="$YASMFLAGS -DARCH_X86_64=0" X86="true"],
+  [x86_64],   [BITS="64" YASMFLAGS="$YASMFLAGS -DARCH_X86_64=1 -DPIC -m amd64" X86="true"],
+  [powerpc*], [PPC="true"],
+  [arm*],     [ARM="true"],
+  [AC_MSG_ERROR([Unknown host CPU: $host_cpu.])]
 )
 
 AS_CASE(
    [$host_os],
    [darwin*],
    [
-      ASFLAGS="$ASFLAGS -f macho$BITS -DPREFIX"
+      YASMFLAGS="$YASMFLAGS -f macho$BITS -DPREFIX"
    ],
-   [*linux*|gnu*],
+   [*linux*|gnu*|dragonfly*|*bsd*],
    [
-      ASFLAGS="$ASFLAGS -f elf"
+      YASMFLAGS="$YASMFLAGS -f elf"
    ],
    [cygwin*|mingw*],
    [
-      ASFLAGS="$ASFLAGS -f win32"
+      YASMFLAGS="$YASMFLAGS -f win32"
       AS_IF(
          [test "x$BITS" = "x32"],
          [
-          ASFLAGS="$ASFLAGS -DPREFIX"
+          YASMFLAGS="$YASMFLAGS -DPREFIX"
           AC_SUBST([PLUGINLDFLAGS], ["-Wl,--kill-at"])
           AC_SUBST([STACKREALIGN], ["-mstackrealign"])
          ]
       )
    ],
-   [AC_MSG_ERROR([Unknown host OS])]
+   [AC_MSG_ERROR([Unknown host OS: $host_os])]
 )
-AC_SUBST([ASFLAGS])
 
+AS_IF(
+      [test "x$X86" = "xtrue"],
+      [
+       AC_DEFINE([MVTOOLS_X86])
+
+       AC_SUBST([MFLAGS], ["-mfpmath=sse -msse2"])
+
+       YASMFLAGS="$YASMFLAGS -Dprivate_prefix=mvtools -DHIGH_BIT_DEPTH=0 -DBIT_DEPTH=8"
+
+       AC_SUBST([YASMFLAGS])
+
+       AC_CHECK_PROGS([YASM], [yasm])
+       AS_IF(
+             [test "x$YASM" = "x"],
+             [AC_MSG_ERROR([yasm required but not found])]
+       )
+       AC_SUBST([YASM])
+      ]
+)
+
+AS_IF(
+      [test "x$PPC" = "xtrue"],
+      [AC_DEFINE([MVTOOLS_PPC])]
+)
+
+AS_IF(
+      [test "x$ARM" = "xtrue"],
+      [AC_DEFINE([MVTOOLS_ARM])]
+)
+
+
+AM_CONDITIONAL([MVTOOLS_X86], [test "x$X86" = "xtrue"])
+AM_CONDITIONAL([MVTOOLS_ARM], [test "x$ARM" = "xtrue"])
+AM_CONDITIONAL([MVTOOLS_PPC], [test "x$PPC" = "xtrue"])
 
 
 PKG_CHECK_MODULES([VapourSynth], [vapoursynth])

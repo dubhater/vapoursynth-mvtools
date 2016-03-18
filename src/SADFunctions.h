@@ -74,6 +74,9 @@ MK_CFUNC(mvtools_sad_32x8_u16_c);
 MK_CFUNC(mvtools_sad_32x16_u16_c);
 MK_CFUNC(mvtools_sad_32x32_u16_c);
 
+
+#if defined(MVTOOLS_X86)
+
 // From SAD.asm
 MK_CFUNC(mvtools_sad_4x2_sse2);
 MK_CFUNC(mvtools_sad_8x1_sse2);
@@ -139,6 +142,8 @@ MK_CFUNC(mvtools_pixel_ssd_8x16_mmx);
 MK_CFUNC(mvtools_pixel_ssd_16x8_mmx);
 MK_CFUNC(mvtools_pixel_ssd_16x16_mmx);
 
+#endif // MVTOOLS_X86
+
 /* SATD: Sum of Absolute Transformed Differences, more sensitive to noise, frequency domain based - replacement to dct/SAD */
 
 // From SADFunctions.cpp
@@ -153,6 +158,9 @@ MK_CFUNC(mvtools_satd_8x4_u16_c);
 MK_CFUNC(mvtools_satd_8x8_u16_c);
 MK_CFUNC(mvtools_satd_16x8_u16_c);
 MK_CFUNC(mvtools_satd_16x16_u16_c);
+
+
+#if defined(MVTOOLS_X86)
 
 // From sad-a.asm - stolen from x264
 MK_CFUNC(mvtools_pixel_satd_4x4_mmx2);
@@ -189,6 +197,8 @@ MK_CFUNC(mvtools_pixel_satd_16x16_xop);
 MK_CFUNC(mvtools_pixel_satd_8x8_avx2);
 MK_CFUNC(mvtools_pixel_satd_16x8_avx2);
 MK_CFUNC(mvtools_pixel_satd_16x16_avx2);
+
+#endif // MVTOOLS_X86
 
 #undef MK_CFUNC
 

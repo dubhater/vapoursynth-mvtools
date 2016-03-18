@@ -381,6 +381,295 @@ static inline int Median(int a, int b, int c) {
 }
 
 
+static void pobSelectFunctions(PlaneOfBlocks *pob) {
+    SADFunction sads[33][33];
+    LUMAFunction lumas[33][33];
+    COPYFunction blits[33][33];
+    SADFunction satds[33][33];
+
+    // valid block sizes for luma: 4x4, 8x4, 8x8, 16x2, 16x8, 16x16, 32x16, 32x32.
+    if (pob->bytesPerSample == 1) {
+        sads[2][2] = mvtools_sad_2x2_u8_c;
+        blits[2][2] = mvtools_copy_2x2_u8_c;
+
+        sads[2][4] = mvtools_sad_2x4_u8_c;
+        blits[2][4] = mvtools_copy_2x4_u8_c;
+
+        sads[4][2] = mvtools_sad_4x2_u8_c;
+        blits[4][2] = mvtools_copy_4x2_u8_c;
+
+        sads[4][4] = mvtools_sad_4x4_u8_c;
+        lumas[4][4] = mvtools_luma_4x4_u8_c;
+        blits[4][4] = mvtools_copy_4x4_u8_c;
+        satds[4][4] = mvtools_satd_4x4_u8_c;
+
+        sads[4][8] = mvtools_sad_4x8_u8_c;
+        blits[4][8] = mvtools_copy_4x8_u8_c;
+
+        sads[8][1] = mvtools_sad_8x1_u8_c;
+        blits[8][1] = mvtools_copy_8x1_u8_c;
+
+        sads[8][2] = mvtools_sad_8x2_u8_c;
+        blits[8][2] = mvtools_copy_8x2_u8_c;
+
+        sads[8][4] = mvtools_sad_8x4_u8_c;
+        lumas[8][4] = mvtools_luma_8x4_u8_c;
+        blits[8][4] = mvtools_copy_8x4_u8_c;
+        satds[8][4] = mvtools_satd_8x4_u8_c;
+
+        sads[8][8] = mvtools_sad_8x8_u8_c;
+        lumas[8][8] = mvtools_luma_8x8_u8_c;
+        blits[8][8] = mvtools_copy_8x8_u8_c;
+        satds[8][8] = mvtools_satd_8x8_u8_c;
+
+        sads[8][16] = mvtools_sad_8x16_u8_c;
+        blits[8][16] = mvtools_copy_8x16_u8_c;
+
+        sads[16][1] = mvtools_sad_16x1_u8_c;
+        blits[16][1] = mvtools_copy_16x1_u8_c;
+
+        sads[16][2] = mvtools_sad_16x2_u8_c;
+        lumas[16][2] = mvtools_luma_16x2_u8_c;
+        blits[16][2] = mvtools_copy_16x2_u8_c;
+
+        sads[16][4] = mvtools_sad_16x4_u8_c;
+        blits[16][4] = mvtools_copy_16x4_u8_c;
+
+        sads[16][8] = mvtools_sad_16x8_u8_c;
+        lumas[16][8] = mvtools_luma_16x8_u8_c;
+        blits[16][8] = mvtools_copy_16x8_u8_c;
+        satds[16][8] = mvtools_satd_16x8_u8_c;
+
+        sads[16][16] = mvtools_sad_16x16_u8_c;
+        lumas[16][16] = mvtools_luma_16x16_u8_c;
+        blits[16][16] = mvtools_copy_16x16_u8_c;
+        satds[16][16] = mvtools_satd_16x16_u8_c;
+
+        sads[16][32] = mvtools_sad_16x32_u8_c;
+        blits[16][32] = mvtools_copy_16x32_u8_c;
+
+        sads[32][8] = mvtools_sad_32x8_u8_c;
+        blits[32][8] = mvtools_copy_32x8_u8_c;
+
+        sads[32][16] = mvtools_sad_32x16_u8_c;
+        lumas[32][16] = mvtools_luma_32x16_u8_c;
+        blits[32][16] = mvtools_copy_32x16_u8_c;
+
+        sads[32][32] = mvtools_sad_32x32_u8_c;
+        lumas[32][32] = mvtools_luma_32x32_u8_c;
+        blits[32][32] = mvtools_copy_32x32_u8_c;
+
+        if (pob->isse) {
+#if defined(MVTOOLS_X86)
+            sads[4][2] = mvtools_sad_4x2_sse2;
+
+            sads[4][4] = mvtools_pixel_sad_4x4_mmx2;
+            lumas[4][4] = mvtools_luma_4x4_u8_sse2;
+            satds[4][4] = mvtools_pixel_satd_4x4_mmx2;
+
+            sads[4][8] = mvtools_pixel_sad_4x8_mmx2;
+
+            sads[8][1] = mvtools_sad_8x1_sse2;
+
+            sads[8][2] = mvtools_sad_8x2_sse2;
+
+            sads[8][4] = mvtools_pixel_sad_8x4_mmx2;
+            lumas[8][4] = mvtools_luma_8x4_u8_sse2;
+            satds[8][4] = mvtools_pixel_satd_8x4_sse2;
+
+            sads[8][8] = mvtools_pixel_sad_8x8_mmx2;
+            lumas[8][8] = mvtools_luma_8x8_u8_sse2;
+            satds[8][8] = mvtools_pixel_satd_8x8_sse2;
+
+            sads[8][16] = mvtools_pixel_sad_8x16_sse2;
+
+            sads[16][1] = mvtools_sad_16x1_sse2;
+
+            sads[16][2] = mvtools_sad_16x2_sse2;
+            lumas[16][2] = mvtools_luma_16x2_u8_sse2;
+
+            sads[16][4] = mvtools_sad_16x4_sse2;
+
+            sads[16][8] = mvtools_pixel_sad_16x8_sse2;
+            lumas[16][8] = mvtools_luma_16x8_u8_sse2;
+            satds[16][8] = mvtools_pixel_satd_16x8_sse2;
+
+            sads[16][16] = mvtools_pixel_sad_16x16_sse2;
+            lumas[16][16] = mvtools_luma_16x16_u8_sse2;
+            satds[16][16] = mvtools_pixel_satd_16x16_sse2;
+
+            sads[16][32] = mvtools_sad_16x32_sse2;
+
+            sads[32][8] = mvtools_sad_32x8_sse2;
+
+            sads[32][16] = mvtools_sad_32x16_sse2;
+            lumas[32][16] = mvtools_luma_32x16_u8_sse2;
+
+            sads[32][32] = mvtools_sad_32x32_sse2;
+            lumas[32][32] = mvtools_luma_32x32_u8_sse2;
+
+            if (pob->nCPUFlags & X264_CPU_CACHELINE_64) {
+                sads[8][4] = mvtools_pixel_sad_8x4_cache64_mmx2;
+                sads[8][8] = mvtools_pixel_sad_8x8_cache64_mmx2;
+            }
+
+            if (pob->nCPUFlags & X264_CPU_SSE3) {
+                sads[16][8] = mvtools_pixel_sad_16x8_sse3;
+                sads[16][16] = mvtools_pixel_sad_16x16_sse3;
+            }
+
+            if ((pob->nCPUFlags & X264_CPU_SSSE3) && (pob->nCPUFlags & X264_CPU_CACHELINE_64)) {
+                sads[16][8] = mvtools_pixel_sad_16x8_cache64_ssse3;
+                sads[16][16] = mvtools_pixel_sad_16x16_cache64_ssse3;
+            }
+
+            if (pob->nCPUFlags & X264_CPU_SSSE3) {
+                satds[4][4] = mvtools_pixel_satd_4x4_ssse3;
+                satds[8][4] = mvtools_pixel_satd_8x4_ssse3;
+                satds[8][8] = mvtools_pixel_satd_8x8_ssse3;
+                satds[16][8] = mvtools_pixel_satd_16x8_ssse3;
+                satds[16][16] = mvtools_pixel_satd_16x16_ssse3;
+            }
+
+            if (pob->nCPUFlags & X264_CPU_SSE4) {
+                satds[4][4] = mvtools_pixel_satd_4x4_sse4;
+                satds[8][4] = mvtools_pixel_satd_8x4_sse4;
+                satds[8][8] = mvtools_pixel_satd_8x8_sse4;
+                satds[16][8] = mvtools_pixel_satd_16x8_sse4;
+                satds[16][16] = mvtools_pixel_satd_16x16_sse4;
+            }
+
+            if (pob->nCPUFlags & X264_CPU_AVX) {
+                satds[4][4] = mvtools_pixel_satd_4x4_avx;
+                satds[8][4] = mvtools_pixel_satd_8x4_avx;
+                satds[8][8] = mvtools_pixel_satd_8x8_avx;
+                satds[16][8] = mvtools_pixel_satd_16x8_avx;
+                satds[16][16] = mvtools_pixel_satd_16x16_avx;
+            }
+
+            if (pob->nCPUFlags & X264_CPU_XOP) {
+                satds[4][4] = mvtools_pixel_satd_4x4_xop;
+                satds[8][4] = mvtools_pixel_satd_8x4_xop;
+                satds[8][8] = mvtools_pixel_satd_8x8_xop;
+                satds[16][8] = mvtools_pixel_satd_16x8_xop;
+                satds[16][16] = mvtools_pixel_satd_16x16_xop;
+            }
+
+            if (pob->nCPUFlags & X264_CPU_AVX2) {
+                satds[8][8] = mvtools_pixel_satd_8x8_avx2;
+                satds[16][8] = mvtools_pixel_satd_16x8_avx2;
+                satds[16][16] = mvtools_pixel_satd_16x16_avx2;
+            }
+#endif
+        }
+    } else {
+        sads[2][2] = mvtools_sad_2x2_u16_c;
+        blits[2][2] = mvtools_copy_2x2_u16_c;
+
+        sads[2][4] = mvtools_sad_2x4_u16_c;
+        blits[2][4] = mvtools_copy_2x4_u16_c;
+
+        sads[4][2] = mvtools_sad_4x2_u16_c;
+        blits[4][2] = mvtools_copy_4x2_u16_c;
+
+        sads[4][4] = mvtools_sad_4x4_u16_c;
+        lumas[4][4] = mvtools_luma_4x4_u16_c;
+        blits[4][4] = mvtools_copy_4x4_u16_c;
+        satds[4][4] = mvtools_satd_4x4_u16_c;
+
+        sads[4][8] = mvtools_sad_4x8_u16_c;
+        blits[4][8] = mvtools_copy_4x8_u16_c;
+
+        sads[8][1] = mvtools_sad_8x1_u16_c;
+        blits[8][1] = mvtools_copy_8x1_u16_c;
+
+        sads[8][2] = mvtools_sad_8x2_u16_c;
+        blits[8][2] = mvtools_copy_8x2_u16_c;
+
+        sads[8][4] = mvtools_sad_8x4_u16_c;
+        lumas[8][4] = mvtools_luma_8x4_u16_c;
+        blits[8][4] = mvtools_copy_8x4_u16_c;
+        satds[8][4] = mvtools_satd_8x4_u16_c;
+
+        sads[8][8] = mvtools_sad_8x8_u16_c;
+        lumas[8][8] = mvtools_luma_8x8_u16_c;
+        blits[8][8] = mvtools_copy_8x8_u16_c;
+        satds[8][8] = mvtools_satd_8x8_u16_c;
+
+        sads[8][16] = mvtools_sad_8x16_u16_c;
+        blits[8][16] = mvtools_copy_8x16_u16_c;
+
+        sads[16][1] = mvtools_sad_16x1_u16_c;
+        blits[16][1] = mvtools_copy_16x1_u16_c;
+
+        sads[16][2] = mvtools_sad_16x2_u16_c;
+        lumas[16][2] = mvtools_luma_16x2_u16_c;
+        blits[16][2] = mvtools_copy_16x2_u16_c;
+
+        sads[16][4] = mvtools_sad_16x4_u16_c;
+        blits[16][4] = mvtools_copy_16x4_u16_c;
+
+        sads[16][8] = mvtools_sad_16x8_u16_c;
+        lumas[16][8] = mvtools_luma_16x8_u16_c;
+        blits[16][8] = mvtools_copy_16x8_u16_c;
+        satds[16][8] = mvtools_satd_16x8_u16_c;
+
+        sads[16][16] = mvtools_sad_16x16_u16_c;
+        lumas[16][16] = mvtools_luma_16x16_u16_c;
+        blits[16][16] = mvtools_copy_16x16_u16_c;
+        satds[16][16] = mvtools_satd_16x16_u16_c;
+
+        sads[16][32] = mvtools_sad_16x32_u16_c;
+        blits[16][32] = mvtools_copy_16x32_u16_c;
+
+        sads[32][8] = mvtools_sad_32x8_u16_c;
+        blits[32][8] = mvtools_copy_32x8_u16_c;
+
+        sads[32][16] = mvtools_sad_32x16_u16_c;
+        lumas[32][16] = mvtools_luma_32x16_u16_c;
+        blits[32][16] = mvtools_copy_32x16_u16_c;
+
+        sads[32][32] = mvtools_sad_32x32_u16_c;
+        lumas[32][32] = mvtools_luma_32x32_u16_c;
+        blits[32][32] = mvtools_copy_32x32_u16_c;
+
+        if (pob->isse) {
+#if defined(MVTOOLS_X86)
+            sads[2][2] = mvtools_sad_2x2_u16_sse2;
+            sads[2][4] = mvtools_sad_2x4_u16_sse2;
+            sads[4][2] = mvtools_sad_4x2_u16_sse2;
+            sads[4][4] = mvtools_sad_4x4_u16_sse2;
+            sads[4][8] = mvtools_sad_4x8_u16_sse2;
+            sads[8][1] = mvtools_sad_8x1_u16_sse2;
+            sads[8][2] = mvtools_sad_8x2_u16_sse2;
+            sads[8][4] = mvtools_sad_8x4_u16_sse2;
+            sads[8][8] = mvtools_sad_8x8_u16_sse2;
+            sads[8][16] = mvtools_sad_8x16_u16_sse2;
+            sads[16][1] = mvtools_sad_16x1_u16_sse2;
+            sads[16][2] = mvtools_sad_16x2_u16_sse2;
+            sads[16][4] = mvtools_sad_16x4_u16_sse2;
+            sads[16][8] = mvtools_sad_16x8_u16_sse2;
+            sads[16][16] = mvtools_sad_16x16_u16_sse2;
+            sads[16][32] = mvtools_sad_16x32_u16_sse2;
+            sads[32][8] = mvtools_sad_32x8_u16_sse2;
+            sads[32][16] = mvtools_sad_32x16_u16_sse2;
+            sads[32][32] = mvtools_sad_32x32_u16_sse2;
+#endif
+        }
+    }
+
+
+    pob->SAD = sads[pob->nBlkSizeX][pob->nBlkSizeY];
+    pob->LUMA = lumas[pob->nBlkSizeX][pob->nBlkSizeY];
+    pob->BLITLUMA = blits[pob->nBlkSizeX][pob->nBlkSizeY];
+
+    pob->SADCHROMA = sads[pob->nBlkSizeX / pob->xRatioUV][pob->nBlkSizeY / pob->yRatioUV];
+    pob->BLITCHROMA = blits[pob->nBlkSizeX / pob->xRatioUV][pob->nBlkSizeY / pob->yRatioUV];
+
+    pob->SATD = satds[pob->nBlkSizeX][pob->nBlkSizeY];
+}
+
+
 void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int _nMotionFlags, int _nCPUFlags, int _nOverlapX, int _nOverlapY, int _xRatioUV, int _yRatioUV, int _bitsPerSample) {
 
     /* constant fields */
@@ -414,14 +703,6 @@ void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nB
     pob->isse = !!(pob->nMotionFlags & MOTION_USE_ISSE);
     pob->chroma = !!(pob->nMotionFlags & MOTION_USE_CHROMA_MOTION);
 
-    int cache64 = !!(pob->nCPUFlags & X264_CPU_CACHELINE_64);
-    int sse3 = !!(pob->nCPUFlags & X264_CPU_SSE3);
-    int ssse3 = !!(pob->nCPUFlags & X264_CPU_SSSE3);
-    int sse41 = !!(pob->nCPUFlags & X264_CPU_SSE4);
-    int avx = !!(pob->nCPUFlags & X264_CPU_AVX);
-    int xop = !!(pob->nCPUFlags & X264_CPU_XOP);
-    int avx2 = !!(pob->nCPUFlags & X264_CPU_AVX2);
-
     pob->globalMVPredictor.x = zeroMV.x;
     pob->globalMVPredictor.y = zeroMV.y;
     pob->globalMVPredictor.sad = zeroMV.sad;
@@ -432,219 +713,7 @@ void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nB
     memset(pob->vectors, 0, pob->nBlkCount * sizeof(VECTOR));
 
     /* function's pointers initialization */
-
-    SADFunction sads[33][33];
-    LUMAFunction lumas[33][33];
-    COPYFunction blits[33][33];
-    SADFunction satds[33][33];
-
-    // valid block sizes for luma: 4x4, 8x4, 8x8, 16x2, 16x8, 16x16, 32x16, 32x32.
-    if (pob->bytesPerSample == 1) {
-        sads[2][2] = mvtools_sad_2x2_u8_c;
-        blits[2][2] = mvtools_copy_2x2_u8_c;
-
-        sads[2][4] = mvtools_sad_2x4_u8_c;
-        blits[2][4] = mvtools_copy_2x4_u8_c;
-
-        sads[4][2] = pob->isse ? mvtools_sad_4x2_sse2 : mvtools_sad_4x2_u8_c;
-        blits[4][2] = mvtools_copy_4x2_u8_c;
-
-        sads[4][4] = pob->isse ? mvtools_pixel_sad_4x4_mmx2 : mvtools_sad_4x4_u8_c;
-        lumas[4][4] = pob->isse ? mvtools_luma_4x4_u8_sse2 : mvtools_luma_4x4_u8_c;
-        blits[4][4] = mvtools_copy_4x4_u8_c;
-        satds[4][4] = pob->isse ? mvtools_pixel_satd_4x4_mmx2 : mvtools_satd_4x4_u8_c;
-
-        sads[4][8] = pob->isse ? mvtools_pixel_sad_4x8_mmx2 : mvtools_sad_4x8_u8_c;
-        blits[4][8] = mvtools_copy_4x8_u8_c;
-
-        sads[8][1] = pob->isse ? mvtools_sad_8x1_sse2 : mvtools_sad_8x1_u8_c;
-        blits[8][1] = mvtools_copy_8x1_u8_c;
-
-        sads[8][2] = pob->isse ? mvtools_sad_8x2_sse2 : mvtools_sad_8x2_u8_c;
-        blits[8][2] = mvtools_copy_8x2_u8_c;
-
-        sads[8][4] = pob->isse ? mvtools_pixel_sad_8x4_mmx2 : mvtools_sad_8x4_u8_c;
-        lumas[8][4] = pob->isse ? mvtools_luma_8x4_u8_sse2 : mvtools_luma_8x4_u8_c;
-        blits[8][4] = mvtools_copy_8x4_u8_c;
-        satds[8][4] = pob->isse ? mvtools_pixel_satd_8x4_sse2 : mvtools_satd_8x4_u8_c;
-
-        sads[8][8] = pob->isse ? mvtools_pixel_sad_8x8_mmx2 : mvtools_sad_8x8_u8_c;
-        lumas[8][8] = pob->isse ? mvtools_luma_8x8_u8_sse2 : mvtools_luma_8x8_u8_c;
-        blits[8][8] = mvtools_copy_8x8_u8_c;
-        satds[8][8] = pob->isse ? mvtools_pixel_satd_8x8_sse2 : mvtools_satd_8x8_u8_c;
-
-        sads[8][16] = pob->isse ? mvtools_pixel_sad_8x16_sse2 : mvtools_sad_8x16_u8_c;
-        blits[8][16] = mvtools_copy_8x16_u8_c;
-
-        sads[16][1] = pob->isse ? mvtools_sad_16x1_sse2 : mvtools_sad_16x1_u8_c;
-        blits[16][1] = mvtools_copy_16x1_u8_c;
-
-        sads[16][2] = pob->isse ? mvtools_sad_16x2_sse2 : mvtools_sad_16x2_u8_c;
-        lumas[16][2] = pob->isse ? mvtools_luma_16x2_u8_sse2 : mvtools_luma_16x2_u8_c;
-        blits[16][2] = mvtools_copy_16x2_u8_c;
-
-        sads[16][4] = pob->isse ? mvtools_sad_16x4_sse2 : mvtools_sad_16x4_u8_c;
-        blits[16][4] = mvtools_copy_16x4_u8_c;
-
-        sads[16][8] = pob->isse ? mvtools_pixel_sad_16x8_sse2 : mvtools_sad_16x8_u8_c;
-        lumas[16][8] = pob->isse ? mvtools_luma_16x8_u8_sse2 : mvtools_luma_16x8_u8_c;
-        blits[16][8] = mvtools_copy_16x8_u8_c;
-        satds[16][8] = pob->isse ? mvtools_pixel_satd_16x8_sse2 : mvtools_satd_16x8_u8_c;
-
-        sads[16][16] = pob->isse ? mvtools_pixel_sad_16x16_sse2 : mvtools_sad_16x16_u8_c;
-        lumas[16][16] = pob->isse ? mvtools_luma_16x16_u8_sse2 : mvtools_luma_16x16_u8_c;
-        blits[16][16] = mvtools_copy_16x16_u8_c;
-        satds[16][16] = pob->isse ? mvtools_pixel_satd_16x16_sse2 : mvtools_satd_16x16_u8_c;
-
-        sads[16][32] = pob->isse ? mvtools_sad_16x32_sse2 : mvtools_sad_16x32_u8_c;
-        blits[16][32] = mvtools_copy_16x32_u8_c;
-
-        sads[32][8] = pob->isse ? mvtools_sad_32x8_sse2 : mvtools_sad_32x8_u8_c;
-        blits[32][8] = mvtools_copy_32x8_u8_c;
-
-        sads[32][16] = pob->isse ? mvtools_sad_32x16_sse2 : mvtools_sad_32x16_u8_c;
-        lumas[32][16] = pob->isse ? mvtools_luma_32x16_u8_sse2 : mvtools_luma_32x16_u8_c;
-        blits[32][16] = mvtools_copy_32x16_u8_c;
-
-        sads[32][32] = pob->isse ? mvtools_sad_32x32_sse2 : mvtools_sad_32x32_u8_c;
-        lumas[32][32] = pob->isse ? mvtools_luma_32x32_u8_sse2 : mvtools_luma_32x32_u8_c;
-        blits[32][32] = mvtools_copy_32x32_u8_c;
-
-        if (pob->isse) {
-            if (cache64) {
-                sads[8][4] = mvtools_pixel_sad_8x4_cache64_mmx2;
-                sads[8][8] = mvtools_pixel_sad_8x8_cache64_mmx2;
-            }
-
-            if (sse3) {
-                sads[16][8] = mvtools_pixel_sad_16x8_sse3;
-                sads[16][16] = mvtools_pixel_sad_16x16_sse3;
-            }
-
-            if (ssse3 && cache64) {
-                sads[16][8] = mvtools_pixel_sad_16x8_cache64_ssse3;
-                sads[16][16] = mvtools_pixel_sad_16x16_cache64_ssse3;
-            }
-
-            if (ssse3) {
-                satds[4][4] = mvtools_pixel_satd_4x4_ssse3;
-                satds[8][4] = mvtools_pixel_satd_8x4_ssse3;
-                satds[8][8] = mvtools_pixel_satd_8x8_ssse3;
-                satds[16][8] = mvtools_pixel_satd_16x8_ssse3;
-                satds[16][16] = mvtools_pixel_satd_16x16_ssse3;
-            }
-
-            if (sse41) {
-                satds[4][4] = mvtools_pixel_satd_4x4_sse4;
-                satds[8][4] = mvtools_pixel_satd_8x4_sse4;
-                satds[8][8] = mvtools_pixel_satd_8x8_sse4;
-                satds[16][8] = mvtools_pixel_satd_16x8_sse4;
-                satds[16][16] = mvtools_pixel_satd_16x16_sse4;
-            }
-
-            if (avx) {
-                satds[4][4] = mvtools_pixel_satd_4x4_avx;
-                satds[8][4] = mvtools_pixel_satd_8x4_avx;
-                satds[8][8] = mvtools_pixel_satd_8x8_avx;
-                satds[16][8] = mvtools_pixel_satd_16x8_avx;
-                satds[16][16] = mvtools_pixel_satd_16x16_avx;
-            }
-
-            if (xop) {
-                satds[4][4] = mvtools_pixel_satd_4x4_xop;
-                satds[8][4] = mvtools_pixel_satd_8x4_xop;
-                satds[8][8] = mvtools_pixel_satd_8x8_xop;
-                satds[16][8] = mvtools_pixel_satd_16x8_xop;
-                satds[16][16] = mvtools_pixel_satd_16x16_xop;
-            }
-
-            if (avx2) {
-                satds[8][8] = mvtools_pixel_satd_8x8_avx2;
-                satds[16][8] = mvtools_pixel_satd_16x8_avx2;
-                satds[16][16] = mvtools_pixel_satd_16x16_avx2;
-            }
-        }
-    } else {
-        sads[2][2] = pob->isse ? mvtools_sad_2x2_u16_sse2 : mvtools_sad_2x2_u16_c;
-        blits[2][2] = mvtools_copy_2x2_u16_c;
-
-        sads[2][4] = pob->isse ? mvtools_sad_2x4_u16_sse2 : mvtools_sad_2x4_u16_c;
-        blits[2][4] = mvtools_copy_2x4_u16_c;
-
-        sads[4][2] = pob->isse ? mvtools_sad_4x2_u16_sse2 : mvtools_sad_4x2_u16_c;
-        blits[4][2] = mvtools_copy_4x2_u16_c;
-
-        sads[4][4] = pob->isse ? mvtools_sad_4x4_u16_sse2 : mvtools_sad_4x4_u16_c;
-        lumas[4][4] = mvtools_luma_4x4_u16_c;
-        blits[4][4] = mvtools_copy_4x4_u16_c;
-        satds[4][4] = mvtools_satd_4x4_u16_c;
-
-        sads[4][8] = pob->isse ? mvtools_sad_4x8_u16_sse2 : mvtools_sad_4x8_u16_c;
-        blits[4][8] = mvtools_copy_4x8_u16_c;
-
-        sads[8][1] = pob->isse ? mvtools_sad_8x1_u16_sse2 : mvtools_sad_8x1_u16_c;
-        blits[8][1] = mvtools_copy_8x1_u16_c;
-
-        sads[8][2] = pob->isse ? mvtools_sad_8x2_u16_sse2 : mvtools_sad_8x2_u16_c;
-        blits[8][2] = mvtools_copy_8x2_u16_c;
-
-        sads[8][4] = pob->isse ? mvtools_sad_8x4_u16_sse2 : mvtools_sad_8x4_u16_c;
-        lumas[8][4] = mvtools_luma_8x4_u16_c;
-        blits[8][4] = mvtools_copy_8x4_u16_c;
-        satds[8][4] = mvtools_satd_8x4_u16_c;
-
-        sads[8][8] = pob->isse ? mvtools_sad_8x8_u16_sse2 : mvtools_sad_8x8_u16_c;
-        lumas[8][8] = mvtools_luma_8x8_u16_c;
-        blits[8][8] = mvtools_copy_8x8_u16_c;
-        satds[8][8] = mvtools_satd_8x8_u16_c;
-
-        sads[8][16] = pob->isse ? mvtools_sad_8x16_u16_sse2 : mvtools_sad_8x16_u16_c;
-        blits[8][16] = mvtools_copy_8x16_u16_c;
-
-        sads[16][1] = pob->isse ? mvtools_sad_16x1_u16_sse2 : mvtools_sad_16x1_u16_c;
-        blits[16][1] = mvtools_copy_16x1_u16_c;
-
-        sads[16][2] = pob->isse ? mvtools_sad_16x2_u16_sse2 : mvtools_sad_16x2_u16_c;
-        lumas[16][2] = mvtools_luma_16x2_u16_c;
-        blits[16][2] = mvtools_copy_16x2_u16_c;
-
-        sads[16][4] = pob->isse ? mvtools_sad_16x4_u16_sse2 : mvtools_sad_16x4_u16_c;
-        blits[16][4] = mvtools_copy_16x4_u16_c;
-
-        sads[16][8] = pob->isse ? mvtools_sad_16x8_u16_sse2 : mvtools_sad_16x8_u16_c;
-        lumas[16][8] = mvtools_luma_16x8_u16_c;
-        blits[16][8] = mvtools_copy_16x8_u16_c;
-        satds[16][8] = mvtools_satd_16x8_u16_c;
-
-        sads[16][16] = pob->isse ? mvtools_sad_16x16_u16_sse2 : mvtools_sad_16x16_u16_c;
-        lumas[16][16] = mvtools_luma_16x16_u16_c;
-        blits[16][16] = mvtools_copy_16x16_u16_c;
-        satds[16][16] = mvtools_satd_16x16_u16_c;
-
-        sads[16][32] = pob->isse ? mvtools_sad_16x32_u16_sse2 : mvtools_sad_16x32_u16_c;
-        blits[16][32] = mvtools_copy_16x32_u16_c;
-
-        sads[32][8] = pob->isse ? mvtools_sad_32x8_u16_sse2 : mvtools_sad_32x8_u16_c;
-        blits[32][8] = mvtools_copy_32x8_u16_c;
-
-        sads[32][16] = pob->isse ? mvtools_sad_32x16_u16_sse2 : mvtools_sad_32x16_u16_c;
-        lumas[32][16] = mvtools_luma_32x16_u16_c;
-        blits[32][16] = mvtools_copy_32x16_u16_c;
-
-        sads[32][32] = pob->isse ? mvtools_sad_32x32_u16_sse2 : mvtools_sad_32x32_u16_c;
-        lumas[32][32] = mvtools_luma_32x32_u16_c;
-        blits[32][32] = mvtools_copy_32x32_u16_c;
-    }
-
-
-    pob->SAD = sads[pob->nBlkSizeX][pob->nBlkSizeY];
-    pob->LUMA = lumas[pob->nBlkSizeX][pob->nBlkSizeY];
-    pob->BLITLUMA = blits[pob->nBlkSizeX][pob->nBlkSizeY];
-
-    pob->SADCHROMA = sads[pob->nBlkSizeX / pob->xRatioUV][pob->nBlkSizeY / pob->yRatioUV];
-    pob->BLITCHROMA = blits[pob->nBlkSizeX / pob->xRatioUV][pob->nBlkSizeY / pob->yRatioUV];
-
-    pob->SATD = satds[pob->nBlkSizeX][pob->nBlkSizeY];
+    pobSelectFunctions(pob);
 
     if (!pob->chroma)
         pob->SADCHROMA = NULL;

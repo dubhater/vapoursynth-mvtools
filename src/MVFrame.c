@@ -223,14 +223,16 @@ void mvpRefine(MVPlane *mvp, int sharp) {
 
     if (sharp == SharpBilinear) {
         if (mvp->bytesPerSample == 1) {
+            refine[0] = HorizontalBilinear_uint8_t;
+            refine[1] = VerticalBilinear_uint8_t;
+            refine[2] = DiagonalBilinear_uint8_t;
+
             if (mvp->isse) {
+#if defined(MVTOOLS_X86)
                 refine[0] = mvtools_HorizontalBilinear_sse2;
                 refine[1] = mvtools_VerticalBilinear_sse2;
                 refine[2] = mvtools_DiagonalBilinear_sse2;
-            } else {
-                refine[0] = HorizontalBilinear_uint8_t;
-                refine[1] = VerticalBilinear_uint8_t;
-                refine[2] = DiagonalBilinear_uint8_t;
+#endif
             }
         } else {
             refine[0] = HorizontalBilinear_uint16_t;
@@ -255,12 +257,14 @@ void mvpRefine(MVPlane *mvp, int sharp) {
         }
     } else { // Wiener
         if (mvp->bytesPerSample == 1) {
+            refine[0] = refine[2] = HorizontalWiener_uint8_t;
+            refine[1] = VerticalWiener_uint8_t;
+
             if (mvp->isse) {
+#if defined(MVTOOLS_X86)
                 refine[0] = refine[2] = mvtools_HorizontalWiener_sse2;
                 refine[1] = mvtools_VerticalWiener_sse2;
-            } else {
-                refine[0] = refine[2] = HorizontalWiener_uint8_t;
-                refine[1] = VerticalWiener_uint8_t;
+#endif
             }
         } else {
             refine[0] = refine[2] = HorizontalWiener_uint16_t;
@@ -300,10 +304,13 @@ void mvpRefine(MVPlane *mvp, int sharp) {
         AverageFunction avg;
 
         if (mvp->bytesPerSample == 1) {
-            if (mvp->isse)
+            avg = Average2_uint8_t;
+
+            if (mvp->isse) {
+#if defined(MVTOOLS_X86)
                 avg = mvtools_Average2_sse2;
-            else
-                avg = Average2_uint8_t;
+#endif
+            }
         } else {
             avg = Average2_uint16_t;
         }
