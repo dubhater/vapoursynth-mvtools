@@ -618,14 +618,15 @@ void mvfDeinit(MVFrame *mvf) {
 
 void mvfUpdate(MVFrame *mvf, uint8_t **pSrc, int *pitch) {
     for (int i = 0; i < 3; i++) {
-        if (pSrc[i])
+        if (pSrc[i] && mvf->planes[i])
             mvpUpdate(mvf->planes[i], pSrc[i], pitch[i]);
     }
 }
 
 
 void mvfFillPlane(MVFrame *mvf, const uint8_t *pNewPlane, int nNewPitch, int plane) {
-    mvpFillPlane(mvf->planes[plane], pNewPlane, nNewPitch);
+    if (mvf->planes[plane])
+        mvpFillPlane(mvf->planes[plane], pNewPlane, nNewPitch);
 }
 
 
