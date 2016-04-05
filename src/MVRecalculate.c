@@ -15,7 +15,6 @@
 typedef struct MVRecalculateData {
     VSNodeRef *node;
     const VSVideoInfo *vi;
-    const VSVideoInfo *supervi;
 
     MVAnalysisData vectors_data;
 
@@ -98,7 +97,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
 
         GroupOfPlanes vectorFields;
 
-        gopInit(&vectorFields, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nMotionFlags, d->analysisData.nCPUFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra, d->supervi->format->bitsPerSample);
+        gopInit(&vectorFields, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nMotionFlags, d->analysisData.nCPUFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra, d->vi->format->bitsPerSample);
 
 
         const uint8_t *pSrc[3] = { NULL };
@@ -126,7 +125,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             srctff = d->tff && (n % 2 == 0); //child->GetParity(n); // int tff;
 
 
-        for (int plane = 0; plane < d->supervi->format->numPlanes; plane++) {
+        for (int plane = 0; plane < d->vi->format->numPlanes; plane++) {
             pSrc[plane] = vsapi->getReadPtr(src, plane);
             nSrcPitch[plane] = vsapi->getStride(src, plane);
         }
@@ -170,7 +169,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             }
 
 
-            for (int plane = 0; plane < d->supervi->format->numPlanes; plane++) {
+            for (int plane = 0; plane < d->vi->format->numPlanes; plane++) {
                 pRef[plane] = vsapi->getReadPtr(ref, plane);
                 nRefPitch[plane] = vsapi->getStride(ref, plane);
             }
@@ -178,8 +177,8 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
 
             MVGroupOfFrames pSrcGOF, pRefGOF;
 
-            mvgofInit(&pSrcGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->supervi->format->bitsPerSample);
-            mvgofInit(&pRefGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->supervi->format->bitsPerSample);
+            mvgofInit(&pSrcGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->vi->format->bitsPerSample);
+            mvgofInit(&pRefGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->vi->format->bitsPerSample);
 
             // cast away the const, because why not.
             mvgofUpdate(&pSrcGOF, (uint8_t **)pSrc, nSrcPitch);
@@ -189,7 +188,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             DCTFFTW *DCTc = NULL;
             if (d->dctmode != 0) {
                 DCTc = (DCTFFTW *)malloc(sizeof(DCTFFTW));
-                dctInit(DCTc, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->dctmode, d->supervi->format->bitsPerSample);
+                dctInit(DCTc, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->dctmode, d->vi->format->bitsPerSample);
             }
 
 
@@ -392,17 +391,17 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
 
     d.node = vsapi->propGetNode(in, "super", 0, 0);
-    d.supervi = vsapi->getVideoInfo(d.node);
+    d.vi = vsapi->getVideoInfo(d.node);
 
-    if (d.analysisData.nOverlapX % (1 << d.supervi->format->subSamplingW) ||
-        d.analysisData.nOverlapY % (1 << d.supervi->format->subSamplingH)) {
+    if (d.analysisData.nOverlapX % (1 << d.vi->format->subSamplingW) ||
+        d.analysisData.nOverlapY % (1 << d.vi->format->subSamplingH)) {
         vsapi->setError(out, "Recalculate: The requested overlap is incompatible with the super clip's subsampling.");
         vsapi->freeNode(d.node);
         return;
     }
 
-    if (d.divideExtra && (d.analysisData.nOverlapX % (2 << d.supervi->format->subSamplingW) ||
-                          d.analysisData.nOverlapY % (2 << d.supervi->format->subSamplingH))) { // subsampling times 2
+    if (d.divideExtra && (d.analysisData.nOverlapX % (2 << d.vi->format->subSamplingW) ||
+                          d.analysisData.nOverlapY % (2 << d.vi->format->subSamplingH))) { // subsampling times 2
         vsapi->setError(out, "Recalculate: overlap and overlapv must be multiples of 2 or 4 when divide=True, depending on the super clip's subsampling.");
         vsapi->freeNode(d.node);
         return;
@@ -437,7 +436,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
         }
 
 
-    if (d.supervi->format->colorFamily == cmGray)
+    if (d.vi->format->colorFamily == cmGray)
         d.chroma = 0;
 
     d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
@@ -449,7 +448,6 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     }
 
     d.vectors = vsapi->propGetNode(in, "vectors", 0, NULL);
-    d.vi = vsapi->getVideoInfo(d.vectors);
 
 #define ERROR_SIZE 512
     char error[ERROR_SIZE + 1] = { 0 };
@@ -477,9 +475,9 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     d.analysisData.isBackward = d.vectors_data.isBackward;
 
 
-    d.analysisData.bitsPerSample = d.supervi->format->bitsPerSample;
+    d.analysisData.bitsPerSample = d.vi->format->bitsPerSample;
 
-    int pixelMax = (1 << d.supervi->format->bitsPerSample) - 1;
+    int pixelMax = (1 << d.vi->format->bitsPerSample) - 1;
     d.thSAD = (int)((double)d.thSAD * pixelMax / 255.0 + 0.5);
 
     // normalize threshold to block size
@@ -499,12 +497,12 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
         d.analysisData.nCPUFlags = cpu_detect();
     }
 
-    if (d.supervi->format->bitsPerSample > 8)
+    if (d.vi->format->bitsPerSample > 8)
         d.isse = 0; // needed here because MVPlane can't have isse=1 with more than 8 bits
 
     d.analysisData.nPel = d.nSuperPel; //x
 
-    int nSuperWidth = d.supervi->width;
+    int nSuperWidth = d.vi->width;
     if (nHeight != d.analysisData.nHeight || nSuperWidth - 2 * d.nSuperHPad != d.analysisData.nWidth) {
         vsapi->setError(out, "Recalculate: wrong frame size.");
         vsapi->freeNode(d.node);
