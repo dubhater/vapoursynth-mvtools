@@ -36,6 +36,7 @@
 typedef struct MVBlockFPSData {
     VSNodeRef *node;
     VSVideoInfo vi;
+    const VSVideoInfo *oldvi;
     const VSVideoInfo *supervi;
 
     VSNodeRef *super;
@@ -312,14 +313,14 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
             time256 = time256 / off;
 
         if (time256 == 0) {
-            vsapi->requestFrameFilter(VSMIN(nleft, d->vi.numFrames - 1), d->node, frameCtx);
+            vsapi->requestFrameFilter(VSMIN(nleft, d->oldvi->numFrames - 1), d->node, frameCtx);
             return 0;
         } else if (time256 == 256) {
-            vsapi->requestFrameFilter(VSMIN(nright, d->vi.numFrames - 1), d->node, frameCtx);
+            vsapi->requestFrameFilter(VSMIN(nright, d->oldvi->numFrames - 1), d->node, frameCtx);
             return 0;
         }
 
-        if (nleft < d->vi.numFrames && nright < d->vi.numFrames) { // for the good estimation case
+        if (nleft < d->oldvi->numFrames && nright < d->oldvi->numFrames) { // for the good estimation case
             vsapi->requestFrameFilter(nright, d->mvfw, frameCtx);  // requests nleft, nleft + off
             vsapi->requestFrameFilter(nleft, d->mvbw, frameCtx);   // requests nleft, nleft + off
 
@@ -327,10 +328,10 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
             vsapi->requestFrameFilter(nright, d->super, frameCtx);
         }
 
-        vsapi->requestFrameFilter(VSMIN(nleft, d->vi.numFrames - 1), d->node, frameCtx);
+        vsapi->requestFrameFilter(VSMIN(nleft, d->oldvi->numFrames - 1), d->node, frameCtx);
 
         if (d->blend)
-            vsapi->requestFrameFilter(VSMIN(nright, d->vi.numFrames - 1), d->node, frameCtx);
+            vsapi->requestFrameFilter(VSMIN(nright, d->oldvi->numFrames - 1), d->node, frameCtx);
 
     } else if (activationReason == arAllFramesReady) {
         int nleft = (int)(n * d->fa / d->fb);
@@ -345,9 +346,9 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
         int nright = nleft + off;
 
         if (time256 == 0)
-            return vsapi->getFrameFilter(VSMIN(nleft, d->vi.numFrames - 1), d->node, frameCtx); // simply left
+            return vsapi->getFrameFilter(VSMIN(nleft, d->oldvi->numFrames - 1), d->node, frameCtx); // simply left
         else if (time256 == 256)
-            return vsapi->getFrameFilter(VSMIN(nright, d->vi.numFrames - 1), d->node, frameCtx); // simply right
+            return vsapi->getFrameFilter(VSMIN(nright, d->oldvi->numFrames - 1), d->node, frameCtx); // simply right
 
         FakeGroupOfPlanes fgopF, fgopB;
 
@@ -357,7 +358,7 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
         int isUsableF = 0;
         int isUsableB = 0;
 
-        if (nleft < d->vi.numFrames && nright < d->vi.numFrames) {
+        if (nleft < d->oldvi->numFrames && nright < d->oldvi->numFrames) {
             // forward from current to next
             const VSFrameRef *mvF = vsapi->getFrameFilter(nright, d->mvfw, frameCtx);
             const VSMap *mvprops = vsapi->getFramePropsRO(mvF);
@@ -417,7 +418,7 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
             int nRefPitches[3] = { 0 };
             int nSrcPitches[3] = { 0 };
 
-            // If both are usable, that means both nleft and nright are less than numFrames, or that we don't have numFrames. Thus there is no need to check nleft and nright here.
+            // If both are usable, that means both nleft and nright are less than oldvi->numFrames. Thus there is no need to check nleft and nright here.
             const VSFrameRef *src = vsapi->getFrameFilter(nleft, d->super, frameCtx);
             const VSFrameRef *ref = vsapi->getFrameFilter(nright, d->super, frameCtx); //  right frame for  compensation
             VSFrameRef *dst = vsapi->newVideoFrame(d->vi.format, d->vi.width, d->vi.height, src, core);
@@ -660,14 +661,14 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
             fgopDeinit(&fgopF);
             fgopDeinit(&fgopB);
 
-            const VSFrameRef *src = vsapi->getFrameFilter(VSMIN(nleft, d->vi.numFrames - 1), d->node, frameCtx);
+            const VSFrameRef *src = vsapi->getFrameFilter(VSMIN(nleft, d->oldvi->numFrames - 1), d->node, frameCtx);
 
             if (blend) { //let's blend src with ref frames like ConvertFPS
                 uint8_t *pDst[3];
                 const uint8_t *pRef[3], *pSrc[3];
                 int nDstPitches[3], nRefPitches[3], nSrcPitches[3];
 
-                const VSFrameRef *ref = vsapi->getFrameFilter(VSMIN(nright, d->vi.numFrames - 1), d->node, frameCtx);
+                const VSFrameRef *ref = vsapi->getFrameFilter(VSMIN(nright, d->oldvi->numFrames - 1), d->node, frameCtx);
 
                 VSFrameRef *dst = vsapi->newVideoFrame(d->vi.format, d->vi.width, d->vi.height, src, core);
 
@@ -905,7 +906,8 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
 
 
     d.node = vsapi->propGetNode(in, "clip", 0, 0);
-    d.vi = *vsapi->getVideoInfo(d.node);
+    d.oldvi = vsapi->getVideoInfo(d.node);
+    d.vi = *d.oldvi;
 
 
     if (d.vi.fpsNum == 0 || d.vi.fpsDen == 0) {
