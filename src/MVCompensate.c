@@ -212,6 +212,9 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                     return NULL;
                 }
 
+                if (d->tffexists)
+                    paritySrc = d->tff;
+
                 props = vsapi->getFramePropsRO(ref);
                 int parityRef = !!vsapi->propGetInt(props, "_Field", 0, &err); //child->GetParity(nref);
                 if (err && !d->tffexists) {
@@ -224,6 +227,10 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                     vsapi->freeFrame(ref);
                     return NULL;
                 }
+
+                if (d->tffexists)
+                    parityRef = d->tff;
+
                 fieldShift = (paritySrc && !parityRef) ? nPel / 2 : ((parityRef && !paritySrc) ? -(nPel / 2) : 0);
                 // vertical shift of fields for fieldbased video at finest level pel2
             }
