@@ -178,7 +178,7 @@ int gopGetArraySize(GroupOfPlanes *gop) {
 
 // FIND MEDIAN OF 3 ELEMENTS
 //
-inline int Median3(int a, int b, int c) {
+static inline int Median3(int a, int b, int c) {
     // b a c || c a b
     if (((b <= a) && (a <= c)) || ((c <= a) && (a <= b)))
         return a;
@@ -193,7 +193,7 @@ inline int Median3(int a, int b, int c) {
 }
 
 
-void GetMedian(int *vx, int *vy, int vx1, int vy1, int vx2, int vy2, int vx3, int vy3) { // existant median vector (not mixed)
+static void GetMedian(int *vx, int *vy, int vx1, int vy1, int vx2, int vy2, int vx3, int vy3) { // existant median vector (not mixed)
     *vx = Median3(vx1, vx2, vx3);
     *vy = Median3(vy1, vy2, vy3);
     if ((*vx == vx1 && *vy == vy1) || (*vx == vx2 && *vy == vy2) || (*vx == vx3 && *vy == vy3))
