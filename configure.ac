@@ -51,10 +51,10 @@ ARM="false"
 
 AS_CASE(
   [$host_cpu],
-  [i?86],     [BITS="32" YASMFLAGS="$YASMFLAGS -DARCH_X86_64=0" X86="true"],
-  [x86_64],   [BITS="64" YASMFLAGS="$YASMFLAGS -DARCH_X86_64=1 -DPIC -m amd64" X86="true"],
-  [powerpc*], [PPC="true"],
-  [arm*],     [ARM="true"],
+  [i?86],         [BITS="32" YASMFLAGS="$YASMFLAGS -DARCH_X86_64=0" X86="true"],
+  [x86_64|amd64], [BITS="64" YASMFLAGS="$YASMFLAGS -DARCH_X86_64=1 -DPIC -m amd64" X86="true"],
+  [powerpc*],     [PPC="true"],
+  [arm*],         [ARM="true"],
   [AC_MSG_ERROR([Unknown host CPU: $host_cpu.])]
 )
 
