@@ -66,7 +66,7 @@ typedef struct MVAnalyseData {
 
     int fields;
     int tff;
-    int tffexists;
+    int tff_exists;
 } MVAnalyseData;
 
 
@@ -138,8 +138,8 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         const VSMap *srcprops = vsapi->getFramePropsRO(src);
         int err;
 
-        int srctff = !!vsapi->propGetInt(srcprops, "_Field", 0, &err);
-        if (err && d->fields && !d->tffexists) {
+        int src_top_field = !!vsapi->propGetInt(srcprops, "_Field", 0, &err);
+        if (err && d->fields && !d->tff_exists) {
             vsapi->setFilterError("Analyse: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
             gopDeinit(&vectorFields);
             vsapi->freeFrame(src);
@@ -147,8 +147,8 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         }
 
         // if tff was passed, it overrides _Field.
-        if (d->tffexists)
-            srctff = d->tff && (n % 2 == 0); //child->GetParity(n); // int tff;
+        if (d->tff_exists)
+            src_top_field = d->tff ^ (n % 2);
 
         for (int plane = 0; plane < d->supervi->format->numPlanes; plane++) {
             pSrc[plane] = vsapi->getReadPtr(src, plane);
@@ -164,8 +164,8 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->node, frameCtx);
             const VSMap *refprops = vsapi->getFramePropsRO(ref);
 
-            int reftff = !!vsapi->propGetInt(refprops, "_Field", 0, &err);
-            if (err && d->fields && !d->tffexists) {
+            int ref_top_field = !!vsapi->propGetInt(refprops, "_Field", 0, &err);
+            if (err && d->fields && !d->tff_exists) {
                 vsapi->setFilterError("Analyse: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
                 gopDeinit(&vectorFields);
                 vsapi->freeFrame(src);
@@ -175,12 +175,12 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             }
 
             // if tff was passed, it overrides _Field.
-            if (d->tffexists)
-                reftff = d->tff && (nref % 2 == 0); //child->GetParity(n); // int tff;
+            if (d->tff_exists)
+                ref_top_field = d->tff ^ (nref % 2);
 
             int fieldShift = 0;
             if (d->fields && d->analysisData.nPel > 1 && (d->analysisData.nDeltaFrame % 2)) {
-                fieldShift = (srctff && !reftff) ? d->analysisData.nPel / 2 : ((reftff && !srctff) ? -(d->analysisData.nPel / 2) : 0);
+                fieldShift = (src_top_field && !ref_top_field) ? d->analysisData.nPel / 2 : ((ref_top_field && !src_top_field) ? -(d->analysisData.nPel / 2) : 0);
                 // vertical shift of fields for fieldbased video at finest level pel2
             }
 
@@ -369,7 +369,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.fields = !!vsapi->propGetInt(in, "fields", 0, &err);
 
     d.tff = !!vsapi->propGetInt(in, "tff", 0, &err);
-    d.tffexists = err;
+    d.tff_exists = !err;
 
 
     if (d.searchType < 0 || d.searchType > 7) {

@@ -43,7 +43,7 @@ typedef struct MVCompensateData {
     int nSCD2;
     int isse;
     int tff;
-    int tffexists;
+    int tff_exists;
 
     MVAnalysisData vectors_data;
 
@@ -200,8 +200,8 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
             if (fields && nPel > 1 && ((nref - n) % 2 != 0)) {
                 int err;
                 const VSMap *props = vsapi->getFramePropsRO(src);
-                int paritySrc = !!vsapi->propGetInt(props, "_Field", 0, &err); //child->GetParity(n);
-                if (err && !d->tffexists) {
+                int src_top_field = !!vsapi->propGetInt(props, "_Field", 0, &err);
+                if (err && !d->tff_exists) {
                     vsapi->setFilterError("Compensate: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
                     fgopDeinit(&fgop);
                     mvgofDeinit(&pRefGOF);
@@ -212,12 +212,12 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                     return NULL;
                 }
 
-                if (d->tffexists)
-                    paritySrc = d->tff;
+                if (d->tff_exists)
+                    src_top_field = d->tff ^ (n % 2);
 
                 props = vsapi->getFramePropsRO(ref);
-                int parityRef = !!vsapi->propGetInt(props, "_Field", 0, &err); //child->GetParity(nref);
-                if (err && !d->tffexists) {
+                int ref_top_field = !!vsapi->propGetInt(props, "_Field", 0, &err);
+                if (err && !d->tff_exists) {
                     vsapi->setFilterError("Compensate: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
                     fgopDeinit(&fgop);
                     mvgofDeinit(&pRefGOF);
@@ -228,10 +228,10 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                     return NULL;
                 }
 
-                if (d->tffexists)
-                    parityRef = d->tff;
+                if (d->tff_exists)
+                    ref_top_field = d->tff ^ (nref % 2);
 
-                fieldShift = (paritySrc && !parityRef) ? nPel / 2 : ((parityRef && !paritySrc) ? -(nPel / 2) : 0);
+                fieldShift = (src_top_field && !ref_top_field) ? nPel / 2 : ((ref_top_field && !src_top_field) ? -(nPel / 2) : 0);
                 // vertical shift of fields for fieldbased video at finest level pel2
             }
             // -----------------------------------------------------------------------------
@@ -669,7 +669,7 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
         d.isse = 1;
 
     d.tff = !!vsapi->propGetInt(in, "tff", 0, &err);
-    d.tffexists = err;
+    d.tff_exists = !err;
 
 
     d.super = vsapi->propGetNode(in, "super", 0, NULL);
