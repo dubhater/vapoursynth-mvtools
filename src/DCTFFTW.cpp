@@ -55,7 +55,10 @@ void dctInit(DCTFFTW *dct, int sizex, int sizey, int dctmode, int bitsPerSample)
 
 
 void dctDeinit(DCTFFTW *dct) {
-    fftwf_destroy_plan(dct->dctplan);
+    {
+        std::lock_guard<std::mutex> guard(g_fftw_plans_mutex);
+        fftwf_destroy_plan(dct->dctplan);
+    }
     fftwf_free(dct->fSrc);
     fftwf_free(dct->fSrcDCT);
 }
