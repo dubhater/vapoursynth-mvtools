@@ -79,6 +79,8 @@ Differences
 
     * No "inputlog" parameter.
 
+    * Methods -1 and 2 unavailable.
+
 
 Usage
 =====

@@ -2922,8 +2922,6 @@ typedef struct DepanStabiliseData {
     float xcenter; // center of frame
     float ycenter;
 
-    int last_frame; // last generated frame, for the strictly linear methods
-
     CompensateFunction compensate_plane;
 } DepanStabiliseData;
 
@@ -3525,131 +3523,6 @@ static void attachInfo(VSFrameRef *dst, int nbase, int ndest, float dxdif, float
 }
 
 
-static const VSFrameRef *VS_CC depanStabiliseGetFrameMinus1(int ndest, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
-    DepanStabiliseData *d = (DepanStabiliseData *)*instanceData;
-
-    if (activationReason == arInitial) {
-        int nbase = 0;
-
-        if (ndest == 0)
-            vsapi->requestFrameFilter(0, d->clip, frameCtx);
-        else {
-            for (int n = ndest; n >= 0; n--) {
-                if (d->motionx[n] == MOTIONBAD) {
-                    nbase = n;
-                    break;
-                }
-            }
-            vsapi->requestFrameFilter(nbase, d->clip, frameCtx);
-        }
-
-        *frameData = (void *)(intptr_t)nbase;
-
-        if (d->prev) {
-            for (int i = VSMAX(nbase, ndest - d->prev); i < ndest; i++) {
-                vsapi->requestFrameFilter(i, d->clip, frameCtx);
-            }
-        }
-
-        if (ndest == 0)
-            vsapi->requestFrameFilter(0, d->data, frameCtx);
-        vsapi->requestFrameFilter(VSMIN(ndest + 1, d->vi->numFrames - 1), d->data, frameCtx);
-
-        if (d->next) {
-            for (int i = ndest + 1; i <= VSMIN(ndest + d->next, d->vi->numFrames - 1); i++) {
-                vsapi->requestFrameFilter(i, d->data, frameCtx);
-                vsapi->requestFrameFilter(i, d->clip, frameCtx);
-            }
-        }
-    } else if (activationReason == arAllFramesReady) {
-        if (ndest != d->last_frame + 1) {
-            vsapi->setFilterError("DepanStabilise: nonlinear access detected. methods -1 and 2 require linear access from frame 0.", frameCtx);
-            d->last_frame = -1;
-            return NULL;
-        }
-
-        d->last_frame = ndest;
-
-        {
-            int num = VSMIN(ndest + 1, d->vi->numFrames - 1);
-            const VSFrameRef *dataframe = vsapi->getFrameFilter(num, d->data, frameCtx);
-            if (!getDepanProps(&d->motionx[num], &d->motiony[num], &d->motionrot[num], &d->motionzoom[num], dataframe, frameCtx, vsapi)) {
-                vsapi->freeFrame(dataframe);
-                return NULL;
-            }
-            vsapi->freeFrame(dataframe);
-        }
-
-
-        float dxdif, dydif, zoomdif, rotdif;
-        transform trdif;
-
-        int nbase = (int)(intptr_t)*frameData;
-
-        if (nbase == ndest) { // we are at new scene start,
-            motion2transform(0, 0, 0, d->initzoom, d->pixaspect / d->nfields, d->xcenter, d->ycenter, 1, 1.0f, &trdif);
-        } else { // prepare stabilization data by estimation and smoothing of cumulative motion
-
-            // cumulative transform (position) for all sequence from base
-
-            // base as null
-            setNull(&d->trcumul[nbase]);
-
-            // get cumulative transforms from base to ndest
-            for (int n = nbase + 1; n <= ndest; n++) {
-                transform trcur;
-
-                motion2transform(d->motionx[n], d->motiony[n], d->motionrot[n], d->motionzoom[n], d->pixaspect / d->nfields, d->xcenter, d->ycenter, 1, 1.0f, &trcur);
-                sumtransform(&d->trcumul[n - 1], &trcur, &d->trcumul[n]);
-            }
-
-            /// investigate if these two can be replaced by "trdif = d->trcumul[ndest]"
-            /// print d->trcumul[ndest] here, and trdif below
-            transform2motion(&d->trcumul[ndest], 1, d->xcenter, d->ycenter, d->pixaspect / d->nfields, &dxdif, &dydif, &rotdif, &zoomdif);
-
-            // summary motion from summary transform after max correction
-            motion2transform(dxdif, dydif, rotdif, zoomdif, d->pixaspect / d->nfields, d->xcenter, d->ycenter, 1, 1.0f, &trdif);
-        }
-
-        // ---------------------------------------------------------------------------
-        const VSFrameRef *src = vsapi->getFrameFilter(nbase, d->clip, frameCtx);
-        VSFrameRef *dst = vsapi->newVideoFrame(d->vi->format, d->vi->width, d->vi->height, src, core);
-
-        //--------------------------------------------------------------------------
-        // Ready to make motion stabilization,
-
-        // use some previous frame to fill borders
-        int notfilled = 1; // init as not filled (borders by neighbor frames)
-
-        if (d->prev > 0)
-            fillBorderPrev(dst, d, nbase, ndest, &trdif, d->work2width4356, &notfilled, frameCtx, vsapi);
-
-        // use next frame to fill borders
-        if (d->next > 0) {
-            if (!fillBorderNext(dst, d, ndest, &trdif, d->work2width4356, &notfilled, frameCtx, vsapi)) {
-                vsapi->freeFrame(dst);
-                vsapi->freeFrame(src);
-                return NULL;
-            }
-        }
-
-        compensateFrame(src, dst, d, notfilled, &trdif, d->work2width4356, vsapi);
-
-        vsapi->freeFrame(src);
-
-        if (d->info) {
-            transform2motion(&trdif, 1, d->xcenter, d->ycenter, d->pixaspect / d->nfields, &dxdif, &dydif, &rotdif, &zoomdif);
-
-            attachInfo(dst, nbase, ndest, dxdif, dydif, rotdif, zoomdif, vsapi);
-        }
-
-        return dst;
-    }
-
-    return NULL;
-}
-
-
 static const VSFrameRef *VS_CC depanStabiliseGetFrame0(int ndest, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
     (void)frameData;
 
@@ -3917,127 +3790,6 @@ static const VSFrameRef *VS_CC depanStabiliseGetFrame1(int ndest, int activation
 }
 
 
-static const VSFrameRef *VS_CC depanStabiliseGetFrame2(int ndest, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
-    DepanStabiliseData *d = (DepanStabiliseData *)*instanceData;
-
-    if (activationReason == arInitial) {
-        int nbase = 0;
-
-        for (int n = ndest; n >= 0; n--) {
-            if (d->motionx[n] == MOTIONBAD) {
-                nbase = n;
-                break;
-            }
-        }
-
-        *frameData = (void *)(intptr_t)nbase;
-
-        if (d->prev) {
-            for (int i = VSMAX(nbase, ndest - d->prev); i < ndest; i++) {
-                vsapi->requestFrameFilter(i, d->clip, frameCtx);
-            }
-        }
-
-        vsapi->requestFrameFilter(ndest, d->clip, frameCtx);
-
-        vsapi->requestFrameFilter(VSMIN(ndest + 1, d->vi->numFrames - 1), d->data, frameCtx);
-
-        if (d->next) {
-            for (int i = ndest + 1; i <= VSMIN(ndest + d->next, d->vi->numFrames - 1); i++) {
-                vsapi->requestFrameFilter(i, d->data, frameCtx);
-                vsapi->requestFrameFilter(i, d->clip, frameCtx);
-            }
-        }
-    } else if (activationReason == arAllFramesReady) {
-        if (ndest != d->last_frame + 1) {
-            vsapi->setFilterError("DepanStabilise: nonlinear access detected. methods -1 and 2 require linear access from frame 0.", frameCtx);
-            d->last_frame = -1;
-            return NULL;
-        }
-
-        d->last_frame = ndest;
-
-        {
-            int num = VSMIN(ndest + 1, d->vi->numFrames - 1);
-            const VSFrameRef *dataframe = vsapi->getFrameFilter(num, d->data, frameCtx);
-            if (!getDepanProps(&d->motionx[num], &d->motiony[num], &d->motionrot[num], &d->motionzoom[num], dataframe, frameCtx, vsapi)) {
-                vsapi->freeFrame(dataframe);
-                return NULL;
-            }
-            vsapi->freeFrame(dataframe);
-        }
-
-
-        float dxdif, dydif, zoomdif, rotdif;
-        transform trdif;
-
-        int nbase = (int)(intptr_t)*frameData;
-
-        if (nbase == ndest) { // we are at new scene start,
-            motion2transform(0, 0, 0, d->initzoom, d->pixaspect / d->nfields, d->xcenter, d->ycenter, 1, 1.0f, &trdif);
-        } else { // prepare stabilization data by estimation and smoothing of cumulative motion
-
-            // cumulative transform (position) for all sequence from base
-
-            // base as null
-            setNull(&d->trcumul[nbase]);
-
-            // get cumulative transforms from base to ndest
-            for (int n = nbase + 1; n <= ndest; n++) {
-                transform trcur;
-
-                motion2transform(d->motionx[n], d->motiony[n], d->motionrot[n], d->motionzoom[n], d->pixaspect / d->nfields, d->xcenter, d->ycenter, 1, 1.0f, &trcur);
-                sumtransform(&d->trcumul[n - 1], &trcur, &d->trcumul[n]);
-            }
-
-            inversetransform(&d->trcumul[ndest], &trdif);
-            transform2motion(&trdif, 1, d->xcenter, d->ycenter, d->pixaspect / d->nfields, &dxdif, &dydif, &rotdif, &zoomdif);
-
-
-            // summary motion from summary transform after max correction
-            motion2transform(dxdif, dydif, rotdif, zoomdif, d->pixaspect / d->nfields, d->xcenter, d->ycenter, 1, 1.0f, &trdif);
-        }
-
-        // ---------------------------------------------------------------------------
-        const VSFrameRef *src = vsapi->getFrameFilter(ndest, d->clip, frameCtx);
-        VSFrameRef *dst = vsapi->newVideoFrame(d->vi->format, d->vi->width, d->vi->height, src, core);
-
-        //--------------------------------------------------------------------------
-        // Ready to make motion stabilization,
-
-        // --------------------------------------------------------------------
-        // use some previous frame to fill borders
-        int notfilled = 1; // init as not filled (borders by neighbor frames)
-
-        if (d->prev > 0)
-            fillBorderPrev(dst, d, nbase, ndest, &trdif, d->work2width4356, &notfilled, frameCtx, vsapi);
-
-        // use next frame to fill borders
-        if (d->next > 0) {
-            if (!fillBorderNext(dst, d, ndest, &trdif, d->work2width4356, &notfilled, frameCtx, vsapi)) {
-                vsapi->freeFrame(dst);
-                vsapi->freeFrame(src);
-                return NULL;
-            }
-        }
-
-        compensateFrame(src, dst, d, notfilled, &trdif, d->work2width4356, vsapi);
-
-        vsapi->freeFrame(src);
-
-        if (d->info) {
-            transform2motion(&trdif, 1, d->xcenter, d->ycenter, d->pixaspect / d->nfields, &dxdif, &dydif, &rotdif, &zoomdif);
-
-            attachInfo(dst, nbase, ndest, dxdif, dydif, rotdif, zoomdif, vsapi);
-        }
-
-        return dst;
-    }
-
-    return NULL;
-}
-
-
 static void VS_CC depanStabiliseFree(void *instanceData, VSCore *core, const VSAPI *vsapi) {
     (void)core;
 
@@ -4167,8 +3919,8 @@ static void VS_CC depanStabiliseCreate(const VSMap *in, VSMap *out, void *userDa
         return;
     }
 
-    if (d.method < -1 || d.method > 2) {
-        vsapi->setError(out, "DepanStabilise: method must be between -1 and 2 (inclusive).");
+    if (d.method < 0 || d.method > 1) {
+        vsapi->setError(out, "DepanStabilise: method must be between 0 and 1 (inclusive).");
         return;
     }
 
@@ -4315,8 +4067,6 @@ static void VS_CC depanStabiliseCreate(const VSMap *in, VSMap *out, void *userDa
     d.xcenter = d.vi->width / 2.0f; // center of frame
     d.ycenter = d.vi->height / 2.0f;
 
-    d.last_frame = -1;
-
     CompensateFunction compensate_functions[3] = {
         compensate_plane_nearest,
         compensate_plane_bilinear,
@@ -4328,28 +4078,13 @@ static void VS_CC depanStabiliseCreate(const VSMap *in, VSMap *out, void *userDa
     DepanStabiliseData *data = (DepanStabiliseData *)malloc(sizeof(d));
     *data = d;
 
-    VSFilterGetFrame getframe_functions[4] = {
-        depanStabiliseGetFrameMinus1,
+    VSFilterGetFrame getframe_functions[2] = {
         depanStabiliseGetFrame0,
         depanStabiliseGetFrame1,
-        depanStabiliseGetFrame2
     };
 
-    VSFilterMode filter_modes[4] = {
-        fmUnordered,
-        fmParallelRequests,
-        fmParallelRequests,
-        fmUnordered
-    };
 
-    VSNodeFlags node_flags[4] = {
-        nfMakeLinear,
-        (VSNodeFlags)0,
-        (VSNodeFlags)0,
-        nfMakeLinear
-    };
-
-    vsapi->createFilter(in, out, "DepanStabilise", depanStabiliseInit, getframe_functions[d.method + 1], depanStabiliseFree, filter_modes[d.method + 1], node_flags[d.method + 1], data, core);
+    vsapi->createFilter(in, out, "DepanStabilise", depanStabiliseInit, getframe_functions[d.method], depanStabiliseFree, fmParallelRequests, 0, data, core);
 
     if (vsapi->getError(out)) {
         depanStabiliseFree(data, core, vsapi);
