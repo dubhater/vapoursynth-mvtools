@@ -16,6 +16,7 @@ void mvflowinterRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 void mvflowfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 void mvblockfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 void mvscdetectionRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
+void mvdepanRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 
 
 VS_EXTERNAL_API(void)
@@ -34,4 +35,5 @@ VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegisterFunction registerFunc
     mvflowfpsRegister(registerFunc, plugin);
     mvblockfpsRegister(registerFunc, plugin);
     mvscdetectionRegister(registerFunc, plugin);
+    mvdepanRegister(registerFunc, plugin);
 }
