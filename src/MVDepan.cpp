@@ -2896,14 +2896,8 @@ typedef struct DepanStabiliseData {
     float *motionrot;
     float *motionzoom;
 
-    int *work2width4356;
 
-    transform *trcumul;
-    transform *trsmoothed;
     transform nonlinfactor;
-
-    float *azoom;
-    float *azoomsmoothed;
 
     float fps;        // frame per second
     float mass;       // mass
@@ -2935,9 +2929,7 @@ static void VS_CC depanStabiliseInit(VSMap *in, VSMap *out, void **instanceData,
 }
 
 
-static void Inertial(DepanStabiliseData *d, int nbase, int ndest, transform *ptrdif) {
-    transform *trsmoothed = d->trsmoothed;
-    transform *trcumul = d->trcumul;
+static void Inertial(DepanStabiliseData *d, transform *trcumul, transform *trsmoothed, float *azoom, float *azoomsmoothed, const int nbase, const int ndest, transform *ptrdif) {
     const transform nonlinfactor = d->nonlinfactor;
     const float damping = d->damping;
     const float fps = d->fps;
@@ -2945,8 +2937,6 @@ static void Inertial(DepanStabiliseData *d, int nbase, int ndest, transform *ptr
     const float pixaspect = d->pixaspect;
     const int nfields = d->nfields;
     const int addzoom = d->addzoom;
-    float *azoom = d->azoom;
-    float *azoomsmoothed = d->azoomsmoothed;
     const float initzoom = d->initzoom;
     const float xcenter = d->xcenter;
     const float ycenter = d->ycenter;
@@ -3112,15 +3102,13 @@ static void Inertial(DepanStabiliseData *d, int nbase, int ndest, transform *ptr
 }
 
 
-static void Average(DepanStabiliseData *d, int nbase, int ndest, int nmax, transform *ptrdif) {
-    transform *trsmoothed = d->trsmoothed;
-    transform *trcumul = d->trcumul;
+static void Average(DepanStabiliseData *d, transform *trcumul, float *azoom, const int nbase, const int ndest, const int nmax, transform *ptrdif) {
+    transform trsmoothed;
     const float * const wint = d->wint;
     const float pixaspect = d->pixaspect;
     const int nfields = d->nfields;
     const int addzoom = d->addzoom;
-    float *azoom = d->azoom;
-    float *azoomsmoothed = d->azoomsmoothed;
+    float azoomsmoothed;
     const float initzoom = d->initzoom;
     const float xcenter = d->xcenter;
     const float ycenter = d->ycenter;
@@ -3136,37 +3124,37 @@ static void Average(DepanStabiliseData *d, int nbase, int ndest, int nmax, trans
     transform trinv, trcur, trtemp;
 
     float norm = 0;
-    trsmoothed[ndest].dxc = 0;
-    trsmoothed[ndest].dyc = 0;
-    trsmoothed[ndest].dxy = 0;
+    trsmoothed.dxc = 0;
+    trsmoothed.dyc = 0;
+    trsmoothed.dxy = 0;
     for (n = nbase; n < ndest; n++) {
-        trsmoothed[ndest].dxc += trcumul[n].dxc * wint[ndest - n];
-        trsmoothed[ndest].dyc += trcumul[n].dyc * wint[ndest - n];
-        trsmoothed[ndest].dxy += trcumul[n].dxy * wint[ndest - n];
+        trsmoothed.dxc += trcumul[n].dxc * wint[ndest - n];
+        trsmoothed.dyc += trcumul[n].dyc * wint[ndest - n];
+        trsmoothed.dxy += trcumul[n].dxy * wint[ndest - n];
         norm += wint[ndest - n];
     }
     for (n = ndest; n <= nmax; n++) {
-        trsmoothed[ndest].dxc += trcumul[n].dxc * wint[n - ndest];
-        trsmoothed[ndest].dyc += trcumul[n].dyc * wint[n - ndest];
-        trsmoothed[ndest].dxy += trcumul[n].dxy * wint[n - ndest];
+        trsmoothed.dxc += trcumul[n].dxc * wint[n - ndest];
+        trsmoothed.dyc += trcumul[n].dyc * wint[n - ndest];
+        trsmoothed.dxy += trcumul[n].dxy * wint[n - ndest];
         norm += wint[n - ndest];
     }
-    trsmoothed[ndest].dxc /= norm;
-    trsmoothed[ndest].dyc /= norm;
-    trsmoothed[ndest].dxy /= norm;
-    trsmoothed[ndest].dyx = -trsmoothed[ndest].dxy * (pixaspect / nfields) * (pixaspect / nfields); // must be consistent
+    trsmoothed.dxc /= norm;
+    trsmoothed.dyc /= norm;
+    trsmoothed.dxy /= norm;
+    trsmoothed.dyx = -trsmoothed.dxy * (pixaspect / nfields) * (pixaspect / nfields); // must be consistent
     norm = 0;
-    trsmoothed[ndest].dxx = 0;
+    trsmoothed.dxx = 0;
     for (n = VSMAX(nbase, ndest - 1); n < ndest; n++) { // very short interval
-        trsmoothed[ndest].dxx += trcumul[n].dxx * wint[ndest - n];
+        trsmoothed.dxx += trcumul[n].dxx * wint[ndest - n];
         norm += wint[ndest - n];
     }
     for (n = ndest; n <= VSMIN(nmax, ndest + 1); n++) {
-        trsmoothed[ndest].dxx += trcumul[n].dxx * wint[n - ndest];
+        trsmoothed.dxx += trcumul[n].dxx * wint[n - ndest];
         norm += wint[n - ndest];
     }
-    trsmoothed[ndest].dxx /= norm;
-    trsmoothed[ndest].dyy = trsmoothed[ndest].dxx;
+    trsmoothed.dxx /= norm;
+    trsmoothed.dyy = trsmoothed.dxx;
 
     //            motion2transform (0, 0, 0, initzoom, pixaspect/nfields, xcenter, ycenter, 1, 1.0, &trtemp); // added in v.1.7
     //            sumtransform (trsmoothed[ndest],trtemp,  &trsmoothed[ndest]); // added v.1.7
@@ -3208,16 +3196,16 @@ static void Average(DepanStabiliseData *d, int nbase, int ndest, int nmax, trans
         //                    zf = 1/(cutoff*tzoom);
 
         norm = 0;
-        azoomsmoothed[ndest] = 0.0;
+        azoomsmoothed = 0.0;
         for (n = nbasez; n < ndest; n++) {
-            azoomsmoothed[ndest] += azoom[n] * winfz[ndest - n]; // fall
+            azoomsmoothed += azoom[n] * winfz[ndest - n]; // fall
             norm += winfz[ndest - n];
         }
         for (n = ndest; n <= nmaxz; n++) {
-            azoomsmoothed[ndest] += azoom[n] * winrz[n - ndest]; // rize
+            azoomsmoothed += azoom[n] * winrz[n - ndest]; // rize
             norm += winrz[n - ndest];
         }
-        azoomsmoothed[ndest] /= norm;
+        azoomsmoothed /= norm;
         //                    zf = zf*0.7f; // slower zoom decreasing
         //                    if (azoomsmoothed[n] > azoomsmoothed[n-1]) // added in v.1.4.0 for slower zoom decreasing
         //                    {
@@ -3225,23 +3213,23 @@ static void Average(DepanStabiliseData *d, int nbase, int ndest, int nmax, trans
 
         //azoomsmoothed[ndest] = azoom[ndest]; // debug - no azoom smoothing
 
-        if (azoomsmoothed[ndest] > 1)
-            azoomsmoothed[ndest] = 1; // not decrease image size
+        if (azoomsmoothed > 1)
+            azoomsmoothed = 1; // not decrease image size
         // make zoom transform
-        motion2transform(0, 0, 0, azoomsmoothed[ndest], pixaspect / nfields, xcenter, ycenter, 1, 1.0, &trtemp);
-        sumtransform(&trsmoothed[ndest], &trtemp, &trsmoothed[ndest]);
+        motion2transform(0, 0, 0, azoomsmoothed, pixaspect / nfields, xcenter, ycenter, 1, 1.0, &trtemp);
+        sumtransform(&trsmoothed, &trtemp, &trsmoothed);
 
         //            }
     } else // no addzoom
     {
         motion2transform(0, 0, 0, initzoom, pixaspect / nfields, xcenter, ycenter, 1, 1.0, &trtemp); // added in v.1.7
-        sumtransform(&trsmoothed[ndest], &trtemp, &trsmoothed[ndest]);                                 // added v.1.7
+        sumtransform(&trsmoothed, &trtemp, &trsmoothed); // added v.1.7
     }
     // calculate difference between smoothed and original non-smoothed cumulative tranform
     // it will be used as stabilization values
 
     inversetransform(&trcumul[ndest], &trinv);
-    sumtransform(&trinv, &trsmoothed[ndest], ptrdif);
+    sumtransform(&trinv, &trsmoothed, ptrdif);
 }
 
 
@@ -3597,19 +3585,31 @@ static const VSFrameRef *VS_CC depanStabiliseGetFrame0(int ndest, int activation
 
             // cumulative transform (position) for all sequence from base
 
-            /// maybe trcumul can be allocated per frame
+            size_t elements = ndest - nbase + 1;
+
+            transform *trcumul = (transform *)malloc(elements * sizeof(transform));
+            transform *trsmoothed = (transform *)malloc(elements * sizeof(transform));
+            float *azoom = (float *)malloc(elements * sizeof(float));
+            float *azoomsmoothed = (float *)malloc(elements * sizeof(float));
+
             // base as null
-            setNull(&d->trcumul[nbase]);
+            setNull(&trcumul[0]);
 
             // get cumulative transforms from base to ndest
             for (int n = nbase + 1; n <= ndest; n++) {
                 transform trcur;
 
                 motion2transform(d->motionx[n], d->motiony[n], d->motionrot[n], d->motionzoom[n], d->pixaspect / d->nfields, d->xcenter, d->ycenter, 1, 1.0f, &trcur);
-                sumtransform(&d->trcumul[n - 1], &trcur, &d->trcumul[n]);
+                sumtransform(&trcumul[n - nbase - 1], &trcur, &trcumul[n - nbase]);
             }
 
-            Inertial(d, nbase, ndest, &trdif);
+            Inertial(d, trcumul - nbase, trsmoothed - nbase, azoom - nbase, azoomsmoothed - nbase, nbase, ndest, &trdif);
+
+            free(trcumul);
+            free(trsmoothed);
+            free(azoom);
+            free(azoomsmoothed);
+
             // summary motion from summary transform
             transform2motion(&trdif, 1, d->xcenter, d->ycenter, d->pixaspect / d->nfields, &dxdif, &dydif, &rotdif, &zoomdif);
             // fit last - decrease motion correction near end of clip - added in v.1.2.0
@@ -3635,23 +3635,27 @@ static const VSFrameRef *VS_CC depanStabiliseGetFrame0(int ndest, int activation
         //--------------------------------------------------------------------------
         // Ready to make motion stabilization,
 
+        int *work2width4356 = (int *)malloc((2 * d->vi->width + 4356) * sizeof(int)); // work
+
         // --------------------------------------------------------------------
         // use some previous frame to fill borders
         int notfilled = 1; // init as not filled (borders by neighbor frames)
 
         if (d->prev > 0)
-            fillBorderPrev(dst, d, nbase, ndest, &trdif, d->work2width4356, &notfilled, frameCtx, vsapi);
+            fillBorderPrev(dst, d, nbase, ndest, &trdif, work2width4356, &notfilled, frameCtx, vsapi);
 
         // use next frame to fill borders
         if (d->next > 0) {
-            if (!fillBorderNext(dst, d, ndest, &trdif, d->work2width4356, &notfilled, frameCtx, vsapi)) {
+            if (!fillBorderNext(dst, d, ndest, &trdif, work2width4356, &notfilled, frameCtx, vsapi)) {
                 vsapi->freeFrame(dst);
                 vsapi->freeFrame(src);
                 return NULL;
             }
         }
 
-        compensateFrame(src, dst, d, notfilled, &trdif, d->work2width4356, vsapi);
+        compensateFrame(src, dst, d, notfilled, &trdif, work2width4356, vsapi);
+
+        free(work2width4356);
 
         vsapi->freeFrame(src);
 
@@ -3679,8 +3683,11 @@ static const VSFrameRef *VS_CC depanStabiliseGetFrame1(int ndest, int activation
     if (activationReason == arInitial) {
         int nprev = VSMAX(nbase, ndest - d->prev);
 
+        std::lock_guard<std::mutex> guard(g_depanstabilise_mutex);
+
         for (int i = nbase; i <= ndest; i++) {
-            vsapi->requestFrameFilter(i, d->data, frameCtx);
+            if (d->motionx[i] == MOTIONUNKNOWN)
+                vsapi->requestFrameFilter(i, d->data, frameCtx);
             if (d->prev && i >= nprev)
                 vsapi->requestFrameFilter(i, d->clip, frameCtx);
         }
@@ -3691,57 +3698,70 @@ static const VSFrameRef *VS_CC depanStabiliseGetFrame1(int ndest, int activation
 
         if (nnext < nmax) {
             for (int i = ndest + 1; i <= nnext; i++) {
-                vsapi->requestFrameFilter(i, d->data, frameCtx);
+                if (d->motionx[i] == MOTIONUNKNOWN)
+                    vsapi->requestFrameFilter(i, d->data, frameCtx);
                 if (d->next)
                     vsapi->requestFrameFilter(i, d->clip, frameCtx);
             }
 
-            for (int i = nnext + 1; i <= nmax; i++)
-                vsapi->requestFrameFilter(i, d->data, frameCtx);
+            for (int i = nnext + 1; i <= nmax; i++) {
+                if (d->motionx[i] == MOTIONUNKNOWN)
+                    vsapi->requestFrameFilter(i, d->data, frameCtx);
+            }
         } else {
             for (int i = ndest + 1; i <= nmax; i++) {
-                vsapi->requestFrameFilter(i, d->data, frameCtx);
+                if (d->motionx[i] == MOTIONUNKNOWN)
+                    vsapi->requestFrameFilter(i, d->data, frameCtx);
                 if (d->next)
                     vsapi->requestFrameFilter(i, d->clip, frameCtx);
             }
 
             if (d->next) {
                 for (int i = nmax + 1; i <= ndest; i++) {
-                    vsapi->requestFrameFilter(i, d->data, frameCtx);
+                    if (d->motionx[i] == MOTIONUNKNOWN)
+                        vsapi->requestFrameFilter(i, d->data, frameCtx);
                     vsapi->requestFrameFilter(i, d->clip, frameCtx);
                 }
             }
         }
     } else if (activationReason == arAllFramesReady) {
         // get motion info about frames in interval from begin source to dest in reverse order
-        for (int n = ndest; n >= nbase; n--) {
-            const VSFrameRef *dataframe = vsapi->getFrameFilter(n, d->data, frameCtx);
-            if (!getDepanProps(&d->motionx[n], &d->motiony[n], &d->motionrot[n], &d->motionzoom[n], dataframe, frameCtx, vsapi)) {
-                vsapi->freeFrame(dataframe);
-                return NULL;
+        {
+            std::lock_guard<std::mutex> guard(g_depanstabilise_mutex);
+
+            for (int n = ndest; n >= nbase; n--) {
+                if (d->motionx[n] == MOTIONUNKNOWN) {
+                    const VSFrameRef *dataframe = vsapi->getFrameFilter(n, d->data, frameCtx);
+                    if (!getDepanProps(&d->motionx[n], &d->motiony[n], &d->motionrot[n], &d->motionzoom[n], dataframe, frameCtx, vsapi)) {
+                        vsapi->freeFrame(dataframe);
+                        return NULL;
+                    }
+                    vsapi->freeFrame(dataframe);
+                }
+
+                if (d->motionx[n] == MOTIONBAD) {
+                    if (n > nbase)
+                        nbase = n;
+                    break; // if strictly =0,  than no good
+                }
             }
-            vsapi->freeFrame(dataframe);
-
-            if (d->motionx[n] == MOTIONBAD) {
-                if (n > nbase)
-                    nbase = n;
-                break; // if strictly =0,  than no good
-            }
-        }
 
 
-        for (int n = ndest + 1; n <= nmax; n++) {
-            const VSFrameRef *dataframe = vsapi->getFrameFilter(n, d->data, frameCtx);
-            if (!getDepanProps(&d->motionx[n], &d->motiony[n], &d->motionrot[n], &d->motionzoom[n], dataframe, frameCtx, vsapi)) {
-                vsapi->freeFrame(dataframe);
-                return NULL;
-            }
-            vsapi->freeFrame(dataframe);
+            for (int n = ndest + 1; n <= nmax; n++) {
+                if (d->motionx[n] == MOTIONUNKNOWN) {
+                    const VSFrameRef *dataframe = vsapi->getFrameFilter(n, d->data, frameCtx);
+                    if (!getDepanProps(&d->motionx[n], &d->motiony[n], &d->motionrot[n], &d->motionzoom[n], dataframe, frameCtx, vsapi)) {
+                        vsapi->freeFrame(dataframe);
+                        return NULL;
+                    }
+                    vsapi->freeFrame(dataframe);
+                }
 
-            if (d->motionx[n] == MOTIONBAD) {
-                if (n < nmax)
-                    nmax = VSMAX(n - 1, ndest);
-                break; // if strictly =0,  than no good
+                if (d->motionx[n] == MOTIONBAD) {
+                    if (n < nmax)
+                        nmax = VSMAX(n - 1, ndest);
+                    break; // if strictly =0,  than no good
+                }
             }
         }
 
@@ -3753,8 +3773,13 @@ static const VSFrameRef *VS_CC depanStabiliseGetFrame1(int ndest, int activation
 
         // cumulative transform (position) for all sequence from base
 
+        size_t elements = nmax - nbase + 1;
+
+        transform *trcumul = (transform *)malloc(elements * sizeof(transform));
+        float *azoom = (float *)malloc(elements * sizeof(float));
+
         // base as null
-        setNull(&d->trcumul[nbase]);
+        setNull(&trcumul[0]);
 
         float dxdif, dydif, zoomdif, rotdif;
         transform trdif;
@@ -3764,10 +3789,14 @@ static const VSFrameRef *VS_CC depanStabiliseGetFrame1(int ndest, int activation
             transform trcur;
 
             motion2transform(d->motionx[n], d->motiony[n], d->motionrot[n], d->motionzoom[n], d->pixaspect / d->nfields, d->xcenter, d->ycenter, 1, 1.0f, &trcur);
-            sumtransform(&d->trcumul[n - 1], &trcur, &d->trcumul[n]);
+            sumtransform(&trcumul[n - nbase - 1], &trcur, &trcumul[n - nbase]);
         }
 
-        Average(d, nbase, ndest, nmax, &trdif);
+        Average(d, trcumul - nbase, azoom - nbase, nbase, ndest, nmax, &trdif);
+
+        free(trcumul);
+        free(azoom);
+
         // summary motion from summary transform
         transform2motion(&trdif, 1, d->xcenter, d->ycenter, d->pixaspect / d->nfields, &dxdif, &dydif, &rotdif, &zoomdif);
 
@@ -3782,23 +3811,27 @@ static const VSFrameRef *VS_CC depanStabiliseGetFrame1(int ndest, int activation
         //--------------------------------------------------------------------------
         // Ready to make motion stabilization,
 
+        int *work2width4356 = (int *)malloc((2 * d->vi->width + 4356) * sizeof(int)); // work
+
         // --------------------------------------------------------------------
         // use some previous frame to fill borders
         int notfilled = 1; // init as not filled (borders by neighbor frames)
 
         if (d->prev > 0)
-            fillBorderPrev(dst, d, nbase, ndest, &trdif, d->work2width4356, &notfilled, frameCtx, vsapi);
+            fillBorderPrev(dst, d, nbase, ndest, &trdif, work2width4356, &notfilled, frameCtx, vsapi);
 
         // use next frame to fill borders
         if (d->next > 0) {
-            if (!fillBorderNext(dst, d, ndest, &trdif, d->work2width4356, &notfilled, frameCtx, vsapi)) {
+            if (!fillBorderNext(dst, d, ndest, &trdif, work2width4356, &notfilled, frameCtx, vsapi)) {
                 vsapi->freeFrame(dst);
                 vsapi->freeFrame(src);
                 return NULL;
             }
         }
 
-        compensateFrame(src, dst, d, notfilled, &trdif, d->work2width4356, vsapi);
+        compensateFrame(src, dst, d, notfilled, &trdif, work2width4356, vsapi);
+
+        free(work2width4356);
 
         vsapi->freeFrame(src);
 
@@ -3827,12 +3860,7 @@ static void VS_CC depanStabiliseFree(void *instanceData, VSCore *core, const VSA
     free(d->motiony);
     free(d->motionzoom);
     free(d->motionrot);
-    free(d->work2width4356);
 
-    free(d->trcumul);
-    free(d->trsmoothed);
-    free(d->azoom);
-    free(d->azoomsmoothed);
     free(d->wint);
     free(d->winrz);
     free(d->winfz);
@@ -4000,16 +4028,6 @@ static void VS_CC depanStabiliseCreate(const VSMap *in, VSMap *out, void *userDa
         d.motionx[i] = MOTIONUNKNOWN; // init as unknown for all frames
 
 
-    d.work2width4356 = (int *)malloc((2 * d.vi->width + 4356) * sizeof(int)); // work
-
-
-    d.trcumul = (transform *)malloc(d.vi->numFrames * sizeof(transform));
-    d.trsmoothed = (transform *)malloc(d.vi->numFrames * sizeof(transform));
-
-    d.azoom = (float *)malloc(d.vi->numFrames * sizeof(float));
-    d.azoomsmoothed = (float *)malloc(d.vi->numFrames * sizeof(float));
-
-
     // prepare coefficients for inertial motion smoothing filter
 
     // elastic stiffness of spring
@@ -4109,7 +4127,7 @@ static void VS_CC depanStabiliseCreate(const VSMap *in, VSMap *out, void *userDa
     };
 
 
-    vsapi->createFilter(in, out, "DepanStabilise", depanStabiliseInit, getframe_functions[d.method], depanStabiliseFree, fmParallelRequests, 0, data, core);
+    vsapi->createFilter(in, out, "DepanStabilise", depanStabiliseInit, getframe_functions[d.method], depanStabiliseFree, fmParallel, 0, data, core);
 
     if (vsapi->getError(out)) {
         depanStabiliseFree(data, core, vsapi);
