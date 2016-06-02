@@ -533,8 +533,8 @@ static void VS_CC depanAnalyseCreate(const VSMap *in, VSMap *out, void *userData
     d.clip = vsapi->propGetNode(in, "clip", 0, NULL);
     d.vi = vsapi->getVideoInfo(d.clip);
 
-    if (!d.vi->format) { // XXX etc
-        vsapi->setError(out, "DepanAnalyse: clip must have constant format.");
+    if (!isConstantFormat(d.vi)) { // XXX etc
+        vsapi->setError(out, "DepanAnalyse: clip must have constant format and dimensions.");
         vsapi->freeNode(d.clip);
         return;
     }
