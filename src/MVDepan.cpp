@@ -2917,6 +2917,8 @@ typedef struct DepanStabiliseData {
     float ycenter;
 
     CompensateFunction compensate_plane;
+
+    std::mutex motion_mutex;
 } DepanStabiliseData;
 
 
@@ -3424,9 +3426,6 @@ static void fillBorderPrev(VSFrameRef *dst, DepanStabiliseData *d, int nbase, in
 }
 
 
-std::mutex g_depanstabilise_mutex;
-
-
 static int fillBorderNext(VSFrameRef *dst, DepanStabiliseData *d, int ndest, const transform *trdif, int *work2width4356, int *notfilled, VSFrameContext *frameCtx, const VSAPI *vsapi) {
     float dxt1, dyt1, rott1, zoomt1;
 
@@ -3443,7 +3442,7 @@ static int fillBorderNext(VSFrameRef *dst, DepanStabiliseData *d, int ndest, con
 
     // get motion info about frames in interval from begin source to dest in reverse order
     {
-        std::lock_guard<std::mutex> guard(g_depanstabilise_mutex);
+        std::lock_guard<std::mutex> guard(d->motion_mutex);
 
         for (int n = ndest + 1; n <= nnext; n++) {
             if (d->motionx[n] == MOTIONUNKNOWN) {
@@ -3534,7 +3533,7 @@ static const VSFrameRef *VS_CC depanStabiliseGetFrame0(int ndest, int activation
     if (activationReason == arInitial) {
         int nprev = VSMAX(nbase, ndest - d->prev);
 
-        std::lock_guard<std::mutex> guard(g_depanstabilise_mutex);
+        std::lock_guard<std::mutex> guard(d->motion_mutex);
 
         for (int i = nbase; i <= ndest; i++) {
             if (d->motionx[i] == MOTIONUNKNOWN)
@@ -3555,7 +3554,7 @@ static const VSFrameRef *VS_CC depanStabiliseGetFrame0(int ndest, int activation
     } else if (activationReason == arAllFramesReady) {
         // get motion info about frames in interval from begin source to dest in reverse order
         {
-            std::lock_guard<std::mutex> guard(g_depanstabilise_mutex);
+            std::lock_guard<std::mutex> guard(d->motion_mutex);
 
             for (int n = ndest; n >= nbase; n--) {
                 if (d->motionx[n] == MOTIONUNKNOWN) {
@@ -3683,7 +3682,7 @@ static const VSFrameRef *VS_CC depanStabiliseGetFrame1(int ndest, int activation
     if (activationReason == arInitial) {
         int nprev = VSMAX(nbase, ndest - d->prev);
 
-        std::lock_guard<std::mutex> guard(g_depanstabilise_mutex);
+        std::lock_guard<std::mutex> guard(d->motion_mutex);
 
         for (int i = nbase; i <= ndest; i++) {
             if (d->motionx[i] == MOTIONUNKNOWN)
@@ -3727,7 +3726,7 @@ static const VSFrameRef *VS_CC depanStabiliseGetFrame1(int ndest, int activation
     } else if (activationReason == arAllFramesReady) {
         // get motion info about frames in interval from begin source to dest in reverse order
         {
-            std::lock_guard<std::mutex> guard(g_depanstabilise_mutex);
+            std::lock_guard<std::mutex> guard(d->motion_mutex);
 
             for (int n = ndest; n >= nbase; n--) {
                 if (d->motionx[n] == MOTIONUNKNOWN) {
@@ -3865,140 +3864,149 @@ static void VS_CC depanStabiliseFree(void *instanceData, VSCore *core, const VSA
     free(d->winrz);
     free(d->winfz);
 
-    free(d);
+    delete d;
 }
 
 
 static void VS_CC depanStabiliseCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
     (void)userData;
 
-    DepanStabiliseData d;
-    memset(&d, 0, sizeof(d));
+    DepanStabiliseData *d = new DepanStabiliseData;
 
     int err;
 
-    d.cutoff = (float)vsapi->propGetFloat(in, "cutoff", 0, &err);
+    d->cutoff = (float)vsapi->propGetFloat(in, "cutoff", 0, &err);
     if (err)
-        d.cutoff = 1.0f;
+        d->cutoff = 1.0f;
 
-    d.damping = (float)vsapi->propGetFloat(in, "damping", 0, &err);
+    d->damping = (float)vsapi->propGetFloat(in, "damping", 0, &err);
     if (err)
-        d.damping = 0.9f;
+        d->damping = 0.9f;
 
-    d.initzoom = (float)vsapi->propGetFloat(in, "initzoom", 0, &err);
+    d->initzoom = (float)vsapi->propGetFloat(in, "initzoom", 0, &err);
     if (err)
-        d.initzoom = 1.0f;
+        d->initzoom = 1.0f;
 
-    d.addzoom = !!vsapi->propGetInt(in, "addzoom", 0, &err);
+    d->addzoom = !!vsapi->propGetInt(in, "addzoom", 0, &err);
 
-    d.prev = int64ToIntS(vsapi->propGetInt(in, "prev", 0, &err));
+    d->prev = int64ToIntS(vsapi->propGetInt(in, "prev", 0, &err));
 
-    d.next = int64ToIntS(vsapi->propGetInt(in, "next", 0, &err));
+    d->next = int64ToIntS(vsapi->propGetInt(in, "next", 0, &err));
 
-    d.mirror = int64ToIntS(vsapi->propGetInt(in, "mirror", 0, &err));
+    d->mirror = int64ToIntS(vsapi->propGetInt(in, "mirror", 0, &err));
 
-    d.blur = int64ToIntS(vsapi->propGetInt(in, "blur", 0, &err));
+    d->blur = int64ToIntS(vsapi->propGetInt(in, "blur", 0, &err));
 
-    d.dxmax = (float)vsapi->propGetFloat(in, "dxmax", 0, &err);
+    d->dxmax = (float)vsapi->propGetFloat(in, "dxmax", 0, &err);
     if (err)
-        d.dxmax = 60.0f;
+        d->dxmax = 60.0f;
 
-    d.dymax = (float)vsapi->propGetFloat(in, "dymax", 0, &err);
+    d->dymax = (float)vsapi->propGetFloat(in, "dymax", 0, &err);
     if (err)
-        d.dymax = 30.0f;
+        d->dymax = 30.0f;
 
-    d.zoommax = (float)vsapi->propGetFloat(in, "zoommax", 0, &err);
+    d->zoommax = (float)vsapi->propGetFloat(in, "zoommax", 0, &err);
     if (err)
-        d.zoommax = 1.05f;
+        d->zoommax = 1.05f;
 
-    d.rotmax = (float)vsapi->propGetFloat(in, "rotmax", 0, &err);
+    d->rotmax = (float)vsapi->propGetFloat(in, "rotmax", 0, &err);
     if (err)
-        d.rotmax = 1.0f;
+        d->rotmax = 1.0f;
 
-    d.subpixel = int64ToIntS(vsapi->propGetInt(in, "subpixel", 0, &err));
+    d->subpixel = int64ToIntS(vsapi->propGetInt(in, "subpixel", 0, &err));
     if (err)
-        d.subpixel = 2;
+        d->subpixel = 2;
 
-    d.pixaspect = (float)vsapi->propGetFloat(in, "pixaspect", 0, &err);
+    d->pixaspect = (float)vsapi->propGetFloat(in, "pixaspect", 0, &err);
     if (err)
-        d.pixaspect = 1.0f;
+        d->pixaspect = 1.0f;
 
-    d.fitlast = int64ToIntS(vsapi->propGetInt(in, "fitlast", 0, &err));
+    d->fitlast = int64ToIntS(vsapi->propGetInt(in, "fitlast", 0, &err));
 
-    d.tzoom = (float)vsapi->propGetFloat(in, "tzoom", 0, &err);
+    d->tzoom = (float)vsapi->propGetFloat(in, "tzoom", 0, &err);
     if (err)
-        d.tzoom = 3.0f;
+        d->tzoom = 3.0f;
 
-    d.info = !!vsapi->propGetInt(in, "info", 0, &err);
+    d->info = !!vsapi->propGetInt(in, "info", 0, &err);
 
-    d.method = int64ToIntS(vsapi->propGetInt(in, "method", 0, &err));
+    d->method = int64ToIntS(vsapi->propGetInt(in, "method", 0, &err));
 
-    d.fields = !!vsapi->propGetInt(in, "fields", 0, &err);
+    d->fields = !!vsapi->propGetInt(in, "fields", 0, &err);
 
 
     // sanity checks
-    if (d.cutoff <= 0.0f) {
+    if (d->cutoff <= 0.0f) {
         vsapi->setError(out, "DepanStabilise: cutoff must be greater than 0.");
         return;
     }
 
-    if (d.prev < 0) {
+    if (d->prev < 0) {
         vsapi->setError(out, "DepanStabilise: prev must not be negative.");
+        delete d;
         return;
     }
 
-    if (d.next < 0) {
+    if (d->next < 0) {
         vsapi->setError(out, "DepanStabilise: next must not be negative.");
+        delete d;
         return;
     }
 
-    if (d.subpixel < 0 || d.subpixel > 2) {
+    if (d->subpixel < 0 || d->subpixel > 2) {
         vsapi->setError(out, "DepanStabilise: subpixel must be between 0 and 2 (inclusive).");
+        delete d;
         return;
     }
 
-    if (d.pixaspect <= 0.0f) {
+    if (d->pixaspect <= 0.0f) {
         vsapi->setError(out, "DepanStabilise: pixaspect must be greater than 0.");
+        delete d;
         return;
     }
 
-    if (d.mirror < 0 || d.mirror > 15) {
+    if (d->mirror < 0 || d->mirror > 15) {
         vsapi->setError(out, "DepanStabilise: mirror must be between 0 and 15 (inclusive).");
+        delete d;
         return;
     }
 
-    if (d.blur < 0) {
+    if (d->blur < 0) {
         vsapi->setError(out, "DepanStabilise: blur must not be negative.");
+        delete d;
         return;
     }
 
-    if (d.method < 0 || d.method > 1) {
+    if (d->method < 0 || d->method > 1) {
         vsapi->setError(out, "DepanStabilise: method must be between 0 and 1 (inclusive).");
+        delete d;
         return;
     }
 
 
-    d.clip = vsapi->propGetNode(in, "clip", 0, NULL);
-    d.vi = vsapi->getVideoInfo(d.clip);
+    d->clip = vsapi->propGetNode(in, "clip", 0, NULL);
+    d->vi = vsapi->getVideoInfo(d->clip);
 
-    if (!isConstantFormat(d.vi) || d.vi->format->id != pfYUV420P8) { // etc
+    if (!isConstantFormat(d->vi) || d->vi->format->id != pfYUV420P8) { // etc
         vsapi->setError(out, "DepanStabilise: clip must have constant format and dimensions.");
-        vsapi->freeNode(d.clip);
+        vsapi->freeNode(d->clip);
+        delete d;
         return;
     }
 
-    if (d.vi->fpsNum == 0 || d.vi->fpsDen == 0) {
+    if (d->vi->fpsNum == 0 || d->vi->fpsDen == 0) {
         vsapi->setError(out, "DepanStabilise: clip must have known frame rate.");
-        vsapi->freeNode(d.clip);
+        vsapi->freeNode(d->clip);
+        delete d;
         return;
     }
 
-    d.data = vsapi->propGetNode(in, "data", 0, NULL);
+    d->data = vsapi->propGetNode(in, "data", 0, NULL);
 
-    if (d.vi->numFrames > vsapi->getVideoInfo(d.data)->numFrames) {
+    if (d->vi->numFrames > vsapi->getVideoInfo(d->data)->numFrames) {
         vsapi->setError(out, "DepanStabilise: data must have at least as many frames as clip.");
-        vsapi->freeNode(d.data);
-        vsapi->freeNode(d.clip);
+        vsapi->freeNode(d->data);
+        vsapi->freeNode(d->clip);
+        delete d;
         return;
     }
 
@@ -4006,42 +4014,42 @@ static void VS_CC depanStabiliseCreate(const VSMap *in, VSMap *out, void *userDa
 
     float lambda;
 
-    d.zoommax = d.zoommax > 0 ? VSMAX(d.zoommax, d.initzoom) : -VSMAX(-d.zoommax, d.initzoom);
+    d->zoommax = d->zoommax > 0 ? VSMAX(d->zoommax, d->initzoom) : -VSMAX(-d->zoommax, d->initzoom);
 
     // correction for fieldbased
-    if (d.fields)
-        d.nfields = 2;
+    if (d->fields)
+        d->nfields = 2;
     else
-        d.nfields = 1;
+        d->nfields = 1;
 
 
-    d.motionx = (float *)malloc(d.vi->numFrames * sizeof(float));
-    d.motiony = (float *)malloc(d.vi->numFrames * sizeof(float));
-    d.motionrot = (float *)malloc(d.vi->numFrames * sizeof(float));
-    d.motionzoom = (float *)malloc(d.vi->numFrames * sizeof(float));
+    d->motionx = (float *)malloc(d->vi->numFrames * sizeof(float));
+    d->motiony = (float *)malloc(d->vi->numFrames * sizeof(float));
+    d->motionrot = (float *)malloc(d->vi->numFrames * sizeof(float));
+    d->motionzoom = (float *)malloc(d->vi->numFrames * sizeof(float));
 
-    d.motionx[0] = 0.0f;
-    d.motiony[0] = 0.0f;
-    d.motionrot[0] = 0.0f;
-    d.motionzoom[0] = 1.0f;
-    for (int i = 1; i < d.vi->numFrames; i++)
-        d.motionx[i] = MOTIONUNKNOWN; // init as unknown for all frames
+    d->motionx[0] = 0.0f;
+    d->motiony[0] = 0.0f;
+    d->motionrot[0] = 0.0f;
+    d->motionzoom[0] = 1.0f;
+    for (int i = 1; i < d->vi->numFrames; i++)
+        d->motionx[i] = MOTIONUNKNOWN; // init as unknown for all frames
 
 
     // prepare coefficients for inertial motion smoothing filter
 
     // elastic stiffness of spring
-    d.kstiff = 1.0; // value is not important - (not included in result)
+    d->kstiff = 1.0; // value is not important - (not included in result)
     //  relative frequency lambda at half height of response
-    lambda = sqrtf(1 + 6 * d.damping * d.damping + sqrtf((1 + 6 * d.damping * d.damping) * (1 + 6 * d.damping * d.damping) + 3));
+    lambda = sqrtf(1 + 6 * d->damping * d->damping + sqrtf((1 + 6 * d->damping * d->damping) * (1 + 6 * d->damping * d->damping) + 3));
     // native oscillation frequency
-    d.freqnative = d.cutoff / lambda;
+    d->freqnative = d->cutoff / lambda;
     // mass of camera
-    d.mass = d.kstiff / ((6.28f * d.freqnative) * (6.28f * d.freqnative));
+    d->mass = d->kstiff / ((6.28f * d->freqnative) * (6.28f * d->freqnative));
     // damping parameter
-    d.pdamp = 2 * d.damping * d.kstiff / (6.28f * d.freqnative);
+    d->pdamp = 2 * d->damping * d->kstiff / (6.28f * d->freqnative);
     // frames per secomd
-    d.fps = (float)d.vi->fpsNum / d.vi->fpsDen;
+    d->fps = (float)d->vi->fpsNum / d->vi->fpsDen;
 
     // old smoothing filter coefficients from paper
     //        float a1 = (2*mass + pdamp*period)/(mass + pdamp*period + kstiff*period*period);
@@ -4057,69 +4065,66 @@ static void VS_CC depanStabiliseCreate(const VSMap *in, VSMap *out, void *userDa
         cnl = -kstiff/(mass*fps*fps + pdamp*fps/2); // nonlinear
 */
     // approximate factor values for nonlinear members as half of max
-    if (d.dxmax != 0.0f) {
-        d.nonlinfactor.dxc = 5 / fabsf(d.dxmax);
+    if (d->dxmax != 0.0f) {
+        d->nonlinfactor.dxc = 5 / fabsf(d->dxmax);
     } else {
-        d.nonlinfactor.dxc = 0;
+        d->nonlinfactor.dxc = 0;
     }
-    if (fabsf(d.zoommax) != 1.0f) {
-        d.nonlinfactor.dxx = 5 / (fabsf(d.zoommax) - 1);
-        d.nonlinfactor.dyy = 5 / (fabsf(d.zoommax) - 1);
+    if (fabsf(d->zoommax) != 1.0f) {
+        d->nonlinfactor.dxx = 5 / (fabsf(d->zoommax) - 1);
+        d->nonlinfactor.dyy = 5 / (fabsf(d->zoommax) - 1);
     } else {
-        d.nonlinfactor.dxx = 0;
-        d.nonlinfactor.dyy = 0;
+        d->nonlinfactor.dxx = 0;
+        d->nonlinfactor.dyy = 0;
     }
-    if (d.dymax != 0.0f) {
-        d.nonlinfactor.dyc = 5 / fabsf(d.dymax);
+    if (d->dymax != 0.0f) {
+        d->nonlinfactor.dyc = 5 / fabsf(d->dymax);
     } else {
-        d.nonlinfactor.dyc = 0;
+        d->nonlinfactor.dyc = 0;
     }
-    if (d.rotmax != 0.0f) {
-        d.nonlinfactor.dxy = 5 / fabsf(d.rotmax);
-        d.nonlinfactor.dyx = 5 / fabsf(d.rotmax);
+    if (d->rotmax != 0.0f) {
+        d->nonlinfactor.dxy = 5 / fabsf(d->rotmax);
+        d->nonlinfactor.dyx = 5 / fabsf(d->rotmax);
     } else {
-        d.nonlinfactor.dxy = 0;
-        d.nonlinfactor.dyx = 0;
+        d->nonlinfactor.dxy = 0;
+        d->nonlinfactor.dyx = 0;
     }
 
 
-    d.initzoom = 1 / d.initzoom; // make consistent with internal definition - v1.7
+    d->initzoom = 1 / d->initzoom; // make consistent with internal definition - v1.7
 
-    d.wintsize = (int)(d.fps / (4 * d.cutoff));
-    d.radius = d.wintsize;
-    d.wint = (float *)malloc((d.wintsize + 1) * sizeof(float));
+    d->wintsize = (int)(d->fps / (4 * d->cutoff));
+    d->radius = d->wintsize;
+    d->wint = (float *)malloc((d->wintsize + 1) * sizeof(float));
 
     float PI = 3.14159265258f;
-    for (int i = 0; i < d.wintsize; i++)
-        d.wint[i] = cosf(i * 0.5f * PI / d.wintsize);
-    d.wint[d.wintsize] = 0;
+    for (int i = 0; i < d->wintsize; i++)
+        d->wint[i] = cosf(i * 0.5f * PI / d->wintsize);
+    d->wint[d->wintsize] = 0;
 
-    d.winrz = (float *)malloc((d.wintsize + 1) * sizeof(float));
-    d.winfz = (float *)malloc((d.wintsize + 1) * sizeof(float));
-    d.winrzsize = VSMIN(d.wintsize, (int)(d.fps * d.tzoom / 4));
-    d.winfzsize = VSMIN(d.wintsize, (int)(d.fps * d.tzoom / 4));
-    for (int i = 0; i < d.winrzsize; i++)
-        d.winrz[i] = cosf(i * 0.5f * PI / d.winrzsize);
-    for (int i = d.winrzsize; i <= d.wintsize; i++)
-        d.winrz[i] = 0;
-    for (int i = 0; i < d.winfzsize; i++)
-        d.winfz[i] = cosf(i * 0.5f * PI / d.winfzsize);
-    for (int i = d.winfzsize; i <= d.wintsize; i++)
-        d.winfz[i] = 0;
+    d->winrz = (float *)malloc((d->wintsize + 1) * sizeof(float));
+    d->winfz = (float *)malloc((d->wintsize + 1) * sizeof(float));
+    d->winrzsize = VSMIN(d->wintsize, (int)(d->fps * d->tzoom / 4));
+    d->winfzsize = VSMIN(d->wintsize, (int)(d->fps * d->tzoom / 4));
+    for (int i = 0; i < d->winrzsize; i++)
+        d->winrz[i] = cosf(i * 0.5f * PI / d->winrzsize);
+    for (int i = d->winrzsize; i <= d->wintsize; i++)
+        d->winrz[i] = 0;
+    for (int i = 0; i < d->winfzsize; i++)
+        d->winfz[i] = cosf(i * 0.5f * PI / d->winfzsize);
+    for (int i = d->winfzsize; i <= d->wintsize; i++)
+        d->winfz[i] = 0;
 
-    d.xcenter = d.vi->width / 2.0f; // center of frame
-    d.ycenter = d.vi->height / 2.0f;
+    d->xcenter = d->vi->width / 2.0f; // center of frame
+    d->ycenter = d->vi->height / 2.0f;
 
     CompensateFunction compensate_functions[3] = {
         compensate_plane_nearest,
         compensate_plane_bilinear,
         compensate_plane_bicubic
     };
-    d.compensate_plane = compensate_functions[d.subpixel];
+    d->compensate_plane = compensate_functions[d->subpixel];
 
-
-    DepanStabiliseData *data = (DepanStabiliseData *)malloc(sizeof(d));
-    *data = d;
 
     VSFilterGetFrame getframe_functions[2] = {
         depanStabiliseGetFrame0,
@@ -4127,17 +4132,17 @@ static void VS_CC depanStabiliseCreate(const VSMap *in, VSMap *out, void *userDa
     };
 
 
-    vsapi->createFilter(in, out, "DepanStabilise", depanStabiliseInit, getframe_functions[d.method], depanStabiliseFree, fmParallel, 0, data, core);
+    vsapi->createFilter(in, out, "DepanStabilise", depanStabiliseInit, getframe_functions[d->method], depanStabiliseFree, fmParallel, 0, d, core);
 
     if (vsapi->getError(out)) {
-        depanStabiliseFree(data, core, vsapi);
+        depanStabiliseFree(d, core, vsapi);
         return;
     }
 
-    if (d.info) {
+    if (d->info) {
         if (!invokeFrameProps(prop_DepanStabilise_info, out, core, vsapi)) {
             vsapi->setError(out, std::string("DepanStabilise: failed to invoke text.FrameProps: ").append(vsapi->getError(out)).c_str());
-            depanStabiliseFree(data, core, vsapi);
+            depanStabiliseFree(d, core, vsapi);
             return;
         }
     }
