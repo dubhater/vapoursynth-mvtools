@@ -22,8 +22,6 @@
 #include "CPU.h"
 #include "PlaneOfBlocks.h"
 
-#define max(a, b) ((a) > (b) ? (a) : (b))
-#define min(a, b) ((a) > (b) ? (b) : (a))
 
 
 /* fetch the block in the reference frame, which is pointed by the vector (vx, vy) */
@@ -84,7 +82,7 @@ static inline unsigned int SquareDifferenceNorm(const VECTOR *v1, const int v2x,
 /* computes the cost of a vector (vx, vy) */
 static inline int pobMotionDistorsion(PlaneOfBlocks *pob, int vx, int vy) {
     int dist = SquareDifferenceNorm(&pob->predictor, vx, vy);
-    return (pob->nLambda * dist) >> 8;
+    return (int)((pob->nLambda * dist) >> 8);
 }
 
 
@@ -719,7 +717,7 @@ void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nB
         pob->SADCHROMA = NULL;
 
 
-    pob->dctpitch = max(pob->nBlkSizeX, 16) * pob->bytesPerSample;
+    pob->dctpitch = VSMAX(pob->nBlkSizeX, 16) * pob->bytesPerSample;
 
     // 64 required for effective use of x264 sad on Core2
 #define ALIGN_PLANES 64
@@ -793,7 +791,7 @@ void pobFetchPredictors(PlaneOfBlocks *pob) {
         //      predictors[0].sad = Median(predictors[1].sad, predictors[2].sad, predictors[3].sad);
         // but it is not true median vector (x and y may be mixed) and not its sad ?!
         // we really do not know SAD, here is more safe estimation especially for phaseshift method - v1.6.0
-        pob->predictors[0].sad = max(pob->predictors[1].sad, max(pob->predictors[2].sad, pob->predictors[3].sad));
+        pob->predictors[0].sad = VSMAX(pob->predictors[1].sad, VSMAX(pob->predictors[2].sad, pob->predictors[3].sad));
     } else {
         //		predictors[0].x = (predictors[1].x + predictors[2].x + predictors[3].x);
         //		predictors[0].y = (predictors[1].y + predictors[2].y + predictors[3].y);
@@ -1309,7 +1307,7 @@ void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame,
         pob->dctmode = 0;
     else
         pob->dctmode = pob->DCT->dctmode;
-    pob->dctweight16 = min(16, abs(*pmeanLumaChange) / (pob->nBlkSizeX * pob->nBlkSizeY)); //equal dct and spatial weights for meanLumaChange=8 (empirical)
+    pob->dctweight16 = VSMIN(16, abs(*pmeanLumaChange) / (pob->nBlkSizeX * pob->nBlkSizeY)); //equal dct and spatial weights for meanLumaChange=8 (empirical)
     pob->badSAD = badSAD;
     pob->badrange = badrange;
     pob->zeroMVfieldShifted.x = 0;
@@ -1592,13 +1590,13 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
             int centerY = pob->nBlkSizeY / 2 + (pob->nBlkSizeY - pob->nOverlapY) * pob->blky;
             int blkyold = (centerY - nBlkSizeYold / 2) / nStepYold;
 
-            int deltaX = max(0, centerX - (nBlkSizeXold / 2 + nStepXold * blkxold)); // distance from old to new
-            int deltaY = max(0, centerY - (nBlkSizeYold / 2 + nStepYold * blkyold));
+            int deltaX = VSMAX(0, centerX - (nBlkSizeXold / 2 + nStepXold * blkxold)); // distance from old to new
+            int deltaY = VSMAX(0, centerY - (nBlkSizeYold / 2 + nStepYold * blkyold));
 
-            int blkxold1 = min(nBlkXold - 1, max(0, blkxold));
-            int blkxold2 = min(nBlkXold - 1, max(0, blkxold + 1));
-            int blkyold1 = min(nBlkYold - 1, max(0, blkyold));
-            int blkyold2 = min(nBlkYold - 1, max(0, blkyold + 1));
+            int blkxold1 = VSMIN(nBlkXold - 1, VSMAX(0, blkxold));
+            int blkxold2 = VSMIN(nBlkXold - 1, VSMAX(0, blkxold + 1));
+            int blkyold1 = VSMIN(nBlkYold - 1, VSMAX(0, blkyold));
+            int blkyold2 = VSMIN(nBlkYold - 1, VSMAX(0, blkyold + 1));
 
             VECTOR vectorOld; // interpolated or nearest
 
@@ -1619,7 +1617,7 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
 
                 vectorOld.x = (vector1_x + deltaY * (vector2_x - vector1_x) / nStepYold) / nStepXold;
                 vectorOld.y = (vector1_y + deltaY * (vector2_y - vector1_y) / nStepYold) / nStepXold;
-                vectorOld.sad = (vector1_sad + deltaY * (vector2_sad - vector1_sad) / nStepYold) / nStepXold;
+                vectorOld.sad = (int)((vector1_sad + deltaY * (vector2_sad - vector1_sad) / nStepYold) / nStepXold);
 
             } else { // nearest
                 if (deltaX * 2 < nStepXold && deltaY * 2 < nStepYold)
@@ -1790,8 +1788,8 @@ void pobInterpolatePrediction(PlaneOfBlocks *pob, const PlaneOfBlocks *pob2) {
                 int ay2 = (pob->nBlkSizeY - pob->nOverlapY) * 4 - ay1;
                 // 64 bit so that the multiplications by the SADs don't overflow with 16 bit input.
                 int64_t a11 = ax1 * ay1, a12 = ax1 * ay2, a21 = ax2 * ay1, a22 = ax2 * ay2;
-                pob->vectors[index].x = (a11 * v1.x + a21 * v2.x + a12 * v3.x + a22 * v4.x) / normov;
-                pob->vectors[index].y = (a11 * v1.y + a21 * v2.y + a12 * v3.y + a22 * v4.y) / normov;
+                pob->vectors[index].x = (int)((a11 * v1.x + a21 * v2.x + a12 * v3.x + a22 * v4.x) / normov);
+                pob->vectors[index].y = (int)((a11 * v1.y + a21 * v2.y + a12 * v3.y + a22 * v4.y) / normov);
                 temp_sad = (a11 * v1.sad + a21 * v2.sad + a12 * v3.sad + a22 * v4.sad) / normov;
             } else { // large overlap. Weights are not quite correct but let it be
                 // Dead branch. The overlap is no longer allowed to be more than half the block size.
@@ -1801,7 +1799,7 @@ void pobInterpolatePrediction(PlaneOfBlocks *pob, const PlaneOfBlocks *pob2) {
             }
             pob->vectors[index].x = (pob->vectors[index].x >> normFactor) * (1 << mulFactor);
             pob->vectors[index].y = (pob->vectors[index].y >> normFactor) * (1 << mulFactor);
-            pob->vectors[index].sad = temp_sad >> 4;
+            pob->vectors[index].sad = (int)(temp_sad >> 4);
         }
     }
 }

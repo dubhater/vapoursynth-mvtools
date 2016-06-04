@@ -194,7 +194,7 @@ inline int DegrainWeight(int64_t thSAD, int64_t blockSAD) {
 }
 
 
-inline void useBlock(const uint8_t *&p, int &np, int &WRef, bool isUsable, const FakeGroupOfPlanes *fgop, int i, MVPlane * const *pPlane, const uint8_t **pSrcCur, int xx, const int *nSrcPitch, int nLogPel, int plane, int xSubUV, int ySubUV, const int *thSAD) {
+inline void useBlock(const uint8_t *&p, int &np, int &WRef, int isUsable, const FakeGroupOfPlanes *fgop, int i, MVPlane * const *pPlane, const uint8_t **pSrcCur, int xx, const int *nSrcPitch, int nLogPel, int plane, int xSubUV, int ySubUV, const int *thSAD) {
     if (isUsable) {
         const FakeBlockData *block = fgopGetBlock(fgop, 0, i);
         int blx = (block->x << nLogPel) + block->vector.x;

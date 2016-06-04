@@ -46,7 +46,7 @@ void overInit(OverlapWindows *over, int nx, int ny, int ox, int oy) {
     over->fWin1UVxfirst = (float *)malloc(nx * sizeof(float));
     over->fWin1UVxlast = (float *)malloc(nx * sizeof(float));
     for (int i = 0; i < ox; i++) {
-        over->fWin1UVx[i] = cos(M_PI * (i - ox + 0.5f) / (ox * 2));
+        over->fWin1UVx[i] = cosf(M_PI * (i - ox + 0.5f) / (ox * 2));
         over->fWin1UVx[i] = over->fWin1UVx[i] * over->fWin1UVx[i];  // left window (rised cosine)
         over->fWin1UVxfirst[i] = 1;                                 // very first window
         over->fWin1UVxlast[i] = over->fWin1UVx[i];                  // very last
@@ -57,7 +57,7 @@ void overInit(OverlapWindows *over, int nx, int ny, int ox, int oy) {
         over->fWin1UVxlast[i] = 1;  // very last
     }
     for (int i = nx - ox; i < nx; i++) {
-        over->fWin1UVx[i] = cos(M_PI * (i - nx + ox + 0.5f) / (ox * 2));
+        over->fWin1UVx[i] = cosf(M_PI * (i - nx + ox + 0.5f) / (ox * 2));
         over->fWin1UVx[i] = over->fWin1UVx[i] * over->fWin1UVx[i];  // right window (falled cosine)
         over->fWin1UVxfirst[i] = over->fWin1UVx[i];                 // very first window
         over->fWin1UVxlast[i] = 1;                                  // very last
@@ -67,7 +67,7 @@ void overInit(OverlapWindows *over, int nx, int ny, int ox, int oy) {
     over->fWin1UVyfirst = (float *)malloc(ny * sizeof(float));
     over->fWin1UVylast = (float *)malloc(ny * sizeof(float));
     for (int i = 0; i < oy; i++) {
-        over->fWin1UVy[i] = cos(M_PI * (i - oy + 0.5f) / (oy * 2));
+        over->fWin1UVy[i] = cosf(M_PI * (i - oy + 0.5f) / (oy * 2));
         over->fWin1UVy[i] = over->fWin1UVy[i] * over->fWin1UVy[i];  // left window (rised cosine)
         over->fWin1UVyfirst[i] = 1;                                 // very first window
         over->fWin1UVylast[i] = over->fWin1UVy[i];                  // very last
@@ -78,7 +78,7 @@ void overInit(OverlapWindows *over, int nx, int ny, int ox, int oy) {
         over->fWin1UVylast[i] = 1;  // very last
     }
     for (int i = ny - oy; i < ny; i++) {
-        over->fWin1UVy[i] = cos(M_PI * (i - ny + oy + 0.5f) / (oy * 2));
+        over->fWin1UVy[i] = cosf(M_PI * (i - ny + oy + 0.5f) / (oy * 2));
         over->fWin1UVy[i] = over->fWin1UVy[i] * over->fWin1UVy[i];  // right window (falled cosine)
         over->fWin1UVyfirst[i] = over->fWin1UVy[i];                 // very first window
         over->fWin1UVylast[i] = 1;                                  // very last
