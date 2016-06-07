@@ -1654,7 +1654,7 @@ static void sumtransform(const transform *ta, const transform *tb, transform *tb
 //****************************************************************************
 // move plane of nextp frame to dstp for motion compensation by trc, trm with NEAREST pixels
 //
-void compensate_plane_nearest(uint8_t *dstp, int dst_pitch, const uint8_t *srcp, int src_pitch, int row_size, int height, const transform *tr, int mirror, int border, int *work1row_size, int blurmax) {
+static void compensate_plane_nearest(uint8_t *dstp, int dst_pitch, const uint8_t *srcp, int src_pitch, int row_size, int height, const transform *tr, int mirror, int border, int *work1row_size, int blurmax) {
     // if border >=0, then we fill empty edge (border) pixels by that value
     // work1row_size is work array, it must have size >= 1*row_size
 
@@ -1875,7 +1875,7 @@ void compensate_plane_nearest(uint8_t *dstp, int dst_pitch, const uint8_t *srcp,
 // with BILINEAR interpolation of discrete neighbour source pixels
 //   t[0] = dxc, t[1] = dxx, t[2] = dxy, t[3] = dyc, t[4] = dyx, t[5] = dyy
 //
-void compensate_plane_bilinear(uint8_t *dstp, int dst_pitch, const uint8_t *srcp, int src_pitch, int row_size, int height, const transform *tr, int mirror, int border, int *work2row_size4356, int blurmax) {
+static void compensate_plane_bilinear(uint8_t *dstp, int dst_pitch, const uint8_t *srcp, int src_pitch, int row_size, int height, const transform *tr, int mirror, int border, int *work2row_size4356, int blurmax) {
     // work2row_size is work array, it must have size >= 2*row_size
 
     int h, row;
@@ -2214,7 +2214,7 @@ void compensate_plane_bilinear(uint8_t *dstp, int dst_pitch, const uint8_t *srcp
 //
 //   t[0] = dxc, t[1] = dxx, t[2] = dxy, t[3] = dyc, t[4] = dyx, t[5] = dyy
 //
-void compensate_plane_bicubic(uint8_t *dstp, int dst_pitch, const uint8_t *srcp, int src_pitch, int row_size, int height, const transform *tr, int mirror, int border, int *work2width1030, int blurmax) {
+static void compensate_plane_bicubic(uint8_t *dstp, int dst_pitch, const uint8_t *srcp, int src_pitch, int row_size, int height, const transform *tr, int mirror, int border, int *work2width1030, int blurmax) {
     // work2width1030 is integer work array, it must have size >= 2*row_size+1030
 
     int h, row;
