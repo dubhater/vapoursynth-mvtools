@@ -2700,6 +2700,12 @@ static const VSFrameRef *VS_CC depanCompensateGetFrame(int ndest, int activation
             tr[1].dyc /= 2;
 
             blur[1] = blur[2] = blur[0] / 2;
+        } else if (d->vi->format->id == pfYUV422P8) {
+            tr[1].dxc /= 2;
+            tr[1].dxy /= 2;
+            tr[1].dyx *= 2;
+
+            blur[1] = blur[2] = blur[0] / 2;
         }
         tr[2] = tr[1];
 
@@ -2815,8 +2821,8 @@ static void VS_CC depanCompensateCreate(const VSMap *in, VSMap *out, void *userD
     d.clip = vsapi->propGetNode(in, "clip", 0, NULL);
     d.vi = vsapi->getVideoInfo(d.clip);
 
-    if (!isConstantFormat(d.vi) || (d.vi->format->id != pfYUV420P8 && d.vi->format->id != pfYUV444P8)) {
-        vsapi->setError(out, "DepanCompensate: clip must have constant format and dimensions, and it must be YUV420P8 or YUV444P8.");
+    if (!isConstantFormat(d.vi) || (d.vi->format->id != pfYUV420P8 && d.vi->format->id != pfYUV422P8 && d.vi->format->id != pfYUV444P8)) {
+        vsapi->setError(out, "DepanCompensate: clip must have constant format and dimensions, and it must be YUV420P8, YUV422P8, or YUV444P8.");
         vsapi->freeNode(d.clip);
         return;
     }
@@ -3362,6 +3368,12 @@ static void compensateFrame(const VSFrameRef *src, VSFrameRef *dst, DepanStabili
         tr[1].dyc /= 2;
 
         blur[1] = blur[2] = blur[0] / 2;
+    } else if (d->vi->format->id == pfYUV422P8) {
+        tr[1].dxc /= 2;
+        tr[1].dxy /= 2;
+        tr[1].dyx *= 2;
+
+        blur[1] = blur[2] = blur[0] / 2;
     }
     tr[2] = tr[1];
 
@@ -3415,6 +3427,12 @@ static void fillBorderPrev(VSFrameRef *dst, DepanStabiliseData *d, int nbase, in
     if (d->vi->format->id == pfYUV420P8) {
         tr[1].dxc /= 2;
         tr[1].dyc /= 2;
+
+        blur[1] = blur[2] = blur[0] / 2;
+    } else if (d->vi->format->id == pfYUV422P8) {
+        tr[1].dxc /= 2;
+        tr[1].dxy /= 2;
+        tr[1].dyx *= 2;
 
         blur[1] = blur[2] = blur[0] / 2;
     }
@@ -3493,6 +3511,12 @@ static int fillBorderNext(VSFrameRef *dst, DepanStabiliseData *d, int ndest, con
     if (d->vi->format->id == pfYUV420P8) {
         tr[1].dxc /= 2;
         tr[1].dyc /= 2;
+
+        blur[1] = blur[2] = blur[0] / 2;
+    } else if (d->vi->format->id == pfYUV422P8) {
+        tr[1].dxc /= 2;
+        tr[1].dxy /= 2;
+        tr[1].dyx *= 2;
 
         blur[1] = blur[2] = blur[0] / 2;
     }
@@ -4002,8 +4026,8 @@ static void VS_CC depanStabiliseCreate(const VSMap *in, VSMap *out, void *userDa
     d->clip = vsapi->propGetNode(in, "clip", 0, NULL);
     d->vi = vsapi->getVideoInfo(d->clip);
 
-    if (!isConstantFormat(d->vi) || (d->vi->format->id != pfYUV420P8 && d->vi->format->id != pfYUV444P8)) {
-        vsapi->setError(out, "DepanStabilise: clip must have constant format and dimensions, and it must be YUV420P8 or YUV444P8.");
+    if (!isConstantFormat(d->vi) || (d->vi->format->id != pfYUV420P8 && d->vi->format->id != pfYUV422P8 && d->vi->format->id != pfYUV444P8)) {
+        vsapi->setError(out, "DepanStabilise: clip must have constant format and dimensions, and it must be YUV420P8, YUV422P8, or YUV444P8.");
         vsapi->freeNode(d->clip);
         delete d;
         return;
