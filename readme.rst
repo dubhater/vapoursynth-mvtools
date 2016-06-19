@@ -3,7 +3,7 @@ Description
 
 MVTools is a set of filters for motion estimation and compensation.
 
-This is a port of version 2.5.11.3 of the Avisynth plugin (the latest from http://avisynth.org.ru/mvtools/mvtools2.html).
+This is a port of version 2.5.11.20 of the Avisynth plugin.
 
 Some changes from version 2.5.11.9 of the SVP fork have been incorporated as well (http://www.svp-team.com/wiki/Download).
 
@@ -110,7 +110,7 @@ Usage
 
     mv.FlowFPS(clip clip, clip super, clip mvbw, clip mvfw[, int num=25, int den=1, int mask=2, float ml=100.0, bint blend=True, int thscd1=400, int thscd2=130, bint isse=True])
 
-    mv.BlockFPS(clip clip, clip super, clip mvbw, clip mvfw[, int num=25, int den=1, int mode=0, int thres, bint blend=True, int thscd1=400, int thscd2=130, bint isse=True])
+    mv.BlockFPS(clip clip, clip super, clip mvbw, clip mvfw[, int num=25, int den=1, int mode=3, float ml=100.0, bint blend=True, int thscd1=400, int thscd2=130, bint isse=True])
 
     mv.SCDetection(clip clip, clip vectors[, int thscd1=400, int thscd2=130])
 

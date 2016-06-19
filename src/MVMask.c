@@ -150,7 +150,7 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
                 for (int j = 0; j < nBlkCount; j++)
                     smallMask[j] = mvmaskSAD(fgopGetBlock(&fgop, 0, j)->vector.sad, fMaskNormFactor, fGamma, nBlkSizeX, nBlkSizeY);
             } else if (kind == 2) { // occlusion mask
-                MakeVectorOcclusionMaskTime(&fgop, nBlkX, nBlkY, fMaskNormFactor, fGamma, nPel, smallMask, nBlkX, 256, nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY);
+                MakeVectorOcclusionMaskTime(&fgop, d->vectors_data.isBackward, nBlkX, nBlkY, fMaskNormFactor, fGamma, nPel, smallMask, nBlkX, 256, nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY);
             } else if (kind == 3) { // vector x mask
                 for (int j = 0; j < nBlkCount; j++)
                     smallMask[j] = fgopGetBlock(&fgop, 0, j)->vector.x + 128; // shited by 128 for signed support

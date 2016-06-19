@@ -29,8 +29,10 @@ extern "C" {
 #include "Fakery.h"
 #include "MVFrame.h"
 
-void MakeVectorOcclusionMaskTime(const FakeGroupOfPlanes *fgop, int nBlkX, int nBlkY, double dMaskNormFactor, double fGamma, int nPel, uint8_t *occMask, int occMaskPitch, int time256, int blkSizeX, int blkSizeY);
+void MakeVectorOcclusionMaskTime(const FakeGroupOfPlanes *fgop, int isBackward, int nBlkX, int nBlkY, double dMaskNormDivider, double fGamma, int nPel, uint8_t *occMask, int occMaskPitch, int time256, int nBlkStepX, int nBlkStepY);
 void VectorMasksToOcclusionMaskTime(uint8_t *VXMask, uint8_t *VYMask, int nBlkX, int nBlkY, double dMaskNormFactor, double fGamma, int nPel, uint8_t *occMask, int occMaskPitch, int time256, int blkSizeX, int blkSizeY);
+
+void MakeSADMaskTime(const FakeGroupOfPlanes *fgop, int nBlkX, int nBlkY, double dSADNormFactor, double fGamma, int nPel, uint8_t *Mask, int MaskPitch, int time256, int nBlkStepX, int nBlkStepY);
 
 void MakeVectorOcclusionMask(const FakeGroupOfPlanes *fgop, int nBlkX, int nBlkY, double dMaskNormFactor, double fGamma, int nPel, uint8_t *occMask, int occMaskPitch);
 

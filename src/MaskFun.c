@@ -33,11 +33,12 @@ static inline void ByteOccMask(uint8_t *occMask, int occlusion, double occnorm, 
         *occMask = max(*occMask, min((int)(255 * pow(occlusion * occnorm, fGamma)), 255));
 }
 
-void MakeVectorOcclusionMaskTime(const FakeGroupOfPlanes *fgop, int nBlkX, int nBlkY, double dMaskNormFactor, double fGamma, int nPel, uint8_t *occMask, int occMaskPitch, int time256, int blkSizeX, int blkSizeY) { // analyse vectors field to detect occlusion
+void MakeVectorOcclusionMaskTime(const FakeGroupOfPlanes *fgop, int isBackward, int nBlkX, int nBlkY, double dMaskNormDivider, double fGamma, int nPel, uint8_t *occMask, int occMaskPitch, int time256, int nBlkStepX, int nBlkStepY) { // analyse vectors field to detect occlusion
     memset(occMask, 0, occMaskPitch * nBlkY);
-    int time4096X = time256 * 16 / blkSizeX;
-    int time4096Y = time256 * 16 / blkSizeY;
-    double occnorm = 10 / dMaskNormFactor / nPel;
+    int time4096X = time256 * 16 / (nBlkStepX * nPel);
+    int time4096Y = time256 * 16 / (nBlkStepY * nPel);
+    double occnormX = 80.0 / (dMaskNormDivider * nBlkStepX * nPel);
+    double occnormY = 80.0 / (dMaskNormDivider * nBlkStepY * nPel);
     int occlusion;
 
     for (int by = 0; by < nBlkY; by++) {
@@ -52,8 +53,10 @@ void MakeVectorOcclusionMaskTime(const FakeGroupOfPlanes *fgop, int nBlkX, int n
                 int vx1 = block1->vector.x;
                 if (vx1 < vx) {
                     occlusion = vx - vx1;
-                    for (int bxi = bx + vx1 * time4096X / 4096; bxi <= bx + vx * time4096X / 4096 + 1 && bxi >= 0 && bxi < nBlkX; bxi++)
-                        ByteOccMask(&occMask[bxi + by * occMaskPitch], occlusion, occnorm, fGamma);
+                    int minb = isBackward ? max(0, bx + 1 - occlusion * time4096X / 4096) : bx;
+                    int maxb = isBackward ? bx + 1 : min(bx + 1 - occlusion * time4096X / 4096, nBlkX - 1);
+                    for (int bxi = minb; bxi <= maxb; bxi++)
+                        ByteOccMask(&occMask[bxi + by * occMaskPitch], occlusion, occnormX, fGamma);
                 }
             }
             if (by < nBlkY - 1) { // bottom neighbor
@@ -62,10 +65,46 @@ void MakeVectorOcclusionMaskTime(const FakeGroupOfPlanes *fgop, int nBlkX, int n
                 int vy1 = block1->vector.y;
                 if (vy1 < vy) {
                     occlusion = vy - vy1;
-                    for (int byi = by + vy1 * time4096Y / 4096; byi <= by + vy * time4096Y / 4096 + 1 && byi >= 0 && byi < nBlkY; byi++)
-                        ByteOccMask(&occMask[bx + byi * occMaskPitch], occlusion, occnorm, fGamma);
+                    int minb = isBackward ? max(0, by + 1 - occlusion * time4096Y / 4096) : by;
+                    int maxb = isBackward ? by + 1 : min(by + 1 - occlusion * time4096Y / 4096, nBlkY - 1);
+                    for (int byi = minb; byi <= maxb; byi++)
+                        ByteOccMask(&occMask[bx + byi * occMaskPitch], occlusion, occnormY, fGamma);
                 }
             }
+        }
+    }
+}
+
+
+static unsigned char ByteNorm(unsigned int sad, double dSADNormFactor, double fGamma) {
+    //	    double dSADNormFactor = 4 / (dMaskNormFactor*blkSizeX*blkSizeY);
+    double l = 255 * pow(sad * dSADNormFactor, fGamma); // Fizick - now linear for gm=1
+    return (unsigned char)((l > 255) ? 255 : l);
+}
+
+
+void MakeSADMaskTime(const FakeGroupOfPlanes *fgop, int nBlkX, int nBlkY, double dSADNormFactor, double fGamma, int nPel, uint8_t *Mask, int MaskPitch, int time256, int nBlkStepX, int nBlkStepY) {
+    // Make approximate SAD mask at intermediate time
+    //    double dSADNormFactor = 4 / (dMaskNormDivider*nBlkSizeX*nBlkSizeY);
+    memset(Mask, 0, nBlkY * MaskPitch);
+    int time4096X = (256 - time256) * 16 / (nBlkStepX * nPel); // blkstep here is really blksize-overlap
+    int time4096Y = (256 - time256) * 16 / (nBlkStepY * nPel);
+
+    for (int by = 0; by < nBlkY; by++) {
+        for (int bx = 0; bx < nBlkX; bx++) {
+            int i = bx + by * nBlkX; // current block
+            const FakeBlockData *block = fgopGetBlock(fgop, 0, i);
+            int vx = block->vector.x;
+            int vy = block->vector.y;
+            int bxi = bx - vx * time4096X / 4096; // limits?
+            int byi = by - vy * time4096Y / 4096;
+            if (bxi < 0 || bxi >= nBlkX || byi < 0 || byi >= nBlkY) {
+                bxi = bx;
+                byi = by;
+            }
+            int i1 = bxi + byi * nBlkX;
+            int sad = fgopGetBlock(fgop, 0, i1)->vector.sad;
+            Mask[bx + by * MaskPitch] = ByteNorm(sad, dSADNormFactor, fGamma);
         }
     }
 }

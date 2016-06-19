@@ -30,6 +30,7 @@
 #include "CommonFunctions.h"
 #include "MaskFun.h"
 #include "MVAnalysisData.h"
+#include "Overlap.h"
 #include "SimpleResize.h"
 
 
@@ -45,7 +46,7 @@ typedef struct MVBlockFPSData {
 
     int64_t num, den;
     int mode;
-    int thres;
+    double ml;
     int blend;
     int thscd1, thscd2;
     int isse;
@@ -70,14 +71,21 @@ typedef struct MVBlockFPSData {
     int nBlkXP;
     int nBlkYP;
 
-    uint8_t *OnesBlock;
-
     SimpleResize upsizer;
     SimpleResize upsizerUV;
 
     int64_t fa, fb;
 
-    COPYFunction BLITLUMA;
+    int dstTempPitch;
+    int dstTempPitchUV;
+    int nBlkPitch;
+
+    OverlapWindows *OverWins;
+    OverlapWindows *OverWinsUV;
+
+    OverlapsFunction OVERSLUMA;
+    OverlapsFunction OVERSCHROMA;
+    ToPixelsFunction ToPixels;
 } MVBlockFPSData;
 
 
@@ -87,65 +95,6 @@ static void VS_CC mvblockfpsInit(VSMap *in, VSMap *out, void **instanceData, VSN
     (void)core;
     MVBlockFPSData *d = (MVBlockFPSData *)*instanceData;
     vsapi->setVideoInfo(&d->vi, 1, node);
-}
-
-
-static void MakeSmallMask(uint8_t *image, int imagePitch, uint8_t *smallmask, int nBlkX, int nBlkY, int nBlkSizeX, int nBlkSizeY, int threshold) {
-    // it can be MMX
-
-    // count occlusions in blocks
-    uint8_t *psmallmask = smallmask;
-
-    for (int ny = 0; ny < nBlkY; ny++) {
-        for (int nx = 0; nx < nBlkX; nx++) {
-            psmallmask[nx] = 0;
-            for (int j = 0; j < nBlkSizeY; j++) {
-                for (int i = 0; i < nBlkSizeX; i++)
-                    if (image[i] == 0)    // 0 is mark of occlusion
-                        psmallmask[nx]++; // count
-                image += imagePitch;
-            }
-            image += -imagePitch * nBlkSizeY + nBlkSizeX;
-        }
-        image += imagePitch * nBlkSizeY - nBlkX * nBlkSizeX;
-        psmallmask += nBlkX;
-    }
-
-    // make small binary mask
-    psmallmask = smallmask;
-
-    for (int ny = 0; ny < nBlkY; ny++) {
-        for (int nx = 0; nx < nBlkX; nx++) {
-            if (psmallmask[nx] >= threshold)
-                psmallmask[nx] = 255;
-            else
-                psmallmask[nx] = 0;
-        }
-        psmallmask += nBlkX;
-    }
-}
-
-
-static void InflateMask(uint8_t *smallmask, int nBlkX, int nBlkY) {
-
-    // inflate mask
-    uint8_t *psmallmask = smallmask + nBlkX;
-
-    for (int ny = 1; ny < nBlkY - 1; ny++) {     // skip edges
-        for (int nx = 1; nx < nBlkX - 1; nx++) { // skip edges
-            if (psmallmask[nx] == 255) {
-                psmallmask[nx - 1] = 192;
-                psmallmask[nx + 1] = 192;
-                psmallmask[nx - nBlkX - 1] = 144;
-                psmallmask[nx - nBlkX] = 192;
-                psmallmask[nx - nBlkX + 1] = 144;
-                psmallmask[nx + nBlkX - 1] = 144;
-                psmallmask[nx + nBlkX] = 192;
-                psmallmask[nx + nBlkX + 1] = 144;
-            }
-        }
-        psmallmask += nBlkX;
-    }
 }
 
 
@@ -229,7 +178,7 @@ static void RealResultBlock_##PixelType(uint8_t *pDst, int dst_pitch, const uint
             pRef += ref_pitch; \
             pSrc += src_pitch; \
         } \
-    } else if (mode == 3) { \
+    } else if (mode == 3 || mode == 6) { \
         for (int h = 0; h < nBlkSizeY; h++) { \
             for (int w = 0; w < nBlkSizeX; w++) { \
                 const PixelType *pMCB_ = (const PixelType *)pMCB; \
@@ -246,7 +195,7 @@ static void RealResultBlock_##PixelType(uint8_t *pDst, int dst_pitch, const uint
             maskB += mask_pitch; \
             maskF += mask_pitch; \
         } \
-    } else if (mode == 4) { \
+    } else if (mode == 4 || mode == 7) { \
         for (int h = 0; h < nBlkSizeY; h++) { \
             for (int w = 0; w < nBlkSizeX; w++) { \
                 const PixelType *pMCB_ = (const PixelType *)pMCB; \
@@ -270,7 +219,7 @@ static void RealResultBlock_##PixelType(uint8_t *pDst, int dst_pitch, const uint
             maskF += mask_pitch; \
             pOcc += mask_pitch; \
         } \
-    } else if (mode == 5) { \
+    } else if (mode == 5 || mode == 8) { \
         for (int h = 0; h < nBlkSizeY; h++) { \
             for (int w = 0; w < nBlkSizeX; w++) { \
                 PixelType *pDst_ = (PixelType *)pDst; \
@@ -381,7 +330,7 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
         const int nHeightP = d->nHeightP;
         const int nHeightPUV = d->nHeightPUV;
         const int mode = d->mode;
-        const int thres = d->thres;
+        const double ml = d->ml;
         const int blend = d->blend;
         const int isse = d->isse;
         const int xRatioUV = d->mvbw_data.xRatioUV;
@@ -390,15 +339,17 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
         const int nBlkY = d->mvbw_data.nBlkY;
         const int nBlkSizeX = d->mvbw_data.nBlkSizeX;
         const int nBlkSizeY = d->mvbw_data.nBlkSizeY;
+        const int nOverlapX = d->mvbw_data.nOverlapX;
+        const int nOverlapY = d->mvbw_data.nOverlapY;
         const int nPel = d->mvbw_data.nPel;
         const int nPitchY = d->nPitchY;
         const int nPitchUV = d->nPitchUV;
         const int nBlkXP = d->nBlkXP;
         const int nBlkYP = d->nBlkYP;
+        const int nWidth_B = nBlkX * (nBlkSizeX - nOverlapX) + nOverlapX;
+        const int nHeight_B = nBlkY * (nBlkSizeY - nOverlapY) + nOverlapY;
         SimpleResize *upsizer = &d->upsizer;
         SimpleResize *upsizerUV = &d->upsizerUV;
-
-        const uint8_t *OnesBlock = d->OnesBlock;
 
         const int nSuperHPad = d->nSuperHPad;
         const int nSuperVPad = d->nSuperVPad;
@@ -467,39 +418,34 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
 
             int blocks = nBlkX * nBlkY;
 
-            int maxoffset = nPitchY * (nHeightP - nBlkSizeY) - nBlkSizeX;
-
-            if (mode == 3 || mode == 4 || mode == 5) {
+            if (mode >= 3 && mode <= 8) {
                 smallMaskB = (uint8_t *)malloc(nBlkXP * nBlkYP);
                 smallMaskF = (uint8_t *)malloc(nBlkXP * nBlkYP);
                 smallMaskO = (uint8_t *)malloc(nBlkXP * nBlkYP);
 
-                // make forward shifted images by projection to build occlusion mask
-                for (int i = 0; i < blocks; i++) {
-                    const FakeBlockData *blockF = fgopGetBlock(&fgopF, 0, i);
-                    int offset = blockF->x - ((blockF->vector.x * time256) >> 8) / nPel + (blockF->y - ((blockF->vector.y * time256) >> 8) / nPel) * nPitchY;
-                    if (offset >= 0 && offset < maxoffset)
-                        d->BLITLUMA(MaskFullYF + offset, nPitchY, OnesBlock, nBlkSizeX); // fill by ones
-                }
-                //  same mask for backward
-                for (int i = 0; i < blocks; i++) {
-                    const FakeBlockData *blockB = fgopGetBlock(&fgopB, 0, i);
-                    int offset = blockB->x - ((blockB->vector.x * (256 - time256)) >> 8) / nPel + (blockB->y - ((blockB->vector.y * (256 - time256)) >> 8) / nPel) * nPitchY;
-                    if (offset >= 0 && offset < maxoffset)
-                        d->BLITLUMA(MaskFullYB + offset, nPitchY, OnesBlock, nBlkSizeX); // fill by ones
+
+                if (mode <= 5) {
+                    MakeVectorOcclusionMaskTime(&fgopF, 0, nBlkX, nBlkY, ml, 1.0, nPel, smallMaskF, nBlkXP, time256, nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY);
+                    MakeVectorOcclusionMaskTime(&fgopB, 1, nBlkX, nBlkY, ml, 1.0, nPel, smallMaskB, nBlkXP, 256 - time256, nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY);
+                } else { // 6 to 8
+                    MakeSADMaskTime(&fgopF, nBlkX, nBlkY, 4.0 / (ml * nBlkSizeX * nBlkSizeY), 1.0, nPel, smallMaskF, nBlkXP, time256, nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY);
+                    MakeSADMaskTime(&fgopB, nBlkX, nBlkY, 4.0 / (ml * nBlkSizeX * nBlkSizeY), 1.0, nPel, smallMaskB, nBlkXP, 256 - time256, nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY);
                 }
 
-                // make small binary mask from  occlusion  regions
-                MakeSmallMask(MaskFullYF, nPitchY, smallMaskF, nBlkXP, nBlkYP, nBlkSizeX, nBlkSizeY, thres);
-                InflateMask(smallMaskF, nBlkXP, nBlkYP);
+                if (nBlkXP > nBlkX) // fill right
+                    for (int j = 0; j < nBlkY; j++) {
+                        smallMaskF[j * nBlkXP + nBlkX] = smallMaskF[j * nBlkXP + nBlkX - 1];
+                        smallMaskB[j * nBlkXP + nBlkX] = smallMaskB[j * nBlkXP + nBlkX - 1];
+                    }
+                if (nBlkYP > nBlkY) // fill bottom
+                    for (int i = 0; i < nBlkXP; i++) {
+                        smallMaskF[nBlkXP * nBlkY + i] = smallMaskF[nBlkXP * (nBlkY - 1) + i];
+                        smallMaskB[nBlkXP * nBlkY + i] = smallMaskB[nBlkXP * (nBlkY - 1) + i];
+                    }
+
+
                 // upsize small mask to full frame size
                 simpleResize(upsizer, MaskFullYF, nPitchY, smallMaskF, nBlkXP);
-                // now we have forward fullframe blured occlusion mask in maskF arrays
-
-                // make small binary mask from  occlusion  regions
-                MakeSmallMask(MaskFullYB, nPitchY, smallMaskB, nBlkXP, nBlkYP, nBlkSizeX, nBlkSizeY, thres);
-                InflateMask(smallMaskB, nBlkXP, nBlkYP);
-                // upsize small mask to full frame size
                 simpleResize(upsizer, MaskFullYB, nPitchY, smallMaskB, nBlkXP);
 
                 if (nSuperModeYUV & UVPLANES) {
@@ -508,10 +454,9 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
                 }
             }
 
-            if (mode == 4 || mode == 5) {
+            if (mode == 4 || mode == 5 || mode == 7 || mode == 8) {
                 // make final (both directions) occlusion mask
                 MultMasks(smallMaskF, smallMaskB, smallMaskO, nBlkXP, nBlkYP);
-                InflateMask(smallMaskO, nBlkXP, nBlkYP);
                 // upsize small mask to full frame size
                 simpleResize(upsizer, MaskOccY, nPitchY, smallMaskO, nBlkXP);
                 if (nSuperModeYUV & UVPLANES)
@@ -536,13 +481,14 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
                 pRef[2] += (nSuperHPad >> 1) * bytesPerSample + nRefPitches[2] * (nSuperVPad >> 1);
             }
 
-            // fetch image blocks
-            for (int i = 0; i < blocks; i++) {
-                const FakeBlockData *blockB = fgopGetBlock(&fgopB, 0, i);
-                const FakeBlockData *blockF = fgopGetBlock(&fgopF, 0, i);
+            if (nOverlapX == 0 && nOverlapY == 0) {
+                // fetch image blocks
+                for (int i = 0; i < blocks; i++) {
+                    const FakeBlockData *blockB = fgopGetBlock(&fgopB, 0, i);
+                    const FakeBlockData *blockF = fgopGetBlock(&fgopF, 0, i);
 
-                // luma
-                ResultBlock(pDst[0], nDstPitches[0],
+                    // luma
+                    ResultBlock(pDst[0], nDstPitches[0],
                             mvpGetPointer(pPlanesB[0], blockB->x * nPel + ((blockB->vector.x * (256 - time256)) >> 8), blockB->y * nPel + ((blockB->vector.y * (256 - time256)) >> 8)),
                             pPlanesB[0]->nPitch,
                             mvpGetPointer(pPlanesF[0], blockF->x * nPel + ((blockF->vector.x * time256) >> 8), blockF->y * nPel + ((blockF->vector.y * time256) >> 8)),
@@ -552,9 +498,9 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
                             pMaskFullYB, nPitchY,
                             pMaskFullYF, pMaskOccY,
                             nBlkSizeX, nBlkSizeY, time256, mode, bitsPerSample);
-                if (nSuperModeYUV & UVPLANES) {
-                    // chroma u
-                    ResultBlock(pDst[1], nDstPitches[1],
+                    if (nSuperModeYUV & UVPLANES) {
+                        // chroma u
+                        ResultBlock(pDst[1], nDstPitches[1],
                                 mvpGetPointer(pPlanesB[1], (blockB->x * nPel + ((blockB->vector.x * (256 - time256)) >> 8)) / xRatioUV, (blockB->y * nPel + ((blockB->vector.y * (256 - time256)) >> 8)) / yRatioUV),
                                 pPlanesB[1]->nPitch,
                                 mvpGetPointer(pPlanesF[1], (blockF->x * nPel + ((blockF->vector.x * time256) >> 8)) / xRatioUV, (blockF->y * nPel + ((blockF->vector.y * time256) >> 8)) / yRatioUV),
@@ -564,8 +510,8 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
                                 pMaskFullUVB, nPitchUV,
                                 pMaskFullUVF, pMaskOccUV,
                                 nBlkSizeX / xRatioUV, nBlkSizeY / yRatioUV, time256, mode, bitsPerSample);
-                    // chroma v
-                    ResultBlock(pDst[2], nDstPitches[2],
+                        // chroma v
+                        ResultBlock(pDst[2], nDstPitches[2],
                                 mvpGetPointer(pPlanesB[2], (blockB->x * nPel + ((blockB->vector.x * (256 - time256)) >> 8)) / xRatioUV, (blockB->y * nPel + ((blockB->vector.y * (256 - time256)) >> 8)) / yRatioUV),
                                 pPlanesB[2]->nPitch,
                                 mvpGetPointer(pPlanesF[2], (blockF->x * nPel + ((blockF->vector.x * time256) >> 8)) / xRatioUV, (blockF->y * nPel + ((blockF->vector.y * time256) >> 8)) / yRatioUV),
@@ -575,61 +521,226 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
                                 pMaskFullUVB, nPitchUV,
                                 pMaskFullUVF, pMaskOccUV,
                                 nBlkSizeX / xRatioUV, nBlkSizeY / yRatioUV, time256, mode, bitsPerSample);
-                }
+                    }
 
 
-                // update pDsts
-                pDst[0] += nBlkSizeX * bytesPerSample;
-                pRef[0] += nBlkSizeX * bytesPerSample;
-                pSrc[0] += nBlkSizeX * bytesPerSample;
-                pMaskFullYB += nBlkSizeX;
-                pMaskFullYF += nBlkSizeX;
-                pMaskOccY += nBlkSizeX;
-                if (nSuperModeYUV & UVPLANES) {
-                    pDst[1] += nBlkSizeX / xRatioUV * bytesPerSample;
-                    pDst[2] += nBlkSizeX / xRatioUV * bytesPerSample;
-                    pRef[1] += nBlkSizeX / xRatioUV * bytesPerSample;
-                    pRef[2] += nBlkSizeX / xRatioUV * bytesPerSample;
-                    pSrc[1] += nBlkSizeX / xRatioUV * bytesPerSample;
-                    pSrc[2] += nBlkSizeX / xRatioUV * bytesPerSample;
-                    pMaskFullUVB += nBlkSizeX / xRatioUV;
-                    pMaskFullUVF += nBlkSizeX / xRatioUV;
-                    pMaskOccUV += nBlkSizeX / xRatioUV;
-                }
-
-
-                if (!((i + 1) % nBlkX)) {
-                    // blend rest right with time weight
-                    Blend(pDst[0], pSrc[0], pRef[0], nBlkSizeY, nWidth - nBlkSizeX * nBlkX, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, bitsPerSample);
-
-                    pDst[0] += nBlkSizeY * nDstPitches[0] - nBlkSizeX * nBlkX * bytesPerSample;
-                    pRef[0] += nBlkSizeY * nRefPitches[0] - nBlkSizeX * nBlkX * bytesPerSample;
-                    pSrc[0] += nBlkSizeY * nSrcPitches[0] - nBlkSizeX * nBlkX * bytesPerSample;
-                    pMaskFullYB += nBlkSizeY * nPitchY - nBlkSizeX * nBlkX;
-                    pMaskFullYF += nBlkSizeY * nPitchY - nBlkSizeX * nBlkX;
-                    pMaskOccY += nBlkSizeY * nPitchY - nBlkSizeX * nBlkX;
-
+                    // update pDsts
+                    pDst[0] += nBlkSizeX * bytesPerSample;
+                    pRef[0] += nBlkSizeX * bytesPerSample;
+                    pSrc[0] += nBlkSizeX * bytesPerSample;
+                    pMaskFullYB += nBlkSizeX;
+                    pMaskFullYF += nBlkSizeX;
+                    pMaskOccY += nBlkSizeX;
                     if (nSuperModeYUV & UVPLANES) {
-                        Blend(pDst[1], pSrc[1], pRef[1], nBlkSizeY / yRatioUV, nWidthUV - (nBlkSizeX / xRatioUV) * nBlkX, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, bitsPerSample);
-                        Blend(pDst[2], pSrc[2], pRef[2], nBlkSizeY / yRatioUV, nWidthUV - (nBlkSizeX / xRatioUV) * nBlkX, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, bitsPerSample);
+                        pDst[1] += nBlkSizeX / xRatioUV * bytesPerSample;
+                        pDst[2] += nBlkSizeX / xRatioUV * bytesPerSample;
+                        pRef[1] += nBlkSizeX / xRatioUV * bytesPerSample;
+                        pRef[2] += nBlkSizeX / xRatioUV * bytesPerSample;
+                        pSrc[1] += nBlkSizeX / xRatioUV * bytesPerSample;
+                        pSrc[2] += nBlkSizeX / xRatioUV * bytesPerSample;
+                        pMaskFullUVB += nBlkSizeX / xRatioUV;
+                        pMaskFullUVF += nBlkSizeX / xRatioUV;
+                        pMaskOccUV += nBlkSizeX / xRatioUV;
+                    }
 
-                        pDst[1] += (nBlkSizeY / yRatioUV) * nDstPitches[1] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
-                        pDst[2] += (nBlkSizeY / yRatioUV) * nDstPitches[2] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
-                        pRef[1] += (nBlkSizeY / yRatioUV) * nRefPitches[1] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
-                        pRef[2] += (nBlkSizeY / yRatioUV) * nRefPitches[2] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
-                        pSrc[1] += (nBlkSizeY / yRatioUV) * nSrcPitches[1] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
-                        pSrc[2] += (nBlkSizeY / yRatioUV) * nSrcPitches[2] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
-                        pMaskFullUVB += (nBlkSizeY / yRatioUV) * nPitchUV - (nBlkSizeX / xRatioUV) * nBlkX;
-                        pMaskFullUVF += (nBlkSizeY / yRatioUV) * nPitchUV - (nBlkSizeX / xRatioUV) * nBlkX;
-                        pMaskOccUV += (nBlkSizeY / yRatioUV) * nPitchUV - (nBlkSizeX / xRatioUV) * nBlkX;
+
+                    if (!((i + 1) % nBlkX)) {
+                        // blend rest right with time weight
+                        Blend(pDst[0], pSrc[0], pRef[0], nBlkSizeY, nWidth - nBlkSizeX * nBlkX, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, bitsPerSample);
+
+                        pDst[0] += nBlkSizeY * nDstPitches[0] - nBlkSizeX * nBlkX * bytesPerSample;
+                        pRef[0] += nBlkSizeY * nRefPitches[0] - nBlkSizeX * nBlkX * bytesPerSample;
+                        pSrc[0] += nBlkSizeY * nSrcPitches[0] - nBlkSizeX * nBlkX * bytesPerSample;
+                        pMaskFullYB += nBlkSizeY * nPitchY - nBlkSizeX * nBlkX;
+                        pMaskFullYF += nBlkSizeY * nPitchY - nBlkSizeX * nBlkX;
+                        pMaskOccY += nBlkSizeY * nPitchY - nBlkSizeX * nBlkX;
+
+                        if (nSuperModeYUV & UVPLANES) {
+                            Blend(pDst[1], pSrc[1], pRef[1], nBlkSizeY / yRatioUV, nWidthUV - (nBlkSizeX / xRatioUV) * nBlkX, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, bitsPerSample);
+                            Blend(pDst[2], pSrc[2], pRef[2], nBlkSizeY / yRatioUV, nWidthUV - (nBlkSizeX / xRatioUV) * nBlkX, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, bitsPerSample);
+
+                            pDst[1] += (nBlkSizeY / yRatioUV) * nDstPitches[1] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
+                            pDst[2] += (nBlkSizeY / yRatioUV) * nDstPitches[2] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
+                            pRef[1] += (nBlkSizeY / yRatioUV) * nRefPitches[1] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
+                            pRef[2] += (nBlkSizeY / yRatioUV) * nRefPitches[2] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
+                            pSrc[1] += (nBlkSizeY / yRatioUV) * nSrcPitches[1] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
+                            pSrc[2] += (nBlkSizeY / yRatioUV) * nSrcPitches[2] - (nBlkSizeX / xRatioUV) * nBlkX * bytesPerSample;
+                            pMaskFullUVB += (nBlkSizeY / yRatioUV) * nPitchUV - (nBlkSizeX / xRatioUV) * nBlkX;
+                            pMaskFullUVF += (nBlkSizeY / yRatioUV) * nPitchUV - (nBlkSizeX / xRatioUV) * nBlkX;
+                            pMaskOccUV += (nBlkSizeY / yRatioUV) * nPitchUV - (nBlkSizeX / xRatioUV) * nBlkX;
+                        }
                     }
                 }
-            }
-            // blend rest bottom with time weight
-            Blend(pDst[0], pSrc[0], pRef[0], nHeight - nBlkSizeY * nBlkY, nWidth, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, bitsPerSample);
-            if (nSuperModeYUV & UVPLANES) {
-                Blend(pDst[1], pSrc[1], pRef[1], nHeightUV - (nBlkSizeY / yRatioUV) * nBlkY, nWidthUV, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, bitsPerSample);
-                Blend(pDst[2], pSrc[2], pRef[2], nHeightUV - (nBlkSizeY / yRatioUV) * nBlkY, nWidthUV, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, bitsPerSample);
+                // blend rest bottom with time weight
+                Blend(pDst[0], pSrc[0], pRef[0], nHeight - nBlkSizeY * nBlkY, nWidth, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, bitsPerSample);
+                if (nSuperModeYUV & UVPLANES) {
+                    Blend(pDst[1], pSrc[1], pRef[1], nHeightUV - (nBlkSizeY / yRatioUV) * nBlkY, nWidthUV, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, bitsPerSample);
+                    Blend(pDst[2], pSrc[2], pRef[2], nHeightUV - (nBlkSizeY / yRatioUV) * nBlkY, nWidthUV, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, bitsPerSample);
+                }
+            } else { // overlap
+                // blend rest right with time weight
+                Blend(pDst[0] + nWidth_B * bytesPerSample,
+                      pSrc[0] + nWidth_B * bytesPerSample,
+                      pRef[0] + nWidth_B * bytesPerSample,
+                      nHeight_B,
+                      nWidth - nWidth_B,
+                      nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, bitsPerSample);
+                if (nSuperModeYUV & UVPLANES) {
+                    Blend(pDst[1] + nWidth_B / xRatioUV * bytesPerSample,
+                          pSrc[1] + nWidth_B / xRatioUV * bytesPerSample,
+                          pRef[1] + nWidth_B / xRatioUV * bytesPerSample,
+                          nHeight_B / yRatioUV,
+                          nWidthUV - nWidth_B / xRatioUV,
+                          nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, bitsPerSample);
+                    Blend(pDst[2] + nWidth_B / xRatioUV * bytesPerSample,
+                          pSrc[2] + nWidth_B / xRatioUV * bytesPerSample,
+                          pRef[2] + nWidth_B / xRatioUV * bytesPerSample,
+                          nHeight_B / yRatioUV,
+                          nWidthUV - nWidth_B / xRatioUV,
+                          nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, bitsPerSample);
+                }
+
+                // blend rest bottom with time weight
+                Blend(pDst[0] + nHeight_B * nDstPitches[0],
+                      pSrc[0] + nHeight_B * nSrcPitches[0],
+                      pRef[0] + nHeight_B * nRefPitches[0],
+                      nHeight - nHeight_B,
+                      nWidth,
+                      nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, bitsPerSample);
+                if (nSuperModeYUV & UVPLANES) {
+                    Blend(pDst[1] + nDstPitches[1] * nHeight_B / yRatioUV,
+                          pSrc[1] + nSrcPitches[1] * nHeight_B / yRatioUV,
+                          pRef[1] + nRefPitches[1] * nHeight_B / yRatioUV,
+                          nHeightUV - nHeight_B / yRatioUV,
+                          nWidthUV,
+                          nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, bitsPerSample);
+                    Blend(pDst[2] + nDstPitches[2] * nHeight_B / yRatioUV,
+                          pSrc[2] + nSrcPitches[2] * nHeight_B / yRatioUV,
+                          pRef[2] + nRefPitches[2] * nHeight_B / yRatioUV,
+                          nHeightUV - nHeight_B / yRatioUV,
+                          nWidthUV,
+                          nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, bitsPerSample);
+                }
+
+                int dstTempPitch = d->dstTempPitch;
+                int dstTempPitchUV = d->dstTempPitchUV;
+                int nBlkPitch = d->nBlkPitch;
+
+                uint8_t *DstTemp = (uint8_t *)malloc(dstTempPitch * nHeight);
+                uint8_t *DstTempU = NULL;
+                uint8_t *DstTempV = NULL;
+                if (nSuperModeYUV & UVPLANES) {
+                    DstTempU = (uint8_t *)malloc(dstTempPitchUV * nHeightUV);
+                    DstTempV = (uint8_t *)malloc(dstTempPitchUV * nHeightUV);
+                }
+
+                memset(DstTemp, 0, nHeight_B * dstTempPitch);
+                if (nSuperModeYUV & UVPLANES) {
+                    memset(DstTempU, 0, nHeight_B / yRatioUV * dstTempPitchUV);
+                    memset(DstTempV, 0, nHeight_B / yRatioUV * dstTempPitchUV);
+                }
+
+                uint8_t *pDstTemp = DstTemp;
+                uint8_t *pDstTempU = DstTempU;
+                uint8_t *pDstTempV = DstTempV;
+
+                uint8_t *TmpBlock = (uint8_t *)malloc(nBlkSizeY * nBlkPitch);
+
+                for (int by = 0; by < nBlkY; by++) {
+                    int wby = ((by + nBlkY - 3) / (nBlkY - 2)) * 3;
+                    int xx = 0;
+                    int xxUV = 0;
+                    for (int bx = 0; bx < nBlkX; bx++) {
+                        // select window
+                        int wbx = (bx + nBlkX - 3) / (nBlkX - 2);
+                        int16_t *winOver = overGetWindow(d->OverWins, wby + wbx);
+                        int16_t *winOverUV = NULL;
+                        if (nSuperModeYUV & UVPLANES)
+                            winOverUV = overGetWindow(d->OverWinsUV, wby + wbx);
+
+                        int i = by * nBlkX + bx;
+
+                        const FakeBlockData *blockB = fgopGetBlock(&fgopB, 0, i);
+                        const FakeBlockData *blockF = fgopGetBlock(&fgopF, 0, i);
+
+                        // firstly calculate result block and write it to temporary place, not to dst
+                        ResultBlock(TmpBlock, nBlkPitch,
+                                    mvpGetPointer(pPlanesB[0], blockB->x * nPel + ((blockB->vector.x * (256 - time256)) >> 8), blockB->y * nPel + ((blockB->vector.y * (256 - time256)) >> 8)),
+                                    pPlanesB[0]->nPitch,
+                                    mvpGetPointer(pPlanesF[0], blockF->x * nPel + ((blockF->vector.x * time256) >> 8), blockF->y * nPel + ((blockF->vector.y * time256) >> 8)),
+                                    pPlanesF[0]->nPitch,
+                                    pRef[0] + xx * bytesPerSample, nRefPitches[0],
+                                    pSrc[0] + xx * bytesPerSample, nSrcPitches[0],
+                                    pMaskFullYB + xx, nPitchY,
+                                    pMaskFullYF + xx, pMaskOccY + xx,
+                                    nBlkSizeX, nBlkSizeY, time256, mode, bitsPerSample);
+                        d->OVERSLUMA(pDstTemp + xx * bytesPerSample * 2, dstTempPitch, TmpBlock, nBlkPitch, winOver, nBlkSizeX);
+
+                        if (nSuperModeYUV & UVPLANES) {
+                            ResultBlock(TmpBlock, nBlkPitch,
+                                        mvpGetPointer(pPlanesB[1], (blockB->x * nPel + ((blockB->vector.x * (256 - time256)) >> 8)) / xRatioUV, (blockB->y * nPel + ((blockB->vector.y * (256 - time256)) >> 8)) / yRatioUV),
+                                        pPlanesB[1]->nPitch,
+                                        mvpGetPointer(pPlanesF[1], (blockF->x * nPel + ((blockF->vector.x * time256) >> 8)) / xRatioUV, (blockF->y * nPel + ((blockF->vector.y * time256) >> 8)) / yRatioUV),
+                                        pPlanesF[1]->nPitch,
+                                        pRef[1] + xxUV * bytesPerSample, nRefPitches[1],
+                                        pSrc[1] + xxUV * bytesPerSample, nSrcPitches[1],
+                                        pMaskFullUVB + xxUV, nPitchUV,
+                                        pMaskFullUVF + xxUV, pMaskOccUV + xxUV,
+                                        nBlkSizeX / xRatioUV, nBlkSizeY / yRatioUV, time256, mode, bitsPerSample);
+                            d->OVERSCHROMA(pDstTempU + xxUV * bytesPerSample * 2, dstTempPitchUV, TmpBlock, nBlkPitch, winOverUV, nBlkSizeX / xRatioUV);
+
+                            ResultBlock(TmpBlock, nBlkPitch,
+                                        mvpGetPointer(pPlanesB[2], (blockB->x * nPel + ((blockB->vector.x * (256 - time256)) >> 8)) / xRatioUV, (blockB->y * nPel + ((blockB->vector.y * (256 - time256)) >> 8)) / yRatioUV),
+                                        pPlanesB[2]->nPitch,
+                                        mvpGetPointer(pPlanesF[2], (blockF->x * nPel + ((blockF->vector.x * time256) >> 8)) / xRatioUV, (blockF->y * nPel + ((blockF->vector.y * time256) >> 8)) / yRatioUV),
+                                        pPlanesF[2]->nPitch,
+                                        pRef[2] + xxUV * bytesPerSample, nRefPitches[2],
+                                        pSrc[2] + xxUV * bytesPerSample, nSrcPitches[2],
+                                        pMaskFullUVB + xxUV, nPitchUV,
+                                        pMaskFullUVF + xxUV, pMaskOccUV + xxUV,
+                                        nBlkSizeX / xRatioUV, nBlkSizeY / yRatioUV, time256, mode, bitsPerSample);
+                            d->OVERSCHROMA(pDstTempV + xxUV * bytesPerSample * 2, dstTempPitchUV, TmpBlock, nBlkPitch, winOverUV, nBlkSizeX / xRatioUV);
+                        }
+
+                        xx += (nBlkSizeX - nOverlapX);
+                        xxUV += (nBlkSizeX - nOverlapX) / xRatioUV;
+                    }
+
+                    pDstTemp += dstTempPitch * (nBlkSizeY - nOverlapY);
+                    pDstTempU += dstTempPitchUV * (nBlkSizeY - nOverlapY) / yRatioUV;
+                    pDstTempV += dstTempPitchUV * (nBlkSizeY - nOverlapY) / yRatioUV;
+                    pDst[0] += nDstPitches[0] * (nBlkSizeY - nOverlapY);
+                    pDst[1] += nDstPitches[1] * (nBlkSizeY - nOverlapY) / yRatioUV;
+                    pDst[2] += nDstPitches[2] * (nBlkSizeY - nOverlapY) / yRatioUV;
+                    pRef[0] += nRefPitches[0] * (nBlkSizeY - nOverlapY);
+                    pRef[1] += nRefPitches[1] * (nBlkSizeY - nOverlapY) / yRatioUV;
+                    pRef[2] += nRefPitches[2] * (nBlkSizeY - nOverlapY) / yRatioUV;
+                    pSrc[0] += nSrcPitches[0] * (nBlkSizeY - nOverlapY);
+                    pSrc[1] += nSrcPitches[1] * (nBlkSizeY - nOverlapY) / yRatioUV;
+                    pSrc[2] += nSrcPitches[2] * (nBlkSizeY - nOverlapY) / yRatioUV;
+                    pMaskFullYB += nPitchY * (nBlkSizeY - nOverlapY);
+                    pMaskFullUVB += nPitchUV * (nBlkSizeY - nOverlapY) / yRatioUV;
+                    pMaskFullYF += nPitchY * (nBlkSizeY - nOverlapY);
+                    pMaskFullUVF += nPitchUV * (nBlkSizeY - nOverlapY) / yRatioUV;
+                    pMaskOccY += nPitchY * (nBlkSizeY - nOverlapY);
+                    pMaskOccUV += nPitchUV * (nBlkSizeY - nOverlapY) / yRatioUV;
+                }
+
+                for (int i = 0; i < d->supervi->format->numPlanes; i++)
+                    pDst[i] = vsapi->getWritePtr(dst, i);
+
+                d->ToPixels(pDst[0], nDstPitches[0], DstTemp, dstTempPitch, nWidth_B, nHeight_B, bitsPerSample);
+                if (nSuperModeYUV & UVPLANES) {
+                    d->ToPixels(pDst[1], nDstPitches[1], DstTempU, dstTempPitchUV, nWidth_B / xRatioUV, nHeight_B / yRatioUV, bitsPerSample);
+                    d->ToPixels(pDst[2], nDstPitches[2], DstTempV, dstTempPitchUV, nWidth_B / xRatioUV, nHeight_B / yRatioUV, bitsPerSample);
+                }
+
+                free(TmpBlock);
+                free(DstTemp);
+                if (nSuperModeYUV & UVPLANES) {
+                    free(DstTempU);
+                    free(DstTempV);
+                }
             }
 
 
@@ -711,7 +822,14 @@ static void VS_CC mvblockfpsFree(void *instanceData, VSCore *core, const VSAPI *
     if (d->nSuperModeYUV & UVPLANES)
         simpleDeinit(&d->upsizerUV);
 
-    free(d->OnesBlock);
+    if (d->mvbw_data.nOverlapX || d->mvbw_data.nOverlapY) {
+        overDeinit(d->OverWins);
+        free(d->OverWins);
+        if (d->nSuperModeYUV & UVPLANES) {
+            overDeinit(d->OverWinsUV);
+            free(d->OverWinsUV);
+        }
+    }
 
     vsapi->freeNode(d->super);
     vsapi->freeNode(d->mvfw);
@@ -740,33 +858,83 @@ static inline void setFPS(VSVideoInfo *vi, int64_t num, int64_t den) {
 
 
 static void selectFunctions(MVBlockFPSData *d) {
+    const int xRatioUV = d->mvbw_data.xRatioUV;
+    const int yRatioUV = d->mvbw_data.yRatioUV;
     const int nBlkSizeX = d->mvbw_data.nBlkSizeX;
     const int nBlkSizeY = d->mvbw_data.nBlkSizeY;
 
-    COPYFunction copys[33][33];
+    OverlapsFunction overs[33][33];
 
-    // The copy functions are only used with 8 bit masks.
-    copys[2][2] = mvtools_copy_2x2_u8_c;
-    copys[2][4] = mvtools_copy_2x4_u8_c;
-    copys[4][2] = mvtools_copy_4x2_u8_c;
-    copys[4][4] = mvtools_copy_4x4_u8_c;
-    copys[4][8] = mvtools_copy_4x8_u8_c;
-    copys[8][1] = mvtools_copy_8x1_u8_c;
-    copys[8][2] = mvtools_copy_8x2_u8_c;
-    copys[8][4] = mvtools_copy_8x4_u8_c;
-    copys[8][8] = mvtools_copy_8x8_u8_c;
-    copys[8][16] = mvtools_copy_8x16_u8_c;
-    copys[16][1] = mvtools_copy_16x1_u8_c;
-    copys[16][2] = mvtools_copy_16x2_u8_c;
-    copys[16][4] = mvtools_copy_16x4_u8_c;
-    copys[16][8] = mvtools_copy_16x8_u8_c;
-    copys[16][16] = mvtools_copy_16x16_u8_c;
-    copys[16][32] = mvtools_copy_16x32_u8_c;
-    copys[32][8] = mvtools_copy_32x8_u8_c;
-    copys[32][16] = mvtools_copy_32x16_u8_c;
-    copys[32][32] = mvtools_copy_32x32_u8_c;
+    if (d->vi.format->bitsPerSample == 8) {
+        overs[2][2] = mvtools_overlaps_2x2_uint16_t_uint8_t_c;
+        overs[2][4] = mvtools_overlaps_2x4_uint16_t_uint8_t_c;
+        overs[4][2] = mvtools_overlaps_4x2_uint16_t_uint8_t_c;
+        overs[4][4] = mvtools_overlaps_4x4_uint16_t_uint8_t_c;
+        overs[4][8] = mvtools_overlaps_4x8_uint16_t_uint8_t_c;
+        overs[8][1] = mvtools_overlaps_8x1_uint16_t_uint8_t_c;
+        overs[8][2] = mvtools_overlaps_8x2_uint16_t_uint8_t_c;
+        overs[8][4] = mvtools_overlaps_8x4_uint16_t_uint8_t_c;
+        overs[8][8] = mvtools_overlaps_8x8_uint16_t_uint8_t_c;
+        overs[8][16] = mvtools_overlaps_8x16_uint16_t_uint8_t_c;
+        overs[16][1] = mvtools_overlaps_16x1_uint16_t_uint8_t_c;
+        overs[16][2] = mvtools_overlaps_16x2_uint16_t_uint8_t_c;
+        overs[16][4] = mvtools_overlaps_16x4_uint16_t_uint8_t_c;
+        overs[16][8] = mvtools_overlaps_16x8_uint16_t_uint8_t_c;
+        overs[16][16] = mvtools_overlaps_16x16_uint16_t_uint8_t_c;
+        overs[16][32] = mvtools_overlaps_16x32_uint16_t_uint8_t_c;
+        overs[32][8] = mvtools_overlaps_32x8_uint16_t_uint8_t_c;
+        overs[32][16] = mvtools_overlaps_32x16_uint16_t_uint8_t_c;
+        overs[32][32] = mvtools_overlaps_32x32_uint16_t_uint8_t_c;
 
-    d->BLITLUMA = copys[nBlkSizeX][nBlkSizeY];
+        d->ToPixels = ToPixels_uint16_t_uint8_t;
+
+        if (d->isse) {
+#if defined(MVTOOLS_X86)
+            overs[4][2] = mvtools_overlaps_4x2_sse2;
+            overs[4][4] = mvtools_overlaps_4x4_sse2;
+            overs[4][8] = mvtools_overlaps_4x8_sse2;
+            overs[8][1] = mvtools_overlaps_8x1_sse2;
+            overs[8][2] = mvtools_overlaps_8x2_sse2;
+            overs[8][4] = mvtools_overlaps_8x4_sse2;
+            overs[8][8] = mvtools_overlaps_8x8_sse2;
+            overs[8][16] = mvtools_overlaps_8x16_sse2;
+            overs[16][1] = mvtools_overlaps_16x1_sse2;
+            overs[16][2] = mvtools_overlaps_16x2_sse2;
+            overs[16][4] = mvtools_overlaps_16x4_sse2;
+            overs[16][8] = mvtools_overlaps_16x8_sse2;
+            overs[16][16] = mvtools_overlaps_16x16_sse2;
+            overs[16][32] = mvtools_overlaps_16x32_sse2;
+            overs[32][8] = mvtools_overlaps_32x8_sse2;
+            overs[32][16] = mvtools_overlaps_32x16_sse2;
+            overs[32][32] = mvtools_overlaps_32x32_sse2;
+#endif
+        }
+    } else {
+        overs[2][2] = mvtools_overlaps_2x2_uint32_t_uint16_t_c;
+        overs[2][4] = mvtools_overlaps_2x4_uint32_t_uint16_t_c;
+        overs[4][2] = mvtools_overlaps_4x2_uint32_t_uint16_t_c;
+        overs[4][4] = mvtools_overlaps_4x4_uint32_t_uint16_t_c;
+        overs[4][8] = mvtools_overlaps_4x8_uint32_t_uint16_t_c;
+        overs[8][1] = mvtools_overlaps_8x1_uint32_t_uint16_t_c;
+        overs[8][2] = mvtools_overlaps_8x2_uint32_t_uint16_t_c;
+        overs[8][4] = mvtools_overlaps_8x4_uint32_t_uint16_t_c;
+        overs[8][8] = mvtools_overlaps_8x8_uint32_t_uint16_t_c;
+        overs[8][16] = mvtools_overlaps_8x16_uint32_t_uint16_t_c;
+        overs[16][1] = mvtools_overlaps_16x1_uint32_t_uint16_t_c;
+        overs[16][2] = mvtools_overlaps_16x2_uint32_t_uint16_t_c;
+        overs[16][4] = mvtools_overlaps_16x4_uint32_t_uint16_t_c;
+        overs[16][8] = mvtools_overlaps_16x8_uint32_t_uint16_t_c;
+        overs[16][16] = mvtools_overlaps_16x16_uint32_t_uint16_t_c;
+        overs[16][32] = mvtools_overlaps_16x32_uint32_t_uint16_t_c;
+        overs[32][8] = mvtools_overlaps_32x8_uint32_t_uint16_t_c;
+        overs[32][16] = mvtools_overlaps_32x16_uint32_t_uint16_t_c;
+        overs[32][32] = mvtools_overlaps_32x32_uint32_t_uint16_t_c;
+
+        d->ToPixels = ToPixels_uint32_t_uint16_t;
+    }
+
+    d->OVERSLUMA = overs[nBlkSizeX][nBlkSizeY];
+    d->OVERSCHROMA = overs[nBlkSizeX / xRatioUV][nBlkSizeY / yRatioUV];
 }
 
 
@@ -776,7 +944,7 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     MVBlockFPSData d;
     MVBlockFPSData *data;
 
-    int err, thres_err;
+    int err;
 
     d.num = vsapi->propGetInt(in, "num", 0, &err);
     if (err)
@@ -787,9 +955,12 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
         d.den = 1;
 
     d.mode = int64ToIntS(vsapi->propGetInt(in, "mode", 0, &err));
+    if (err)
+        d.mode = 3;
 
-    d.thres = int64ToIntS(vsapi->propGetInt(in, "thres", 0, &thres_err));
-    // The default value is computed later.
+    d.ml = vsapi->propGetInt(in, "ml", 0, &err);
+    if (err)
+        d.ml = 100.0;
 
     d.blend = !!vsapi->propGetInt(in, "blend", 0, &err);
     if (err)
@@ -808,8 +979,8 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
         d.isse = 1;
 
 
-    if (d.mode < 0 || d.mode > 5) {
-        vsapi->setError(out, "BlockFPS: mode must be between 0 and 5 (inclusive).");
+    if (d.mode < 0 || d.mode > 8) {
+        vsapi->setError(out, "BlockFPS: mode must be between 0 and 8 (inclusive).");
         return;
     }
 
@@ -886,18 +1057,6 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
             vsapi->setError(out, "BlockFPS: mvbw must be generated with isb=True.");
         else
             vsapi->setError(out, "BlockFPS: mvfw must be generated with isb=False.");
-        vsapi->freeNode(d.super);
-        vsapi->freeNode(d.mvfw);
-        vsapi->freeNode(d.mvbw);
-        return;
-    }
-
-
-    if (thres_err)
-        d.thres = d.mvbw_data.nBlkSizeX * d.mvbw_data.nBlkSizeY / 4;
-
-    if (d.mvbw_data.nOverlapX || d.mvbw_data.nOverlapY) {
-        vsapi->setError(out, "BlockFPS: Overlap must be 0.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -985,13 +1144,23 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     d.nPitchUV = (d.nWidthPUV + 15) & (~15);
 
 
-    d.OnesBlock = (uint8_t *)malloc(d.mvbw_data.nBlkSizeX * d.mvbw_data.nBlkSizeY + 32); // padding seems unnecessary
-    memset(d.OnesBlock, 255, d.mvbw_data.nBlkSizeX * d.mvbw_data.nBlkSizeY);
-
-
     simpleInit(&d.upsizer, d.nWidthP, d.nHeightP, d.nBlkXP, d.nBlkYP);
     if (d.nSuperModeYUV & UVPLANES)
         simpleInit(&d.upsizerUV, d.nWidthPUV, d.nHeightPUV, d.nBlkXP, d.nBlkYP);
+
+    if (d.mvbw_data.nOverlapX || d.mvbw_data.nOverlapY) {
+        d.OverWins = (OverlapWindows *)malloc(sizeof(OverlapWindows));
+        overInit(d.OverWins, d.mvbw_data.nBlkSizeX, d.mvbw_data.nBlkSizeY, d.mvbw_data.nOverlapX, d.mvbw_data.nOverlapY);
+        if (d.nSuperModeYUV & UVPLANES) {
+            d.OverWinsUV = (OverlapWindows *)malloc(sizeof(OverlapWindows));
+            overInit(d.OverWinsUV, d.mvbw_data.nBlkSizeX / d.mvbw_data.xRatioUV, d.mvbw_data.nBlkSizeY / d.mvbw_data.yRatioUV, d.mvbw_data.nOverlapX / d.mvbw_data.xRatioUV, d.mvbw_data.nOverlapY / d.mvbw_data.yRatioUV);
+        }
+    }
+
+    d.dstTempPitch = ((d.mvbw_data.nWidth + 15) / 16) * 16 * d.vi.format->bytesPerSample * 2;
+    d.dstTempPitchUV = (((d.mvbw_data.nWidth / d.mvbw_data.xRatioUV) + 15) / 16) * 16 * d.vi.format->bytesPerSample * 2;
+    d.nBlkPitch = ((d.mvbw_data.nBlkSizeX + 15) & (~15)) * d.vi.format->bytesPerSample;
+
 
     selectFunctions(&d);
 
@@ -1054,7 +1223,7 @@ void mvblockfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "num:int:opt;"
                  "den:int:opt;"
                  "mode:int:opt;"
-                 "thres:int:opt;"
+                 "ml:float:opt;"
                  "blend:int:opt;"
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
