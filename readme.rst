@@ -100,7 +100,7 @@ Usage
 
     mv.Degrain3(clip clip, clip super, clip mvbw, clip mvfw, clip mvbw2, clip mvfw2, clip mvbw3, clip mvfw3[, int thsad=400, int thsadc=thsad, int plane=4, int limit=255, int limitc=limit, int thscd1=400, int thscd2=130, bint isse=True])
 
-    mv.Mask(clip clip, clip vectors[, float ml=100.0, float gamma=1.0, int kind=0, int ysc=0, int thscd1=400, int thscd2=130])
+    mv.Mask(clip clip, clip vectors[, float ml=100.0, float gamma=1.0, int kind=0, float time=100.0, int ysc=0, int thscd1=400, int thscd2=130])
 
     mv.Finest(clip super[, bint isse=True])
 
