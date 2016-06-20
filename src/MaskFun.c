@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "CommonFunctions.h"
 #include "MaskFun.h"
 
 #define max(a, b) ((a) > (b) ? (a) : (b))
@@ -335,81 +336,31 @@ static void RealFlowInter_##PixelType(uint8_t *pdst8, int dst_pitch, const uint8
     ref_pitch /= sizeof(PixelType); \
     dst_pitch /= sizeof(PixelType); \
  \
-    if (nPel == 1) { \
-        for (int h = 0; h < height; h++) { \
-            for (int w = 0; w < width; w++) { \
-                int vxF = (VXFullF[w] * time256) >> 8; \
-                int vyF = (VYFullF[w] * time256) >> 8; \
-                int64_t dstF = prefF[vyF * ref_pitch + vxF + w]; \
-                int dstF0 = prefF[w]; /* zero */ \
-                int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
-                int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
-                int64_t dstB = prefB[vyB * ref_pitch + vxB + w]; \
-                int dstB0 = prefB[w]; /* zero */ \
-                pdst[w] = (PixelType)((((dstF * (255 - MaskF[w]) + ((MaskF[w] * (dstB * (255 - MaskB[w]) + MaskB[w] * dstF0) + 255) >> 8) + 255) >> 8) * (256 - time256) + \
-                                     ((dstB * (255 - MaskB[w]) + ((MaskB[w] * (dstF * (255 - MaskF[w]) + MaskF[w] * dstB0) + 255) >> 8) + 255) >> 8) * time256) >> \
-                                    8); \
-            } \
-            pdst += dst_pitch; \
-            prefB += ref_pitch; \
-            prefF += ref_pitch; \
-            VXFullB += VPitch; \
-            VYFullB += VPitch; \
-            VXFullF += VPitch; \
-            VYFullF += VPitch; \
-            MaskB += VPitch; \
-            MaskF += VPitch; \
+    int nPelLog = ilog2(nPel); \
+ \
+    for (int h = 0; h < height; h++) { \
+        for (int w = 0; w < width; w++) { \
+            int vxF = (VXFullF[w] * time256) >> 8; \
+            int vyF = (VYFullF[w] * time256) >> 8; \
+            int64_t dstF = prefF[vyF * ref_pitch + vxF + (w << nPelLog)]; \
+            int dstF0 = prefF[(w << nPelLog)]; /* zero */ \
+            int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
+            int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
+            int64_t dstB = prefB[vyB * ref_pitch + vxB + (w << nPelLog)]; \
+            int dstB0 = prefB[(w << nPelLog)]; /* zero */ \
+            pdst[w] = (PixelType)((((dstF * (255 - MaskF[w]) + ((MaskF[w] * (dstB * (255 - MaskB[w]) + MaskB[w] * dstF0) + 255) >> 8) + 255) >> 8) * (256 - time256) + \
+                                 ((dstB * (255 - MaskB[w]) + ((MaskB[w] * (dstF * (255 - MaskF[w]) + MaskF[w] * dstB0) + 255) >> 8) + 255) >> 8) * time256) >> \
+                      8); \
         } \
-    } else if (nPel == 2) { \
-        for (int h = 0; h < height; h++) { \
-            for (int w = 0; w < width; w++) { \
-                int vxF = (VXFullF[w] * time256) >> 8; \
-                int vyF = (VYFullF[w] * time256) >> 8; \
-                int dstF = prefF[vyF * ref_pitch + vxF + (w << 1)]; \
-                int dstF0 = prefF[(w << 1)]; /* zero */ \
-                int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
-                int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
-                int dstB = prefB[vyB * ref_pitch + vxB + (w << 1)]; \
-                int dstB0 = prefB[(w << 1)]; /* zero */ \
-                pdst[w] = (((dstF * (255 - MaskF[w]) + ((MaskF[w] * (dstB * (255 - MaskB[w]) + MaskB[w] * dstF0) + 255) >> 8) + 255) >> 8) * (256 - time256) + \
-                           ((dstB * (255 - MaskB[w]) + ((MaskB[w] * (dstF * (255 - MaskF[w]) + MaskF[w] * dstB0) + 255) >> 8) + 255) >> 8) * time256) >> \
-                          8; \
-            } \
-            pdst += dst_pitch; \
-            prefB += ref_pitch << 1; \
-            prefF += ref_pitch << 1; \
-            VXFullB += VPitch; \
-            VYFullB += VPitch; \
-            VXFullF += VPitch; \
-            VYFullF += VPitch; \
-            MaskB += VPitch; \
-            MaskF += VPitch; \
-        } \
-    } else if (nPel == 4) { \
-        for (int h = 0; h < height; h++) { \
-            for (int w = 0; w < width; w++) { \
-                int vxF = (VXFullF[w] * time256) >> 8; \
-                int vyF = (VYFullF[w] * time256) >> 8; \
-                int dstF = prefF[vyF * ref_pitch + vxF + (w << 2)]; \
-                int dstF0 = prefF[(w << 2)]; /* zero */ \
-                int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
-                int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
-                int dstB = prefB[vyB * ref_pitch + vxB + (w << 2)]; \
-                int dstB0 = prefB[(w << 2)]; /* zero */ \
-                pdst[w] = (((dstF * (255 - MaskF[w]) + ((MaskF[w] * (dstB * (255 - MaskB[w]) + MaskB[w] * dstF0) + 255) >> 8) + 255) >> 8) * (256 - time256) + \
-                           ((dstB * (255 - MaskB[w]) + ((MaskB[w] * (dstF * (255 - MaskF[w]) + MaskF[w] * dstB0) + 255) >> 8) + 255) >> 8) * time256) >> \
-                          8; \
-            } \
-            pdst += dst_pitch; \
-            prefB += ref_pitch << 2; \
-            prefF += ref_pitch << 2; \
-            VXFullB += VPitch; \
-            VYFullB += VPitch; \
-            VXFullF += VPitch; \
-            VYFullF += VPitch; \
-            MaskB += VPitch; \
-            MaskF += VPitch; \
-        } \
+        pdst += dst_pitch; \
+        prefB += ref_pitch << nPelLog; \
+        prefF += ref_pitch << nPelLog; \
+        VXFullB += VPitch; \
+        VYFullB += VPitch; \
+        VXFullF += VPitch; \
+        VYFullF += VPitch; \
+        MaskB += VPitch; \
+        MaskF += VPitch; \
     } \
 }
 
@@ -454,150 +405,58 @@ static void RealFlowInterExtra_##PixelType(uint8_t *pdst8, int dst_pitch, const 
     ref_pitch /= sizeof(PixelType); \
     dst_pitch /= sizeof(PixelType); \
  \
-    if (nPel == 1) { \
-        for (int h = 0; h < height; h++) { \
-            for (int w = 0; w < width; w++) { \
-                int vxF = (VXFullF[w] * time256) >> 8; \
-                int vyF = (VYFullF[w] * time256) >> 8; \
-                int adrF = vyF * ref_pitch + vxF + w; \
-                int dstF = prefF[adrF]; \
+    int nPelLog = ilog2(nPel); \
  \
-                int vxFF = (VXFullFF[w] * time256) >> 8; \
-                int vyFF = (VYFullFF[w] * time256) >> 8; \
-                int adrFF = vyFF * ref_pitch + vxFF + w; \
-                int dstFF = prefF[adrFF]; \
- \
-                int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
-                int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
-                int adrB = vyB * ref_pitch + vxB + w; \
-                int dstB = prefB[adrB]; \
- \
-                int vxBB = (VXFullBB[w] * (256 - time256)) >> 8; \
-                int vyBB = (VYFullBB[w] * (256 - time256)) >> 8; \
-                int adrBB = vyBB * ref_pitch + vxBB + w; \
-                int dstBB = prefB[adrBB]; \
- \
-                /* use median, firstly get min max of compensations */ \
-                int minfb; \
-                int maxfb; \
-                if (dstF > dstB) { \
-                    minfb = dstB; \
-                    maxfb = dstF; \
-                } else { \
-                    maxfb = dstB; \
-                    minfb = dstF; \
-                } \
- \
-                pdst[w] = (((Median3r(minfb, dstBB, maxfb) * MaskF[w] + dstF * (255 - MaskF[w]) + 255) >> 8) * (256 - time256) + \
-                           ((Median3r(minfb, dstFF, maxfb) * MaskB[w] + dstB * (255 - MaskB[w]) + 255) >> 8) * time256) >> \
-                          8; \
+    for (int h = 0; h < height; h++) { \
+        for (int w = 0; w < width; w++) { \
+            int vxF = (VXFullF[w] * time256) >> 8; \
+            int vyF = (VYFullF[w] * time256) >> 8; \
+            int adrF = vyF * ref_pitch + vxF + (w << nPelLog); \
+            int dstF = prefF[adrF]; \
+\
+            int vxFF = (VXFullFF[w] * time256) >> 8; \
+            int vyFF = (VYFullFF[w] * time256) >> 8; \
+            int adrFF = vyFF * ref_pitch + vxFF + (w << nPelLog); \
+            int dstFF = prefF[adrFF]; \
+\
+            int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
+            int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
+            int adrB = vyB * ref_pitch + vxB + (w << nPelLog); \
+            int dstB = prefB[adrB]; \
+\
+            int vxBB = (VXFullBB[w] * (256 - time256)) >> 8; \
+            int vyBB = (VYFullBB[w] * (256 - time256)) >> 8; \
+            int adrBB = vyBB * ref_pitch + vxBB + (w << nPelLog); \
+            int dstBB = prefB[adrBB]; \
+\
+            /* use median, firsly get min max of compensations */ \
+            int minfb; \
+            int maxfb; \
+            if (dstF > dstB) { \
+                minfb = dstB; \
+                maxfb = dstF; \
+            } else { \
+                maxfb = dstB; \
+                minfb = dstF; \
             } \
-            pdst += dst_pitch; \
-            prefB += ref_pitch; \
-            prefF += ref_pitch; \
-            VXFullB += VPitch; \
-            VYFullB += VPitch; \
-            VXFullF += VPitch; \
-            VYFullF += VPitch; \
-            MaskB += VPitch; \
-            MaskF += VPitch; \
-            VXFullBB += VPitch; \
-            VYFullBB += VPitch; \
-            VXFullFF += VPitch; \
-            VYFullFF += VPitch; \
+\
+            pdst[w] = (((Median3r(minfb, dstBB, maxfb) * MaskF[w] + dstF * (255 - MaskF[w]) + 255) >> 8) * (256 - time256) + \
+                       ((Median3r(minfb, dstFF, maxfb) * MaskB[w] + dstB * (255 - MaskB[w]) + 255) >> 8) * time256) >> \
+                      8; \
         } \
-    } else if (nPel == 2) { \
-        for (int h = 0; h < height; h++) { \
-            for (int w = 0; w < width; w++) { \
-                int vxF = (VXFullF[w] * time256) >> 8; \
-                int vyF = (VYFullF[w] * time256) >> 8; \
-                int adrF = vyF * ref_pitch + vxF + (w << 1); \
-                int dstF = prefF[adrF]; \
-                int vxFF = (VXFullFF[w] * time256) >> 8; \
-                int vyFF = (VYFullFF[w] * time256) >> 8; \
-                int adrFF = vyFF * ref_pitch + vxFF + (w << 1); \
-                int dstFF = prefF[adrFF]; \
-                int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
-                int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
-                int adrB = vyB * ref_pitch + vxB + (w << 1); \
-                int dstB = prefB[adrB]; \
-                int vxBB = (VXFullBB[w] * (256 - time256)) >> 8; \
-                int vyBB = (VYFullBB[w] * (256 - time256)) >> 8; \
-                int adrBB = vyBB * ref_pitch + vxBB + (w << 1); \
-                int dstBB = prefB[adrBB]; \
-                /* use median, firsly get min max of compensations */ \
-                int minfb; \
-                int maxfb; \
-                if (dstF > dstB) { \
-                    minfb = dstB; \
-                    maxfb = dstF; \
-                } else { \
-                    maxfb = dstB; \
-                    minfb = dstF; \
-                } \
- \
-                pdst[w] = (((Median3r(minfb, dstBB, maxfb) * MaskF[w] + dstF * (255 - MaskF[w]) + 255) >> 8) * (256 - time256) + \
-                           ((Median3r(minfb, dstFF, maxfb) * MaskB[w] + dstB * (255 - MaskB[w]) + 255) >> 8) * time256) >> \
-                          8; \
-            } \
-            pdst += dst_pitch; \
-            prefB += ref_pitch << 1; \
-            prefF += ref_pitch << 1; \
-            VXFullB += VPitch; \
-            VYFullB += VPitch; \
-            VXFullF += VPitch; \
-            VYFullF += VPitch; \
-            MaskB += VPitch; \
-            MaskF += VPitch; \
-            VXFullBB += VPitch; \
-            VYFullBB += VPitch; \
-            VXFullFF += VPitch; \
-            VYFullFF += VPitch; \
-        } \
-    } else if (nPel == 4) { \
-        for (int h = 0; h < height; h++) { \
-            for (int w = 0; w < width; w++) { \
-                int vxF = (VXFullF[w] * time256) >> 8; \
-                int vyF = (VYFullF[w] * time256) >> 8; \
-                int dstF = prefF[vyF * ref_pitch + vxF + (w << 2)]; \
-                int vxFF = (VXFullFF[w] * time256) >> 8; \
-                int vyFF = (VYFullFF[w] * time256) >> 8; \
-                int dstFF = prefF[vyFF * ref_pitch + vxFF + (w << 2)]; \
-                int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
-                int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
-                int dstB = prefB[vyB * ref_pitch + vxB + (w << 2)]; \
-                int vxBB = (VXFullBB[w] * (256 - time256)) >> 8; \
-                int vyBB = (VYFullBB[w] * (256 - time256)) >> 8; \
-                int dstBB = prefB[vyBB * ref_pitch + vxBB + (w << 2)]; \
-                /* use median, firsly get min max of compensations */ \
-                int minfb; \
-                int maxfb; \
-                if (dstF > dstB) { \
-                    minfb = dstB; \
-                    maxfb = dstF; \
-                } else { \
-                    maxfb = dstB; \
-                    minfb = dstF; \
-                } \
- \
-                pdst[w] = (((Median3r(minfb, dstBB, maxfb) * MaskF[w] + dstF * (255 - MaskF[w]) + 255) >> 8) * (256 - time256) + \
-                           ((Median3r(minfb, dstFF, maxfb) * MaskB[w] + dstB * (255 - MaskB[w]) + 255) >> 8) * time256) >> \
-                          8; \
-            } \
-            pdst += dst_pitch; \
-            prefB += ref_pitch << 2; \
-            prefF += ref_pitch << 2; \
-            VXFullB += VPitch; \
-            VYFullB += VPitch; \
-            VXFullF += VPitch; \
-            VYFullF += VPitch; \
-            MaskB += VPitch; \
-            MaskF += VPitch; \
-            VXFullBB += VPitch; \
-            VYFullBB += VPitch; \
-            VXFullFF += VPitch; \
-            VYFullFF += VPitch; \
-        } \
+        pdst += dst_pitch; \
+        prefB += ref_pitch << nPelLog; \
+        prefF += ref_pitch << nPelLog; \
+        VXFullB += VPitch; \
+        VYFullB += VPitch; \
+        VXFullF += VPitch; \
+        VYFullF += VPitch; \
+        MaskB += VPitch; \
+        MaskF += VPitch; \
+        VXFullBB += VPitch; \
+        VYFullBB += VPitch; \
+        VXFullFF += VPitch; \
+        VYFullFF += VPitch; \
     } \
 }
 
@@ -627,153 +486,51 @@ static void RealFlowInterSimple_##PixelType(uint8_t *pdst8, int dst_pitch, const
     ref_pitch /= sizeof(PixelType); \
     dst_pitch /= sizeof(PixelType); \
  \
+    int nPelLog = ilog2(nPel); \
+ \
     if (time256 == 128) { /* special case double fps - fastest */ \
-        if (nPel == 1) { \
-            for (int h = 0; h < height; h++) { \
-                for (int w = 0; w < width; w += 2) { /* paired for speed */ \
-                    int vxF = VXFullF[w] >> 1; \
-                    int vyF = VYFullF[w] >> 1; \
-                    int addrF = vyF * ref_pitch + vxF + w; \
-                    int dstF = prefF[addrF]; \
-                    int dstF1 = prefF[addrF + 1]; /* approximation for speed */ \
-                    int vxB = VXFullB[w] >> 1; \
-                    int vyB = VYFullB[w] >> 1; \
-                    int addrB = vyB * ref_pitch + vxB + w; \
-                    int dstB = prefB[addrB]; \
-                    int dstB1 = prefB[addrB + 1]; \
-                    pdst[w] = (((dstF + dstB) << 8) + (dstB - dstF) * (MaskF[w] - MaskB[w])) >> 9; \
-                    pdst[w + 1] = (((dstF1 + dstB1) << 8) + (dstB1 - dstF1) * (MaskF[w + 1] - MaskB[w + 1])) >> 9; \
-                } \
-                pdst += dst_pitch; \
-                prefB += ref_pitch; \
-                prefF += ref_pitch; \
-                VXFullB += VPitch; \
-                VYFullB += VPitch; \
-                VXFullF += VPitch; \
-                VYFullF += VPitch; \
-                MaskB += VPitch; \
-                MaskF += VPitch; \
+        for (int h = 0; h < height; h++) { \
+            for (int w = 0; w < width; w++) { \
+                int vxF = VXFullF[w] >> 1; \
+                int vyF = VYFullF[w] >> 1; \
+                int dstF = prefF[vyF * ref_pitch + vxF + (w << nPelLog)]; \
+                int vxB = VXFullB[w] >> 1; \
+                int vyB = VYFullB[w] >> 1; \
+                int dstB = prefB[vyB * ref_pitch + vxB + (w << nPelLog)]; \
+                pdst[w] = (((dstF + dstB) << 8) + (dstB - dstF) * (MaskF[w] - MaskB[w])) >> 9; \
             } \
-        } else if (nPel == 2) { \
-            for (int h = 0; h < height; h++) { \
-                for (int w = 0; w < width; w += 1) { \
-                    int vxF = VXFullF[w] >> 1; \
-                    int vyF = VYFullF[w] >> 1; \
-                    int dstF = prefF[vyF * ref_pitch + vxF + (w << 1)]; \
-                    int vxB = VXFullB[w] >> 1; \
-                    int vyB = VYFullB[w] >> 1; \
-                    int dstB = prefB[vyB * ref_pitch + vxB + (w << 1)]; \
-                    pdst[w] = (((dstF + dstB) << 8) + (dstB - dstF) * (MaskF[w] - MaskB[w])) >> 9; \
-                } \
-                pdst += dst_pitch; \
-                prefB += ref_pitch << 1; \
-                prefF += ref_pitch << 1; \
-                VXFullB += VPitch; \
-                VYFullB += VPitch; \
-                VXFullF += VPitch; \
-                VYFullF += VPitch; \
-                MaskB += VPitch; \
-                MaskF += VPitch; \
-            } \
-        } else if (nPel == 4) { \
-            for (int h = 0; h < height; h++) { \
-                for (int w = 0; w < width; w += 1) { \
-                    int vxF = VXFullF[w] >> 1; \
-                    int vyF = VYFullF[w] >> 1; \
-                    int dstF = prefF[vyF * ref_pitch + vxF + (w << 2)]; \
-                    int vxB = VXFullB[w] >> 1; \
-                    int vyB = VYFullB[w] >> 1; \
-                    int dstB = prefB[vyB * ref_pitch + vxB + (w << 2)]; \
-                    pdst[w] = (((dstF + dstB) << 8) + (dstB - dstF) * (MaskF[w] - MaskB[w])) >> 9; \
-                } \
-                pdst += dst_pitch; \
-                prefB += ref_pitch << 2; \
-                prefF += ref_pitch << 2; \
-                VXFullB += VPitch; \
-                VYFullB += VPitch; \
-                VXFullF += VPitch; \
-                VYFullF += VPitch; \
-                MaskB += VPitch; \
-                MaskF += VPitch; \
-            } \
+            pdst += dst_pitch; \
+            prefB += ref_pitch << nPelLog; \
+            prefF += ref_pitch << nPelLog; \
+            VXFullB += VPitch; \
+            VYFullB += VPitch; \
+            VXFullF += VPitch; \
+            VYFullF += VPitch; \
+            MaskB += VPitch; \
+            MaskF += VPitch; \
         } \
     } else { /* general case */ \
-        if (nPel == 1) { \
-            for (int h = 0; h < height; h++) { \
-                for (int w = 0; w < width; w += 2) { /* paired for speed */ \
-                    int vxF = (VXFullF[w] * time256) >> 8; \
-                    int vyF = (VYFullF[w] * time256) >> 8; \
-                    int addrF = vyF * ref_pitch + vxF + w; \
-                    int dstF = prefF[addrF]; \
-                    int dstF1 = prefF[addrF + 1]; /* approximation for speed */ \
-                    int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
-                    int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
-                    int addrB = vyB * ref_pitch + vxB + w; \
-                    int dstB = prefB[addrB]; \
-                    int dstB1 = prefB[addrB + 1]; \
-                    pdst[w] = (((dstF * 255 + (dstB - dstF) * MaskF[w] + 255)) * (256 - time256) + \
-                               ((dstB * 255 - (dstB - dstF) * MaskB[w] + 255)) * time256) >> \
-                              16; \
-                    pdst[w + 1] = (((dstF1 * 255 + (dstB1 - dstF1) * MaskF[w + 1] + 255)) * (256 - time256) + \
-                                   ((dstB1 * 255 - (dstB1 - dstF1) * MaskB[w + 1] + 255)) * time256) >> \
-                                  16; \
-                } \
-                pdst += dst_pitch; \
-                prefB += ref_pitch; \
-                prefF += ref_pitch; \
-                VXFullB += VPitch; \
-                VYFullB += VPitch; \
-                VXFullF += VPitch; \
-                VYFullF += VPitch; \
-                MaskB += VPitch; \
-                MaskF += VPitch; \
+        for (int h = 0; h < height; h++) { \
+            for (int w = 0; w < width; w++) { \
+                int vxF = (VXFullF[w] * time256) >> 8; \
+                int vyF = (VYFullF[w] * time256) >> 8; \
+                int dstF = prefF[vyF * ref_pitch + vxF + (w << nPelLog)]; \
+                int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
+                int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
+                int dstB = prefB[vyB * ref_pitch + vxB + (w << nPelLog)]; \
+                pdst[w] = (((dstF * (255 - MaskF[w]) + dstB * MaskF[w] + 255) >> 8) * (256 - time256) + \
+                           ((dstB * (255 - MaskB[w]) + dstF * MaskB[w] + 255) >> 8) * time256) >> \
+                          8; \
             } \
-        } else if (nPel == 2) { \
-            for (int h = 0; h < height; h++) { \
-                for (int w = 0; w < width; w += 1) { \
-                    int vxF = (VXFullF[w] * time256) >> 8; \
-                    int vyF = (VYFullF[w] * time256) >> 8; \
-                    int dstF = prefF[vyF * ref_pitch + vxF + (w << 1)]; \
-                    int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
-                    int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
-                    int dstB = prefB[vyB * ref_pitch + vxB + (w << 1)]; \
-                    pdst[w] = (((dstF * (255 - MaskF[w]) + dstB * MaskF[w] + 255) >> 8) * (256 - time256) + \
-                               ((dstB * (255 - MaskB[w]) + dstF * MaskB[w] + 255) >> 8) * time256) >> \
-                              8; \
-                } \
-                pdst += dst_pitch; \
-                prefB += ref_pitch << 1; \
-                prefF += ref_pitch << 1; \
-                VXFullB += VPitch; \
-                VYFullB += VPitch; \
-                VXFullF += VPitch; \
-                VYFullF += VPitch; \
-                MaskB += VPitch; \
-                MaskF += VPitch; \
-            } \
-        } else if (nPel == 4) { \
-            for (int h = 0; h < height; h++) { \
-                for (int w = 0; w < width; w += 1) { \
-                    int vxF = (VXFullF[w] * time256) >> 8; \
-                    int vyF = (VYFullF[w] * time256) >> 8; \
-                    int dstF = prefF[vyF * ref_pitch + vxF + (w << 2)]; \
-                    int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
-                    int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
-                    int dstB = prefB[vyB * ref_pitch + vxB + (w << 2)]; \
-                    pdst[w] = (((dstF * (255 - MaskF[w]) + dstB * MaskF[w] + 255) >> 8) * (256 - time256) + \
-                               ((dstB * (255 - MaskB[w]) + dstF * MaskB[w] + 255) >> 8) * time256) >> \
-                              8; \
-                } \
-                pdst += dst_pitch; \
-                prefB += ref_pitch << 2; \
-                prefF += ref_pitch << 2; \
-                VXFullB += VPitch; \
-                VYFullB += VPitch; \
-                VXFullF += VPitch; \
-                VYFullF += VPitch; \
-                MaskB += VPitch; \
-                MaskF += VPitch; \
-            } \
+            pdst += dst_pitch; \
+            prefB += ref_pitch << nPelLog; \
+            prefF += ref_pitch << nPelLog; \
+            VXFullB += VPitch; \
+            VYFullB += VPitch; \
+            VXFullF += VPitch; \
+            VYFullF += VPitch; \
+            MaskB += VPitch; \
+            MaskF += VPitch; \
         } \
     } \
 }

@@ -26,6 +26,7 @@
 #include <VSHelper.h>
 
 #include "Bullshit.h"
+#include "CommonFunctions.h"
 #include "Fakery.h"
 #include "MaskFun.h"
 #include "MVAnalysisData.h"
@@ -85,136 +86,50 @@ static void RealFlowBlur_##PixelType(uint8_t *pdst8, int dst_pitch, const uint8_
     ref_pitch /= sizeof(PixelType); \
     dst_pitch /= sizeof(PixelType); \
  \
+    int nPelLog = ilog2(nPel); \
+ \
     /* very slow, but precise motion blur */ \
-    if (nPel == 1) { \
-        for (int h = 0; h < height; h++) { \
-            for (int w = 0; w < width; w++) { \
-                int bluredsum = pref[w]; \
-                int vxF0 = VXFullF[w] * blur256; \
-                int vyF0 = VYFullF[w] * blur256; \
-                int mF = (VSMAX(abs(vxF0), abs(vyF0)) / prec) >> 8; \
-                if (mF > 0) { \
-                    vxF0 /= mF; \
-                    vyF0 /= mF; \
-                    int vxF = vxF0; \
-                    int vyF = vyF0; \
-                    for (int i = 0; i < mF; i++) { \
-                        int dstF = pref[(vyF >> 8) * ref_pitch + (vxF >> 8) + w]; \
-                        bluredsum += dstF; \
-                        vxF += vxF0; \
-                        vyF += vyF0; \
-                    } \
+    for (int h = 0; h < height; h++) { \
+        for (int w = 0; w < width; w++) { \
+            int bluredsum = pref[w << nPelLog]; \
+            int vxF0 = VXFullF[w] * blur256; \
+            int vyF0 = VYFullF[w] * blur256; \
+            int mF = (VSMAX(abs(vxF0), abs(vyF0)) / prec) >> 8; \
+            if (mF > 0) { \
+                vxF0 /= mF; \
+                vyF0 /= mF; \
+                int vxF = vxF0; \
+                int vyF = vyF0; \
+                for (int i = 0; i < mF; i++) { \
+                    int dstF = pref[(vyF >> 8) * ref_pitch + (vxF >> 8) + (w << nPelLog)]; \
+                    bluredsum += dstF; \
+                    vxF += vxF0; \
+                    vyF += vyF0; \
                 } \
-                int vxB0 = VXFullB[w] * blur256; \
-                int vyB0 = VYFullB[w] * blur256; \
-                int mB = (VSMAX(abs(vxB0), abs(vyB0)) / prec) >> 8; \
-                if (mB > 0) { \
-                    vxB0 /= mB; \
-                    vyB0 /= mB; \
-                    int vxB = vxB0; \
-                    int vyB = vyB0; \
-                    for (int i = 0; i < mB; i++) { \
-                        int dstB = pref[(vyB >> 8) * ref_pitch + (vxB >> 8) + w]; \
-                        bluredsum += dstB; \
-                        vxB += vxB0; \
-                        vyB += vyB0; \
-                    } \
-                } \
-                pdst[w] = bluredsum / (mF + mB + 1); \
             } \
-            pdst += dst_pitch; \
-            pref += ref_pitch; \
-            VXFullB += VPitch; \
-            VYFullB += VPitch; \
-            VXFullF += VPitch; \
-            VYFullF += VPitch; \
-        } \
-    } else if (nPel == 2) { \
-        for (int h = 0; h < height; h++) { \
-            for (int w = 0; w < width; w++) { \
-                int bluredsum = pref[w << 1]; \
-                int vxF0 = VXFullF[w] * blur256; \
-                int vyF0 = VYFullF[w] * blur256; \
-                int mF = (VSMAX(abs(vxF0), abs(vyF0)) / prec) >> 8; \
-                if (mF > 0) { \
-                    vxF0 /= mF; \
-                    vyF0 /= mF; \
-                    int vxF = vxF0; \
-                    int vyF = vyF0; \
-                    for (int i = 0; i < mF; i++) { \
-                        int dstF = pref[(vyF >> 8) * ref_pitch + (vxF >> 8) + (w << 1)]; \
-                        bluredsum += dstF; \
-                        vxF += vxF0; \
-                        vyF += vyF0; \
-                    } \
+            int vxB0 = VXFullB[w] * blur256; \
+            int vyB0 = VYFullB[w] * blur256; \
+            int mB = (VSMAX(abs(vxB0), abs(vyB0)) / prec) >> 8; \
+            if (mB > 0) { \
+                vxB0 /= mB; \
+                vyB0 /= mB; \
+                int vxB = vxB0; \
+                int vyB = vyB0; \
+                for (int i = 0; i < mB; i++) { \
+                    int dstB = pref[(vyB >> 8) * ref_pitch + (vxB >> 8) + (w << nPelLog)]; \
+                    bluredsum += dstB; \
+                    vxB += vxB0; \
+                    vyB += vyB0; \
                 } \
-                int vxB0 = VXFullB[w] * blur256; \
-                int vyB0 = VYFullB[w] * blur256; \
-                int mB = (VSMAX(abs(vxB0), abs(vyB0)) / prec) >> 8; \
-                if (mB > 0) { \
-                    vxB0 /= mB; \
-                    vyB0 /= mB; \
-                    int vxB = vxB0; \
-                    int vyB = vyB0; \
-                    for (int i = 0; i < mB; i++) { \
-                        int dstB = pref[(vyB >> 8) * ref_pitch + (vxB >> 8) + (w << 1)]; \
-                        bluredsum += dstB; \
-                        vxB += vxB0; \
-                        vyB += vyB0; \
-                    } \
-                } \
-                pdst[w] = bluredsum / (mF + mB + 1); \
             } \
-            pdst += dst_pitch; \
-            pref += (ref_pitch << 1); \
-            VXFullB += VPitch; \
-            VYFullB += VPitch; \
-            VXFullF += VPitch; \
-            VYFullF += VPitch; \
+            pdst[w] = bluredsum / (mF + mB + 1); \
         } \
-    } else if (nPel == 4) { \
-        for (int h = 0; h < height; h++) { \
-            for (int w = 0; w < width; w++) { \
-                int bluredsum = pref[w << 2]; \
-                int vxF0 = VXFullF[w] * blur256; \
-                int vyF0 = VYFullF[w] * blur256; \
-                int mF = (VSMAX(abs(vxF0), abs(vyF0)) / prec) >> 8; \
-                if (mF > 0) { \
-                    vxF0 /= mF; \
-                    vyF0 /= mF; \
-                    int vxF = vxF0; \
-                    int vyF = vyF0; \
-                    for (int i = 0; i < mF; i++) { \
-                        int dstF = pref[(vyF >> 8) * ref_pitch + (vxF >> 8) + (w << 2)]; \
-                        bluredsum += dstF; \
-                        vxF += vxF0; \
-                        vyF += vyF0; \
-                    } \
-                } \
-                int vxB0 = VXFullB[w] * blur256; \
-                int vyB0 = VYFullB[w] * blur256; \
-                int mB = (VSMAX(abs(vxB0), abs(vyB0)) / prec) >> 8; \
-                if (mB > 0) { \
-                    vxB0 /= mB; \
-                    vyB0 /= mB; \
-                    int vxB = vxB0; \
-                    int vyB = vyB0; \
-                    for (int i = 0; i < mB; i++) { \
-                        int dstB = pref[(vyB >> 8) * ref_pitch + (vxB >> 8) + (w << 2)]; \
-                        bluredsum += dstB; \
-                        vxB += vxB0; \
-                        vyB += vyB0; \
-                    } \
-                } \
-                pdst[w] = bluredsum / (mF + mB + 1); \
-            } \
-            pdst += dst_pitch; \
-            pref += (ref_pitch << 2); \
-            VXFullB += VPitch; \
-            VYFullB += VPitch; \
-            VXFullF += VPitch; \
-            VYFullF += VPitch; \
-        } \
+        pdst += dst_pitch; \
+        pref += (ref_pitch << nPelLog); \
+        VXFullB += VPitch; \
+        VYFullB += VPitch; \
+        VXFullF += VPitch; \
+        VYFullF += VPitch; \
     } \
 }
 
