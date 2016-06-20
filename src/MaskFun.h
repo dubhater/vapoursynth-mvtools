@@ -30,13 +30,8 @@ extern "C" {
 #include "MVFrame.h"
 
 void MakeVectorOcclusionMaskTime(const FakeGroupOfPlanes *fgop, int isBackward, int nBlkX, int nBlkY, double dMaskNormDivider, double fGamma, int nPel, uint8_t *occMask, int occMaskPitch, int time256, int nBlkStepX, int nBlkStepY);
-void VectorMasksToOcclusionMaskTime(uint8_t *VXMask, uint8_t *VYMask, int nBlkX, int nBlkY, double dMaskNormFactor, double fGamma, int nPel, uint8_t *occMask, int occMaskPitch, int time256, int blkSizeX, int blkSizeY);
 
 void MakeSADMaskTime(const FakeGroupOfPlanes *fgop, int nBlkX, int nBlkY, double dSADNormFactor, double fGamma, int nPel, uint8_t *Mask, int MaskPitch, int time256, int nBlkStepX, int nBlkStepY);
-
-void MakeVectorOcclusionMask(const FakeGroupOfPlanes *fgop, int nBlkX, int nBlkY, double dMaskNormFactor, double fGamma, int nPel, uint8_t *occMask, int occMaskPitch);
-
-void VectorMasksToOcclusionMask(uint8_t *VX, uint8_t *VY, int nBlkX, int nBlkY, double fMaskNormFactor, double fGamma, int nPel, uint8_t *smallMask);
 
 void MakeVectorSmallMasks(const FakeGroupOfPlanes *fgop, int nX, int nY, int16_t *VXSmallY, int pitchVXSmallY, int16_t *VYSmallY, int pitchVYSmallY);
 void VectorSmallMaskYToHalfUV(int16_t *VSmallY, int nBlkX, int nBlkY, int16_t *VSmallUV, int ratioUV);
@@ -68,19 +63,6 @@ void FlowInterExtra(uint8_t *pdst, int dst_pitch, const uint8_t *prefB, const ui
                     const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
                     int VPitch, int width, int height, int time256, int nPel,
                     const int16_t *VXFullBB, const int16_t *VXFullFF, const int16_t *VYFullBB, const int16_t *VYFullFF, int bitsPerSample);
-
-void FlowInterPel(uint8_t *pdst, int dst_pitch, MVPlane *prefB, MVPlane *prefF, int ref_pitch,
-                  uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,
-                  int VPitch, int width, int height, int time256, int nPel, int *LUTVB, int *LUTVF);
-
-void FlowInterSimplePel(uint8_t *pdst, int dst_pitch, MVPlane *prefB, MVPlane *prefF, int ref_pitch,
-                        uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,
-                        int VPitch, int width, int height, int time256, int nPel, int *LUTVB, int *LUTVF);
-
-void FlowInterExtraPel(uint8_t *pdst, int dst_pitch, MVPlane *prefB, MVPlane *prefF, int ref_pitch,
-                       uint8_t *VXFullB, uint8_t *VXFullF, uint8_t *VYFullB, uint8_t *VYFullF, uint8_t *MaskB, uint8_t *MaskF,
-                       int VPitch, int width, int height, int time256, int nPel, int *LUTVB, int *LUTVF,
-                       uint8_t *VXFullBB, uint8_t *VXFullFF, uint8_t *VYFullBB, uint8_t *VYFullFF);
 
 #ifdef __cplusplus
 } // extern "C"
