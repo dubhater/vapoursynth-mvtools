@@ -149,15 +149,15 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
                 MakeVectorOcclusionMaskTime(&fgop, d->vectors_data.isBackward, nBlkX, nBlkY, 1.0 / fMaskNormFactor, fGamma, nPel, smallMask, nBlkX, time256, nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY);
             } else if (kind == 3) { // vector x mask
                 for (int j = 0; j < nBlkCount; j++)
-                    smallMask[j] = fgopGetBlock(&fgop, 0, j)->vector.x + 128; // shited by 128 for signed support
-            } else if (kind == 4) {                                      // vector y mask
+                    smallMask[j] = VSMAX(0, VSMIN(255, (int)(fgopGetBlock(&fgop, 0, j)->vector.x * fMaskNormFactor * 100 + 128))); // shited by 128 for signed support
+            } else if (kind == 4) { // vector y mask
                 for (int j = 0; j < nBlkCount; j++)
-                    smallMask[j] = fgopGetBlock(&fgop, 0, j)->vector.y + 128; // shited by 128 for signed support
+                    smallMask[j] = VSMAX(0, VSMIN(255, (int)(fgopGetBlock(&fgop, 0, j)->vector.y * fMaskNormFactor * 100 + 128))); // shited by 128 for signed support
             } else if (kind == 5) {                                      // vector x mask in U, y mask in V
                 for (int j = 0; j < nBlkCount; j++) {
                     VECTOR v = fgopGetBlock(&fgop, 0, j)->vector;
-                    smallMask[j] = v.x + 128;  // shited by 128 for signed support
-                    smallMaskV[j] = v.y + 128; // shited by 128 for signed support
+                    smallMask[j] = VSMAX(0, VSMIN(255, (int)(v.x * fMaskNormFactor * 100 + 128)));  // shited by 128 for signed support
+                    smallMaskV[j] = VSMAX(0, VSMIN(255, (int)(v.y * fMaskNormFactor * 100 + 128))); // shited by 128 for signed support
                 }
             }
 
