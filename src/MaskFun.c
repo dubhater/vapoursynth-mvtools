@@ -110,37 +110,26 @@ void MakeSADMaskTime(const FakeGroupOfPlanes *fgop, int nBlkX, int nBlkY, double
 }
 
 
-void MakeVectorSmallMasks(const FakeGroupOfPlanes *fgop, int nBlkX, int nBlkY, uint8_t *VXSmallY, int pitchVXSmallY, uint8_t *VYSmallY, int pitchVYSmallY) {
+void MakeVectorSmallMasks(const FakeGroupOfPlanes *fgop, int nBlkX, int nBlkY, int16_t *VXSmallY, int pitchVXSmallY, int16_t *VYSmallY, int pitchVYSmallY) {
     // make  vector vx and vy small masks
-    // 1. ATTENTION: vectors are assumed SHORT (|vx|, |vy| < 127) !
-    // 2. they will be zeroed if not
-    // 3. added 128 to all values
     for (int by = 0; by < nBlkY; by++) {
         for (int bx = 0; bx < nBlkX; bx++) {
             int i = bx + by * nBlkX;
             const FakeBlockData *block = fgopGetBlock(fgop, 0, i);
             int vx = block->vector.x;
             int vy = block->vector.y;
-            if (vx > 127)
-                vx = 127;
-            else if (vx < -127)
-                vx = -127;
-            if (vy > 127)
-                vy = 127;
-            else if (vy < -127)
-                vy = -127;
-            VXSmallY[bx + by * pitchVXSmallY] = vx + 128; // luma
-            VYSmallY[bx + by * pitchVYSmallY] = vy + 128; // luma
+            VXSmallY[bx + by * pitchVXSmallY] = vx; // luma
+            VYSmallY[bx + by * pitchVYSmallY] = vy; // luma
         }
     }
 }
 
-void VectorSmallMaskYToHalfUV(uint8_t *VSmallY, int nBlkX, int nBlkY, uint8_t *VSmallUV, int ratioUV) {
+void VectorSmallMaskYToHalfUV(int16_t *VSmallY, int nBlkX, int nBlkY, int16_t *VSmallUV, int ratioUV) {
     if (ratioUV == 2) {
         // YV12 colorformat
         for (int by = 0; by < nBlkY; by++) {
             for (int bx = 0; bx < nBlkX; bx++) {
-                VSmallUV[bx] = ((VSmallY[bx] - 128) >> 1) + 128; // chroma
+                VSmallUV[bx] = VSmallY[bx] >> 1; // chroma
             }
             VSmallY += nBlkX;
             VSmallUV += nBlkX;
@@ -335,18 +324,10 @@ void Blend(uint8_t *pdst, const uint8_t *psrc, const uint8_t *pref, int height, 
 }
 
 
-void Create_LUTV(int time256, int *LUTVB, int *LUTVF) {
-    for (int v = 0; v < 256; v++) {
-        LUTVB[v] = ((v - 128) * (256 - time256)) / 256;
-        LUTVF[v] = ((v - 128) * time256) / 256;
-    }
-}
-
-
 #define RealFlowInter(PixelType) \
 static void RealFlowInter_##PixelType(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch, \
-                   const uint8_t *VXFullB, const uint8_t *VXFullF, const uint8_t *VYFullB, const uint8_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF, \
-                   int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int *LUTVF) { \
+                   const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF, \
+                   int VPitch, int width, int height, int time256, int nPel) { \
     const PixelType *prefB = (const PixelType *)prefB8; \
     const PixelType *prefF = (const PixelType *)prefF8; \
     PixelType *pdst = (PixelType *)pdst8; \
@@ -357,12 +338,12 @@ static void RealFlowInter_##PixelType(uint8_t *pdst8, int dst_pitch, const uint8
     if (nPel == 1) { \
         for (int h = 0; h < height; h++) { \
             for (int w = 0; w < width; w++) { \
-                int vxF = LUTVF[VXFullF[w]]; \
-                int vyF = LUTVF[VYFullF[w]]; \
+                int vxF = (VXFullF[w] * time256) >> 8; \
+                int vyF = (VYFullF[w] * time256) >> 8; \
                 int64_t dstF = prefF[vyF * ref_pitch + vxF + w]; \
                 int dstF0 = prefF[w]; /* zero */ \
-                int vxB = LUTVB[VXFullB[w]]; \
-                int vyB = LUTVB[VYFullB[w]]; \
+                int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
+                int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
                 int64_t dstB = prefB[vyB * ref_pitch + vxB + w]; \
                 int dstB0 = prefB[w]; /* zero */ \
                 pdst[w] = (PixelType)((((dstF * (255 - MaskF[w]) + ((MaskF[w] * (dstB * (255 - MaskB[w]) + MaskB[w] * dstF0) + 255) >> 8) + 255) >> 8) * (256 - time256) + \
@@ -382,12 +363,12 @@ static void RealFlowInter_##PixelType(uint8_t *pdst8, int dst_pitch, const uint8
     } else if (nPel == 2) { \
         for (int h = 0; h < height; h++) { \
             for (int w = 0; w < width; w++) { \
-                int vxF = LUTVF[VXFullF[w]]; \
-                int vyF = LUTVF[VYFullF[w]]; \
+                int vxF = (VXFullF[w] * time256) >> 8; \
+                int vyF = (VYFullF[w] * time256) >> 8; \
                 int dstF = prefF[vyF * ref_pitch + vxF + (w << 1)]; \
                 int dstF0 = prefF[(w << 1)]; /* zero */ \
-                int vxB = LUTVB[VXFullB[w]]; \
-                int vyB = LUTVB[VYFullB[w]]; \
+                int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
+                int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
                 int dstB = prefB[vyB * ref_pitch + vxB + (w << 1)]; \
                 int dstB0 = prefB[(w << 1)]; /* zero */ \
                 pdst[w] = (((dstF * (255 - MaskF[w]) + ((MaskF[w] * (dstB * (255 - MaskB[w]) + MaskB[w] * dstF0) + 255) >> 8) + 255) >> 8) * (256 - time256) + \
@@ -407,12 +388,12 @@ static void RealFlowInter_##PixelType(uint8_t *pdst8, int dst_pitch, const uint8
     } else if (nPel == 4) { \
         for (int h = 0; h < height; h++) { \
             for (int w = 0; w < width; w++) { \
-                int vxF = LUTVF[VXFullF[w]]; \
-                int vyF = LUTVF[VYFullF[w]]; \
+                int vxF = (VXFullF[w] * time256) >> 8; \
+                int vyF = (VYFullF[w] * time256) >> 8; \
                 int dstF = prefF[vyF * ref_pitch + vxF + (w << 2)]; \
                 int dstF0 = prefF[(w << 2)]; /* zero */ \
-                int vxB = LUTVB[VXFullB[w]]; \
-                int vyB = LUTVB[VYFullB[w]]; \
+                int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
+                int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
                 int dstB = prefB[vyB * ref_pitch + vxB + (w << 2)]; \
                 int dstB0 = prefB[(w << 2)]; /* zero */ \
                 pdst[w] = (((dstF * (255 - MaskF[w]) + ((MaskF[w] * (dstB * (255 - MaskB[w]) + MaskB[w] * dstF0) + 255) >> 8) + 255) >> 8) * (256 - time256) + \
@@ -437,12 +418,12 @@ RealFlowInter(uint16_t)
 
 
 void FlowInter(uint8_t *pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
-               const uint8_t *VXFullB, const uint8_t *VXFullF, const uint8_t *VYFullB, const uint8_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
-               int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int *LUTVF, int bitsPerSample) {
+               const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
+               int VPitch, int width, int height, int time256, int nPel, int bitsPerSample) {
     if (bitsPerSample == 8)
-        RealFlowInter_uint8_t(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, LUTVB, LUTVF);
+        RealFlowInter_uint8_t(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel);
     else
-        RealFlowInter_uint16_t(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, LUTVB, LUTVF);
+        RealFlowInter_uint16_t(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel);
 }
 
 
@@ -463,9 +444,9 @@ static inline int Median3r(int a, int b, int c) {
 
 #define RealFlowInterExtra(PixelType) \
 static void RealFlowInterExtra_##PixelType(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch, \
-                        const uint8_t *VXFullB, const uint8_t *VXFullF, const uint8_t *VYFullB, const uint8_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF, \
-                        int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int *LUTVF, \
-                        const uint8_t *VXFullBB, const uint8_t *VXFullFF, const uint8_t *VYFullBB, const uint8_t *VYFullFF) { \
+                        const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF, \
+                        int VPitch, int width, int height, int time256, int nPel, \
+                        const int16_t *VXFullBB, const int16_t *VXFullFF, const int16_t *VYFullBB, const int16_t *VYFullFF) { \
     const PixelType *prefB = (const PixelType *)prefB8; \
     const PixelType *prefF = (const PixelType *)prefF8; \
     PixelType *pdst = (PixelType *)pdst8; \
@@ -476,23 +457,23 @@ static void RealFlowInterExtra_##PixelType(uint8_t *pdst8, int dst_pitch, const 
     if (nPel == 1) { \
         for (int h = 0; h < height; h++) { \
             for (int w = 0; w < width; w++) { \
-                int vxF = LUTVF[VXFullF[w]]; \
-                int vyF = LUTVF[VYFullF[w]]; \
+                int vxF = (VXFullF[w] * time256) >> 8; \
+                int vyF = (VYFullF[w] * time256) >> 8; \
                 int adrF = vyF * ref_pitch + vxF + w; \
                 int dstF = prefF[adrF]; \
  \
-                int vxFF = LUTVF[VXFullFF[w]]; \
-                int vyFF = LUTVF[VYFullFF[w]]; \
+                int vxFF = (VXFullFF[w] * time256) >> 8; \
+                int vyFF = (VYFullFF[w] * time256) >> 8; \
                 int adrFF = vyFF * ref_pitch + vxFF + w; \
                 int dstFF = prefF[adrFF]; \
  \
-                int vxB = LUTVB[VXFullB[w]]; \
-                int vyB = LUTVB[VYFullB[w]]; \
+                int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
+                int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
                 int adrB = vyB * ref_pitch + vxB + w; \
                 int dstB = prefB[adrB]; \
  \
-                int vxBB = LUTVB[VXFullBB[w]]; \
-                int vyBB = LUTVB[VYFullBB[w]]; \
+                int vxBB = (VXFullBB[w] * (256 - time256)) >> 8; \
+                int vyBB = (VYFullBB[w] * (256 - time256)) >> 8; \
                 int adrBB = vyBB * ref_pitch + vxBB + w; \
                 int dstBB = prefB[adrBB]; \
  \
@@ -528,20 +509,20 @@ static void RealFlowInterExtra_##PixelType(uint8_t *pdst8, int dst_pitch, const 
     } else if (nPel == 2) { \
         for (int h = 0; h < height; h++) { \
             for (int w = 0; w < width; w++) { \
-                int vxF = LUTVF[VXFullF[w]]; \
-                int vyF = LUTVF[VYFullF[w]]; \
+                int vxF = (VXFullF[w] * time256) >> 8; \
+                int vyF = (VYFullF[w] * time256) >> 8; \
                 int adrF = vyF * ref_pitch + vxF + (w << 1); \
                 int dstF = prefF[adrF]; \
-                int vxFF = LUTVF[VXFullFF[w]]; \
-                int vyFF = LUTVF[VYFullFF[w]]; \
+                int vxFF = (VXFullFF[w] * time256) >> 8; \
+                int vyFF = (VYFullFF[w] * time256) >> 8; \
                 int adrFF = vyFF * ref_pitch + vxFF + (w << 1); \
                 int dstFF = prefF[adrFF]; \
-                int vxB = LUTVB[VXFullB[w]]; \
-                int vyB = LUTVB[VYFullB[w]]; \
+                int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
+                int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
                 int adrB = vyB * ref_pitch + vxB + (w << 1); \
                 int dstB = prefB[adrB]; \
-                int vxBB = LUTVB[VXFullBB[w]]; \
-                int vyBB = LUTVB[VYFullBB[w]]; \
+                int vxBB = (VXFullBB[w] * (256 - time256)) >> 8; \
+                int vyBB = (VYFullBB[w] * (256 - time256)) >> 8; \
                 int adrBB = vyBB * ref_pitch + vxBB + (w << 1); \
                 int dstBB = prefB[adrBB]; \
                 /* use median, firsly get min max of compensations */ \
@@ -576,17 +557,17 @@ static void RealFlowInterExtra_##PixelType(uint8_t *pdst8, int dst_pitch, const 
     } else if (nPel == 4) { \
         for (int h = 0; h < height; h++) { \
             for (int w = 0; w < width; w++) { \
-                int vxF = LUTVF[VXFullF[w]]; \
-                int vyF = LUTVF[VYFullF[w]]; \
+                int vxF = (VXFullF[w] * time256) >> 8; \
+                int vyF = (VYFullF[w] * time256) >> 8; \
                 int dstF = prefF[vyF * ref_pitch + vxF + (w << 2)]; \
-                int vxFF = LUTVF[VXFullFF[w]]; \
-                int vyFF = LUTVF[VYFullFF[w]]; \
+                int vxFF = (VXFullFF[w] * time256) >> 8; \
+                int vyFF = (VYFullFF[w] * time256) >> 8; \
                 int dstFF = prefF[vyFF * ref_pitch + vxFF + (w << 2)]; \
-                int vxB = LUTVB[VXFullB[w]]; \
-                int vyB = LUTVB[VYFullB[w]]; \
+                int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
+                int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
                 int dstB = prefB[vyB * ref_pitch + vxB + (w << 2)]; \
-                int vxBB = LUTVB[VXFullBB[w]]; \
-                int vyBB = LUTVB[VYFullBB[w]]; \
+                int vxBB = (VXFullBB[w] * (256 - time256)) >> 8; \
+                int vyBB = (VYFullBB[w] * (256 - time256)) >> 8; \
                 int dstBB = prefB[vyBB * ref_pitch + vxBB + (w << 2)]; \
                 /* use median, firsly get min max of compensations */ \
                 int minfb; \
@@ -625,20 +606,20 @@ RealFlowInterExtra(uint16_t)
 
 
 void FlowInterExtra(uint8_t *pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
-                    const uint8_t *VXFullB, const uint8_t *VXFullF, const uint8_t *VYFullB, const uint8_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
-                    int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int *LUTVF,
-                    const uint8_t *VXFullBB, const uint8_t *VXFullFF, const uint8_t *VYFullBB, const uint8_t *VYFullFF, int bitsPerSample) {
+                    const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
+                    int VPitch, int width, int height, int time256, int nPel,
+                    const int16_t *VXFullBB, const int16_t *VXFullFF, const int16_t *VYFullBB, const int16_t *VYFullFF, int bitsPerSample) {
     if (bitsPerSample == 8)
-        RealFlowInterExtra_uint8_t(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, LUTVB, LUTVF, VXFullBB, VXFullFF, VYFullBB, VYFullFF);
+        RealFlowInterExtra_uint8_t(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, VXFullBB, VXFullFF, VYFullBB, VYFullFF);
     else
-        RealFlowInterExtra_uint16_t(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, LUTVB, LUTVF, VXFullBB, VXFullFF, VYFullBB, VYFullFF);
+        RealFlowInterExtra_uint16_t(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, VXFullBB, VXFullFF, VYFullBB, VYFullFF);
 }
 
 
 #define RealFlowInterSimple(PixelType) \
 static void RealFlowInterSimple_##PixelType(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch, \
-                         const uint8_t *VXFullB, const uint8_t *VXFullF, const uint8_t *VYFullB, const uint8_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF, \
-                         int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int *LUTVF) { \
+                         const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF, \
+                         int VPitch, int width, int height, int time256, int nPel) { \
     const PixelType *prefB = (const PixelType *)prefB8; \
     const PixelType *prefF = (const PixelType *)prefF8; \
     PixelType *pdst = (PixelType *)pdst8; \
@@ -650,13 +631,13 @@ static void RealFlowInterSimple_##PixelType(uint8_t *pdst8, int dst_pitch, const
         if (nPel == 1) { \
             for (int h = 0; h < height; h++) { \
                 for (int w = 0; w < width; w += 2) { /* paired for speed */ \
-                    int vxF = (VXFullF[w] - 128) >> 1; \
-                    int vyF = (VYFullF[w] - 128) >> 1; \
+                    int vxF = VXFullF[w] >> 1; \
+                    int vyF = VYFullF[w] >> 1; \
                     int addrF = vyF * ref_pitch + vxF + w; \
                     int dstF = prefF[addrF]; \
                     int dstF1 = prefF[addrF + 1]; /* approximation for speed */ \
-                    int vxB = (VXFullB[w] - 128) >> 1; \
-                    int vyB = (VYFullB[w] - 128) >> 1; \
+                    int vxB = VXFullB[w] >> 1; \
+                    int vyB = VYFullB[w] >> 1; \
                     int addrB = vyB * ref_pitch + vxB + w; \
                     int dstB = prefB[addrB]; \
                     int dstB1 = prefB[addrB + 1]; \
@@ -676,11 +657,11 @@ static void RealFlowInterSimple_##PixelType(uint8_t *pdst8, int dst_pitch, const
         } else if (nPel == 2) { \
             for (int h = 0; h < height; h++) { \
                 for (int w = 0; w < width; w += 1) { \
-                    int vxF = (VXFullF[w] - 128) >> 1; \
-                    int vyF = (VYFullF[w] - 128) >> 1; \
+                    int vxF = VXFullF[w] >> 1; \
+                    int vyF = VYFullF[w] >> 1; \
                     int dstF = prefF[vyF * ref_pitch + vxF + (w << 1)]; \
-                    int vxB = (VXFullB[w] - 128) >> 1; \
-                    int vyB = (VYFullB[w] - 128) >> 1; \
+                    int vxB = VXFullB[w] >> 1; \
+                    int vyB = VYFullB[w] >> 1; \
                     int dstB = prefB[vyB * ref_pitch + vxB + (w << 1)]; \
                     pdst[w] = (((dstF + dstB) << 8) + (dstB - dstF) * (MaskF[w] - MaskB[w])) >> 9; \
                 } \
@@ -697,11 +678,11 @@ static void RealFlowInterSimple_##PixelType(uint8_t *pdst8, int dst_pitch, const
         } else if (nPel == 4) { \
             for (int h = 0; h < height; h++) { \
                 for (int w = 0; w < width; w += 1) { \
-                    int vxF = (VXFullF[w] - 128) >> 1; \
-                    int vyF = (VYFullF[w] - 128) >> 1; \
+                    int vxF = VXFullF[w] >> 1; \
+                    int vyF = VYFullF[w] >> 1; \
                     int dstF = prefF[vyF * ref_pitch + vxF + (w << 2)]; \
-                    int vxB = (VXFullB[w] - 128) >> 1; \
-                    int vyB = (VYFullB[w] - 128) >> 1; \
+                    int vxB = VXFullB[w] >> 1; \
+                    int vyB = VYFullB[w] >> 1; \
                     int dstB = prefB[vyB * ref_pitch + vxB + (w << 2)]; \
                     pdst[w] = (((dstF + dstB) << 8) + (dstB - dstF) * (MaskF[w] - MaskB[w])) >> 9; \
                 } \
@@ -720,13 +701,13 @@ static void RealFlowInterSimple_##PixelType(uint8_t *pdst8, int dst_pitch, const
         if (nPel == 1) { \
             for (int h = 0; h < height; h++) { \
                 for (int w = 0; w < width; w += 2) { /* paired for speed */ \
-                    int vxF = LUTVF[VXFullF[w]]; \
-                    int vyF = LUTVF[VYFullF[w]]; \
+                    int vxF = (VXFullF[w] * time256) >> 8; \
+                    int vyF = (VYFullF[w] * time256) >> 8; \
                     int addrF = vyF * ref_pitch + vxF + w; \
                     int dstF = prefF[addrF]; \
                     int dstF1 = prefF[addrF + 1]; /* approximation for speed */ \
-                    int vxB = LUTVB[VXFullB[w]]; \
-                    int vyB = LUTVB[VYFullB[w]]; \
+                    int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
+                    int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
                     int addrB = vyB * ref_pitch + vxB + w; \
                     int dstB = prefB[addrB]; \
                     int dstB1 = prefB[addrB + 1]; \
@@ -750,11 +731,11 @@ static void RealFlowInterSimple_##PixelType(uint8_t *pdst8, int dst_pitch, const
         } else if (nPel == 2) { \
             for (int h = 0; h < height; h++) { \
                 for (int w = 0; w < width; w += 1) { \
-                    int vxF = LUTVF[VXFullF[w]]; \
-                    int vyF = LUTVF[VYFullF[w]]; \
+                    int vxF = (VXFullF[w] * time256) >> 8; \
+                    int vyF = (VYFullF[w] * time256) >> 8; \
                     int dstF = prefF[vyF * ref_pitch + vxF + (w << 1)]; \
-                    int vxB = LUTVB[VXFullB[w]]; \
-                    int vyB = LUTVB[VYFullB[w]]; \
+                    int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
+                    int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
                     int dstB = prefB[vyB * ref_pitch + vxB + (w << 1)]; \
                     pdst[w] = (((dstF * (255 - MaskF[w]) + dstB * MaskF[w] + 255) >> 8) * (256 - time256) + \
                                ((dstB * (255 - MaskB[w]) + dstF * MaskB[w] + 255) >> 8) * time256) >> \
@@ -773,11 +754,11 @@ static void RealFlowInterSimple_##PixelType(uint8_t *pdst8, int dst_pitch, const
         } else if (nPel == 4) { \
             for (int h = 0; h < height; h++) { \
                 for (int w = 0; w < width; w += 1) { \
-                    int vxF = LUTVF[VXFullF[w]]; \
-                    int vyF = LUTVF[VYFullF[w]]; \
+                    int vxF = (VXFullF[w] * time256) >> 8; \
+                    int vyF = (VYFullF[w] * time256) >> 8; \
                     int dstF = prefF[vyF * ref_pitch + vxF + (w << 2)]; \
-                    int vxB = LUTVB[VXFullB[w]]; \
-                    int vyB = LUTVB[VYFullB[w]]; \
+                    int vxB = (VXFullB[w] * (256 - time256)) >> 8; \
+                    int vyB = (VYFullB[w] * (256 - time256)) >> 8; \
                     int dstB = prefB[vyB * ref_pitch + vxB + (w << 2)]; \
                     pdst[w] = (((dstF * (255 - MaskF[w]) + dstB * MaskF[w] + 255) >> 8) * (256 - time256) + \
                                ((dstB * (255 - MaskB[w]) + dstF * MaskB[w] + 255) >> 8) * time256) >> \
@@ -802,12 +783,12 @@ RealFlowInterSimple(uint16_t)
 
 
 void FlowInterSimple(uint8_t *pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
-                     const uint8_t *VXFullB, const uint8_t *VXFullF, const uint8_t *VYFullB, const uint8_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
-                     int VPitch, int width, int height, int time256, int nPel, const int *LUTVB, const int *LUTVF, int bitsPerSample) {
+                     const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
+                     int VPitch, int width, int height, int time256, int nPel, int bitsPerSample) {
     if (bitsPerSample == 8)
-        RealFlowInterSimple_uint8_t(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, LUTVB, LUTVF);
+        RealFlowInterSimple_uint8_t(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel);
     else
-        RealFlowInterSimple_uint16_t(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, LUTVB, LUTVF);
+        RealFlowInterSimple_uint16_t(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel);
 }
 
 

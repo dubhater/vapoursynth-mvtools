@@ -164,7 +164,7 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
             if (kind == 5) { // do not change luma for kind=5
                 memcpy(pDst[0], pSrc[0], nSrcPitches[0] * nHeight);
             } else {
-                simpleResize(upsizer, pDst[0], nDstPitches[0], smallMask, nBlkX);
+                simpleResize_uint8_t(upsizer, pDst[0], nDstPitches[0], smallMask, nBlkX);
                 if (nWidth > nWidthB)
                     for (int h = 0; h < nHeight; h++)
                         for (int w = nWidthB; w < nWidth; w++)
@@ -174,10 +174,10 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
             }
 
             // chroma
-            simpleResize(upsizerUV, pDst[1], nDstPitches[1], smallMask, nBlkX);
+            simpleResize_uint8_t(upsizerUV, pDst[1], nDstPitches[1], smallMask, nBlkX);
 
             if (kind == 5)
-                simpleResize(upsizerUV, pDst[2], nDstPitches[2], smallMaskV, nBlkX);
+                simpleResize_uint8_t(upsizerUV, pDst[2], nDstPitches[2], smallMaskV, nBlkX);
             else
                 memcpy(pDst[2], pDst[1], nHeightUV * nDstPitches[1]);
 

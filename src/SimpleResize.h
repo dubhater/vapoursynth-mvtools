@@ -44,7 +44,8 @@ typedef struct SimpleResize {
 
 void simpleInit(SimpleResize *simple, int dst_width, int dst_height, int src_width, int src_height);
 void simpleDeinit(SimpleResize *simple);
-void simpleResize(const SimpleResize *simple, uint8_t *dstp, int dst_stride, const uint8_t *srcp, int src_stride);
+void simpleResize_uint8_t(const SimpleResize *simple, uint8_t *dstp, int dst_stride, const uint8_t *srcp, int src_stride);
+void simpleResize_int16_t(const SimpleResize *simple, int16_t *dstp, int dst_stride, const int16_t *srcp, int src_stride);
 
 
 #ifdef __cplusplus

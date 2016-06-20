@@ -445,12 +445,12 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
 
 
                 // upsize small mask to full frame size
-                simpleResize(upsizer, MaskFullYF, nPitchY, smallMaskF, nBlkXP);
-                simpleResize(upsizer, MaskFullYB, nPitchY, smallMaskB, nBlkXP);
+                simpleResize_uint8_t(upsizer, MaskFullYF, nPitchY, smallMaskF, nBlkXP);
+                simpleResize_uint8_t(upsizer, MaskFullYB, nPitchY, smallMaskB, nBlkXP);
 
                 if (nSuperModeYUV & UVPLANES) {
-                    simpleResize(upsizerUV, MaskFullUVF, nPitchUV, smallMaskF, nBlkXP);
-                    simpleResize(upsizerUV, MaskFullUVB, nPitchUV, smallMaskB, nBlkXP);
+                    simpleResize_uint8_t(upsizerUV, MaskFullUVF, nPitchUV, smallMaskF, nBlkXP);
+                    simpleResize_uint8_t(upsizerUV, MaskFullUVB, nPitchUV, smallMaskB, nBlkXP);
                 }
             }
 
@@ -458,9 +458,9 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
                 // make final (both directions) occlusion mask
                 MultMasks(smallMaskF, smallMaskB, smallMaskO, nBlkXP, nBlkYP);
                 // upsize small mask to full frame size
-                simpleResize(upsizer, MaskOccY, nPitchY, smallMaskO, nBlkXP);
+                simpleResize_uint8_t(upsizer, MaskOccY, nPitchY, smallMaskO, nBlkXP);
                 if (nSuperModeYUV & UVPLANES)
-                    simpleResize(upsizerUV, MaskOccUV, nPitchUV, smallMaskO, nBlkXP);
+                    simpleResize_uint8_t(upsizerUV, MaskOccUV, nPitchUV, smallMaskO, nBlkXP);
             }
 
             // pointers

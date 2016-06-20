@@ -71,35 +71,40 @@ void simpleDeinit(SimpleResize *simple) {
 
 
 // Thread-safe.
-void simpleResize(const SimpleResize *simple, uint8_t *dstp, int dst_stride, const uint8_t *srcp, int src_stride) {
-    const uint8_t *srcp1;
-    const uint8_t *srcp2;
-
-    uint8_t *workp = (uint8_t *)malloc(simple->src_width);
-
-    for (int y = 0; y < simple->dst_height; y++) {
-        int weight_bottom = simple->vertical_weights[y];
-        int weight_top = 32768 - weight_bottom;
-
-        srcp1 = srcp + simple->vertical_offsets[y] * src_stride;
-        srcp2 = srcp1 + src_stride;
-
-        // vertical
-        for (int x = 0; x < simple->src_width; x++) {
-            workp[x] = (srcp1[x] * weight_top + srcp2[x] * weight_bottom + 16384) / 32768;
-        }
-
-        // horizontal
-        for (int x = 0; x < simple->dst_width; x++) {
-            int weight_right = simple->horizontal_weights[x];
-            int weight_left = 32768 - weight_right;
-            int offset = simple->horizontal_offsets[x];
-
-            dstp[x] = (workp[offset] * weight_left + workp[offset + 1] * weight_right + 16384) / 32768;
-        }
-
-        dstp += dst_stride;
-    }
-
-    free(workp);
+#define simpleResize(PixelType) \
+void simpleResize_##PixelType(const SimpleResize *simple, PixelType *dstp, int dst_stride, const PixelType *srcp, int src_stride) { \
+    const PixelType *srcp1; \
+    const PixelType *srcp2; \
+ \
+    PixelType *workp = (PixelType *)malloc(simple->src_width * sizeof(PixelType)); \
+ \
+    for (int y = 0; y < simple->dst_height; y++) { \
+        int weight_bottom = simple->vertical_weights[y]; \
+        int weight_top = 32768 - weight_bottom; \
+ \
+        srcp1 = srcp + simple->vertical_offsets[y] * src_stride; \
+        srcp2 = srcp1 + src_stride; \
+ \
+        /* vertical */ \
+        for (int x = 0; x < simple->src_width; x++) { \
+            workp[x] = (srcp1[x] * weight_top + srcp2[x] * weight_bottom + 16384) / 32768; \
+        } \
+ \
+        /* horizontal */ \
+        for (int x = 0; x < simple->dst_width; x++) { \
+            int weight_right = simple->horizontal_weights[x]; \
+            int weight_left = 32768 - weight_right; \
+            int offset = simple->horizontal_offsets[x]; \
+ \
+            dstp[x] = (workp[offset] * weight_left + workp[offset + 1] * weight_right + 16384) / 32768; \
+        } \
+ \
+        dstp += dst_stride; \
+    } \
+ \
+    free(workp); \
 }
+
+
+simpleResize(uint8_t)
+simpleResize(int16_t)
