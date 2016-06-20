@@ -357,9 +357,6 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
                 uint8_t *VXSmallUVF = (uint8_t *)malloc(nBlkX * nBlkY);
                 uint8_t *VYSmallUVF = (uint8_t *)malloc(nBlkX * nBlkY);
 
-                uint8_t *MaskFullUVB = (uint8_t *)malloc(nHeightUV * VPitchUV);
-                uint8_t *MaskFullUVF = (uint8_t *)malloc(nHeightUV * VPitchUV);
-
                 VectorSmallMaskYToHalfUV(VXSmallYB, nBlkX, nBlkY, VXSmallUVB, xRatioUV);
                 VectorSmallMaskYToHalfUV(VYSmallYB, nBlkX, nBlkY, VYSmallUVB, yRatioUV);
 
@@ -388,8 +385,6 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
                 free(VYFullUVF);
                 free(VXSmallUVF);
                 free(VYSmallUVF);
-                free(MaskFullUVB);
-                free(MaskFullUVF);
             }
 
             free(VXFullYB);
