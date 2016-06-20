@@ -1117,7 +1117,8 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     if (d.mvbw_data.nHeight != nHeightS ||
         d.mvbw_data.nWidth != nSuperWidth - d.nSuperHPad * 2 ||
         d.mvbw_data.nWidth != d.vi.width ||
-        d.mvbw_data.nHeight != d.vi.height) {
+        d.mvbw_data.nHeight != d.vi.height ||
+        d.mvbw_data.nPel != d.nSuperPel) {
         vsapi->setError(out, "BlockFPS: wrong source or super clip frame size.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);

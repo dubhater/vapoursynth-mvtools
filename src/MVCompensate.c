@@ -756,7 +756,7 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
     d.supervi = vsapi->getVideoInfo(d.super);
     int nSuperWidth = d.supervi->width;
 
-    if (d.vectors_data.nHeight != nHeightS || d.vectors_data.nHeight != d.vi->height || d.vectors_data.nWidth != nSuperWidth - d.nSuperHPad * 2 || d.vectors_data.nWidth != d.vi->width) {
+    if (d.vectors_data.nHeight != nHeightS || d.vectors_data.nHeight != d.vi->height || d.vectors_data.nWidth != nSuperWidth - d.nSuperHPad * 2 || d.vectors_data.nWidth != d.vi->width || d.vectors_data.nPel != d.nSuperPel) {
         vsapi->setError(out, "Compensate: wrong source or super clip frame size.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.vectors);
