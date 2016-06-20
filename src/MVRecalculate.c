@@ -79,8 +79,14 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
     if (activationReason == arInitial) {
         vsapi->requestFrameFilter(n, d->vectors, frameCtx);
 
-        int offset = (d->analysisData.isBackward) ? d->analysisData.nDeltaFrame : -d->analysisData.nDeltaFrame;
-        int nref = n + offset;
+        int nref;
+        int offset = d->analysisData.nDeltaFrame;
+
+        if (offset > 0) {
+            nref = d->analysisData.isBackward ? n + offset : n - offset;
+        } else {
+            nref = -offset;
+        }
 
         if (nref >= 0 && nref < d->vi->numFrames) {
             if (n < nref) {
@@ -105,8 +111,14 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
         int nSrcPitch[3] = { 0 };
         int nRefPitch[3] = { 0 };
 
-        int offset = (d->analysisData.isBackward) ? d->analysisData.nDeltaFrame : -d->analysisData.nDeltaFrame;
-        int nref = n + offset;
+        int nref;
+        int offset = d->analysisData.nDeltaFrame;
+
+        if (offset > 0) {
+            nref = d->analysisData.isBackward ? n + offset : n - offset;
+        } else {
+            nref = -offset;
+        }
 
         const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx);
         const VSMap *srcprops = vsapi->getFramePropsRO(src);

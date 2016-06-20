@@ -530,6 +530,14 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
     }
 
 
+    if (d.mvbw_data.nDeltaFrame <= 0 || d.mvfw_data.nDeltaFrame <= 0) {
+        vsapi->setError(out, "FlowBlur: cannot use motion vectors with absolute frame references.");
+        vsapi->freeNode(d.super);
+        vsapi->freeNode(d.mvfw);
+        vsapi->freeNode(d.mvbw);
+        return;
+    }
+
     // XXX Alternatively, use both clips' delta as offsets in GetFrame.
     if (d.mvfw_data.nDeltaFrame != d.mvbw_data.nDeltaFrame) {
         vsapi->setError(out, "FlowBlur: mvbw and mvfw must be generated with the same delta.");

@@ -685,6 +685,11 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
 
     error[0] = '\0';
 
+
+    for (int r = 0; r < radius * 2; r++)
+        if (d.vectors_data[r].nDeltaFrame <= 0)
+            snprintf(error, ERROR_SIZE, "%s", "cannot use motion vectors with absolute frame references.");
+
     // Make sure the motion vector clips are correct.
     if (!d.vectors_data[Backward1].isBackward)
         snprintf(error, ERROR_SIZE, "%s", "mvbw must be generated with isb=True.");
