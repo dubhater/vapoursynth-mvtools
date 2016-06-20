@@ -92,7 +92,7 @@ Usage
 
     mv.Recalculate(clip super, clip vectors[, int blksize=8, int blksizev=blksize, int search=4, int searchparam=2, int lambda, bint chroma=True, bint truemotion=True, int pnew, int overlap=0, int overlapv=overlap, bint divide=False, bint isse=True, bint meander=True, bint fields=False, bint tff, int dct=0])
 
-    mv.Compensate(clip clip, clip super, clip vectors[, int scbehavior=1, int thsad=10000, bint fields=False, int thscd1=400, int thscd2=130, bint isse=True, bint tff])
+    mv.Compensate(clip clip, clip super, clip vectors[, int scbehavior=1, int thsad=10000, bint fields=False, float time=100.0, int thscd1=400, int thscd2=130, bint isse=True, bint tff])
 
     mv.Degrain1(clip clip, clip super, clip mvbw, clip mvfw[, int thsad=400, int thsadc=thsad, int plane=4, int limit=255, int limitc=limit, int thscd1=400, int thscd2=130, bint isse=True])
 

@@ -39,6 +39,7 @@ typedef struct MVCompensateData {
     int scBehavior;
     int thSAD;
     int fields;
+    int time256;
     int nSCD1;
     int nSCD2;
     int isse;
@@ -156,6 +157,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
         const int nVPadding = d->vectors_data.nVPadding;
         const int scBehavior = d->scBehavior;
         const int fields = d->fields;
+        const int time256 = d->time256;
 
         int bitsPerSample = d->supervi->format->bitsPerSample;
         int bytesPerSample = d->supervi->format->bytesPerSample;
@@ -241,8 +243,8 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                     for (int bx = 0; bx < nBlkX; bx++) {
                         int i = by * nBlkX + bx;
                         const FakeBlockData *block = fgopGetBlock(&fgop, 0, i);
-                        blx = block->x * nPel + block->vector.x;
-                        bly = block->y * nPel + block->vector.y + fieldShift;
+                        blx = block->x * nPel + block->vector.x * time256 / 256;
+                        bly = block->y * nPel + block->vector.y * time256 / 256 + fieldShift;
                         if (block->vector.sad < thSAD) {
                             // luma
                             d->BLITLUMA(pDstCur[0] + xx, nDstPitches[0], mvpGetPointer(pPlanes[0], blx, bly), pPlanes[0]->nPitch);
@@ -314,8 +316,8 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                         int i = by * nBlkX + bx;
                         const FakeBlockData *block = fgopGetBlock(&fgop, 0, i);
 
-                        blx = block->x * nPel + block->vector.x;
-                        bly = block->y * nPel + block->vector.y + fieldShift;
+                        blx = block->x * nPel + block->vector.x * time256 / 256;
+                        bly = block->y * nPel + block->vector.y * time256 / 256 + fieldShift;
 
                         if (block->vector.sad < thSAD) {
                             // luma
@@ -656,6 +658,10 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
 
     d.fields = !!vsapi->propGetInt(in, "fields", 0, &err);
 
+    double time = vsapi->propGetFloat(in, "time", 0, &err);
+    if (err)
+        time = 100.0;
+
     d.nSCD1 = int64ToIntS(vsapi->propGetInt(in, "thscd1", 0, &err));
     if (err)
         d.nSCD1 = MV_DEFAULT_SCD1;
@@ -670,6 +676,12 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
 
     d.tff = !!vsapi->propGetInt(in, "tff", 0, &err);
     d.tff_exists = !err;
+
+
+    if (time < 0.0 || time > 100.0) {
+        vsapi->setError(out, "Compensate: time must be between 0.0 and 100.0 (inclusive).");
+        return;
+    }
 
 
     d.super = vsapi->propGetNode(in, "super", 0, NULL);
@@ -772,6 +784,8 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
         }
     }
 
+    d.time256 = (int)(time * 256 / 100);
+
     selectFunctions(&d);
 
 
@@ -790,6 +804,7 @@ void mvcompensateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "scbehavior:int:opt;"
                  "thsad:int:opt;"
                  "fields:int:opt;"
+                 "time:float:opt;"
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
                  "isse:int:opt;"
