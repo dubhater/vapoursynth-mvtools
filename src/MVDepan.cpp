@@ -533,7 +533,7 @@ static void VS_CC depanAnalyseCreate(const VSMap *in, VSMap *out, void *userData
     d.clip = vsapi->propGetNode(in, "clip", 0, NULL);
     d.vi = vsapi->getVideoInfo(d.clip);
 
-    if (!isConstantFormat(d.vi)) { // XXX etc
+    if (!isConstantFormat(d.vi)) {
         vsapi->setError(out, "DepanAnalyse: clip must have constant format and dimensions.");
         vsapi->freeNode(d.clip);
         return;
@@ -550,12 +550,27 @@ static void VS_CC depanAnalyseCreate(const VSMap *in, VSMap *out, void *userData
 
     d.mask = vsapi->propGetNode(in, "mask", 0, &err);
 
-    if (d.mask && d.vi->numFrames > vsapi->getVideoInfo(d.mask)->numFrames) {
-        vsapi->setError(out, "DepanStabilise: mask must have at least as many frames as clip.");
-        vsapi->freeNode(d.mask);
-        vsapi->freeNode(d.vectors);
-        vsapi->freeNode(d.clip);
-        return;
+    if (d.mask) {
+        const VSVideoInfo *maskvi = vsapi->getVideoInfo(d.mask);
+
+        if (d.vi->numFrames > maskvi->numFrames) {
+            vsapi->setError(out, "DepanStabilise: mask must have at least as many frames as clip.");
+            vsapi->freeNode(d.mask);
+            vsapi->freeNode(d.vectors);
+            vsapi->freeNode(d.clip);
+            return;
+        }
+
+        if (!isConstantFormat(maskvi) ||
+            maskvi->width != d.vi->width ||
+            maskvi->height != d.vi->height ||
+            maskvi->format->bitsPerSample > 8) {
+            vsapi->setError(out, "DepanStabilise: mask must have constant format, the same dimensions as clip, and no more than 8 bits per sample.");
+            vsapi->freeNode(d.mask);
+            vsapi->freeNode(d.vectors);
+            vsapi->freeNode(d.clip);
+            return;
+        }
     }
 
 
