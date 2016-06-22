@@ -22,7 +22,7 @@ Differences
 
     * YUY2 is not supported.
 
-    * Grayscale, 4:2:0, 4:2:2, 4:4:0, and 4:4:4 are supported.
+    * Grayscale, 4:2:0, 4:2:2, 4:4:0, and 4:4:4 are supported, except for DepanCompensate and DepanStabilise, which don't support 4:4:0.
 
     * Up to 16 bits per sample are supported.
 

@@ -1528,7 +1528,7 @@ static void VS_CC depanEstimateCreate(const VSMap *in, VSMap *out, void *userDat
 }
 
 
-typedef void (*CompensateFunction)(uint8_t *dstp, int dst_pitch, const uint8_t *srcp, int src_pitch, int row_size, int height, const transform *tr, int mirror, int border, int *work1row_size, int blurmax);
+typedef void (*CompensateFunction)(uint8_t *dstp, const uint8_t *srcp, int pitch, int row_size, int height, const transform *tr, int mirror, int border, int *work1row_size, int blurmax, int pixel_max);
 
 
 typedef struct DepanCompensateData {
@@ -1549,6 +1549,8 @@ typedef struct DepanCompensateData {
     int intoffset;
     float xcenter;
     float ycenter;
+
+    int pixel_max;
 
     CompensateFunction compensate_plane;
 } DepanCompensateData;
@@ -1654,7 +1656,8 @@ static void sumtransform(const transform *ta, const transform *tb, transform *tb
 //****************************************************************************
 // move plane of nextp frame to dstp for motion compensation by trc, trm with NEAREST pixels
 //
-static void compensate_plane_nearest(uint8_t *dstp, int dst_pitch, const uint8_t *srcp, int src_pitch, int row_size, int height, const transform *tr, int mirror, int border, int *work1row_size, int blurmax) {
+template <typename PixelType>
+static void compensate_plane_nearest(uint8_t *dstp8, const uint8_t *srcp8, int pitch, int row_size, int height, const transform *tr, int mirror, int border, int *work1row_size, int blurmax, int pixel_max) {
     // if border >=0, then we fill empty edge (border) pixels by that value
     // work1row_size is work array, it must have size >= 1*row_size
 
@@ -1665,6 +1668,13 @@ static void compensate_plane_nearest(uint8_t *dstp, int dst_pitch, const uint8_t
     // mirror = 4 - only left
     // mirror = 8 - only right
     // any combination - sum of above
+
+    (void)pixel_max;
+
+    const PixelType *srcp = (const PixelType *)srcp8;
+    PixelType *dstp = (PixelType *)dstp8;
+
+    pitch /= sizeof(PixelType);
 
     int h, row;
     int rowleft, hlow;
@@ -1703,7 +1713,7 @@ static void compensate_plane_nearest(uint8_t *dstp, int dst_pitch, const uint8_t
             if (hlow >= height && mbottom)
                 hlow = height + height - hlow - 2;
 
-            w0 = hlow * src_pitch;
+            w0 = hlow * pitch;
             if ((hlow >= 0) && (hlow < height)) { // middle lines
 
 
@@ -1749,7 +1759,7 @@ static void compensate_plane_nearest(uint8_t *dstp, int dst_pitch, const uint8_t
                 }
             }
 
-            dstp += dst_pitch; // next line
+            dstp += pitch; // next line
         }
     }
     //-----------------------------------------------------------------------------
@@ -1774,7 +1784,7 @@ static void compensate_plane_nearest(uint8_t *dstp, int dst_pitch, const uint8_t
             if (hlow >= height && mbottom)
                 hlow = height + height - hlow - 2;
 
-            w0 = hlow * src_pitch;
+            w0 = hlow * pitch;
             if ((hlow >= 0) && (hlow < height)) { // incide
 
 
@@ -1816,7 +1826,7 @@ static void compensate_plane_nearest(uint8_t *dstp, int dst_pitch, const uint8_t
                 }
             }
 
-            dstp += dst_pitch; // next line
+            dstp += pitch; // next line
         }
     }
     //-----------------------------------------------------------------------------
@@ -1843,7 +1853,7 @@ static void compensate_plane_nearest(uint8_t *dstp, int dst_pitch, const uint8_t
 
 
                 if ((rowleft >= 0) && (rowleft < row_size) && (hlow >= 0) && (hlow < height)) {
-                    dstp[row] = srcp[hlow * src_pitch + rowleft];
+                    dstp[row] = srcp[hlow * pitch + rowleft];
                 } else { // try fill by mirror. Probability of these cases is small
                     if (hlow < 0 && mtop)
                         hlow = -hlow; // mirror borders
@@ -1855,7 +1865,7 @@ static void compensate_plane_nearest(uint8_t *dstp, int dst_pitch, const uint8_t
                         rowleft = row_size + row_size - rowleft - 2;
                     // check mirrowed
                     if ((rowleft >= 0) && (rowleft < row_size) && (hlow >= 0) && (hlow < height)) {
-                        dstp[row] = srcp[hlow * src_pitch + rowleft];
+                        dstp[row] = srcp[hlow * pitch + rowleft];
                     } else if (border >= 0) { // if shifted point is out of frame, fill using border value
                         dstp[row] = border;
                     }
@@ -1864,7 +1874,7 @@ static void compensate_plane_nearest(uint8_t *dstp, int dst_pitch, const uint8_t
                 ysrc += tr->dyx;
             } // end for row
 
-            dstp += dst_pitch; // next line
+            dstp += pitch; // next line
         } //end for h
     } // end if rotation
 }
@@ -1875,8 +1885,16 @@ static void compensate_plane_nearest(uint8_t *dstp, int dst_pitch, const uint8_t
 // with BILINEAR interpolation of discrete neighbour source pixels
 //   t[0] = dxc, t[1] = dxx, t[2] = dxy, t[3] = dyc, t[4] = dyx, t[5] = dyy
 //
-static void compensate_plane_bilinear(uint8_t *dstp, int dst_pitch, const uint8_t *srcp, int src_pitch, int row_size, int height, const transform *tr, int mirror, int border, int *work2row_size4356, int blurmax) {
+template <typename PixelType>
+static void compensate_plane_bilinear(uint8_t *dstp8, const uint8_t *srcp8, int pitch, int row_size, int height, const transform *tr, int mirror, int border, int *work2row_size4356, int blurmax, int pixel_max) {
     // work2row_size is work array, it must have size >= 2*row_size
+
+    (void)pixel_max;
+
+    const PixelType *srcp = (const PixelType *)srcp8;
+    PixelType *dstp = (PixelType *)dstp8;
+
+    pitch /= sizeof(PixelType);
 
     int h, row;
     int pixel;
@@ -1954,7 +1972,7 @@ static void compensate_plane_bilinear(uint8_t *dstp, int dst_pitch, const uint8_
             if (hlow >= height && mbottom)
                 hlow = height + height - hlow - 2;
 
-            w0 = hlow * src_pitch;
+            w0 = hlow * pitch;
 
             if ((hlow >= 0) && (hlow < height - 1)) { // middle lines
 
@@ -1979,14 +1997,14 @@ static void compensate_plane_bilinear(uint8_t *dstp, int dst_pitch, const uint8_
                     //                    w = w0+rowleft;
                     //  x,y point is in square: (rowleft,hlow) to (rowleft+1,hlow+1)
                     //                    if ( (rowleft >= 0) && (rowleft<row_size-1)  )
-                    dstp[row] = (intcoef2d[0] * srcp[w] + intcoef2d[1] * srcp[w + 1] + intcoef2d[2] * srcp[w + src_pitch] + intcoef2d[3] * srcp[w + src_pitch + 1]) >> 10; // i.e. divide by 32*32
-                    dstp[row + 1] = (intcoef2d[0] * srcp[w + 1] + intcoef2d[1] * srcp[w + 2] + intcoef2d[2] * srcp[w + src_pitch + 1] + intcoef2d[3] * srcp[w + src_pitch + 2]) >> 10; // i.e. divide by 32*32
+                    dstp[row] = (intcoef2d[0] * srcp[w] + intcoef2d[1] * srcp[w + 1] + intcoef2d[2] * srcp[w + pitch] + intcoef2d[3] * srcp[w + pitch + 1]) >> 10; // i.e. divide by 32*32
+                    dstp[row + 1] = (intcoef2d[0] * srcp[w + 1] + intcoef2d[1] * srcp[w + 2] + intcoef2d[2] * srcp[w + pitch + 1] + intcoef2d[3] * srcp[w + pitch + 2]) >> 10; // i.e. divide by 32*32
                     w += 2;
                 }
                 for (row = rowgoodendpaired - 1; row < rowgoodend; row++) { // if odd, process  very last
                     w = w0 + inttr0 + row;
                     dstp[row] = (intcoef2d[0] * srcp[w] + intcoef2d[1] * srcp[w + 1] +
-                                 intcoef2d[2] * srcp[w + src_pitch] + intcoef2d[3] * srcp[w + src_pitch + 1]) >>
+                                 intcoef2d[2] * srcp[w + pitch] + intcoef2d[3] * srcp[w + pitch + 1]) >>
                                 10; // i.e. divide by 32*32
                 }
                 for (row = rowbadstart; row < rowbadend; row++) {
@@ -2037,7 +2055,7 @@ static void compensate_plane_bilinear(uint8_t *dstp, int dst_pitch, const uint8_
                 }
             }
 
-            dstp += dst_pitch; // next line
+            dstp += pitch; // next line
         }
     }
     //-----------------------------------------------------------------------------
@@ -2071,7 +2089,7 @@ static void compensate_plane_bilinear(uint8_t *dstp, int dst_pitch, const uint8_
             if (hlow >= height && mbottom)
                 hlow = height + height - hlow - 2;
 
-            w0 = hlow * src_pitch;
+            w0 = hlow * pitch;
 
             if ((hlow >= 0) && (hlow < height - 1)) { // incide
 
@@ -2096,7 +2114,7 @@ static void compensate_plane_bilinear(uint8_t *dstp, int dst_pitch, const uint8_
                         //                        pixel = ( intcoef[iy2]*(intcoef[ix2]*srcp[w] + intcoef[ix2+1]*srcp[w+1] ) +
                         //                                intcoef[iy2+1]*(intcoef[ix2]*srcp[w+src_pitch] + intcoef[ix2+1]*srcp[w+src_pitch+1] ) )/1024;
                         pixel = (intcoef2dzoom[ix2] * srcp[w] + intcoef2dzoom[ix2 + 1] * srcp[w + 1] +
-                                 intcoef2dzoom[ix2 + 66] * srcp[w + src_pitch] + intcoef2dzoom[ix2 + 67] * srcp[w + src_pitch + 1]) >>
+                                 intcoef2dzoom[ix2 + 66] * srcp[w + pitch] + intcoef2dzoom[ix2 + 67] * srcp[w + pitch + 1]) >>
                                 10;
 
                         //                        dstp[row] = max(min(pixel,255),0);
@@ -2129,7 +2147,7 @@ static void compensate_plane_bilinear(uint8_t *dstp, int dst_pitch, const uint8_
                 for (row = 0; row < row_size; row++) {
                     rowleft = rowleftwork[row];
                     if ((rowleft >= 0) && (rowleft < row_size)) {
-                        dstp[row] = srcp[rowleft + hlow * src_pitch]; // nearest pixel, may be bilinear is better
+                        dstp[row] = srcp[rowleft + hlow * pitch]; // nearest pixel, may be bilinear is better
                     } else if (border >= 0) { // left or right
                         dstp[row] = border;
                     }
@@ -2140,7 +2158,7 @@ static void compensate_plane_bilinear(uint8_t *dstp, int dst_pitch, const uint8_
                 }
             }
 
-            dstp += dst_pitch; // next line
+            dstp += pitch; // next line
         }
     }
     //-----------------------------------------------------------------------------
@@ -2174,10 +2192,10 @@ static void compensate_plane_bilinear(uint8_t *dstp, int dst_pitch, const uint8_
 
                     ix2 = ((int)(sx * 32)) << 1; // i.e. *2
                     iy2 = ((int)(sy * 32)) << 1; // i.e. *2
-                    w0 = rowleft + hlow * src_pitch;
+                    w0 = rowleft + hlow * pitch;
 
                     pixel = ((intcoef[ix2] * srcp[w0] + intcoef[ix2 + 1] * srcp[w0 + 1]) * intcoef[iy2] +
-                             (intcoef[ix2] * srcp[w0 + src_pitch] + intcoef[ix2 + 1] * srcp[w0 + src_pitch + 1]) * intcoef[iy2 + 1]) >>
+                             (intcoef[ix2] * srcp[w0 + pitch] + intcoef[ix2 + 1] * srcp[w0 + pitch + 1]) * intcoef[iy2 + 1]) >>
                             10;
 
                     //                    dstp[row] = max(min(pixel,255),0);
@@ -2193,7 +2211,7 @@ static void compensate_plane_bilinear(uint8_t *dstp, int dst_pitch, const uint8_
                         rowleft = row_size + row_size - rowleft - 2;
                     // check mirrowed
                     if ((rowleft >= 0) && (rowleft < row_size) && (hlow >= 0) && (hlow < height)) {
-                        dstp[row] = srcp[hlow * src_pitch + rowleft];
+                        dstp[row] = srcp[hlow * pitch + rowleft];
                     } else if (border >= 0) { // if shifted point is out of frame, fill using border value
                         dstp[row] = border;
                     }
@@ -2202,7 +2220,7 @@ static void compensate_plane_bilinear(uint8_t *dstp, int dst_pitch, const uint8_
                 ysrc += tr->dyx;
             } // end for row
 
-            dstp += dst_pitch; // next line
+            dstp += pitch; // next line
         } //end for h
     } // end if rotation
 }
@@ -2214,8 +2232,14 @@ static void compensate_plane_bilinear(uint8_t *dstp, int dst_pitch, const uint8_
 //
 //   t[0] = dxc, t[1] = dxx, t[2] = dxy, t[3] = dyc, t[4] = dyx, t[5] = dyy
 //
-static void compensate_plane_bicubic(uint8_t *dstp, int dst_pitch, const uint8_t *srcp, int src_pitch, int row_size, int height, const transform *tr, int mirror, int border, int *work2width1030, int blurmax) {
+template <typename PixelType>
+static void compensate_plane_bicubic(uint8_t *dstp8, const uint8_t *srcp8, int pitch, int row_size, int height, const transform *tr, int mirror, int border, int *work2width1030, int blurmax, int pixel_max) {
     // work2width1030 is integer work array, it must have size >= 2*row_size+1030
+
+    const PixelType *srcp = (const PixelType *)srcp8;
+    PixelType *dstp = (PixelType *)dstp8;
+
+    pitch /= sizeof(PixelType);
 
     int h, row;
     int pixel;
@@ -2297,7 +2321,7 @@ static void compensate_plane_bicubic(uint8_t *dstp, int dst_pitch, const uint8_t
             if (hlow >= height && mbottom)
                 hlow = height + height - hlow - 2;
 
-            w0 = hlow * src_pitch;
+            w0 = hlow * pitch;
 
             if ((hlow >= 1) && (hlow < height - 2)) { // middle lines
 
@@ -2312,13 +2336,13 @@ static void compensate_plane_bicubic(uint8_t *dstp, int dst_pitch, const uint8_t
                     if ((rowleft >= 1) && (rowleft < row_size - 2)) {
                         w = w0 + rowleft;
 
-                        pixel = (intcoef2d[0] * srcp[w - src_pitch - 1] + intcoef2d[1] * srcp[w - src_pitch] + intcoef2d[2] * srcp[w - src_pitch + 1] + intcoef2d[3] * srcp[w - src_pitch + 2] +
+                        pixel = (intcoef2d[0] * srcp[w - pitch - 1] + intcoef2d[1] * srcp[w - pitch] + intcoef2d[2] * srcp[w - pitch + 1] + intcoef2d[3] * srcp[w - pitch + 2] +
                                  intcoef2d[4] * srcp[w - 1] + intcoef2d[5] * srcp[w] + intcoef2d[6] * srcp[w + 1] + intcoef2d[7] * srcp[w + 2] +
-                                 intcoef2d[8] * srcp[w + src_pitch - 1] + intcoef2d[9] * srcp[w + src_pitch] + intcoef2d[10] * srcp[w + src_pitch + 1] + intcoef2d[11] * srcp[w + src_pitch + 2] +
-                                 intcoef2d[12] * srcp[w + src_pitch * 2 - 1] + intcoef2d[13] * srcp[w + src_pitch * 2] + intcoef2d[14] * srcp[w + src_pitch * 2 + 1] + intcoef2d[15] * srcp[w + src_pitch * 2 + 2] + 1024) >>
+                                 intcoef2d[8] * srcp[w + pitch - 1] + intcoef2d[9] * srcp[w + pitch] + intcoef2d[10] * srcp[w + pitch + 1] + intcoef2d[11] * srcp[w + pitch + 2] +
+                                 intcoef2d[12] * srcp[w + pitch * 2 - 1] + intcoef2d[13] * srcp[w + pitch * 2] + intcoef2d[14] * srcp[w + pitch * 2 + 1] + intcoef2d[15] * srcp[w + pitch * 2 + 2] + 1024) >>
                                 11; // i.e. /2048
 
-                        dstp[row] = VSMAX(VSMIN(pixel, 255), 0);
+                        dstp[row] = VSMAX(VSMIN(pixel, pixel_max), 0);
 
                     } else if (rowleft < 0 && mleft) {
                         if (blurmax > 0) {
@@ -2355,7 +2379,7 @@ static void compensate_plane_bicubic(uint8_t *dstp, int dst_pitch, const uint8_t
                     if ((rowleft >= 0) && (rowleft < row_size - 1)) { // bug fixed for right edge in v.1.1.1
                         w = w0 + rowleft;
                         dstp[row] = (int)((1.0 - sy) * ((1.0 - sx) * srcp[w] + sx * srcp[w + 1]) +
-                                          sy * ((1.0 - sx) * srcp[w + src_pitch] + sx * srcp[w + src_pitch + 1])); // bilinear
+                                          sy * ((1.0 - sx) * srcp[w + pitch] + sx * srcp[w + pitch + 1])); // bilinear
                     } else if (rowleft == row_size - 1) { // added in v.1.1.1
                         dstp[row] = srcp[rowleft + w0];
                     } else if (rowleft < 0 && mleft) {
@@ -2385,7 +2409,7 @@ static void compensate_plane_bicubic(uint8_t *dstp, int dst_pitch, const uint8_t
                 }
             }
 
-            dstp += dst_pitch; // next line
+            dstp += pitch; // next line
         }
     }
     //-----------------------------------------------------------------------------
@@ -2414,7 +2438,7 @@ static void compensate_plane_bicubic(uint8_t *dstp, int dst_pitch, const uint8_t
             if (hlow >= height && mbottom)
                 hlow = height + height - hlow - 2;
 
-            w0 = hlow * src_pitch;
+            w0 = hlow * pitch;
             if ((hlow >= 1) && (hlow < height - 2)) { // incide
 
                 for (row = 0; row < row_size; row++) {
@@ -2432,20 +2456,20 @@ static void compensate_plane_bicubic(uint8_t *dstp, int dst_pitch, const uint8_t
                         w = w0 + rowleft;
 
 
-                        srcp -= src_pitch; // prev line
+                        srcp -= pitch; // prev line
                         ts[0] = (intcoef[ix4] * srcp[w - 1] + intcoef[ix4 + 1] * srcp[w] + intcoef[ix4 + 2] * srcp[w + 1] + intcoef[ix4 + 3] * srcp[w + 2]);
-                        srcp += src_pitch; // next line
+                        srcp += pitch; // next line
                         ts[1] = (intcoef[ix4] * srcp[w - 1] + intcoef[ix4 + 1] * srcp[w] + intcoef[ix4 + 2] * srcp[w + 1] + intcoef[ix4 + 3] * srcp[w + 2]);
-                        srcp += src_pitch; // next line
+                        srcp += pitch; // next line
                         ts[2] = (intcoef[ix4] * srcp[w - 1] + intcoef[ix4 + 1] * srcp[w] + intcoef[ix4 + 2] * srcp[w + 1] + intcoef[ix4 + 3] * srcp[w + 2]);
-                        srcp += src_pitch; // next line
+                        srcp += pitch; // next line
                         ts[3] = (intcoef[ix4] * srcp[w - 1] + intcoef[ix4 + 1] * srcp[w] + intcoef[ix4 + 2] * srcp[w + 1] + intcoef[ix4 + 3] * srcp[w + 2]);
 
-                        srcp -= (src_pitch << 1); // restore pointer, changed to shift in v 1.1.1
+                        srcp -= (pitch << 1); // restore pointer, changed to shift in v 1.1.1
 
                         pixel = (intcoef[iy4] * ts[0] + intcoef[iy4 + 1] * ts[1] + intcoef[iy4 + 2] * ts[2] + intcoef[iy4 + 3] * ts[3]) >> 22;
 
-                        dstp[row] = VSMAX(VSMIN(pixel, 255), 0);
+                        dstp[row] = VSMAX(VSMIN(pixel, pixel_max), 0);
                     } else if (rowleft < 0 && mleft) {
                         if (blurmax > 0) {
                             blurlen = VSMIN(blurmax, -rowleft);
@@ -2480,8 +2504,8 @@ static void compensate_plane_bicubic(uint8_t *dstp, int dst_pitch, const uint8_t
                         sx = xsrc - rowleft;
                         w = w0 + rowleft;
                         pixel = (int)((1.0 - sy) * ((1.0 - sx) * srcp[w] + sx * srcp[w + 1]) +
-                                      sy * ((1.0 - sx) * srcp[w + src_pitch] + sx * srcp[w + src_pitch + 1])); // bilinear
-                        dstp[row] = VSMAX(VSMIN(pixel, 255), 0);
+                                      sy * ((1.0 - sx) * srcp[w + pitch] + sx * srcp[w + pitch + 1])); // bilinear
+                        dstp[row] = VSMAX(VSMIN(pixel, pixel_max), 0);
                     } else if (rowleft == row_size - 1) { // added in v.1.1.1
                         dstp[row] = srcp[rowleft + w0];
                     } else if (rowleft < 0 && mleft) {
@@ -2496,7 +2520,7 @@ static void compensate_plane_bicubic(uint8_t *dstp, int dst_pitch, const uint8_t
                 for (row = 0; row < row_size; row++) {
                     rowleft = rowleftwork[row];
                     if (rowleft >= 0 && rowleft < row_size) {
-                        dstp[row] = (srcp[w0 + rowleft] + srcp[w0 + rowleft - src_pitch]) / 2; // for some smoothing
+                        dstp[row] = (srcp[w0 + rowleft] + srcp[w0 + rowleft - pitch]) / 2; // for some smoothing
                     } else if (rowleft < 0 && mleft) {
                         dstp[row] = srcp[w0 - rowleft];
                     } else if (rowleft >= row_size && mright) {
@@ -2525,7 +2549,7 @@ static void compensate_plane_bicubic(uint8_t *dstp, int dst_pitch, const uint8_t
                 }
             }
 
-            dstp += dst_pitch; // next line
+            dstp += pitch; // next line
         }
     }
     //-----------------------------------------------------------------------------
@@ -2553,24 +2577,24 @@ static void compensate_plane_bicubic(uint8_t *dstp, int dst_pitch, const uint8_t
 
                     ix4 = 4 * ((int)((xsrc - rowleft) * 256));
 
-                    w0 = rowleft + hlow * src_pitch;
+                    w0 = rowleft + hlow * pitch;
 
-                    srcp -= src_pitch; // prev line
+                    srcp -= pitch; // prev line
                     ts[0] = (intcoef[ix4] * srcp[w0 - 1] + intcoef[ix4 + 1] * srcp[w0] + intcoef[ix4 + 2] * srcp[w0 + 1] + intcoef[ix4 + 3] * srcp[w0 + 2]);
-                    srcp += src_pitch; // next line
+                    srcp += pitch; // next line
                     ts[1] = (intcoef[ix4] * srcp[w0 - 1] + intcoef[ix4 + 1] * srcp[w0] + intcoef[ix4 + 2] * srcp[w0 + 1] + intcoef[ix4 + 3] * srcp[w0 + 2]);
-                    srcp += src_pitch; // next line
+                    srcp += pitch; // next line
                     ts[2] = (intcoef[ix4] * srcp[w0 - 1] + intcoef[ix4 + 1] * srcp[w0] + intcoef[ix4 + 2] * srcp[w0 + 1] + intcoef[ix4 + 3] * srcp[w0 + 2]);
-                    srcp += src_pitch; // next line
+                    srcp += pitch; // next line
                     ts[3] = (intcoef[ix4] * srcp[w0 - 1] + intcoef[ix4 + 1] * srcp[w0] + intcoef[ix4 + 2] * srcp[w0 + 1] + intcoef[ix4 + 3] * srcp[w0 + 2]);
 
-                    srcp -= (src_pitch << 1); // restore pointer, changed to shift in v.1.1.1
+                    srcp -= (pitch << 1); // restore pointer, changed to shift in v.1.1.1
 
 
                     iy4 = ((int)((ysrc - hlow) * 256)) << 2; //changed to shift in v.1.1.1
 
                     pixel = (intcoef[iy4] * ts[0] + intcoef[iy4 + 1] * ts[1] + intcoef[iy4 + 2] * ts[2] + intcoef[iy4 + 3] * ts[3]) >> 22;
-                    dstp[row] = VSMAX(VSMIN(pixel, 255), 0);
+                    dstp[row] = VSMAX(VSMIN(pixel, pixel_max), 0);
                 } else {
                     if (hlow < 0 && mtop)
                         hlow = -hlow; // mirror borders
@@ -2582,14 +2606,14 @@ static void compensate_plane_bicubic(uint8_t *dstp, int dst_pitch, const uint8_t
                         rowleft = row_size + row_size - rowleft - 2;
                     // check mirrowed
                     if ((rowleft >= 0) && (rowleft < row_size) && (hlow >= 0) && (hlow < height)) {
-                        dstp[row] = srcp[hlow * src_pitch + rowleft];
+                        dstp[row] = srcp[hlow * pitch + rowleft];
                     } else if (border >= 0) { // if shifted point is out of frame, fill using border value
                         dstp[row] = border;
                     }
                 }
             } // end for row
 
-            dstp += dst_pitch; // next line
+            dstp += pitch; // next line
         } //end for h
     } // end if rotation
 }
@@ -2690,17 +2714,17 @@ static const VSFrameRef *VS_CC depanCompensateGetFrame(int ndest, int activation
 
         int *work2width4356 = (int *)malloc((2 * d->vi->width + 4356) * sizeof(int));
 
-        int border[3] = { 0, 128, 128 };
+        int border[3] = { 0, 1 << (d->vi->format->bitsPerSample - 1), border[1] };
         int blur[3] = { d->blur, d->blur, d->blur };
         transform tr[3];
 
         tr[0] = tr[1] = trsum;
-        if (d->vi->format->id == pfYUV420P8) {
+        if (d->vi->format->subSamplingW == 1 && d->vi->format->subSamplingH == 1) { // 420
             tr[1].dxc /= 2;
             tr[1].dyc /= 2;
 
             blur[1] = blur[2] = blur[0] / 2;
-        } else if (d->vi->format->id == pfYUV422P8) {
+        } else if (d->vi->format->subSamplingW == 1 && d->vi->format->subSamplingH == 0) { // 422
             tr[1].dxc /= 2;
             tr[1].dxy /= 2;
             tr[1].dyx *= 2;
@@ -2716,9 +2740,8 @@ static const VSFrameRef *VS_CC depanCompensateGetFrame(int ndest, int activation
             int src_pitch = vsapi->getStride(src, plane);
 
             uint8_t *dstp = vsapi->getWritePtr(dst, plane);
-            int dst_pitch = vsapi->getStride(dst, plane);
 
-            d->compensate_plane(dstp, dst_pitch, srcp, src_pitch, src_width, src_height, &tr[plane], d->mirror, border[plane], work2width4356, blur[plane]);
+            d->compensate_plane(dstp, srcp, src_pitch, src_width, src_height, &tr[plane], d->mirror, border[plane], work2width4356, blur[plane], d->pixel_max);
         }
 
         free(work2width4356);
@@ -2821,8 +2844,14 @@ static void VS_CC depanCompensateCreate(const VSMap *in, VSMap *out, void *userD
     d.clip = vsapi->propGetNode(in, "clip", 0, NULL);
     d.vi = vsapi->getVideoInfo(d.clip);
 
-    if (!isConstantFormat(d.vi) || (d.vi->format->id != pfYUV420P8 && d.vi->format->id != pfYUV422P8 && d.vi->format->id != pfYUV444P8)) {
-        vsapi->setError(out, "DepanCompensate: clip must have constant format and dimensions, and it must be YUV420P8, YUV422P8, or YUV444P8.");
+    if (!isConstantFormat(d.vi) ||
+        (d.vi->format->colorFamily != cmYUV && d.vi->format->colorFamily != cmGray) ||
+        d.vi->format->sampleType != stInteger ||
+        d.vi->format->bitsPerSample > 16 ||
+        d.vi->format->subSamplingW > 1 ||
+        d.vi->format->subSamplingH > 1 ||
+        (d.vi->format->subSamplingW == 0 && d.vi->format->subSamplingH == 1)) {
+        vsapi->setError(out, "DepanCompensate: clip must have constant format and dimensions, integer sample type, bit depth up to 16, and it must be Gray, 420, 422, or 444, and not RGB.");
         vsapi->freeNode(d.clip);
         return;
     }
@@ -2845,13 +2874,21 @@ static void VS_CC depanCompensateCreate(const VSMap *in, VSMap *out, void *userD
     d.xcenter = d.vi->width / 2.0f; // center of frame
     d.ycenter = d.vi->height / 2.0f;
 
+    d.pixel_max = (1 << d.vi->format->bitsPerSample) - 1;
 
-    CompensateFunction compensate_functions[3] = {
-        compensate_plane_nearest,
-        compensate_plane_bilinear,
-        compensate_plane_bicubic
+    CompensateFunction compensate_functions[6] = {
+        compensate_plane_nearest<uint8_t>,
+        compensate_plane_bilinear<uint8_t>,
+        compensate_plane_bicubic<uint8_t>,
+
+        compensate_plane_nearest<uint16_t>,
+        compensate_plane_bilinear<uint16_t>,
+        compensate_plane_bicubic<uint16_t>
     };
-    d.compensate_plane = compensate_functions[d.subpixel];
+    if (d.vi->format->bitsPerSample == 8)
+        d.compensate_plane = compensate_functions[d.subpixel];
+    else
+        d.compensate_plane = compensate_functions[d.subpixel + 3];
 
 
     DepanCompensateData *data = (DepanCompensateData *)malloc(sizeof(d));
@@ -2899,6 +2936,8 @@ typedef struct DepanStabiliseData {
 
     const VSVideoInfo *vi;
 
+    int pixel_max;
+
     int nfields;
 
     float *motionx;
@@ -2927,6 +2966,7 @@ typedef struct DepanStabiliseData {
     float ycenter;
 
     CompensateFunction compensate_plane;
+    CompensateFunction compensate_plane_nearest;
 
     std::mutex motion_mutex;
 } DepanStabiliseData;
@@ -3359,16 +3399,16 @@ static void compensateFrame(const VSFrameRef *src, VSFrameRef *dst, DepanStabili
 
     if (notfilled) {
         border[0] = 0;
-        border[1] = border[2] = 128;
+        border[1] = border[2] = 1 << (d->vi->format->bitsPerSample - 1);
     }
 
     tr[0] = tr[1] = *trdif;
-    if (d->vi->format->id == pfYUV420P8) {
+    if (d->vi->format->subSamplingW == 1 && d->vi->format->subSamplingH == 1) { // 420
         tr[1].dxc /= 2;
         tr[1].dyc /= 2;
 
         blur[1] = blur[2] = blur[0] / 2;
-    } else if (d->vi->format->id == pfYUV422P8) {
+    } else if (d->vi->format->subSamplingW == 1 && d->vi->format->subSamplingH == 0) { // 422
         tr[1].dxc /= 2;
         tr[1].dxy /= 2;
         tr[1].dyx *= 2;
@@ -3384,10 +3424,9 @@ static void compensateFrame(const VSFrameRef *src, VSFrameRef *dst, DepanStabili
         int src_pitch = vsapi->getStride(src, plane);
 
         uint8_t *dstp = vsapi->getWritePtr(dst, plane);
-        int dst_pitch = vsapi->getStride(dst, plane);
 
         // move src frame plane by vector to partially motion compensated position
-        d->compensate_plane(dstp, dst_pitch, srcp, src_pitch, src_width, src_height, &tr[plane], d->mirror * notfilled, border[plane], work2width4356, blur[plane]);
+        d->compensate_plane(dstp, srcp, src_pitch, src_width, src_height, &tr[plane], d->mirror * notfilled, border[plane], work2width4356, blur[plane], d->pixel_max);
     }
 }
 
@@ -3421,15 +3460,15 @@ static void fillBorderPrev(VSFrameRef *dst, DepanStabiliseData *d, int nbase, in
     // get original previous source frame
     const VSFrameRef *src = vsapi->getFrameFilter(nprevbest, d->clip, frameCtx);
 
-    int border[3] = { 0, 128, 128 };
+    int border[3] = { 0, 1 << (d->vi->format->bitsPerSample - 1), border[1] };
     int blur[3] = { d->blur, d->blur, d->blur };
 
-    if (d->vi->format->id == pfYUV420P8) {
+    if (d->vi->format->subSamplingW == 1 && d->vi->format->subSamplingH == 1) { // 420
         tr[1].dxc /= 2;
         tr[1].dyc /= 2;
 
         blur[1] = blur[2] = blur[0] / 2;
-    } else if (d->vi->format->id == pfYUV422P8) {
+    } else if (d->vi->format->subSamplingW == 1 && d->vi->format->subSamplingH == 0) { // 422
         tr[1].dxc /= 2;
         tr[1].dxy /= 2;
         tr[1].dyx *= 2;
@@ -3445,9 +3484,8 @@ static void fillBorderPrev(VSFrameRef *dst, DepanStabiliseData *d, int nbase, in
         int src_pitch = vsapi->getStride(src, plane);
 
         uint8_t *dstp = vsapi->getWritePtr(dst, plane);
-        int dst_pitch = vsapi->getStride(dst, plane);
 
-        compensate_plane_nearest(dstp, dst_pitch, srcp, src_pitch, src_width, src_height, &tr[plane], d->mirror, border[plane], work2width4356, blur[plane]);
+        d->compensate_plane_nearest(dstp, srcp, src_pitch, src_width, src_height, &tr[plane], d->mirror, border[plane], work2width4356, blur[plane], d->pixel_max);
     }
 
     *notfilled = 0; // mark as FILLED
@@ -3508,12 +3546,12 @@ static int fillBorderNext(VSFrameRef *dst, DepanStabiliseData *d, int ndest, con
     int border[3] = { -1, -1, -1 };
     int blur[3] = { d->blur, d->blur, d->blur };
 
-    if (d->vi->format->id == pfYUV420P8) {
+    if (d->vi->format->subSamplingW == 1 && d->vi->format->subSamplingH == 1) { // 420
         tr[1].dxc /= 2;
         tr[1].dyc /= 2;
 
         blur[1] = blur[2] = blur[0] / 2;
-    } else if (d->vi->format->id == pfYUV422P8) {
+    } else if (d->vi->format->subSamplingW == 1 && d->vi->format->subSamplingH == 0) { // 422
         tr[1].dxc /= 2;
         tr[1].dxy /= 2;
         tr[1].dyx *= 2;
@@ -3524,7 +3562,7 @@ static int fillBorderNext(VSFrameRef *dst, DepanStabiliseData *d, int ndest, con
 
     if (*notfilled) {
         border[0] = 0;
-        border[1] = border[2] = 128;
+        border[1] = border[2] = 1 << (d->vi->format->bitsPerSample - 1);
     }
 
     for (int plane = 0; plane < d->vi->format->numPlanes; plane++) {
@@ -3534,10 +3572,9 @@ static int fillBorderNext(VSFrameRef *dst, DepanStabiliseData *d, int ndest, con
         int src_pitch = vsapi->getStride(src, plane);
 
         uint8_t *dstp = vsapi->getWritePtr(dst, plane);
-        int dst_pitch = vsapi->getStride(dst, plane);
 
         // move src frame plane by vector to partially motion compensated position
-        compensate_plane_nearest(dstp, dst_pitch, srcp, src_pitch, src_width, src_height, &tr[plane], d->mirror * *notfilled, border[plane], work2width4356, blur[plane]);
+        d->compensate_plane_nearest(dstp, srcp, src_pitch, src_width, src_height, &tr[plane], d->mirror * *notfilled, border[plane], work2width4356, blur[plane], d->pixel_max);
     }
 
     *notfilled = 0; // mark as filled
@@ -4026,8 +4063,14 @@ static void VS_CC depanStabiliseCreate(const VSMap *in, VSMap *out, void *userDa
     d->clip = vsapi->propGetNode(in, "clip", 0, NULL);
     d->vi = vsapi->getVideoInfo(d->clip);
 
-    if (!isConstantFormat(d->vi) || (d->vi->format->id != pfYUV420P8 && d->vi->format->id != pfYUV422P8 && d->vi->format->id != pfYUV444P8)) {
-        vsapi->setError(out, "DepanStabilise: clip must have constant format and dimensions, and it must be YUV420P8, YUV422P8, or YUV444P8.");
+    if (!isConstantFormat(d->vi) ||
+        (d->vi->format->colorFamily != cmYUV && d->vi->format->colorFamily != cmGray) ||
+        d->vi->format->sampleType != stInteger ||
+        d->vi->format->bitsPerSample > 16 ||
+        d->vi->format->subSamplingW > 1 ||
+        d->vi->format->subSamplingH > 1 ||
+        (d->vi->format->subSamplingW == 0 && d->vi->format->subSamplingH == 1)) {
+        vsapi->setError(out, "DepanStabilise: clip must have constant format and dimensions, integer sample type, bit depth up to 16, and it must be Gray, 420, 422, or 444, and not RGB.");
         vsapi->freeNode(d->clip);
         delete d;
         return;
@@ -4158,12 +4201,24 @@ static void VS_CC depanStabiliseCreate(const VSMap *in, VSMap *out, void *userDa
     d->xcenter = d->vi->width / 2.0f; // center of frame
     d->ycenter = d->vi->height / 2.0f;
 
-    CompensateFunction compensate_functions[3] = {
-        compensate_plane_nearest,
-        compensate_plane_bilinear,
-        compensate_plane_bicubic
+    d->pixel_max = (1 << d->vi->format->bitsPerSample) - 1;
+
+    CompensateFunction compensate_functions[6] = {
+        compensate_plane_nearest<uint8_t>,
+        compensate_plane_bilinear<uint8_t>,
+        compensate_plane_bicubic<uint8_t>,
+
+        compensate_plane_nearest<uint16_t>,
+        compensate_plane_bilinear<uint16_t>,
+        compensate_plane_bicubic<uint16_t>
     };
-    d->compensate_plane = compensate_functions[d->subpixel];
+    if (d->vi->format->bitsPerSample == 8) {
+        d->compensate_plane = compensate_functions[d->subpixel];
+        d->compensate_plane_nearest = compensate_plane_nearest<uint8_t>;
+    } else {
+        d->compensate_plane = compensate_functions[d->subpixel + 3];
+        d->compensate_plane_nearest = compensate_plane_nearest<uint16_t>;
+    }
 
 
     VSFilterGetFrame getframe_functions[2] = {
