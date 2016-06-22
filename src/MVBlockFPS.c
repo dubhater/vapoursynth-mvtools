@@ -832,7 +832,7 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     if (err)
         d.mode = 3;
 
-    d.ml = vsapi->propGetInt(in, "ml", 0, &err);
+    d.ml = vsapi->propGetFloat(in, "ml", 0, &err);
     if (err)
         d.ml = 100.0;
 
