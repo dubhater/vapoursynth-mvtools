@@ -136,6 +136,7 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
             SimpleResize *upsizer = &d->upsizer;
             SimpleResize *upsizerUV = &d->upsizerUV;
             const int time256 = d->time256;
+            const int bitsPerSample = vsapi->getFrameFormat(src)->bitsPerSample;
 
             uint8_t *smallMask = (uint8_t *)malloc(nBlkX * nBlkY);
             uint8_t *smallMaskV = (uint8_t *)malloc(nBlkX * nBlkY);
@@ -144,7 +145,7 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
                 for (int j = 0; j < nBlkCount; j++)
                     smallMask[j] = mvmaskLength(fgopGetBlock(&fgop, 0, j)->vector, nPel, fMaskNormFactor2, fHalfGamma);
             } else if (kind == 1) { // SAD mask
-                MakeSADMaskTime(&fgop, nBlkX, nBlkY, 4.0 * fMaskNormFactor / (nBlkSizeX * nBlkSizeY), fGamma, nPel, smallMask, nBlkX, time256, nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY);
+                MakeSADMaskTime(&fgop, nBlkX, nBlkY, 4.0 * fMaskNormFactor / (nBlkSizeX * nBlkSizeY), fGamma, nPel, smallMask, nBlkX, time256, nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY, bitsPerSample);
             } else if (kind == 2) { // occlusion mask
                 MakeVectorOcclusionMaskTime(&fgop, d->vectors_data.isBackward, nBlkX, nBlkY, 1.0 / fMaskNormFactor, fGamma, nPel, smallMask, nBlkX, time256, nBlkSizeX - nOverlapX, nBlkSizeY - nOverlapY);
             } else if (kind == 3) { // vector x mask

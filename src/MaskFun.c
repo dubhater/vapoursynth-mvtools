@@ -84,7 +84,7 @@ static unsigned char ByteNorm(unsigned int sad, double dSADNormFactor, double fG
 }
 
 
-void MakeSADMaskTime(const FakeGroupOfPlanes *fgop, int nBlkX, int nBlkY, double dSADNormFactor, double fGamma, int nPel, uint8_t *Mask, int MaskPitch, int time256, int nBlkStepX, int nBlkStepY) {
+void MakeSADMaskTime(const FakeGroupOfPlanes *fgop, int nBlkX, int nBlkY, double dSADNormFactor, double fGamma, int nPel, uint8_t *Mask, int MaskPitch, int time256, int nBlkStepX, int nBlkStepY, int bitsPerSample) {
     // Make approximate SAD mask at intermediate time
     //    double dSADNormFactor = 4 / (dMaskNormDivider*nBlkSizeX*nBlkSizeY);
     memset(Mask, 0, nBlkY * MaskPitch);
@@ -104,7 +104,7 @@ void MakeSADMaskTime(const FakeGroupOfPlanes *fgop, int nBlkX, int nBlkY, double
                 byi = by;
             }
             int i1 = bxi + byi * nBlkX;
-            int sad = fgopGetBlock(fgop, 0, i1)->vector.sad;
+            int sad = fgopGetBlock(fgop, 0, i1)->vector.sad >> (bitsPerSample - 8);
             Mask[bx + by * MaskPitch] = ByteNorm(sad, dSADNormFactor, fGamma);
         }
     }

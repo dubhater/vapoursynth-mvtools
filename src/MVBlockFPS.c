@@ -124,7 +124,7 @@ MEDIAN(uint16_t)
 #define RealResultBlock(PixelType) \
 static void RealResultBlock_##PixelType(uint8_t *pDst, int dst_pitch, const uint8_t *pMCB, int MCB_pitch, const uint8_t *pMCF, int MCF_pitch, \
                             const uint8_t *pRef, int ref_pitch, const uint8_t *pSrc, int src_pitch, uint8_t *maskB, int mask_pitch, uint8_t *maskF, \
-                            uint8_t *pOcc, int nBlkSizeX, int nBlkSizeY, int time256, int mode) { \
+                            uint8_t *pOcc, int nBlkSizeX, int nBlkSizeY, int time256, int mode, int bitsPerSample) { \
     if (mode == 0) { \
         for (int h = 0; h < nBlkSizeY; h++) { \
             for (int w = 0; w < nBlkSizeX; w++) { \
@@ -223,7 +223,7 @@ static void RealResultBlock_##PixelType(uint8_t *pDst, int dst_pitch, const uint
             for (int w = 0; w < nBlkSizeX; w++) { \
                 PixelType *pDst_ = (PixelType *)pDst; \
  \
-                pDst_[w] = pOcc[w]; \
+                pDst_[w] = pOcc[w] << (bitsPerSample - 8); \
             } \
             pDst += dst_pitch; \
             pOcc += mask_pitch; \
@@ -239,9 +239,9 @@ static void ResultBlock(uint8_t *pDst, int dst_pitch, const uint8_t *pMCB, int M
                         const uint8_t *pRef, int ref_pitch, const uint8_t *pSrc, int src_pitch, uint8_t *maskB, int mask_pitch, uint8_t *maskF,
                         uint8_t *pOcc, int nBlkSizeX, int nBlkSizeY, int time256, int mode, int bitsPerSample) {
     if (bitsPerSample == 8)
-        RealResultBlock_uint8_t(pDst, dst_pitch, pMCB, MCB_pitch, pMCF, MCF_pitch, pRef, ref_pitch, pSrc, src_pitch, maskB, mask_pitch, maskF, pOcc, nBlkSizeX, nBlkSizeY, time256, mode);
+        RealResultBlock_uint8_t(pDst, dst_pitch, pMCB, MCB_pitch, pMCF, MCF_pitch, pRef, ref_pitch, pSrc, src_pitch, maskB, mask_pitch, maskF, pOcc, nBlkSizeX, nBlkSizeY, time256, mode, bitsPerSample);
     else
-        RealResultBlock_uint16_t(pDst, dst_pitch, pMCB, MCB_pitch, pMCF, MCF_pitch, pRef, ref_pitch, pSrc, src_pitch, maskB, mask_pitch, maskF, pOcc, nBlkSizeX, nBlkSizeY, time256, mode);
+        RealResultBlock_uint16_t(pDst, dst_pitch, pMCB, MCB_pitch, pMCF, MCF_pitch, pRef, ref_pitch, pSrc, src_pitch, maskB, mask_pitch, maskF, pOcc, nBlkSizeX, nBlkSizeY, time256, mode, bitsPerSample);
 }
 
 
@@ -428,8 +428,8 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
                     MakeVectorOcclusionMaskTime(&fgopF, 0, nBlkX, nBlkY, ml, 1.0, nPel, smallMaskF, nBlkXP, time256, nBlkSizeX[0] - nOverlapX[0], nBlkSizeY[0] - nOverlapY[0]);
                     MakeVectorOcclusionMaskTime(&fgopB, 1, nBlkX, nBlkY, ml, 1.0, nPel, smallMaskB, nBlkXP, 256 - time256, nBlkSizeX[0] - nOverlapX[0], nBlkSizeY[0] - nOverlapY[0]);
                 } else { // 6 to 8
-                    MakeSADMaskTime(&fgopF, nBlkX, nBlkY, 4.0 / (ml * nBlkSizeX[0] * nBlkSizeY[0]), 1.0, nPel, smallMaskF, nBlkXP, time256, nBlkSizeX[0] - nOverlapX[0], nBlkSizeY[0] - nOverlapY[0]);
-                    MakeSADMaskTime(&fgopB, nBlkX, nBlkY, 4.0 / (ml * nBlkSizeX[0] * nBlkSizeY[0]), 1.0, nPel, smallMaskB, nBlkXP, 256 - time256, nBlkSizeX[0] - nOverlapX[0], nBlkSizeY[0] - nOverlapY[0]);
+                    MakeSADMaskTime(&fgopF, nBlkX, nBlkY, 4.0 / (ml * nBlkSizeX[0] * nBlkSizeY[0]), 1.0, nPel, smallMaskF, nBlkXP, time256, nBlkSizeX[0] - nOverlapX[0], nBlkSizeY[0] - nOverlapY[0], bitsPerSample);
+                    MakeSADMaskTime(&fgopB, nBlkX, nBlkY, 4.0 / (ml * nBlkSizeX[0] * nBlkSizeY[0]), 1.0, nPel, smallMaskB, nBlkXP, 256 - time256, nBlkSizeX[0] - nOverlapX[0], nBlkSizeY[0] - nOverlapY[0], bitsPerSample);
                 }
 
                 if (nBlkXP > nBlkX) // fill right
