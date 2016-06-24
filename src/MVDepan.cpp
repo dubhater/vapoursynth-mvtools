@@ -1,4 +1,5 @@
 #include <mutex>
+#include <string>
 #include <math.h>
 
 #include <fftw3.h>
