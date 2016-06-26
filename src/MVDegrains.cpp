@@ -42,7 +42,7 @@ struct MVDegrainData {
     int nLimit[3];
     int nSCD1;
     int nSCD2;
-    int isse;
+    int opt;
 
     MVAnalysisData vectors_data[6];
 
@@ -192,7 +192,7 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
         const int yRatioUV = d->vectors_data[0].yRatioUV;
         const int nBlkX = d->vectors_data[0].nBlkX;
         const int nBlkY = d->vectors_data[0].nBlkY;
-        const int isse = d->isse;
+        const int opt = d->opt;
         const int dstTempPitch = d->dstTempPitch;
         const int *nWidth = d->nWidth;
         const int *nHeight = d->nHeight;
@@ -208,7 +208,7 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
 
         MVGroupOfFrames pRefGOF[radius * 2];
         for (int r = 0; r < radius * 2; r++)
-            mvgofInit(&pRefGOF[r], d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, isse, xRatioUV, yRatioUV, bitsPerSample);
+            mvgofInit(&pRefGOF[r], d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, opt, xRatioUV, yRatioUV, bitsPerSample);
 
 
         OverlapWindows *OverWins[3] = { d->OverWins[0], d->OverWins[1], d->OverWins[2] };
@@ -454,7 +454,7 @@ static void selectFunctions(MVDegrainData *d) {
 
         d->ToPixels = ToPixels_uint16_t_uint8_t;
 
-        if (d->isse) {
+        if (d->opt) {
 #if defined(MVTOOLS_X86)
             overs[4][2] = mvtools_overlaps_4x2_sse2;
             degs[4][2] = Degrain_sse2<radius, 4, 2>;
@@ -613,9 +613,9 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
     if (err)
         d.nSCD2 = MV_DEFAULT_SCD2;
 
-    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
+    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.isse = 1;
+        d.opt = 1;
 
 
     if (plane < 0 || plane > 4) {
@@ -764,7 +764,7 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
     }
 
     if (d.vi->format->bitsPerSample > 8)
-        d.isse = 0;
+        d.opt = 0;
 
     int pixelMax = (1 << d.vi->format->bitsPerSample) - 1;
 
@@ -869,7 +869,7 @@ extern "C" void mvdegrainsRegister(VSRegisterFunction registerFunc, VSPlugin *pl
                  "limitc:int:opt;"
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
-                 "isse:int:opt;",
+                 "opt:int:opt;",
                  mvdegrainCreate<1>, 0, plugin);
     registerFunc("Degrain2",
                  "clip:clip;"
@@ -885,7 +885,7 @@ extern "C" void mvdegrainsRegister(VSRegisterFunction registerFunc, VSPlugin *pl
                  "limitc:int:opt;"
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
-                 "isse:int:opt;",
+                 "opt:int:opt;",
                  mvdegrainCreate<2>, 0, plugin);
     registerFunc("Degrain3",
                  "clip:clip;"
@@ -903,6 +903,6 @@ extern "C" void mvdegrainsRegister(VSRegisterFunction registerFunc, VSPlugin *pl
                  "limitc:int:opt;"
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
-                 "isse:int:opt;",
+                 "opt:int:opt;",
                  mvdegrainCreate<3>, 0, plugin);
 }

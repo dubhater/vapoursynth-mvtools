@@ -69,7 +69,7 @@ typedef struct PlaneOfBlocks {
     /* after the search, contains the best motion vector */
 
     int smallestPlane; /* say whether vectors can used predictors from a smaller plane */
-    int isse;          /* can we use isse asm code */
+    int opt;           /* can we use asm code */
     int chroma;        /* do we do chroma me */
 
     /* working fields */

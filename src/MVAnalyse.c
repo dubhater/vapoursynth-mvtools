@@ -20,8 +20,8 @@ typedef struct MVAnalyseData {
     MVAnalysisData analysisData;
     MVAnalysisData analysisDataDivided;
 
-    /*! \brief isse optimisations enabled */
-    int isse;
+    /*! \brief optimisations enabled */
+    int opt;
 
     /*! \brief motion vecteur cost factor */
     int nLambda;
@@ -192,8 +192,8 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
 
             MVGroupOfFrames pSrcGOF, pRefGOF;
 
-            mvgofInit(&pSrcGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->supervi->format->bitsPerSample);
-            mvgofInit(&pRefGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->supervi->format->bitsPerSample);
+            mvgofInit(&pSrcGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->opt, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->supervi->format->bitsPerSample);
+            mvgofInit(&pRefGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->opt, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->supervi->format->bitsPerSample);
 
             // cast away the const, because why not.
             mvgofUpdate(&pSrcGOF, (uint8_t **)pSrc, nSrcPitch);
@@ -356,9 +356,9 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     if (err)
         d.badrange = 24;
 
-    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
+    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.isse = 1;
+        d.opt = 1;
 
     d.meander = !!vsapi->propGetInt(in, "meander", 0, &err);
     if (err)
@@ -486,17 +486,17 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
 
     d.analysisData.nMotionFlags = 0;
-    d.analysisData.nMotionFlags |= d.isse ? MOTION_USE_ISSE : 0;
+    d.analysisData.nMotionFlags |= d.opt ? MOTION_USE_SIMD : 0;
     d.analysisData.nMotionFlags |= d.analysisData.isBackward ? MOTION_IS_BACKWARD : 0;
     d.analysisData.nMotionFlags |= d.chroma ? MOTION_USE_CHROMA_MOTION : 0;
 
 
-    if (d.isse) {
+    if (d.opt) {
         d.analysisData.nCPUFlags = cpu_detect();
     }
 
     if (d.vi->format->bitsPerSample > 8)
-        d.isse = 0; // needed here because MVPlane can't have isse=1 with more than 8 bits
+        d.opt = 0; // needed here because MVPlane can't have opt=1 with more than 8 bits
 
     if (d.analysisData.nOverlapX % (1 << d.vi->format->subSamplingW) ||
         d.analysisData.nOverlapY % (1 << d.vi->format->subSamplingH)) {
@@ -661,7 +661,7 @@ void mvanalyseRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "divide:int:opt;"
                  "badsad:int:opt;"
                  "badrange:int:opt;"
-                 "isse:int:opt;"
+                 "opt:int:opt;"
                  "meander:int:opt;"
                  "trymany:int:opt;"
                  "fields:int:opt;"

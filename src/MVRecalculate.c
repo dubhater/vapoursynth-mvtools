@@ -21,8 +21,8 @@ typedef struct MVRecalculateData {
     MVAnalysisData analysisData;
     MVAnalysisData analysisDataDivided;
 
-    /*! \brief isse optimisations enabled */
-    int isse;
+    /*! \brief optimisations enabled */
+    int opt;
 
     /*! \brief motion vecteur cost factor */
     int nLambda;
@@ -189,8 +189,8 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
 
             MVGroupOfFrames pSrcGOF, pRefGOF;
 
-            mvgofInit(&pSrcGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->vi->format->bitsPerSample);
-            mvgofInit(&pRefGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->vi->format->bitsPerSample);
+            mvgofInit(&pSrcGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->opt, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->vi->format->bitsPerSample);
+            mvgofInit(&pRefGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->opt, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->vi->format->bitsPerSample);
 
             // cast away the const, because why not.
             mvgofUpdate(&pSrcGOF, (uint8_t **)pSrc, nSrcPitch);
@@ -324,9 +324,9 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
     d.divideExtra = int64ToIntS(vsapi->propGetInt(in, "divide", 0, &err));
 
-    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
+    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.isse = 1;
+        d.opt = 1;
 
     d.meander = !!vsapi->propGetInt(in, "meander", 0, &err);
     if (err)
@@ -500,17 +500,17 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
 
     d.analysisData.nMotionFlags = 0;
-    d.analysisData.nMotionFlags |= d.isse ? MOTION_USE_ISSE : 0;
+    d.analysisData.nMotionFlags |= d.opt ? MOTION_USE_SIMD : 0;
     d.analysisData.nMotionFlags |= d.analysisData.isBackward ? MOTION_IS_BACKWARD : 0;
     d.analysisData.nMotionFlags |= d.chroma ? MOTION_USE_CHROMA_MOTION : 0;
 
 
-    if (d.isse) {
+    if (d.opt) {
         d.analysisData.nCPUFlags = cpu_detect();
     }
 
     if (d.vi->format->bitsPerSample > 8)
-        d.isse = 0; // needed here because MVPlane can't have isse=1 with more than 8 bits
+        d.opt = 0; // needed here because MVPlane can't have opt=1 with more than 8 bits
 
     d.analysisData.nPel = d.nSuperPel; //x
 
@@ -571,7 +571,7 @@ void mvrecalculateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "overlap:int:opt;"
                  "overlapv:int:opt;"
                  "divide:int:opt;"
-                 "isse:int:opt;"
+                 "opt:int:opt;"
                  "meander:int:opt;"
                  "fields:int:opt;"
                  "tff:int:opt;"

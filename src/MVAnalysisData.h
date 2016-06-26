@@ -60,7 +60,7 @@ typedef enum SearchType {
 } SearchType;
 
 
-#define MOTION_USE_ISSE             0x00000001
+#define MOTION_USE_SIMD             0x00000001
 #define MOTION_IS_BACKWARD          0x00000002
 #define MOTION_SMALLEST_PLANE       0x00000004
 #define MOTION_USE_CHROMA_MOTION    0x00000008

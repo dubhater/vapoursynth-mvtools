@@ -27,7 +27,7 @@ typedef struct MVFinestData {
     VSNodeRef *super;
     VSVideoInfo vi;
 
-    int isse;
+    int opt;
 
     int nWidth;
     int nHeight;
@@ -81,7 +81,7 @@ static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, voi
                 vs_bitblt(pDst[i], nDstPitches[i], pRef[i], nRefPitches[i], d->vi.width * bytesPerSample, d->vi.height);
         } else {
             MVGroupOfFrames pRefGOF = { 0 };
-            mvgofInit(&pRefGOF, d->nSuperLevels, d->nWidth, d->nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->isse, d->xRatioUV, d->yRatioUV, bitsPerSample);
+            mvgofInit(&pRefGOF, d->nSuperLevels, d->nWidth, d->nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->opt, d->xRatioUV, d->yRatioUV, bitsPerSample);
 
             mvgofUpdate(&pRefGOF, (uint8_t **)pRef, nRefPitches);
 
@@ -153,9 +153,9 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
 
     int err;
 
-    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
+    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.isse = 1;
+        d.opt = 1;
 
 
     d.super = vsapi->propGetNode(in, "super", 0, 0);
@@ -168,7 +168,7 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
     }
 
     if (d.vi.format->bitsPerSample > 8)
-        d.isse = 0;
+        d.opt = 0;
 
 #define ERROR_SIZE 1024
     char errorMsg[ERROR_SIZE] = "Finest: failed to retrieve first frame from super clip. Error message: ";
@@ -218,6 +218,6 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
 void mvfinestRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
     registerFunc("Finest",
                  "super:clip;"
-                 "isse:int:opt;",
+                 "opt:int:opt;",
                  mvfinestCreate, 0, plugin);
 }

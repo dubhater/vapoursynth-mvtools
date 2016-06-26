@@ -46,7 +46,7 @@ typedef struct MVFlowInterData {
     int blend;
     int thscd1;
     int thscd2;
-    int isse;
+    int opt;
 
     MVAnalysisData mvbw_data;
     MVAnalysisData mvfw_data;
@@ -525,9 +525,9 @@ static void VS_CC mvflowinterCreate(const VSMap *in, VSMap *out, void *userData,
     if (err)
         d.thscd2 = MV_DEFAULT_SCD2;
 
-    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
+    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.isse = 1;
+        d.opt = 1;
 
 
     if (d.time < 0.0f || d.time > 100.0f) {
@@ -632,7 +632,7 @@ static void VS_CC mvflowinterCreate(const VSMap *in, VSMap *out, void *userData,
 
         VSMap *args = vsapi->createMap();
         vsapi->propSetNode(args, "super", d.super, paReplace);
-        vsapi->propSetInt(args, "isse", d.isse, paReplace);
+        vsapi->propSetInt(args, "opt", d.opt, paReplace);
         VSMap *ret = vsapi->invoke(mvtoolsPlugin, "Finest", args);
         if (vsapi->getError(ret)) {
 #define ERROR_SIZE 512
@@ -700,7 +700,7 @@ static void VS_CC mvflowinterCreate(const VSMap *in, VSMap *out, void *userData,
     }
 
     if (d.vi->format->bitsPerSample > 8)
-        d.isse = 0;
+        d.opt = 0;
 
 
     d.nBlkXP = (d.mvbw_data.nBlkX * (d.mvbw_data.nBlkSizeX - d.mvbw_data.nOverlapX) + d.mvbw_data.nOverlapX < d.mvbw_data.nWidth) ? d.mvbw_data.nBlkX + 1 : d.mvbw_data.nBlkX;
@@ -743,6 +743,6 @@ void mvflowinterRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "blend:int:opt;"
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
-                 "isse:int:opt;",
+                 "opt:int:opt;",
                  mvflowinterCreate, 0, plugin);
 }

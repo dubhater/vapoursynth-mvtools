@@ -49,7 +49,7 @@ typedef struct MVBlockFPSData {
     double ml;
     int blend;
     int thscd1, thscd2;
-    int isse;
+    int opt;
 
     MVAnalysisData mvbw_data;
     MVAnalysisData mvfw_data;
@@ -329,7 +329,7 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
         const int mode = d->mode;
         const double ml = d->ml;
         const int blend = d->blend;
-        const int isse = d->isse;
+        const int opt = d->opt;
         const int xRatioUV = d->mvbw_data.xRatioUV;
         const int yRatioUV = d->mvbw_data.yRatioUV;
         const int nBlkX = d->mvbw_data.nBlkX;
@@ -385,8 +385,8 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
 
             MVGroupOfFrames pRefBGOF, pRefFGOF;
 
-            mvgofInit(&pRefBGOF, nSuperLevels, nWidth[0], nHeight[0], nSuperPel, nSuperHPad, nSuperVPad, nSuperModeYUV, isse, xRatioUV, yRatioUV, d->supervi->format->bitsPerSample);
-            mvgofInit(&pRefFGOF, nSuperLevels, nWidth[0], nHeight[0], nSuperPel, nSuperHPad, nSuperVPad, nSuperModeYUV, isse, xRatioUV, yRatioUV, d->supervi->format->bitsPerSample);
+            mvgofInit(&pRefBGOF, nSuperLevels, nWidth[0], nHeight[0], nSuperPel, nSuperHPad, nSuperVPad, nSuperModeYUV, opt, xRatioUV, yRatioUV, d->supervi->format->bitsPerSample);
+            mvgofInit(&pRefFGOF, nSuperLevels, nWidth[0], nHeight[0], nSuperPel, nSuperHPad, nSuperVPad, nSuperModeYUV, opt, xRatioUV, yRatioUV, d->supervi->format->bitsPerSample);
 
             mvgofUpdate(&pRefBGOF, (uint8_t **)pRef, nRefPitches);
             mvgofUpdate(&pRefFGOF, (uint8_t **)pSrc, nSrcPitches);
@@ -762,7 +762,7 @@ static void selectFunctions(MVBlockFPSData *d) {
 
         d->ToPixels = ToPixels_uint16_t_uint8_t;
 
-        if (d->isse) {
+        if (d->opt) {
 #if defined(MVTOOLS_X86)
             overs[4][2] = mvtools_overlaps_4x2_sse2;
             overs[4][4] = mvtools_overlaps_4x4_sse2;
@@ -848,9 +848,9 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     if (err)
         d.thscd2 = MV_DEFAULT_SCD2;
 
-    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
+    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.isse = 1;
+        d.opt = 1;
 
 
     if (d.mode < 0 || d.mode > 8) {
@@ -1011,7 +1011,7 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     }
 
     if (d.vi.format->bitsPerSample > 8)
-        d.isse = 0;
+        d.opt = 0;
 
 
     d.nBlkXP = (d.mvbw_data.nBlkX * (d.mvbw_data.nBlkSizeX - d.mvbw_data.nOverlapX) + d.mvbw_data.nOverlapX < d.mvbw_data.nWidth) ? d.mvbw_data.nBlkX + 1 : d.mvbw_data.nBlkX;
@@ -1111,6 +1111,6 @@ void mvblockfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "blend:int:opt;"
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
-                 "isse:int:opt;",
+                 "opt:int:opt;",
                  mvblockfpsCreate, 0, plugin);
 }

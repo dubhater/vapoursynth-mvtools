@@ -46,7 +46,7 @@ typedef struct MVFlowBlurData {
     int prec;
     int thscd1;
     int thscd2;
-    int isse;
+    int opt;
 
     MVAnalysisData mvbw_data;
     MVAnalysisData mvfw_data;
@@ -374,9 +374,9 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
     if (err)
         d.thscd2 = MV_DEFAULT_SCD2;
 
-    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
+    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.isse = 1;
+        d.opt = 1;
 
 
     if (d.blur < 0.0f || d.blur > 200.0f) {
@@ -482,7 +482,7 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
 
         VSMap *args = vsapi->createMap();
         vsapi->propSetNode(args, "super", d.super, paReplace);
-        vsapi->propSetInt(args, "isse", d.isse, paReplace);
+        vsapi->propSetInt(args, "opt", d.opt, paReplace);
         VSMap *ret = vsapi->invoke(mvtoolsPlugin, "Finest", args);
         if (vsapi->getError(ret)) {
 #define ERROR_SIZE 512
@@ -550,7 +550,7 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
     }
 
     if (d.vi->format->bitsPerSample > 8)
-        d.isse = 0;
+        d.opt = 0;
 
 
     d.nHeightUV = d.mvbw_data.nHeight / d.mvbw_data.yRatioUV;
@@ -584,6 +584,6 @@ void mvflowblurRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "prec:int:opt;"
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
-                 "isse:int:opt;",
+                 "opt:int:opt;",
                  mvflowblurCreate, 0, plugin);
 }

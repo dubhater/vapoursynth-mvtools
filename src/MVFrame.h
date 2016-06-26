@@ -59,14 +59,14 @@ typedef struct MVPlane {
 
     int nPel;
 
-    int isse;
+    int opt;
 
     int isPadded;
     int isRefined;
     int isFilled;
 } MVPlane;
 
-void mvpInit(MVPlane *mvp, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int isse, int bitsPerSample);
+void mvpInit(MVPlane *mvp, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int opt, int bitsPerSample);
 
 void mvpDeinit(MVPlane *mvp);
 
@@ -113,14 +113,14 @@ typedef struct MVFrame {
     MVPlane *planes[3];
 
     int nMode;
-    int isse;
+    int opt;
     int xRatioUV;
     int yRatioUV;
     int bitsPerSample;
 } MVFrame;
 
 
-void mvfInit(MVFrame *mvf, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int nMode, int isse, int xRatioUV, int yRatioUV, int bitsPerSample);
+void mvfInit(MVFrame *mvf, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int nMode, int opt, int xRatioUV, int yRatioUV, int bitsPerSample);
 
 void mvfDeinit(MVFrame *mvf);
 
@@ -152,7 +152,7 @@ typedef struct MVGroupOfFrames {
 } MVGroupOfFrames;
 
 
-void mvgofInit(MVGroupOfFrames *mvgof, int nLevelCount, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int nMode, int isse, int xRatioUV, int yRatioUV, int bitsPerSample);
+void mvgofInit(MVGroupOfFrames *mvgof, int nLevelCount, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int nMode, int opt, int xRatioUV, int yRatioUV, int bitsPerSample);
 
 void mvgofDeinit(MVGroupOfFrames *mvgof);
 

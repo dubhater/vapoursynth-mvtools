@@ -151,8 +151,8 @@ DiagonalBilinear(uint16_t)
 
 #define RB2F_C(PixelType) \
 static void RB2F_C_##PixelType(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch, \
-            int nSrcPitch, int nWidth, int nHeight, int isse) { \
-    (void)isse; \
+            int nSrcPitch, int nWidth, int nHeight, int opt) { \
+    (void)opt; \
  \
     PixelType *pDst = (PixelType *)pDst8; \
     PixelType *pSrc = (PixelType *)pSrc8; \
@@ -178,8 +178,8 @@ RB2F_C(uint16_t)
 // nHeight is dst height which is reduced by 2 source height
 #define RB2FilteredVertical(PixelType) \
 static void RB2FilteredVertical_##PixelType(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch, \
-                         int nSrcPitch, int nWidth, int nHeight, int isse) { \
-    (void)isse; \
+                         int nSrcPitch, int nWidth, int nHeight, int opt) { \
+    (void)opt; \
  \
     /* int nWidthMMX = (nWidth/4)*4; */ \
  \
@@ -197,7 +197,7 @@ static void RB2FilteredVertical_##PixelType(uint8_t *pDst8, const uint8_t *pSrc8
     } \
  \
     /* TODO: port the asm
-       if (isse && nWidthMMX>=4)
+       if (opt && nWidthMMX>=4)
        {
        for ( int y = 1; y < nHeight; y++ )
        {
@@ -230,8 +230,8 @@ RB2FilteredVertical(uint16_t)
 // Filtered with 1/4, 1/2, 1/4 filter for smoothing and anti-aliasing - Fizick
 // nWidth is dst height which is reduced by 2 source width
 #define RB2FilteredHorizontalInplace(PixelType) \
-static void RB2FilteredHorizontalInplace_##PixelType(uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, int isse) { \
-    (void)isse; \
+static void RB2FilteredHorizontalInplace_##PixelType(uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, int opt) { \
+    (void)opt; \
  \
     /* int nWidthMMX = 1 + ((nWidth-2)/4)*4; */ \
  \
@@ -244,7 +244,7 @@ static void RB2FilteredHorizontalInplace_##PixelType(uint8_t *pSrc8, int nSrcPit
         int pSrc0 = (pSrc[x * 2] + pSrc[x * 2 + 1] + 1) / 2; \
  \
         /* TODO: port the asm
-           if (isse)
+           if (opt)
            {
            RB2FilteredHorizontalInplaceLine_SSE((uint8_t *)pSrc, nWidthMMX); // very first is skipped
            for ( x = nWidthMMX; x < nWidth; x++ )
@@ -270,9 +270,9 @@ RB2FilteredHorizontalInplace(uint16_t)
 // assume he have enough horizontal dimension for intermediate results (double as final)
 #define RB2Filtered(PixelType) \
 static void RB2Filtered_##PixelType(uint8_t *pDst, const uint8_t *pSrc, int nDstPitch, \
-                 int nSrcPitch, int nWidth, int nHeight, int isse) { \
-    RB2FilteredVertical_##PixelType(pDst, pSrc, nDstPitch, nSrcPitch, nWidth * 2, nHeight, isse); /* intermediate half height */ \
-    RB2FilteredHorizontalInplace_##PixelType(pDst, nDstPitch, nWidth, nHeight, isse);             /* inpace width reduction */ \
+                 int nSrcPitch, int nWidth, int nHeight, int opt) { \
+    RB2FilteredVertical_##PixelType(pDst, pSrc, nDstPitch, nSrcPitch, nWidth * 2, nHeight, opt); /* intermediate half height */ \
+    RB2FilteredHorizontalInplace_##PixelType(pDst, nDstPitch, nWidth, nHeight, opt);             /* inpace width reduction */ \
 }
 
 RB2Filtered(uint8_t)
@@ -291,7 +291,7 @@ RB2Filtered(uint16_t)
 // nHeight is dst height which is reduced by 2 source height
 #define RB2BilinearFilteredVertical(PixelType) \
 static void RB2BilinearFilteredVertical_##PixelType(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch, \
-                                 int nSrcPitch, int nWidth, int nHeight, int isse) { \
+                                 int nSrcPitch, int nWidth, int nHeight, int opt) { \
  \
     PixelType *pDst = (PixelType *)pDst8; \
     PixelType *pSrc = (PixelType *)pSrc8; \
@@ -311,7 +311,7 @@ static void RB2BilinearFilteredVertical_##PixelType(uint8_t *pDst8, const uint8_
     for (int y = 1; y < nHeight - 1; y++) { \
         int xstart = 0; \
  \
-        if (sizeof(PixelType) == 1 && isse && nWidthMMX >= 8) { \
+        if (sizeof(PixelType) == 1 && opt && nWidthMMX >= 8) { \
             RB2BilinearFilteredVertical_SIMD \
         } \
         for (int x = xstart; x < nWidth; x++) \
@@ -343,7 +343,7 @@ RB2BilinearFilteredVertical(uint16_t)
 // BilinearFiltered with 1/8, 3/8, 3/8, 1/8 filter for smoothing and anti-aliasing - Fizick
 // nWidth is dst height which is reduced by 2 source width
 #define RB2BilinearFilteredHorizontalInplace(PixelType) \
-static void RB2BilinearFilteredHorizontalInplace_##PixelType(uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, int isse) { \
+static void RB2BilinearFilteredHorizontalInplace_##PixelType(uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, int opt) { \
  \
     PixelType *pSrc = (PixelType *)pSrc8; \
  \
@@ -357,7 +357,7 @@ static void RB2BilinearFilteredHorizontalInplace_##PixelType(uint8_t *pSrc8, int
  \
         int xstart = 1; \
  \
-        if (sizeof(PixelType) == 1 && isse) { \
+        if (sizeof(PixelType) == 1 && opt) { \
             RB2BilinearFilteredHorizontalInplace_SIMD \
         } \
         for (x = xstart; x < nWidth - 1; x++) \
@@ -380,9 +380,9 @@ RB2BilinearFilteredHorizontalInplace(uint16_t)
 // assume he have enough horizontal dimension for intermediate results (double as final)
 #define RB2BilinearFiltered(PixelType) \
 static void RB2BilinearFiltered_##PixelType(uint8_t *pDst, const uint8_t *pSrc, int nDstPitch, \
-                         int nSrcPitch, int nWidth, int nHeight, int isse) { \
-    RB2BilinearFilteredVertical_##PixelType(pDst, pSrc, nDstPitch, nSrcPitch, nWidth * 2, nHeight, isse); /* intermediate half height */ \
-    RB2BilinearFilteredHorizontalInplace_##PixelType(pDst, nDstPitch, nWidth, nHeight, isse);             /* inpace width reduction */ \
+                         int nSrcPitch, int nWidth, int nHeight, int opt) { \
+    RB2BilinearFilteredVertical_##PixelType(pDst, pSrc, nDstPitch, nSrcPitch, nWidth * 2, nHeight, opt); /* intermediate half height */ \
+    RB2BilinearFilteredHorizontalInplace_##PixelType(pDst, nDstPitch, nWidth, nHeight, opt);             /* inpace width reduction */ \
 }
 
 RB2BilinearFiltered(uint8_t)
@@ -401,7 +401,7 @@ RB2BilinearFiltered(uint16_t)
 // nHeight is dst height which is reduced by 2 source height
 #define RB2QuadraticVertical(PixelType) \
 static void RB2QuadraticVertical_##PixelType(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch, \
-                          int nSrcPitch, int nWidth, int nHeight, int isse) { \
+                          int nSrcPitch, int nWidth, int nHeight, int opt) { \
     PixelType *pDst = (PixelType *)pDst8; \
     PixelType *pSrc = (PixelType *)pSrc8; \
  \
@@ -420,7 +420,7 @@ static void RB2QuadraticVertical_##PixelType(uint8_t *pDst8, const uint8_t *pSrc
     for (int y = 1; y < nHeight - 1; y++) { \
         int xstart = 0; \
  \
-        if (sizeof(PixelType) == 1 && isse && nWidthMMX >= 8) { \
+        if (sizeof(PixelType) == 1 && opt && nWidthMMX >= 8) { \
             RB2QuadraticVertical_SIMD \
         } \
  \
@@ -454,7 +454,7 @@ RB2QuadraticVertical(uint16_t)
 // filtered Quadratic with 1/64, 9/64, 22/64, 22/64, 9/64, 1/64 filter for smoothing and anti-aliasing - Fizick
 // nWidth is dst height which is reduced by 2 source width
 #define RB2QuadraticHorizontalInplace(PixelType) \
-static void RB2QuadraticHorizontalInplace_##PixelType(uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, int isse) { \
+static void RB2QuadraticHorizontalInplace_##PixelType(uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, int opt) { \
     PixelType *pSrc = (PixelType *)pSrc8; \
  \
     nSrcPitch /= sizeof(PixelType); \
@@ -467,7 +467,7 @@ static void RB2QuadraticHorizontalInplace_##PixelType(uint8_t *pSrc8, int nSrcPi
  \
         int xstart = 1; \
  \
-        if (sizeof(PixelType) == 1 && isse) { \
+        if (sizeof(PixelType) == 1 && opt) { \
             RB2QuadraticHorizontalInplace_SIMD \
         } \
  \
@@ -491,9 +491,9 @@ RB2QuadraticHorizontalInplace(uint16_t)
 // assume he have enough horizontal dimension for intermediate results (double as final)
 #define RB2Quadratic(PixelType) \
 static void RB2Quadratic_##PixelType(uint8_t *pDst, const uint8_t *pSrc, int nDstPitch, \
-                  int nSrcPitch, int nWidth, int nHeight, int isse) { \
-    RB2QuadraticVertical_##PixelType(pDst, pSrc, nDstPitch, nSrcPitch, nWidth * 2, nHeight, isse); /* intermediate half height */ \
-    RB2QuadraticHorizontalInplace_##PixelType(pDst, nDstPitch, nWidth, nHeight, isse);             /* inpace width reduction */ \
+                  int nSrcPitch, int nWidth, int nHeight, int opt) { \
+    RB2QuadraticVertical_##PixelType(pDst, pSrc, nDstPitch, nSrcPitch, nWidth * 2, nHeight, opt); /* intermediate half height */ \
+    RB2QuadraticHorizontalInplace_##PixelType(pDst, nDstPitch, nWidth, nHeight, opt);             /* inpace width reduction */ \
 }
 
 RB2Quadratic(uint8_t)
@@ -512,7 +512,7 @@ RB2Quadratic(uint16_t)
 // nHeight is dst height which is reduced by 2 source height
 #define RB2CubicVertical(PixelType) \
 static void RB2CubicVertical_##PixelType(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch, \
-                      int nSrcPitch, int nWidth, int nHeight, int isse) { \
+                      int nSrcPitch, int nWidth, int nHeight, int opt) { \
     PixelType *pDst = (PixelType *)pDst8; \
     PixelType *pSrc = (PixelType *)pSrc8; \
  \
@@ -530,7 +530,7 @@ static void RB2CubicVertical_##PixelType(uint8_t *pDst8, const uint8_t *pSrc8, i
     for (int y = 1; y < nHeight - 1; y++) { \
         int xstart = 0; \
  \
-        if (sizeof(PixelType) == 1 && isse && nWidthMMX >= 8) { \
+        if (sizeof(PixelType) == 1 && opt && nWidthMMX >= 8) { \
             RB2CubicVertical_SIMD \
         } \
  \
@@ -564,7 +564,7 @@ RB2CubicVertical(uint16_t)
 // filtered qubic with 1/32, 5/32, 10/32, 10/32, 5/32, 1/32 filter for smoothing and anti-aliasing - Fizick
 // nWidth is dst height which is reduced by 2 source width
 #define RB2CubicHorizontalInplace(PixelType) \
-static void RB2CubicHorizontalInplace_##PixelType(uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, int isse) { \
+static void RB2CubicHorizontalInplace_##PixelType(uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, int opt) { \
     PixelType *pSrc = (PixelType *)pSrc8; \
  \
     nSrcPitch /= sizeof(PixelType); \
@@ -576,7 +576,7 @@ static void RB2CubicHorizontalInplace_##PixelType(uint8_t *pSrc8, int nSrcPitch,
  \
         int xstart = 1; \
  \
-        if (sizeof(PixelType) == 1 && isse) { \
+        if (sizeof(PixelType) == 1 && opt) { \
             RB2CubicHorizontalInplace_SIMD \
         } \
  \
@@ -600,9 +600,9 @@ RB2CubicHorizontalInplace(uint16_t)
 // assume he have enough horizontal dimension for intermediate results (double as final)
 #define RB2Cubic(PixelType) \
 static void RB2Cubic_##PixelType(uint8_t *pDst, const uint8_t *pSrc, int nDstPitch, \
-              int nSrcPitch, int nWidth, int nHeight, int isse) { \
-    RB2CubicVertical_##PixelType(pDst, pSrc, nDstPitch, nSrcPitch, nWidth * 2, nHeight, isse); /* intermediate half height */ \
-    RB2CubicHorizontalInplace_##PixelType(pDst, nDstPitch, nWidth, nHeight, isse);             /* inpace width reduction */ \
+              int nSrcPitch, int nWidth, int nHeight, int opt) { \
+    RB2CubicVertical_##PixelType(pDst, pSrc, nDstPitch, nSrcPitch, nWidth * 2, nHeight, opt); /* intermediate half height */ \
+    RB2CubicHorizontalInplace_##PixelType(pDst, nDstPitch, nWidth, nHeight, opt);             /* inpace width reduction */ \
 }
 
 RB2Cubic(uint8_t)

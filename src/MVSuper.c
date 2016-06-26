@@ -20,7 +20,7 @@ typedef struct MVSuperData {
     int nLevels;
     int sharp;
     int rfilter; // frame reduce filter mode
-    int isse;
+    int opt;
 
     int nWidth;
     int nHeight;
@@ -83,7 +83,7 @@ static const VSFrameRef *VS_CC mvsuperGetFrame(int n, int activationReason, void
         }
 
         MVGroupOfFrames pSrcGOF;
-        mvgofInit(&pSrcGOF, d->nLevels, d->nWidth, d->nHeight, d->nPel, d->nHPad, d->nVPad, d->nModeYUV, d->isse, d->xRatioUV, d->yRatioUV, d->vi.format->bitsPerSample);
+        mvgofInit(&pSrcGOF, d->nLevels, d->nWidth, d->nHeight, d->nPel, d->nHPad, d->nVPad, d->nModeYUV, d->opt, d->xRatioUV, d->yRatioUV, d->vi.format->bitsPerSample);
 
         mvgofUpdate(&pSrcGOF, pDst, nDstPitch);
 
@@ -177,9 +177,9 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
     if (err)
         d.rfilter = RfilterBilinear;
 
-    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
+    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.isse = 1;
+        d.opt = 1;
 
 
     if ((d.nPel != 1) && (d.nPel != 2) && (d.nPel != 4)) {
@@ -217,7 +217,7 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
 
 
     if (d.vi.format->bitsPerSample > 8)
-        d.isse = 0;
+        d.opt = 0;
 
 
     d.xRatioUV = 1 << d.vi.format->subSamplingW;
@@ -288,6 +288,6 @@ void mvsuperRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "sharp:int:opt;"
                  "rfilter:int:opt;"
                  "pelclip:clip:opt;"
-                 "isse:int:opt;",
+                 "opt:int:opt;",
                  mvsuperCreate, 0, plugin);
 }

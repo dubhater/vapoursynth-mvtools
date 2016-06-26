@@ -30,12 +30,14 @@ Differences
 
     * No "planar" parameter.
 
+    * "isse" parameter renamed to "opt".
+
 * Analyse:
     * No "temporal" parameter, as it's sort of incompatible with multithreading.
 
     * No "outfile" parameter.
 
-    * No "sadx264" parameter. If isse is True, the best functions imported from x264 will be selected automatically. Otherwise, only C functions will be used.
+    * No "sadx264" parameter. If opt is True, the best functions imported from x264 will be selected automatically. Otherwise, only C functions will be used.
 
     * New parameters "fields" and "tff".
 
@@ -86,31 +88,31 @@ Usage
 =====
 ::
 
-    mv.Super(clip clip[, int hpad=8, int vpad=8, int pel=2, int levels=0, bint chroma=True, int sharp=2, int rfilter=2, clip pelclip=None, bint isse=True])
+    mv.Super(clip clip[, int hpad=8, int vpad=8, int pel=2, int levels=0, bint chroma=True, int sharp=2, int rfilter=2, clip pelclip=None, bint opt=True])
 
-    mv.Analyse(clip super[, int blksize=8, int blksizev=blksize, int levels=0, int search=4, int searchparam=2, int pelsearch=0, bint isb=False, int lambda, bint chroma=True, int delta=1, bint truemotion=True, int lsad, int plevel, int global, int pnew, int pzero=pnew, int pglobal=0, int overlap=0, int overlapv=overlap, bint divide=False, int badsad=10000, int badrange=24, bint isse=True, bint meander=True, bint trymany=False, bint fields=False, bint tff, int search_coarse=3, int dct=0])
+    mv.Analyse(clip super[, int blksize=8, int blksizev=blksize, int levels=0, int search=4, int searchparam=2, int pelsearch=0, bint isb=False, int lambda, bint chroma=True, int delta=1, bint truemotion=True, int lsad, int plevel, int global, int pnew, int pzero=pnew, int pglobal=0, int overlap=0, int overlapv=overlap, bint divide=False, int badsad=10000, int badrange=24, bint opt=True, bint meander=True, bint trymany=False, bint fields=False, bint tff, int search_coarse=3, int dct=0])
 
-    mv.Recalculate(clip super, clip vectors[, int blksize=8, int blksizev=blksize, int search=4, int searchparam=2, int lambda, bint chroma=True, bint truemotion=True, int pnew, int overlap=0, int overlapv=overlap, bint divide=False, bint isse=True, bint meander=True, bint fields=False, bint tff, int dct=0])
+    mv.Recalculate(clip super, clip vectors[, int blksize=8, int blksizev=blksize, int search=4, int searchparam=2, int lambda, bint chroma=True, bint truemotion=True, int pnew, int overlap=0, int overlapv=overlap, bint divide=False, bint opt=True, bint meander=True, bint fields=False, bint tff, int dct=0])
 
-    mv.Compensate(clip clip, clip super, clip vectors[, int scbehavior=1, int thsad=10000, bint fields=False, float time=100.0, int thscd1=400, int thscd2=130, bint isse=True, bint tff])
+    mv.Compensate(clip clip, clip super, clip vectors[, int scbehavior=1, int thsad=10000, bint fields=False, float time=100.0, int thscd1=400, int thscd2=130, bint opt=True, bint tff])
 
-    mv.Degrain1(clip clip, clip super, clip mvbw, clip mvfw[, int thsad=400, int thsadc=thsad, int plane=4, int limit=255, int limitc=limit, int thscd1=400, int thscd2=130, bint isse=True])
+    mv.Degrain1(clip clip, clip super, clip mvbw, clip mvfw[, int thsad=400, int thsadc=thsad, int plane=4, int limit=255, int limitc=limit, int thscd1=400, int thscd2=130, bint opt=True])
 
-    mv.Degrain2(clip clip, clip super, clip mvbw, clip mvfw, clip mvbw2, clip mvfw2[, int thsad=400, int thsadc=thsad, int plane=4, int limit=255, int limitc=limit, int thscd1=400, int thscd2=130, bint isse=True])
+    mv.Degrain2(clip clip, clip super, clip mvbw, clip mvfw, clip mvbw2, clip mvfw2[, int thsad=400, int thsadc=thsad, int plane=4, int limit=255, int limitc=limit, int thscd1=400, int thscd2=130, bint opt=True])
 
-    mv.Degrain3(clip clip, clip super, clip mvbw, clip mvfw, clip mvbw2, clip mvfw2, clip mvbw3, clip mvfw3[, int thsad=400, int thsadc=thsad, int plane=4, int limit=255, int limitc=limit, int thscd1=400, int thscd2=130, bint isse=True])
+    mv.Degrain3(clip clip, clip super, clip mvbw, clip mvfw, clip mvbw2, clip mvfw2, clip mvbw3, clip mvfw3[, int thsad=400, int thsadc=thsad, int plane=4, int limit=255, int limitc=limit, int thscd1=400, int thscd2=130, bint opt=True])
 
     mv.Mask(clip clip, clip vectors[, float ml=100.0, float gamma=1.0, int kind=0, float time=100.0, int ysc=0, int thscd1=400, int thscd2=130])
 
-    mv.Finest(clip super[, bint isse=True])
+    mv.Finest(clip super[, bint opt=True])
 
-    mv.FlowBlur(clip clip, clip super, clip mvbw, clip mvfw[, float blur=50.0, int prec=1, int thscd1=400, int thscd2=130, bint isse=True])
+    mv.FlowBlur(clip clip, clip super, clip mvbw, clip mvfw[, float blur=50.0, int prec=1, int thscd1=400, int thscd2=130, bint opt=True])
 
-    mv.FlowInter(clip clip, clip super, clip mvbw, clip mvfw[, float time=50.0, float ml=100.0, bint blend=True, int thscd1=400, int thscd2=130, bint isse=True])
+    mv.FlowInter(clip clip, clip super, clip mvbw, clip mvfw[, float time=50.0, float ml=100.0, bint blend=True, int thscd1=400, int thscd2=130, bint opt=True])
 
-    mv.FlowFPS(clip clip, clip super, clip mvbw, clip mvfw[, int num=25, int den=1, int mask=2, float ml=100.0, bint blend=True, int thscd1=400, int thscd2=130, bint isse=True])
+    mv.FlowFPS(clip clip, clip super, clip mvbw, clip mvfw[, int num=25, int den=1, int mask=2, float ml=100.0, bint blend=True, int thscd1=400, int thscd2=130, bint opt=True])
 
-    mv.BlockFPS(clip clip, clip super, clip mvbw, clip mvfw[, int num=25, int den=1, int mode=3, float ml=100.0, bint blend=True, int thscd1=400, int thscd2=130, bint isse=True])
+    mv.BlockFPS(clip clip, clip super, clip mvbw, clip mvfw[, int num=25, int den=1, int mode=3, float ml=100.0, bint blend=True, int thscd1=400, int thscd2=130, bint opt=True])
 
     mv.SCDetection(clip clip, clip vectors[, int thscd1=400, int thscd2=130])
 

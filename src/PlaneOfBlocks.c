@@ -457,7 +457,7 @@ static void pobSelectFunctions(PlaneOfBlocks *pob) {
         lumas[32][32] = mvtools_luma_32x32_u8_c;
         blits[32][32] = mvtools_copy_32x32_u8_c;
 
-        if (pob->isse) {
+        if (pob->opt) {
 #if defined(MVTOOLS_X86)
             sads[4][2] = mvtools_sad_4x2_sse2;
 
@@ -631,7 +631,7 @@ static void pobSelectFunctions(PlaneOfBlocks *pob) {
         lumas[32][32] = mvtools_luma_32x32_u16_c;
         blits[32][32] = mvtools_copy_32x32_u16_c;
 
-        if (pob->isse) {
+        if (pob->opt) {
 #if defined(MVTOOLS_X86)
             sads[2][2] = mvtools_sad_2x2_u16_sse2;
             sads[2][4] = mvtools_sad_2x4_u16_sse2;
@@ -698,7 +698,7 @@ void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nB
     pob->bytesPerSample = (pob->bitsPerSample + 7) / 8;
 
     pob->smallestPlane = !!(pob->nMotionFlags & MOTION_SMALLEST_PLANE);
-    pob->isse = !!(pob->nMotionFlags & MOTION_USE_ISSE);
+    pob->opt = !!(pob->nMotionFlags & MOTION_USE_SIMD);
     pob->chroma = !!(pob->nMotionFlags & MOTION_USE_CHROMA_MOTION);
 
     pob->globalMVPredictor.x = zeroMV.x;

@@ -149,13 +149,13 @@ PadReferenceFrame(uint16_t)
  *                                                                             *
  ******************************************************************************/
 
-void mvpInit(MVPlane *mvp, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int isse, int bitsPerSample) {
+void mvpInit(MVPlane *mvp, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int opt, int bitsPerSample) {
     mvp->nWidth = nWidth;
     mvp->nHeight = nHeight;
     mvp->nPel = nPel;
     mvp->nHPadding = nHPad;
     mvp->nVPadding = nVPad;
-    mvp->isse = isse;
+    mvp->opt = opt;
     mvp->nHPaddingPel = nHPad * nPel;
     mvp->nVPaddingPel = nVPad * nPel;
     mvp->bitsPerSample = bitsPerSample;
@@ -227,7 +227,7 @@ void mvpRefine(MVPlane *mvp, int sharp) {
             refine[1] = VerticalBilinear_uint8_t;
             refine[2] = DiagonalBilinear_uint8_t;
 
-            if (mvp->isse) {
+            if (mvp->opt) {
 #if defined(MVTOOLS_X86)
                 refine[0] = mvtools_HorizontalBilinear_sse2;
                 refine[1] = mvtools_VerticalBilinear_sse2;
@@ -242,7 +242,7 @@ void mvpRefine(MVPlane *mvp, int sharp) {
     } else if (sharp == SharpBicubic) {
         if (mvp->bytesPerSample == 1) {
             /* TODO: port the asm
-               if (isse)
+               if (opt)
                {
                f[0] = f[2] = HorizontalBicubic_iSSE;
                f[1] = VerticalBicubic_iSSE;
@@ -260,7 +260,7 @@ void mvpRefine(MVPlane *mvp, int sharp) {
             refine[0] = refine[2] = HorizontalWiener_uint8_t;
             refine[1] = VerticalWiener_uint8_t;
 
-            if (mvp->isse) {
+            if (mvp->opt) {
 #if defined(MVTOOLS_X86)
                 refine[0] = refine[2] = mvtools_HorizontalWiener_sse2;
                 refine[1] = mvtools_VerticalWiener_sse2;
@@ -306,7 +306,7 @@ void mvpRefine(MVPlane *mvp, int sharp) {
         if (mvp->bytesPerSample == 1) {
             avg = Average2_uint8_t;
 
-            if (mvp->isse) {
+            if (mvp->opt) {
 #if defined(MVTOOLS_X86)
                 avg = mvtools_Average2_sse2;
 #endif
@@ -449,13 +449,13 @@ void mvpReduceTo(MVPlane *mvp, MVPlane *pReducedPlane, int rfilter) {
     if (pReducedPlane->isFilled)
         return;
 
-    typedef void (*ReduceFunction)(uint8_t *pDst, const uint8_t *pSrc, int nDstPitch, int nSrcPitch, int nWidth, int nHeight, int isse);
+    typedef void (*ReduceFunction)(uint8_t *pDst, const uint8_t *pSrc, int nDstPitch, int nSrcPitch, int nWidth, int nHeight, int opt);
 
     ReduceFunction reduce = NULL;
 
     if (rfilter == RfilterSimple) {
         /* TODO: port the asm
-               if (isse)
+               if (opt)
                {
                RB2F_iSSE(pReducedPlane->pPlane[0] + pReducedPlane->nOffsetPadding, pPlane[0] + nOffsetPadding,
                pReducedPlane->nPitch, nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight);
@@ -491,7 +491,7 @@ void mvpReduceTo(MVPlane *mvp, MVPlane *pReducedPlane, int rfilter) {
     }
 
     reduce(pReducedPlane->pPlane[0] + pReducedPlane->nOffsetPadding, mvp->pPlane[0] + mvp->nOffsetPadding,
-           pReducedPlane->nPitch, mvp->nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, mvp->isse);
+           pReducedPlane->nPitch, mvp->nPitch, pReducedPlane->nWidth, pReducedPlane->nHeight, mvp->opt);
 
     pReducedPlane->isFilled = 1;
 }
@@ -575,9 +575,9 @@ const uint8_t *mvpGetAbsolutePelPointer(const MVPlane *mvp, int nX, int nY) {
  *                                                                             *
  ******************************************************************************/
 
-void mvfInit(MVFrame *mvf, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int nMode, int isse, int xRatioUV, int yRatioUV, int bitsPerSample) {
+void mvfInit(MVFrame *mvf, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int nMode, int opt, int xRatioUV, int yRatioUV, int bitsPerSample) {
     mvf->nMode = nMode;
-    mvf->isse = isse;
+    mvf->opt = opt;
     mvf->xRatioUV = xRatioUV;
     mvf->yRatioUV = yRatioUV;
     mvf->bitsPerSample = bitsPerSample;
@@ -599,7 +599,7 @@ void mvfInit(MVFrame *mvf, int nWidth, int nHeight, int nPel, int nHPad, int nVP
     for (int i = 0; i < 3; i++) {
         if (nMode & (1 << i)) {
             mvf->planes[i] = (MVPlane *)malloc(sizeof(MVPlane));
-            mvpInit(mvf->planes[i], width[i], height[i], nPel, hpad[i], vpad[i], isse, bitsPerSample);
+            mvpInit(mvf->planes[i], width[i], height[i], nPel, hpad[i], vpad[i], opt, bitsPerSample);
         }
     }
 }
@@ -667,7 +667,7 @@ void mvfReduceTo(MVFrame *mvf, MVFrame *pFrame, MVPlaneSet nMode, int rfilter) {
  *                                                                             *
  ******************************************************************************/
 
-void mvgofInit(MVGroupOfFrames *mvgof, int nLevelCount, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int nMode, int isse, int xRatioUV, int yRatioUV, int bitsPerSample) {
+void mvgofInit(MVGroupOfFrames *mvgof, int nLevelCount, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int nMode, int opt, int xRatioUV, int yRatioUV, int bitsPerSample) {
     mvgof->nLevelCount = nLevelCount;
     mvgof->nWidth[0] = nWidth;
     mvgof->nWidth[1] = mvgof->nWidth[2] = nWidth / xRatioUV;
@@ -685,14 +685,14 @@ void mvgofInit(MVGroupOfFrames *mvgof, int nLevelCount, int nWidth, int nHeight,
     mvgof->frames = (MVFrame **)malloc(mvgof->nLevelCount * sizeof(MVFrame *));
 
     mvgof->frames[0] = (MVFrame *)malloc(sizeof(MVFrame));
-    mvfInit(mvgof->frames[0], mvgof->nWidth[0], mvgof->nHeight[0], mvgof->nPel, mvgof->nHPad[0], mvgof->nVPad[0], nMode, isse, mvgof->xRatioUV, mvgof->yRatioUV, mvgof->bitsPerSample);
+    mvfInit(mvgof->frames[0], mvgof->nWidth[0], mvgof->nHeight[0], mvgof->nPel, mvgof->nHPad[0], mvgof->nVPad[0], nMode, opt, mvgof->xRatioUV, mvgof->yRatioUV, mvgof->bitsPerSample);
 
     for (int i = 1; i < mvgof->nLevelCount; i++) {
         int nWidthi = PlaneWidthLuma(mvgof->nWidth[0], i, mvgof->xRatioUV, mvgof->nHPad[0]);    //(nWidthi / 2) - ((nWidthi / 2) % xRatioUV); //  even for YV12
         int nHeighti = PlaneHeightLuma(mvgof->nHeight[0], i, mvgof->yRatioUV, mvgof->nVPad[0]); //(nHeighti / 2) - ((nHeighti / 2) % yRatioUV); // even for YV12
 
         mvgof->frames[i] = (MVFrame *)malloc(sizeof(MVFrame));
-        mvfInit(mvgof->frames[i], nWidthi, nHeighti, 1, mvgof->nHPad[0], mvgof->nVPad[0], nMode, isse, mvgof->xRatioUV, mvgof->yRatioUV, mvgof->bitsPerSample);
+        mvfInit(mvgof->frames[i], nWidthi, nHeighti, 1, mvgof->nHPad[0], mvgof->nVPad[0], nMode, opt, mvgof->xRatioUV, mvgof->yRatioUV, mvgof->bitsPerSample);
     }
 }
 

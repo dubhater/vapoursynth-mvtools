@@ -42,7 +42,7 @@ typedef struct MVCompensateData {
     int time256;
     int nSCD1;
     int nSCD2;
-    int isse;
+    int opt;
     int tff;
     int tff_exists;
 
@@ -142,7 +142,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
         const int nBlkSizeY[3] = { d->vectors_data.nBlkSizeY, nBlkSizeY[0] >> ySubUV, nBlkSizeY[1] };
         const int nBlkX = d->vectors_data.nBlkX;
         const int nBlkY = d->vectors_data.nBlkY;
-        const int isse = d->isse;
+        const int opt = d->opt;
         const int thSAD = d->thSAD;
         const int dstTempPitch[3] = { d->dstTempPitch, d->dstTempPitchUV, d->dstTempPitchUV };
         const int nSuperModeYUV = d->nSuperModeYUV;
@@ -179,8 +179,8 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
             MVGroupOfFrames pRefGOF, pSrcGOF;
 
-            mvgofInit(&pRefGOF, d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, nSuperModeYUV, isse, xRatioUV, yRatioUV, bitsPerSample);
-            mvgofInit(&pSrcGOF, d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, nSuperModeYUV, isse, xRatioUV, yRatioUV, bitsPerSample);
+            mvgofInit(&pRefGOF, d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, nSuperModeYUV, opt, xRatioUV, yRatioUV, bitsPerSample);
+            mvgofInit(&pSrcGOF, d->nSuperLevels, nWidth[0], nHeight[0], d->nSuperPel, d->nSuperHPad, d->nSuperVPad, nSuperModeYUV, opt, xRatioUV, yRatioUV, bitsPerSample);
 
             mvgofUpdate(&pRefGOF, (uint8_t **)pRef, nRefPitches);
             mvgofUpdate(&pSrcGOF, (uint8_t **)pSrc, nSrcPitches);
@@ -468,7 +468,7 @@ static void selectFunctions(MVCompensateData *d) {
 
         d->ToPixels = ToPixels_uint16_t_uint8_t;
 
-        if (d->isse) {
+        if (d->opt) {
 #if defined(MVTOOLS_X86)
             overs[4][2] = mvtools_overlaps_4x2_sse2;
             overs[4][4] = mvtools_overlaps_4x4_sse2;
@@ -588,9 +588,9 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
     if (err)
         d.nSCD2 = MV_DEFAULT_SCD2;
 
-    d.isse = !!vsapi->propGetInt(in, "isse", 0, &err);
+    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.isse = 1;
+        d.opt = 1;
 
     d.tff = !!vsapi->propGetInt(in, "tff", 0, &err);
     d.tff_exists = !err;
@@ -691,7 +691,7 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
     }
 
     if (d.vi->format->bitsPerSample > 8)
-        d.isse = 0;
+        d.opt = 0;
 
     if (d.vectors_data.nOverlapX || d.vectors_data.nOverlapY) {
         d.OverWins = (OverlapWindows *)malloc(sizeof(OverlapWindows));
@@ -725,7 +725,7 @@ void mvcompensateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "time:float:opt;"
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
-                 "isse:int:opt;"
+                 "opt:int:opt;"
                  "tff:int:opt;",
                  mvcompensateCreate, 0, plugin);
 }
