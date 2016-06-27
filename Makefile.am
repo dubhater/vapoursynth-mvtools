@@ -42,6 +42,7 @@ libmvtools_la_SOURCES =	src/Bullshit.h \
 						src/MVDegrains.h \
 						src/MVDepan.cpp \
 						src/MVFinest.c \
+						src/MVFlow.cpp \
 						src/MVFlowBlur.c \
 						src/MVFlowFPS.c \
 						src/MVFlowFPSHelper.c \

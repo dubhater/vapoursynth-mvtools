@@ -11,6 +11,7 @@ void mvcompensateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 void mvrecalculateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 void mvmaskRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 void mvfinestRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
+void mvflowRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 void mvflowblurRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 void mvflowinterRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 void mvflowfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
@@ -30,6 +31,7 @@ VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegisterFunction registerFunc
     mvrecalculateRegister(registerFunc, plugin);
     mvmaskRegister(registerFunc, plugin);
     mvfinestRegister(registerFunc, plugin);
+    mvflowRegister(registerFunc, plugin);
     mvflowblurRegister(registerFunc, plugin);
     mvflowinterRegister(registerFunc, plugin);
     mvflowfpsRegister(registerFunc, plugin);

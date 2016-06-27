@@ -54,6 +54,9 @@ Differences
 * Mask:
     * No "isse" parameter, because there is no asm in Mask anymore.
 
+* Flow
+    * New parameter "tff".
+
 * SCDetection:
     * No "ysc" parameter. The input frames are returned unchanged, with the ``_SceneChangePrev`` or ``_SceneChangeNext`` property attached.
 
@@ -105,6 +108,8 @@ Usage
     mv.Mask(clip clip, clip vectors[, float ml=100.0, float gamma=1.0, int kind=0, float time=100.0, int ysc=0, int thscd1=400, int thscd2=130])
 
     mv.Finest(clip super[, bint opt=True])
+
+    mv.Flow(clip clip, clip super, clip vectors[, float time=100.0, int mode=0, bint fields=False, int thscd1=400, int thscd2=130, bint opt=True, bint tff])
 
     mv.FlowBlur(clip clip, clip super, clip mvbw, clip mvfw[, float blur=50.0, int prec=1, int thscd1=400, int thscd2=130, bint opt=True])
 
