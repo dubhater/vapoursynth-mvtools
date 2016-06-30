@@ -2258,7 +2258,6 @@ static void compensate_plane_bicubic(uint8_t *dstp8, const uint8_t *srcp8, int p
     pitch /= sizeof(PixelType);
 
     int h, row;
-    int pixel;
     int rowleft, hlow;
     float sx, sy;
     //    float t0, t1, t2, t3, c0,c1,c2,c3;
@@ -2271,7 +2270,7 @@ static void compensate_plane_bicubic(uint8_t *dstp8, const uint8_t *srcp8, int p
     int *ix4work = work2width1030 + row_size;
     //    int intcoef[1030];
     int *intcoef = ix4work + row_size;
-    int ts[4];
+    int64_t ts[4];
     int intcoef2d[16];
 
     int w;
@@ -2352,7 +2351,7 @@ static void compensate_plane_bicubic(uint8_t *dstp8, const uint8_t *srcp8, int p
                     if ((rowleft >= 1) && (rowleft < row_size - 2)) {
                         w = w0 + rowleft;
 
-                        pixel = (intcoef2d[0] * srcp[w - pitch - 1] + intcoef2d[1] * srcp[w - pitch] + intcoef2d[2] * srcp[w - pitch + 1] + intcoef2d[3] * srcp[w - pitch + 2] +
+                        int pixel = (intcoef2d[0] * srcp[w - pitch - 1] + intcoef2d[1] * srcp[w - pitch] + intcoef2d[2] * srcp[w - pitch + 1] + intcoef2d[3] * srcp[w - pitch + 2] +
                                  intcoef2d[4] * srcp[w - 1] + intcoef2d[5] * srcp[w] + intcoef2d[6] * srcp[w + 1] + intcoef2d[7] * srcp[w + 2] +
                                  intcoef2d[8] * srcp[w + pitch - 1] + intcoef2d[9] * srcp[w + pitch] + intcoef2d[10] * srcp[w + pitch + 1] + intcoef2d[11] * srcp[w + pitch + 2] +
                                  intcoef2d[12] * srcp[w + pitch * 2 - 1] + intcoef2d[13] * srcp[w + pitch * 2] + intcoef2d[14] * srcp[w + pitch * 2 + 1] + intcoef2d[15] * srcp[w + pitch * 2 + 2] + 1024) >>
@@ -2483,7 +2482,7 @@ static void compensate_plane_bicubic(uint8_t *dstp8, const uint8_t *srcp8, int p
 
                         srcp -= (pitch << 1); // restore pointer, changed to shift in v 1.1.1
 
-                        pixel = (intcoef[iy4] * ts[0] + intcoef[iy4 + 1] * ts[1] + intcoef[iy4 + 2] * ts[2] + intcoef[iy4 + 3] * ts[3]) >> 22;
+                        int64_t pixel = (intcoef[iy4] * ts[0] + intcoef[iy4 + 1] * ts[1] + intcoef[iy4 + 2] * ts[2] + intcoef[iy4 + 3] * ts[3]) >> 22;
 
                         dstp[row] = VSMAX(VSMIN(pixel, pixel_max), 0);
                     } else if (rowleft < 0 && mleft) {
@@ -2519,7 +2518,7 @@ static void compensate_plane_bicubic(uint8_t *dstp8, const uint8_t *srcp8, int p
                         xsrc = tr->dxc + tr->dxx * row;
                         sx = xsrc - rowleft;
                         w = w0 + rowleft;
-                        pixel = (int)((1.0 - sy) * ((1.0 - sx) * srcp[w] + sx * srcp[w + 1]) +
+                        int pixel = (int)((1.0 - sy) * ((1.0 - sx) * srcp[w] + sx * srcp[w + 1]) +
                                       sy * ((1.0 - sx) * srcp[w + pitch] + sx * srcp[w + pitch + 1])); // bilinear
                         dstp[row] = VSMAX(VSMIN(pixel, pixel_max), 0);
                     } else if (rowleft == row_size - 1) { // added in v.1.1.1
@@ -2609,7 +2608,7 @@ static void compensate_plane_bicubic(uint8_t *dstp8, const uint8_t *srcp8, int p
 
                     iy4 = ((int)((ysrc - hlow) * 256)) << 2; //changed to shift in v.1.1.1
 
-                    pixel = (intcoef[iy4] * ts[0] + intcoef[iy4 + 1] * ts[1] + intcoef[iy4 + 2] * ts[2] + intcoef[iy4 + 3] * ts[3]) >> 22;
+                    int64_t pixel = (intcoef[iy4] * ts[0] + intcoef[iy4 + 1] * ts[1] + intcoef[iy4 + 2] * ts[2] + intcoef[iy4 + 3] * ts[3]) >> 22;
                     dstp[row] = VSMAX(VSMIN(pixel, pixel_max), 0);
                 } else {
                     if (hlow < 0 && mtop)
