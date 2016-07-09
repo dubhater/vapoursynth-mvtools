@@ -267,7 +267,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                 uint8_t *pDstTemp[3] = { NULL };
                 for (int plane = 0; plane < num_planes; plane++) {
                     pDstTemp[plane] = DstTemp[plane] = (uint8_t *)malloc(nHeight[plane] * dstTempPitch[plane]);
-                    memset(DstTemp, 0, nHeight_B[plane] * dstTempPitch[plane]);
+                    memset(DstTemp[plane], 0, nHeight_B[plane] * dstTempPitch[plane]);
                 }
 
                 for (int by = 0; by < nBlkY; by++) {
