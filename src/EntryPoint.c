@@ -22,7 +22,7 @@ void mvdepanRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 
 VS_EXTERNAL_API(void)
 VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegisterFunction registerFunc, VSPlugin *plugin) {
-    configFunc("com.nodame.mvtools", "mv", "MVTools", VAPOURSYNTH_API_VERSION, 1, plugin);
+    configFunc("com.nodame.mvtools", "mv", "MVTools v" PACKAGE_VERSION, VAPOURSYNTH_API_VERSION, 1, plugin);
 
     mvsuperRegister(registerFunc, plugin);
     mvanalyseRegister(registerFunc, plugin);
