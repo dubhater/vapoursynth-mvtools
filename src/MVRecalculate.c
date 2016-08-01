@@ -491,6 +491,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
     int pixelMax = (1 << d.vi->format->bitsPerSample) - 1;
     d.thSAD = (int)((double)d.thSAD * pixelMax / 255.0 + 0.5);
+    d.nLambda = (int)((double)d.nLambda * pixelMax / 255.0 + 0.5);
 
     // normalize threshold to block size
     int referenceBlockSize = 8 * 8;
