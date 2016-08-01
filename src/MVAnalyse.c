@@ -480,6 +480,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     int pixelMax = (1 << d.vi->format->bitsPerSample) - 1;
     d.lsad = (int)((double)d.lsad * pixelMax / 255.0 + 0.5);
     d.badSAD = (int)((double)d.badSAD * pixelMax / 255.0 + 0.5);
+    d.nLambda = (int)((double)d.nLambda * pixelMax / 255.0 + 0.5);
 
     d.lsad = d.lsad * (d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY) / 64;
     d.badSAD = d.badSAD * (d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY) / 64;
