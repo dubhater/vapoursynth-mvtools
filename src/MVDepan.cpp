@@ -610,7 +610,6 @@ static void VS_CC depanAnalyseCreate(const VSMap *in, VSMap *out, void *userData
     if (d.info) {
         if (!invokeFrameProps(prop_DepanAnalyse_info, out, core, vsapi)) {
             vsapi->setError(out, std::string("DepanAnalyse: failed to invoke text.FrameProps: ").append(vsapi->getError(out)).c_str());
-            depanAnalyseFree(data, core, vsapi);
             return;
         }
     }
@@ -1485,7 +1484,6 @@ static void VS_CC depanEstimateCreate(const VSMap *in, VSMap *out, void *userDat
     if (vsapi->getError(ret)) {
         vsapi->setError(out, std::string("DepanEstimate: failed to invoke std.Cache: ").append(vsapi->getError(ret)).c_str());
         vsapi->freeMap(ret);
-        depanEstimateFree(data1, core, vsapi);
         depanEstimateFree(data2, core, vsapi);
         depanEstimateFree(data3, core, vsapi);
         return;
@@ -1497,7 +1495,6 @@ static void VS_CC depanEstimateCreate(const VSMap *in, VSMap *out, void *userDat
     vsapi->createFilter(in, out, "DepanEstimateStage2", depanEstimateInit, depanEstimateStage2GetFrame, depanEstimateFree, fmParallel, 0, data2, core);
 
     if (vsapi->getError(out)) {
-        depanEstimateFree(data1, core, vsapi);
         depanEstimateFree(data2, core, vsapi);
         depanEstimateFree(data3, core, vsapi);
         return;
@@ -1514,8 +1511,6 @@ static void VS_CC depanEstimateCreate(const VSMap *in, VSMap *out, void *userDat
     if (vsapi->getError(ret)) {
         vsapi->setError(out, std::string("DepanEstimate: failed to invoke std.Cache: ").append(vsapi->getError(ret)).c_str());
         vsapi->freeMap(ret);
-        depanEstimateFree(data1, core, vsapi);
-        depanEstimateFree(data2, core, vsapi);
         depanEstimateFree(data3, core, vsapi);
         return;
     }
@@ -1526,8 +1521,6 @@ static void VS_CC depanEstimateCreate(const VSMap *in, VSMap *out, void *userDat
     vsapi->createFilter(in, out, "DepanEstimateStage3", depanEstimateInit, depanEstimateStage3GetFrame, depanEstimateFree, fmParallel, 0, data3, core);
 
     if (vsapi->getError(out)) {
-        depanEstimateFree(data1, core, vsapi);
-        depanEstimateFree(data2, core, vsapi);
         depanEstimateFree(data3, core, vsapi);
         return;
     }
@@ -1535,9 +1528,6 @@ static void VS_CC depanEstimateCreate(const VSMap *in, VSMap *out, void *userDat
     if (d.info) {
         if (!invokeFrameProps(prop_DepanEstimate_info, out, core, vsapi)) {
             vsapi->setError(out, std::string("DepanEstimate: failed to invoke text.FrameProps: ").append(vsapi->getError(out)).c_str());
-            depanEstimateFree(data1, core, vsapi);
-            depanEstimateFree(data2, core, vsapi);
-            depanEstimateFree(data3, core, vsapi);
             return;
         }
     }
@@ -2919,7 +2909,6 @@ static void VS_CC depanCompensateCreate(const VSMap *in, VSMap *out, void *userD
     if (d.info) {
         if (!invokeFrameProps(prop_DepanCompensate_info, out, core, vsapi)) {
             vsapi->setError(out, std::string("DepanCompensate: failed to invoke text.FrameProps: ").append(vsapi->getError(out)).c_str());
-            depanCompensateFree(data, core, vsapi);
             return;
         }
     }
@@ -4252,7 +4241,6 @@ static void VS_CC depanStabiliseCreate(const VSMap *in, VSMap *out, void *userDa
     if (d->info) {
         if (!invokeFrameProps(prop_DepanStabilise_info, out, core, vsapi)) {
             vsapi->setError(out, std::string("DepanStabilise: failed to invoke text.FrameProps: ").append(vsapi->getError(out)).c_str());
-            depanStabiliseFree(d, core, vsapi);
             return;
         }
     }
