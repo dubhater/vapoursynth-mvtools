@@ -1,5 +1,5 @@
-#ifndef __OVERLAP__
-#define __OVERLAP__
+#ifndef OVERLAP_H
+#define OVERLAP_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,73 +47,6 @@ typedef void (*OverlapsFunction)(uint8_t *pDst, intptr_t nDstPitch,
                                  int16_t *pWin, intptr_t nWinPitch);
 
 
-#define MK_CFUNC(functionname) void functionname(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, int16_t *pWin, intptr_t nWinPitch)
-
-MK_CFUNC(mvtools_overlaps_2x2_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_2x4_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_4x2_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_4x4_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_4x8_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_8x1_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_8x2_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_8x4_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_8x8_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_8x16_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_16x1_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_16x2_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_16x4_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_16x8_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_16x16_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_16x32_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_32x8_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_32x16_uint16_t_uint8_t_c);
-MK_CFUNC(mvtools_overlaps_32x32_uint16_t_uint8_t_c);
-
-MK_CFUNC(mvtools_overlaps_2x2_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_2x4_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_4x2_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_4x4_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_4x8_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_8x1_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_8x2_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_8x4_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_8x8_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_8x16_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_16x1_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_16x2_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_16x4_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_16x8_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_16x16_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_16x32_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_32x8_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_32x16_uint32_t_uint16_t_c);
-MK_CFUNC(mvtools_overlaps_32x32_uint32_t_uint16_t_c);
-
-#if defined(MVTOOLS_X86)
-MK_CFUNC(mvtools_overlaps_2x2_sse2);
-MK_CFUNC(mvtools_overlaps_2x4_sse2);
-MK_CFUNC(mvtools_overlaps_4x2_sse2);
-MK_CFUNC(mvtools_overlaps_4x4_sse2);
-MK_CFUNC(mvtools_overlaps_4x8_sse2);
-MK_CFUNC(mvtools_overlaps_8x1_sse2);
-MK_CFUNC(mvtools_overlaps_8x2_sse2);
-MK_CFUNC(mvtools_overlaps_8x4_sse2);
-MK_CFUNC(mvtools_overlaps_8x8_sse2);
-MK_CFUNC(mvtools_overlaps_8x16_sse2);
-MK_CFUNC(mvtools_overlaps_16x1_sse2);
-MK_CFUNC(mvtools_overlaps_16x2_sse2);
-MK_CFUNC(mvtools_overlaps_16x4_sse2);
-MK_CFUNC(mvtools_overlaps_16x8_sse2);
-MK_CFUNC(mvtools_overlaps_16x16_sse2);
-MK_CFUNC(mvtools_overlaps_16x32_sse2);
-MK_CFUNC(mvtools_overlaps_32x8_sse2);
-MK_CFUNC(mvtools_overlaps_32x16_sse2);
-MK_CFUNC(mvtools_overlaps_32x32_sse2);
-#endif
-
-#undef MK_CFUNC
-
-
 typedef void (*ToPixelsFunction)(uint8_t *pDst, int nDstPitch,
                                  const uint8_t *pSrc, int nSrcPitch,
                                  int width, int height, int bitsPerSample);
@@ -121,8 +54,10 @@ typedef void (*ToPixelsFunction)(uint8_t *pDst, int nDstPitch,
 void ToPixels_uint16_t_uint8_t(uint8_t *pDst8, int nDstPitch, const uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, int bitsPerSample);
 void ToPixels_uint32_t_uint16_t(uint8_t *pDst8, int nDstPitch, const uint8_t *pSrc8, int nSrcPitch, int nWidth, int nHeight, int bitsPerSample);
 
+OverlapsFunction selectOverlapsFunction(unsigned width, unsigned height, unsigned bits, int opt);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
 
-#endif
+#endif // OVERLAP_H

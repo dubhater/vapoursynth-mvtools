@@ -17,7 +17,7 @@ am__v_YASM_1 =
 
 libmvtools_la_SOURCES =	src/Bullshit.h \
 						src/CommonFunctions.h \
-						src/CopyCode.c \
+						src/CopyCode.cpp \
 						src/CopyCode.h \
 						src/CPU.c \
 						src/CPU.h \
@@ -29,7 +29,7 @@ libmvtools_la_SOURCES =	src/Bullshit.h \
 						src/GroupOfPlanes.c \
 						src/GroupOfPlanes.h \
 						src/Interpolation.h \
-						src/Luma.c \
+						src/Luma.cpp \
 						src/Luma.h \
 						src/MaskFun.c \
 						src/MaskFun.h \
@@ -54,7 +54,7 @@ libmvtools_la_SOURCES =	src/Bullshit.h \
 						src/MVRecalculate.c \
 						src/MVSCDetection.c \
 						src/MVSuper.c \
-						src/Overlap.c \
+						src/Overlap.cpp \
 						src/Overlap.h \
 						src/PlaneOfBlocks.c \
 						src/PlaneOfBlocks.h \

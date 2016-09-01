@@ -18,6 +18,7 @@
 // http://www.gnu.org/copyleft/gpl.html .
 
 #include <string>
+#include <unordered_map>
 
 #include <VapourSynth.h>
 #include <VSHelper.h>
@@ -382,202 +383,142 @@ static void VS_CC mvdegrainFree(void *instanceData, VSCore *core, const VSAPI *v
 }
 
 
+enum InstructionSets {
+    Scalar,
+    SSE2,
+};
+
+
+// opt can fit in four bits, if the width and height need more than eight bits each.
+#define KEY(width, height, bits, opt) (width) << 24 | (height) << 16 | (bits) << 8 | (opt)
+
+#if defined(MVTOOLS_X86)
+#define DEGRAIN_SSE2(radius, width, height) \
+    { KEY(width, height, 8, SSE2), Degrain_sse2<radius, width, height> },
+#else
+#define DEGRAIN_SSE2(radius, width, height)
+#endif
+
+#define DEGRAIN(radius, width, height) \
+    { KEY(width, height, 8, Scalar), Degrain_C<radius, width, height, uint8_t> }, \
+    { KEY(width, height, 16, Scalar), Degrain_C<radius, width, height, uint16_t> }, \
+    DEGRAIN_SSE2(radius, width, height)
+
+static const std::unordered_map<uint32_t, DenoiseFunction> degrain_functions[3] = {
+    {
+        DEGRAIN(1, 2, 2)
+        DEGRAIN(1, 2, 4)
+        DEGRAIN(1, 4, 2)
+        DEGRAIN(1, 4, 4)
+        DEGRAIN(1, 4, 8)
+        DEGRAIN(1, 8, 1)
+        DEGRAIN(1, 8, 2)
+        DEGRAIN(1, 8, 4)
+        DEGRAIN(1, 8, 8)
+        DEGRAIN(1, 8, 16)
+        DEGRAIN(1, 16, 1)
+        DEGRAIN(1, 16, 2)
+        DEGRAIN(1, 16, 4)
+        DEGRAIN(1, 16, 8)
+        DEGRAIN(1, 16, 16)
+        DEGRAIN(1, 16, 32)
+        DEGRAIN(1, 32, 8)
+        DEGRAIN(1, 32, 16)
+        DEGRAIN(1, 32, 32)
+    },
+    {
+        DEGRAIN(2, 2, 2)
+        DEGRAIN(2, 2, 4)
+        DEGRAIN(2, 4, 2)
+        DEGRAIN(2, 4, 4)
+        DEGRAIN(2, 4, 8)
+        DEGRAIN(2, 8, 1)
+        DEGRAIN(2, 8, 2)
+        DEGRAIN(2, 8, 4)
+        DEGRAIN(2, 8, 8)
+        DEGRAIN(2, 8, 16)
+        DEGRAIN(2, 16, 1)
+        DEGRAIN(2, 16, 2)
+        DEGRAIN(2, 16, 4)
+        DEGRAIN(2, 16, 8)
+        DEGRAIN(2, 16, 16)
+        DEGRAIN(2, 16, 32)
+        DEGRAIN(2, 32, 8)
+        DEGRAIN(2, 32, 16)
+        DEGRAIN(2, 32, 32)
+    },
+    {
+        DEGRAIN(3, 2, 2)
+        DEGRAIN(3, 2, 4)
+        DEGRAIN(3, 4, 2)
+        DEGRAIN(3, 4, 4)
+        DEGRAIN(3, 4, 8)
+        DEGRAIN(3, 8, 1)
+        DEGRAIN(3, 8, 2)
+        DEGRAIN(3, 8, 4)
+        DEGRAIN(3, 8, 8)
+        DEGRAIN(3, 8, 16)
+        DEGRAIN(3, 16, 1)
+        DEGRAIN(3, 16, 2)
+        DEGRAIN(3, 16, 4)
+        DEGRAIN(3, 16, 8)
+        DEGRAIN(3, 16, 16)
+        DEGRAIN(3, 16, 32)
+        DEGRAIN(3, 32, 8)
+        DEGRAIN(3, 32, 16)
+        DEGRAIN(3, 32, 32)
+    }
+};
+
+static DenoiseFunction selectDegrainFunction(unsigned radius, unsigned width, unsigned height, unsigned bits, int opt) {
+    DenoiseFunction degrain = degrain_functions[radius - 1].at(KEY(width, height, bits, Scalar));
+
+#if defined(MVTOOLS_X86)
+    if (opt) {
+        try {
+            degrain = degrain_functions[radius - 1].at(KEY(width, height, bits, SSE2));
+        } catch (std::out_of_range &) { }
+    }
+#endif
+
+    return degrain;
+}
+
+#undef DEGRAIN
+#undef DEGRAIN_SSE2
+
+#undef KEY
+
+
 template <int radius>
 static void selectFunctions(MVDegrainData *d) {
-    const int xRatioUV = d->vectors_data[0].xRatioUV;
-    const int yRatioUV = d->vectors_data[0].yRatioUV;
-    const int nBlkSizeX = d->vectors_data[0].nBlkSizeX;
-    const int nBlkSizeY = d->vectors_data[0].nBlkSizeY;
-
-    OverlapsFunction overs[33][33];
-    DenoiseFunction degs[33][33];
+    const unsigned xRatioUV = d->vectors_data[0].xRatioUV;
+    const unsigned yRatioUV = d->vectors_data[0].yRatioUV;
+    const unsigned nBlkSizeX = d->vectors_data[0].nBlkSizeX;
+    const unsigned nBlkSizeY = d->vectors_data[0].nBlkSizeY;
+    const unsigned bits = d->vi->format->bytesPerSample * 8;
 
     if (d->vi->format->bitsPerSample == 8) {
-        overs[2][2] = mvtools_overlaps_2x2_uint16_t_uint8_t_c;
-        degs[2][2] = Degrain_C<radius, 2, 2, uint8_t>;
-
-        overs[2][4] = mvtools_overlaps_2x4_uint16_t_uint8_t_c;
-        degs[2][4] = Degrain_C<radius, 2, 4, uint8_t>;
-
-        overs[4][2] = mvtools_overlaps_4x2_uint16_t_uint8_t_c;
-        degs[4][2] = Degrain_C<radius, 4, 2, uint8_t>;
-
-        overs[4][4] = mvtools_overlaps_4x4_uint16_t_uint8_t_c;
-        degs[4][4] = Degrain_C<radius, 4, 4, uint8_t>;
-
-        overs[4][8] = mvtools_overlaps_4x8_uint16_t_uint8_t_c;
-        degs[4][8] = Degrain_C<radius, 4, 8, uint8_t>;
-
-        overs[8][1] = mvtools_overlaps_8x1_uint16_t_uint8_t_c;
-        degs[8][1] = Degrain_C<radius, 8, 1, uint8_t>;
-
-        overs[8][2] = mvtools_overlaps_8x2_uint16_t_uint8_t_c;
-        degs[8][2] = Degrain_C<radius, 8, 2, uint8_t>;
-
-        overs[8][4] = mvtools_overlaps_8x4_uint16_t_uint8_t_c;
-        degs[8][4] = Degrain_C<radius, 8, 4, uint8_t>;
-
-        overs[8][8] = mvtools_overlaps_8x8_uint16_t_uint8_t_c;
-        degs[8][8] = Degrain_C<radius, 8, 8, uint8_t>;
-
-        overs[8][16] = mvtools_overlaps_8x16_uint16_t_uint8_t_c;
-        degs[8][16] = Degrain_C<radius, 8, 16, uint8_t>;
-
-        overs[16][1] = mvtools_overlaps_16x1_uint16_t_uint8_t_c;
-        degs[16][1] = Degrain_C<radius, 16, 1, uint8_t>;
-
-        overs[16][2] = mvtools_overlaps_16x2_uint16_t_uint8_t_c;
-        degs[16][2] = Degrain_C<radius, 16, 2, uint8_t>;
-
-        overs[16][4] = mvtools_overlaps_16x4_uint16_t_uint8_t_c;
-        degs[16][4] = Degrain_C<radius, 16, 4, uint8_t>;
-
-        overs[16][8] = mvtools_overlaps_16x8_uint16_t_uint8_t_c;
-        degs[16][8] = Degrain_C<radius, 16, 8, uint8_t>;
-
-        overs[16][16] = mvtools_overlaps_16x16_uint16_t_uint8_t_c;
-        degs[16][16] = Degrain_C<radius, 16, 16, uint8_t>;
-
-        overs[16][32] = mvtools_overlaps_16x32_uint16_t_uint8_t_c;
-        degs[16][32] = Degrain_C<radius, 16, 32, uint8_t>;
-
-        overs[32][8] = mvtools_overlaps_32x8_uint16_t_uint8_t_c;
-        degs[32][8] = Degrain_C<radius, 32, 8, uint8_t>;
-
-        overs[32][16] = mvtools_overlaps_32x16_uint16_t_uint8_t_c;
-        degs[32][16] = Degrain_C<radius, 32, 16, uint8_t>;
-
-        overs[32][32] = mvtools_overlaps_32x32_uint16_t_uint8_t_c;
-        degs[32][32] = Degrain_C<radius, 32, 32, uint8_t>;
-
         d->LimitChanges = LimitChanges_C<uint8_t>;
 
         d->ToPixels = ToPixels_uint16_t_uint8_t;
 
         if (d->opt) {
 #if defined(MVTOOLS_X86)
-            overs[4][2] = mvtools_overlaps_4x2_sse2;
-            degs[4][2] = Degrain_sse2<radius, 4, 2>;
-
-            overs[4][4] = mvtools_overlaps_4x4_sse2;
-            degs[4][4] = Degrain_sse2<radius, 4, 4>;
-
-            overs[4][8] = mvtools_overlaps_4x8_sse2;
-            degs[4][8] = Degrain_sse2<radius, 4, 8>;
-
-            overs[8][1] = mvtools_overlaps_8x1_sse2;
-            degs[8][1] = Degrain_sse2<radius, 8, 1>;
-
-            overs[8][2] = mvtools_overlaps_8x2_sse2;
-            degs[8][2] = Degrain_sse2<radius, 8, 2>;
-
-            overs[8][4] = mvtools_overlaps_8x4_sse2;
-            degs[8][4] = Degrain_sse2<radius, 8, 4>;
-
-            overs[8][8] = mvtools_overlaps_8x8_sse2;
-            degs[8][8] = Degrain_sse2<radius, 8, 8>;
-
-            overs[8][16] = mvtools_overlaps_8x16_sse2;
-            degs[8][16] = Degrain_sse2<radius, 8, 16>;
-
-            overs[16][1] = mvtools_overlaps_16x1_sse2;
-            degs[16][1] = Degrain_sse2<radius, 16, 1>;
-
-            overs[16][2] = mvtools_overlaps_16x2_sse2;
-            degs[16][2] = Degrain_sse2<radius, 16, 2>;
-
-            overs[16][4] = mvtools_overlaps_16x4_sse2;
-            degs[16][4] = Degrain_sse2<radius, 16, 4>;
-
-            overs[16][8] = mvtools_overlaps_16x8_sse2;
-            degs[16][8] = Degrain_sse2<radius, 16, 8>;
-
-            overs[16][16] = mvtools_overlaps_16x16_sse2;
-            degs[16][16] = Degrain_sse2<radius, 16, 16>;
-
-            overs[16][32] = mvtools_overlaps_16x32_sse2;
-            degs[16][32] = Degrain_sse2<radius, 16, 32>;
-
-            overs[32][8] = mvtools_overlaps_32x8_sse2;
-            degs[32][8] = Degrain_sse2<radius, 32, 8>;
-
-            overs[32][16] = mvtools_overlaps_32x16_sse2;
-            degs[32][16] = Degrain_sse2<radius, 32, 16>;
-
-            overs[32][32] = mvtools_overlaps_32x32_sse2;
-            degs[32][32] = Degrain_sse2<radius, 32, 32>;
-
             d->LimitChanges = mvtools_LimitChanges_sse2;
 #endif
         }
     } else {
-        overs[2][2] = mvtools_overlaps_2x2_uint32_t_uint16_t_c;
-        degs[2][2] = Degrain_C<radius, 2, 2, uint16_t>;
-
-        overs[2][4] = mvtools_overlaps_2x4_uint32_t_uint16_t_c;
-        degs[2][4] = Degrain_C<radius, 2, 4, uint16_t>;
-
-        overs[4][2] = mvtools_overlaps_4x2_uint32_t_uint16_t_c;
-        degs[4][2] = Degrain_C<radius, 4, 2, uint16_t>;
-
-        overs[4][4] = mvtools_overlaps_4x4_uint32_t_uint16_t_c;
-        degs[4][4] = Degrain_C<radius, 4, 4, uint16_t>;
-
-        overs[4][8] = mvtools_overlaps_4x8_uint32_t_uint16_t_c;
-        degs[4][8] = Degrain_C<radius, 4, 8, uint16_t>;
-
-        overs[8][1] = mvtools_overlaps_8x1_uint32_t_uint16_t_c;
-        degs[8][1] = Degrain_C<radius, 8, 1, uint16_t>;
-
-        overs[8][2] = mvtools_overlaps_8x2_uint32_t_uint16_t_c;
-        degs[8][2] = Degrain_C<radius, 8, 2, uint16_t>;
-
-        overs[8][4] = mvtools_overlaps_8x4_uint32_t_uint16_t_c;
-        degs[8][4] = Degrain_C<radius, 8, 4, uint16_t>;
-
-        overs[8][8] = mvtools_overlaps_8x8_uint32_t_uint16_t_c;
-        degs[8][8] = Degrain_C<radius, 8, 8, uint16_t>;
-
-        overs[8][16] = mvtools_overlaps_8x16_uint32_t_uint16_t_c;
-        degs[8][16] = Degrain_C<radius, 8, 16, uint16_t>;
-
-        overs[16][1] = mvtools_overlaps_16x1_uint32_t_uint16_t_c;
-        degs[16][1] = Degrain_C<radius, 16, 1, uint16_t>;
-
-        overs[16][2] = mvtools_overlaps_16x2_uint32_t_uint16_t_c;
-        degs[16][2] = Degrain_C<radius, 16, 2, uint16_t>;
-
-        overs[16][4] = mvtools_overlaps_16x4_uint32_t_uint16_t_c;
-        degs[16][4] = Degrain_C<radius, 16, 4, uint16_t>;
-
-        overs[16][8] = mvtools_overlaps_16x8_uint32_t_uint16_t_c;
-        degs[16][8] = Degrain_C<radius, 16, 8, uint16_t>;
-
-        overs[16][16] = mvtools_overlaps_16x16_uint32_t_uint16_t_c;
-        degs[16][16] = Degrain_C<radius, 16, 16, uint16_t>;
-
-        overs[16][32] = mvtools_overlaps_16x32_uint32_t_uint16_t_c;
-        degs[16][32] = Degrain_C<radius, 16, 32, uint16_t>;
-
-        overs[32][8] = mvtools_overlaps_32x8_uint32_t_uint16_t_c;
-        degs[32][8] = Degrain_C<radius, 32, 8, uint16_t>;
-
-        overs[32][16] = mvtools_overlaps_32x16_uint32_t_uint16_t_c;
-        degs[32][16] = Degrain_C<radius, 32, 16, uint16_t>;
-
-        overs[32][32] = mvtools_overlaps_32x32_uint32_t_uint16_t_c;
-        degs[32][32] = Degrain_C<radius, 32, 32, uint16_t>;
-
         d->LimitChanges = LimitChanges_C<uint16_t>;
 
         d->ToPixels = ToPixels_uint32_t_uint16_t;
     }
 
-    d->OVERS[0] = overs[nBlkSizeX][nBlkSizeY];
-    d->DEGRAIN[0] = degs[nBlkSizeX][nBlkSizeY];
+    d->OVERS[0] = selectOverlapsFunction(nBlkSizeX, nBlkSizeY, bits, d->opt);
+    d->DEGRAIN[0] = selectDegrainFunction(radius, nBlkSizeX, nBlkSizeY, bits, d->opt);
 
-    d->OVERS[1] = d->OVERS[2] = overs[nBlkSizeX / xRatioUV][nBlkSizeY / yRatioUV];
-    d->DEGRAIN[1] = d->DEGRAIN[2] = degs[nBlkSizeX / xRatioUV][nBlkSizeY / yRatioUV];
+    d->OVERS[1] = d->OVERS[2] = selectOverlapsFunction(nBlkSizeX / xRatioUV, nBlkSizeY / yRatioUV, bits, d->opt);
+    d->DEGRAIN[1] = d->DEGRAIN[2] = selectDegrainFunction(radius, nBlkSizeX / xRatioUV, nBlkSizeY / yRatioUV, bits, d->opt);
 }
 
 

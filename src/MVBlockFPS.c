@@ -732,83 +732,20 @@ static inline void setFPS(VSVideoInfo *vi, int64_t num, int64_t den) {
 
 
 static void selectFunctions(MVBlockFPSData *d) {
-    const int xRatioUV = d->mvbw_data.xRatioUV;
-    const int yRatioUV = d->mvbw_data.yRatioUV;
-    const int nBlkSizeX = d->mvbw_data.nBlkSizeX;
-    const int nBlkSizeY = d->mvbw_data.nBlkSizeY;
-
-    OverlapsFunction overs[33][33];
+    const unsigned xRatioUV = d->mvbw_data.xRatioUV;
+    const unsigned yRatioUV = d->mvbw_data.yRatioUV;
+    const unsigned nBlkSizeX = d->mvbw_data.nBlkSizeX;
+    const unsigned nBlkSizeY = d->mvbw_data.nBlkSizeY;
+    const unsigned bits = d->vi.format->bytesPerSample * 8;
 
     if (d->vi.format->bitsPerSample == 8) {
-        overs[2][2] = mvtools_overlaps_2x2_uint16_t_uint8_t_c;
-        overs[2][4] = mvtools_overlaps_2x4_uint16_t_uint8_t_c;
-        overs[4][2] = mvtools_overlaps_4x2_uint16_t_uint8_t_c;
-        overs[4][4] = mvtools_overlaps_4x4_uint16_t_uint8_t_c;
-        overs[4][8] = mvtools_overlaps_4x8_uint16_t_uint8_t_c;
-        overs[8][1] = mvtools_overlaps_8x1_uint16_t_uint8_t_c;
-        overs[8][2] = mvtools_overlaps_8x2_uint16_t_uint8_t_c;
-        overs[8][4] = mvtools_overlaps_8x4_uint16_t_uint8_t_c;
-        overs[8][8] = mvtools_overlaps_8x8_uint16_t_uint8_t_c;
-        overs[8][16] = mvtools_overlaps_8x16_uint16_t_uint8_t_c;
-        overs[16][1] = mvtools_overlaps_16x1_uint16_t_uint8_t_c;
-        overs[16][2] = mvtools_overlaps_16x2_uint16_t_uint8_t_c;
-        overs[16][4] = mvtools_overlaps_16x4_uint16_t_uint8_t_c;
-        overs[16][8] = mvtools_overlaps_16x8_uint16_t_uint8_t_c;
-        overs[16][16] = mvtools_overlaps_16x16_uint16_t_uint8_t_c;
-        overs[16][32] = mvtools_overlaps_16x32_uint16_t_uint8_t_c;
-        overs[32][8] = mvtools_overlaps_32x8_uint16_t_uint8_t_c;
-        overs[32][16] = mvtools_overlaps_32x16_uint16_t_uint8_t_c;
-        overs[32][32] = mvtools_overlaps_32x32_uint16_t_uint8_t_c;
-
         d->ToPixels = ToPixels_uint16_t_uint8_t;
-
-        if (d->opt) {
-#if defined(MVTOOLS_X86)
-            overs[4][2] = mvtools_overlaps_4x2_sse2;
-            overs[4][4] = mvtools_overlaps_4x4_sse2;
-            overs[4][8] = mvtools_overlaps_4x8_sse2;
-            overs[8][1] = mvtools_overlaps_8x1_sse2;
-            overs[8][2] = mvtools_overlaps_8x2_sse2;
-            overs[8][4] = mvtools_overlaps_8x4_sse2;
-            overs[8][8] = mvtools_overlaps_8x8_sse2;
-            overs[8][16] = mvtools_overlaps_8x16_sse2;
-            overs[16][1] = mvtools_overlaps_16x1_sse2;
-            overs[16][2] = mvtools_overlaps_16x2_sse2;
-            overs[16][4] = mvtools_overlaps_16x4_sse2;
-            overs[16][8] = mvtools_overlaps_16x8_sse2;
-            overs[16][16] = mvtools_overlaps_16x16_sse2;
-            overs[16][32] = mvtools_overlaps_16x32_sse2;
-            overs[32][8] = mvtools_overlaps_32x8_sse2;
-            overs[32][16] = mvtools_overlaps_32x16_sse2;
-            overs[32][32] = mvtools_overlaps_32x32_sse2;
-#endif
-        }
     } else {
-        overs[2][2] = mvtools_overlaps_2x2_uint32_t_uint16_t_c;
-        overs[2][4] = mvtools_overlaps_2x4_uint32_t_uint16_t_c;
-        overs[4][2] = mvtools_overlaps_4x2_uint32_t_uint16_t_c;
-        overs[4][4] = mvtools_overlaps_4x4_uint32_t_uint16_t_c;
-        overs[4][8] = mvtools_overlaps_4x8_uint32_t_uint16_t_c;
-        overs[8][1] = mvtools_overlaps_8x1_uint32_t_uint16_t_c;
-        overs[8][2] = mvtools_overlaps_8x2_uint32_t_uint16_t_c;
-        overs[8][4] = mvtools_overlaps_8x4_uint32_t_uint16_t_c;
-        overs[8][8] = mvtools_overlaps_8x8_uint32_t_uint16_t_c;
-        overs[8][16] = mvtools_overlaps_8x16_uint32_t_uint16_t_c;
-        overs[16][1] = mvtools_overlaps_16x1_uint32_t_uint16_t_c;
-        overs[16][2] = mvtools_overlaps_16x2_uint32_t_uint16_t_c;
-        overs[16][4] = mvtools_overlaps_16x4_uint32_t_uint16_t_c;
-        overs[16][8] = mvtools_overlaps_16x8_uint32_t_uint16_t_c;
-        overs[16][16] = mvtools_overlaps_16x16_uint32_t_uint16_t_c;
-        overs[16][32] = mvtools_overlaps_16x32_uint32_t_uint16_t_c;
-        overs[32][8] = mvtools_overlaps_32x8_uint32_t_uint16_t_c;
-        overs[32][16] = mvtools_overlaps_32x16_uint32_t_uint16_t_c;
-        overs[32][32] = mvtools_overlaps_32x32_uint32_t_uint16_t_c;
-
         d->ToPixels = ToPixels_uint32_t_uint16_t;
     }
 
-    d->OVERS[0] = overs[nBlkSizeX][nBlkSizeY];
-    d->OVERS[1] = d->OVERS[2] = overs[nBlkSizeX / xRatioUV][nBlkSizeY / yRatioUV];
+    d->OVERS[0] = selectOverlapsFunction(nBlkSizeX, nBlkSizeY, bits, d->opt);
+    d->OVERS[1] = d->OVERS[2] = selectOverlapsFunction(nBlkSizeX / xRatioUV, nBlkSizeY / yRatioUV, bits, d->opt);
 }
 
 

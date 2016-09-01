@@ -400,161 +400,23 @@ static void VS_CC mvcompensateFree(void *instanceData, VSCore *core, const VSAPI
 
 
 static void selectFunctions(MVCompensateData *d) {
-    const int xRatioUV = d->vectors_data.xRatioUV;
-    const int yRatioUV = d->vectors_data.yRatioUV;
-    const int nBlkSizeX = d->vectors_data.nBlkSizeX;
-    const int nBlkSizeY = d->vectors_data.nBlkSizeY;
-
-    OverlapsFunction overs[33][33];
-    COPYFunction copys[33][33];
+    const unsigned xRatioUV = d->vectors_data.xRatioUV;
+    const unsigned yRatioUV = d->vectors_data.yRatioUV;
+    const unsigned nBlkSizeX = d->vectors_data.nBlkSizeX;
+    const unsigned nBlkSizeY = d->vectors_data.nBlkSizeY;
+    const unsigned bits = d->vi->format->bytesPerSample * 8;
 
     if (d->vi->format->bitsPerSample == 8) {
-        overs[2][2] = mvtools_overlaps_2x2_uint16_t_uint8_t_c;
-        copys[2][2] = mvtools_copy_2x2_u8_c;
-
-        overs[2][4] = mvtools_overlaps_2x4_uint16_t_uint8_t_c;
-        copys[2][4] = mvtools_copy_2x4_u8_c;
-
-        overs[4][2] = mvtools_overlaps_4x2_uint16_t_uint8_t_c;
-        copys[4][2] = mvtools_copy_4x2_u8_c;
-
-        overs[4][4] = mvtools_overlaps_4x4_uint16_t_uint8_t_c;
-        copys[4][4] = mvtools_copy_4x4_u8_c;
-
-        overs[4][8] = mvtools_overlaps_4x8_uint16_t_uint8_t_c;
-        copys[4][8] = mvtools_copy_4x8_u8_c;
-
-        overs[8][1] = mvtools_overlaps_8x1_uint16_t_uint8_t_c;
-        copys[8][1] = mvtools_copy_8x1_u8_c;
-
-        overs[8][2] = mvtools_overlaps_8x2_uint16_t_uint8_t_c;
-        copys[8][2] = mvtools_copy_8x2_u8_c;
-
-        overs[8][4] = mvtools_overlaps_8x4_uint16_t_uint8_t_c;
-        copys[8][4] = mvtools_copy_8x4_u8_c;
-
-        overs[8][8] = mvtools_overlaps_8x8_uint16_t_uint8_t_c;
-        copys[8][8] = mvtools_copy_8x8_u8_c;
-
-        overs[8][16] = mvtools_overlaps_8x16_uint16_t_uint8_t_c;
-        copys[8][16] = mvtools_copy_8x16_u8_c;
-
-        overs[16][1] = mvtools_overlaps_16x1_uint16_t_uint8_t_c;
-        copys[16][1] = mvtools_copy_16x1_u8_c;
-
-        overs[16][2] = mvtools_overlaps_16x2_uint16_t_uint8_t_c;
-        copys[16][2] = mvtools_copy_16x2_u8_c;
-
-        overs[16][4] = mvtools_overlaps_16x4_uint16_t_uint8_t_c;
-        copys[16][4] = mvtools_copy_16x4_u8_c;
-
-        overs[16][8] = mvtools_overlaps_16x8_uint16_t_uint8_t_c;
-        copys[16][8] = mvtools_copy_16x8_u8_c;
-
-        overs[16][16] = mvtools_overlaps_16x16_uint16_t_uint8_t_c;
-        copys[16][16] = mvtools_copy_16x16_u8_c;
-
-        overs[16][32] = mvtools_overlaps_16x32_uint16_t_uint8_t_c;
-        copys[16][32] = mvtools_copy_16x32_u8_c;
-
-        overs[32][8] = mvtools_overlaps_32x8_uint16_t_uint8_t_c;
-        copys[32][8] = mvtools_copy_32x8_u8_c;
-
-        overs[32][16] = mvtools_overlaps_32x16_uint16_t_uint8_t_c;
-        copys[32][16] = mvtools_copy_32x16_u8_c;
-
-        overs[32][32] = mvtools_overlaps_32x32_uint16_t_uint8_t_c;
-        copys[32][32] = mvtools_copy_32x32_u8_c;
-
         d->ToPixels = ToPixels_uint16_t_uint8_t;
-
-        if (d->opt) {
-#if defined(MVTOOLS_X86)
-            overs[4][2] = mvtools_overlaps_4x2_sse2;
-            overs[4][4] = mvtools_overlaps_4x4_sse2;
-            overs[4][8] = mvtools_overlaps_4x8_sse2;
-            overs[8][1] = mvtools_overlaps_8x1_sse2;
-            overs[8][2] = mvtools_overlaps_8x2_sse2;
-            overs[8][4] = mvtools_overlaps_8x4_sse2;
-            overs[8][8] = mvtools_overlaps_8x8_sse2;
-            overs[8][16] = mvtools_overlaps_8x16_sse2;
-            overs[16][1] = mvtools_overlaps_16x1_sse2;
-            overs[16][2] = mvtools_overlaps_16x2_sse2;
-            overs[16][4] = mvtools_overlaps_16x4_sse2;
-            overs[16][8] = mvtools_overlaps_16x8_sse2;
-            overs[16][16] = mvtools_overlaps_16x16_sse2;
-            overs[16][32] = mvtools_overlaps_16x32_sse2;
-            overs[32][8] = mvtools_overlaps_32x8_sse2;
-            overs[32][16] = mvtools_overlaps_32x16_sse2;
-            overs[32][32] = mvtools_overlaps_32x32_sse2;
-#endif
-        }
     } else {
-        overs[2][2] = mvtools_overlaps_2x2_uint32_t_uint16_t_c;
-        copys[2][2] = mvtools_copy_2x2_u16_c;
-
-        overs[2][4] = mvtools_overlaps_2x4_uint32_t_uint16_t_c;
-        copys[2][4] = mvtools_copy_2x4_u16_c;
-
-        overs[4][2] = mvtools_overlaps_4x2_uint32_t_uint16_t_c;
-        copys[4][2] = mvtools_copy_4x2_u16_c;
-
-        overs[4][4] = mvtools_overlaps_4x4_uint32_t_uint16_t_c;
-        copys[4][4] = mvtools_copy_4x4_u16_c;
-
-        overs[4][8] = mvtools_overlaps_4x8_uint32_t_uint16_t_c;
-        copys[4][8] = mvtools_copy_4x8_u16_c;
-
-        overs[8][1] = mvtools_overlaps_8x1_uint32_t_uint16_t_c;
-        copys[8][1] = mvtools_copy_8x1_u16_c;
-
-        overs[8][2] = mvtools_overlaps_8x2_uint32_t_uint16_t_c;
-        copys[8][2] = mvtools_copy_8x2_u16_c;
-
-        overs[8][4] = mvtools_overlaps_8x4_uint32_t_uint16_t_c;
-        copys[8][4] = mvtools_copy_8x4_u16_c;
-
-        overs[8][8] = mvtools_overlaps_8x8_uint32_t_uint16_t_c;
-        copys[8][8] = mvtools_copy_8x8_u16_c;
-
-        overs[8][16] = mvtools_overlaps_8x16_uint32_t_uint16_t_c;
-        copys[8][16] = mvtools_copy_8x16_u16_c;
-
-        overs[16][1] = mvtools_overlaps_16x1_uint32_t_uint16_t_c;
-        copys[16][1] = mvtools_copy_16x1_u16_c;
-
-        overs[16][2] = mvtools_overlaps_16x2_uint32_t_uint16_t_c;
-        copys[16][2] = mvtools_copy_16x2_u16_c;
-
-        overs[16][4] = mvtools_overlaps_16x4_uint32_t_uint16_t_c;
-        copys[16][4] = mvtools_copy_16x4_u16_c;
-
-        overs[16][8] = mvtools_overlaps_16x8_uint32_t_uint16_t_c;
-        copys[16][8] = mvtools_copy_16x8_u16_c;
-
-        overs[16][16] = mvtools_overlaps_16x16_uint32_t_uint16_t_c;
-        copys[16][16] = mvtools_copy_16x16_u16_c;
-
-        overs[16][32] = mvtools_overlaps_16x32_uint32_t_uint16_t_c;
-        copys[16][32] = mvtools_copy_16x32_u16_c;
-
-        overs[32][8] = mvtools_overlaps_32x8_uint32_t_uint16_t_c;
-        copys[32][8] = mvtools_copy_32x8_u16_c;
-
-        overs[32][16] = mvtools_overlaps_32x16_uint32_t_uint16_t_c;
-        copys[32][16] = mvtools_copy_32x16_u16_c;
-
-        overs[32][32] = mvtools_overlaps_32x32_uint32_t_uint16_t_c;
-        copys[32][32] = mvtools_copy_32x32_u16_c;
-
         d->ToPixels = ToPixels_uint32_t_uint16_t;
     }
 
-    d->OVERS[0] = overs[nBlkSizeX][nBlkSizeY];
-    d->BLIT[0] = copys[nBlkSizeX][nBlkSizeY];
+    d->OVERS[0] = selectOverlapsFunction(nBlkSizeX, nBlkSizeY, bits, d->opt);
+    d->BLIT[0] = selectCopyFunction(nBlkSizeX, nBlkSizeY, bits);
 
-    d->OVERS[1] = d->OVERS[2] = overs[nBlkSizeX / xRatioUV][nBlkSizeY / yRatioUV];
-    d->BLIT[1] = d->BLIT[2] = copys[nBlkSizeX / xRatioUV][nBlkSizeY / yRatioUV];
+    d->OVERS[1] = d->OVERS[2] = selectOverlapsFunction(nBlkSizeX / xRatioUV, nBlkSizeY / yRatioUV, bits, d->opt);
+    d->BLIT[1] = d->BLIT[2] = selectCopyFunction(nBlkSizeX / xRatioUV, nBlkSizeY / yRatioUV, bits);
 }
 
 

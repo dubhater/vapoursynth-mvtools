@@ -16,8 +16,9 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html .
 
-#include <math.h>
-#include <stdlib.h>
+#include <cmath>
+#include <cstdlib>
+#include <unordered_map>
 
 #include "Overlap.h"
 
@@ -138,61 +139,112 @@ int16_t *overGetWindow(const OverlapWindows *over, int i) {
 }
 
 
-#define Overlaps_C(blockWidth, blockHeight, PixelType2, PixelType) \
-void mvtools_overlaps_##blockWidth##x##blockHeight##_##PixelType2##_##PixelType##_c(uint8_t *pDst8, intptr_t nDstPitch, const uint8_t *pSrc8, intptr_t nSrcPitch, int16_t *pWin, intptr_t nWinPitch) { \
-    /* pWin from 0 to 2048 */ \
-    for (int j = 0; j < blockHeight; j++) { \
-        for (int i = 0; i < blockWidth; i++) { \
-            PixelType2 *pDst = (PixelType2 *)pDst8; \
-            const PixelType *pSrc = (const PixelType *)pSrc8; \
- \
-            pDst[i] += ((pSrc[i] * pWin[i]) >> 6); \
-        } \
-        pDst8 += nDstPitch; \
-        pSrc8 += nSrcPitch; \
-        pWin += nWinPitch; \
-    } \
+template <unsigned blockWidth, unsigned blockHeight, typename PixelType2, typename PixelType>
+void overlaps_c(uint8_t *pDst8, intptr_t nDstPitch, const uint8_t *pSrc8, intptr_t nSrcPitch, int16_t *pWin, intptr_t nWinPitch) {
+    /* pWin from 0 to 2048 */
+    for (unsigned j = 0; j < blockHeight; j++) {
+        for (unsigned i = 0; i < blockWidth; i++) {
+            PixelType2 *pDst = (PixelType2 *)pDst8;
+            const PixelType *pSrc = (const PixelType *)pSrc8;
+
+            pDst[i] += ((pSrc[i] * pWin[i]) >> 6);
+        }
+        pDst8 += nDstPitch;
+        pSrc8 += nSrcPitch;
+        pWin += nWinPitch;
+    }
 }
 
-Overlaps_C(2, 2, uint16_t, uint8_t)
-Overlaps_C(2, 4, uint16_t, uint8_t)
-Overlaps_C(4, 2, uint16_t, uint8_t)
-Overlaps_C(4, 4, uint16_t, uint8_t)
-Overlaps_C(4, 8, uint16_t, uint8_t)
-Overlaps_C(8, 1, uint16_t, uint8_t)
-Overlaps_C(8, 2, uint16_t, uint8_t)
-Overlaps_C(8, 4, uint16_t, uint8_t)
-Overlaps_C(8, 8, uint16_t, uint8_t)
-Overlaps_C(8, 16, uint16_t, uint8_t)
-Overlaps_C(16, 1, uint16_t, uint8_t)
-Overlaps_C(16, 2, uint16_t, uint8_t)
-Overlaps_C(16, 4, uint16_t, uint8_t)
-Overlaps_C(16, 8, uint16_t, uint8_t)
-Overlaps_C(16, 16, uint16_t, uint8_t)
-Overlaps_C(16, 32, uint16_t, uint8_t)
-Overlaps_C(32, 8, uint16_t, uint8_t)
-Overlaps_C(32, 16, uint16_t, uint8_t)
-Overlaps_C(32, 32, uint16_t, uint8_t)
 
-Overlaps_C(2, 2, uint32_t, uint16_t)
-Overlaps_C(2, 4, uint32_t, uint16_t)
-Overlaps_C(4, 2, uint32_t, uint16_t)
-Overlaps_C(4, 4, uint32_t, uint16_t)
-Overlaps_C(4, 8, uint32_t, uint16_t)
-Overlaps_C(8, 1, uint32_t, uint16_t)
-Overlaps_C(8, 2, uint32_t, uint16_t)
-Overlaps_C(8, 4, uint32_t, uint16_t)
-Overlaps_C(8, 8, uint32_t, uint16_t)
-Overlaps_C(8, 16, uint32_t, uint16_t)
-Overlaps_C(16, 1, uint32_t, uint16_t)
-Overlaps_C(16, 2, uint32_t, uint16_t)
-Overlaps_C(16, 4, uint32_t, uint16_t)
-Overlaps_C(16, 8, uint32_t, uint16_t)
-Overlaps_C(16, 16, uint32_t, uint16_t)
-Overlaps_C(16, 32, uint32_t, uint16_t)
-Overlaps_C(32, 8, uint32_t, uint16_t)
-Overlaps_C(32, 16, uint32_t, uint16_t)
-Overlaps_C(32, 32, uint32_t, uint16_t)
+#if defined(MVTOOLS_X86)
+
+#define DECLARE_OVERS(width, height) extern "C" void mvtools_overlaps_##width##x##height##_sse2(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, int16_t *pWin, intptr_t nWinPitch);
+
+DECLARE_OVERS(2, 2)
+DECLARE_OVERS(2, 4)
+DECLARE_OVERS(4, 2)
+DECLARE_OVERS(4, 4)
+DECLARE_OVERS(4, 8)
+DECLARE_OVERS(8, 1)
+DECLARE_OVERS(8, 2)
+DECLARE_OVERS(8, 4)
+DECLARE_OVERS(8, 8)
+DECLARE_OVERS(8, 16)
+DECLARE_OVERS(16, 1)
+DECLARE_OVERS(16, 2)
+DECLARE_OVERS(16, 4)
+DECLARE_OVERS(16, 8)
+DECLARE_OVERS(16, 16)
+DECLARE_OVERS(16, 32)
+DECLARE_OVERS(32, 8)
+DECLARE_OVERS(32, 16)
+DECLARE_OVERS(32, 32)
+
+#undef DECLARE_OVERS
+
+#endif
+
+
+enum InstructionSets {
+    Scalar,
+    SSE2,
+};
+
+
+// opt can fit in four bits, if the width and height need more than eight bits each.
+#define KEY(width, height, bits, opt) (width) << 24 | (height) << 16 | (bits) << 8 | (opt)
+
+#if defined(MVTOOLS_X86)
+#define OVERS_SSE2(width, height) \
+    { KEY(width, height, 8, SSE2), mvtools_overlaps_##width##x##height##_sse2 },
+#else
+#define OVERS_SSE2(width, height)
+#endif
+
+#define OVERS(width, height) \
+    { KEY(width, height, 8, Scalar), overlaps_c<width, height, uint16_t, uint8_t> }, \
+    { KEY(width, height, 16, Scalar), overlaps_c<width, height, uint32_t, uint16_t> }, \
+    OVERS_SSE2(width, height)
+
+static const std::unordered_map<uint32_t, OverlapsFunction> overlaps_functions = {
+    OVERS(2, 2)
+    OVERS(2, 4)
+    OVERS(4, 2)
+    OVERS(4, 4)
+    OVERS(4, 8)
+    OVERS(8, 1)
+    OVERS(8, 2)
+    OVERS(8, 4)
+    OVERS(8, 8)
+    OVERS(8, 16)
+    OVERS(16, 1)
+    OVERS(16, 2)
+    OVERS(16, 4)
+    OVERS(16, 8)
+    OVERS(16, 16)
+    OVERS(16, 32)
+    OVERS(32, 8)
+    OVERS(32, 16)
+    OVERS(32, 32)
+};
+
+OverlapsFunction selectOverlapsFunction(unsigned width, unsigned height, unsigned bits, int opt) {
+    OverlapsFunction overs = overlaps_functions.at(KEY(width, height, bits, Scalar));
+
+#if defined(MVTOOLS_X86)
+    if (opt) {
+        try {
+            overs = overlaps_functions.at(KEY(width, height, bits, SSE2));
+        } catch (std::out_of_range &) { }
+    }
+#endif
+
+    return overs;
+}
+
+#undef OVERS
+#undef OVERS_SSE2
+#undef KEY
 
 
 #define ToPixels(PixelType2, PixelType) \

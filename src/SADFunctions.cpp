@@ -1,5 +1,23 @@
+#include <cstdlib>
+#include <unordered_map>
 
+#include "CPU.h"
 #include "SADFunctions.h"
+
+
+enum InstructionSets {
+    Scalar,
+    MMX,
+    MMX_CACHE64,
+    SSE2,
+    SSE3,
+    SSSE3,
+    SSSE3_CACHE64,
+    SSE4,
+    AVX,
+    XOP,
+    AVX2,
+};
 
 
 #ifdef _WIN32
@@ -9,65 +27,254 @@
 #endif
 
 
-static inline unsigned int SADABS(int x) {
-    return (x < 0) ? -x : x;
+#if defined(MVTOOLS_X86)
+
+#define MK_CFUNC(functionname) extern "C" unsigned int functionname(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch)
+
+// From SAD.asm
+MK_CFUNC(mvtools_sad_4x2_sse2);
+MK_CFUNC(mvtools_sad_8x1_sse2);
+MK_CFUNC(mvtools_sad_8x2_sse2);
+MK_CFUNC(mvtools_sad_16x1_sse2);
+MK_CFUNC(mvtools_sad_16x2_sse2);
+MK_CFUNC(mvtools_sad_16x4_sse2);
+MK_CFUNC(mvtools_sad_16x32_sse2);
+MK_CFUNC(mvtools_sad_32x8_sse2);
+MK_CFUNC(mvtools_sad_32x16_sse2);
+MK_CFUNC(mvtools_sad_32x32_sse2);
+
+MK_CFUNC(mvtools_sad_2x2_u16_sse2);
+MK_CFUNC(mvtools_sad_2x4_u16_sse2);
+MK_CFUNC(mvtools_sad_4x2_u16_sse2);
+MK_CFUNC(mvtools_sad_4x4_u16_sse2);
+MK_CFUNC(mvtools_sad_4x8_u16_sse2);
+MK_CFUNC(mvtools_sad_8x1_u16_sse2);
+MK_CFUNC(mvtools_sad_8x2_u16_sse2);
+MK_CFUNC(mvtools_sad_8x4_u16_sse2);
+MK_CFUNC(mvtools_sad_8x8_u16_sse2);
+MK_CFUNC(mvtools_sad_8x16_u16_sse2);
+MK_CFUNC(mvtools_sad_16x1_u16_sse2);
+MK_CFUNC(mvtools_sad_16x2_u16_sse2);
+MK_CFUNC(mvtools_sad_16x4_u16_sse2);
+MK_CFUNC(mvtools_sad_16x8_u16_sse2);
+MK_CFUNC(mvtools_sad_16x16_u16_sse2);
+MK_CFUNC(mvtools_sad_16x32_u16_sse2);
+MK_CFUNC(mvtools_sad_32x8_u16_sse2);
+MK_CFUNC(mvtools_sad_32x16_u16_sse2);
+MK_CFUNC(mvtools_sad_32x32_u16_sse2);
+
+// From sad-a.asm - stolen from x264
+MK_CFUNC(mvtools_pixel_sad_4x4_mmx2);
+MK_CFUNC(mvtools_pixel_sad_4x8_mmx2);
+MK_CFUNC(mvtools_pixel_sad_8x4_mmx2);
+MK_CFUNC(mvtools_pixel_sad_8x8_mmx2);
+MK_CFUNC(mvtools_pixel_sad_8x16_mmx2);
+MK_CFUNC(mvtools_pixel_sad_16x8_mmx2);
+MK_CFUNC(mvtools_pixel_sad_16x16_mmx2);
+
+MK_CFUNC(mvtools_pixel_sad_8x4_cache64_mmx2);
+MK_CFUNC(mvtools_pixel_sad_8x8_cache64_mmx2);
+MK_CFUNC(mvtools_pixel_sad_8x16_cache64_mmx2);
+
+MK_CFUNC(mvtools_pixel_sad_8x16_sse2);
+MK_CFUNC(mvtools_pixel_sad_16x8_sse2);  //non optimized cache access, for AMD?
+MK_CFUNC(mvtools_pixel_sad_16x16_sse2); //non optimized cache access, for AMD?
+
+MK_CFUNC(mvtools_pixel_sad_16x8_sse3);  //LDDQU Pentium4E (Core1?), not for Core2!
+MK_CFUNC(mvtools_pixel_sad_16x16_sse3); //LDDQU Pentium4E (Core1?), not for Core2!
+
+MK_CFUNC(mvtools_pixel_sad_16x8_cache64_ssse3);  //core2 optimized
+MK_CFUNC(mvtools_pixel_sad_16x16_cache64_ssse3); //core2 optimized
+
+/* SATD: Sum of Absolute Transformed Differences, more sensitive to noise, frequency domain based - replacement to dct/SAD */
+
+// From sad-a.asm - stolen from x264
+MK_CFUNC(mvtools_pixel_satd_4x4_mmx2);
+
+MK_CFUNC(mvtools_pixel_satd_8x4_sse2);
+MK_CFUNC(mvtools_pixel_satd_8x8_sse2);
+MK_CFUNC(mvtools_pixel_satd_16x8_sse2);
+MK_CFUNC(mvtools_pixel_satd_16x16_sse2);
+
+MK_CFUNC(mvtools_pixel_satd_4x4_ssse3);
+MK_CFUNC(mvtools_pixel_satd_8x4_ssse3);
+MK_CFUNC(mvtools_pixel_satd_8x8_ssse3);
+MK_CFUNC(mvtools_pixel_satd_16x8_ssse3);
+MK_CFUNC(mvtools_pixel_satd_16x16_ssse3);
+
+MK_CFUNC(mvtools_pixel_satd_4x4_sse4);
+MK_CFUNC(mvtools_pixel_satd_8x4_sse4);
+MK_CFUNC(mvtools_pixel_satd_8x8_sse4);
+MK_CFUNC(mvtools_pixel_satd_16x8_sse4);
+MK_CFUNC(mvtools_pixel_satd_16x16_sse4);
+
+MK_CFUNC(mvtools_pixel_satd_4x4_avx);
+MK_CFUNC(mvtools_pixel_satd_8x4_avx);
+MK_CFUNC(mvtools_pixel_satd_8x8_avx);
+MK_CFUNC(mvtools_pixel_satd_16x8_avx);
+MK_CFUNC(mvtools_pixel_satd_16x16_avx);
+
+MK_CFUNC(mvtools_pixel_satd_4x4_xop);
+MK_CFUNC(mvtools_pixel_satd_8x4_xop);
+MK_CFUNC(mvtools_pixel_satd_8x8_xop);
+MK_CFUNC(mvtools_pixel_satd_16x8_xop);
+MK_CFUNC(mvtools_pixel_satd_16x16_xop);
+
+MK_CFUNC(mvtools_pixel_satd_8x8_avx2);
+MK_CFUNC(mvtools_pixel_satd_16x8_avx2);
+MK_CFUNC(mvtools_pixel_satd_16x16_avx2);
+
+#undef MK_CFUNC
+
+#endif // MVTOOLS_X86
+
+
+template <unsigned width, unsigned height, typename PixelType>
+unsigned int sad_c(const uint8_t *pSrc8, intptr_t nSrcPitch, const uint8_t *pRef8, intptr_t nRefPitch) {
+    unsigned int sum = 0;
+    for (unsigned y = 0; y < height; y++) {
+        for (unsigned x = 0; x < width; x++) {
+            const PixelType *pSrc = (const PixelType *)pSrc8;
+            const PixelType *pRef = (const PixelType *)pRef8;
+            sum += (unsigned)std::abs(pSrc[x] - pRef[x]);
+        }
+        pSrc8 += nSrcPitch;
+        pRef8 += nRefPitch;
+    }
+    return sum;
 }
 
 
-#define DEFINE_SAD(width, height, bits) \
-unsigned int mvtools_sad_##width##x##height##_u##bits##_c(const uint8_t *pSrc8, intptr_t nSrcPitch, const uint8_t *pRef8, intptr_t nRefPitch) { \
-    unsigned int sum = 0;                                                       \
-    for (int y = 0; y < height; y++) {                                          \
-        for (int x = 0; x < width; x++) {                                       \
-            const uint##bits##_t *pSrc = (const uint##bits##_t *)pSrc8;         \
-            const uint##bits##_t *pRef = (const uint##bits##_t *)pRef8;         \
-            sum += SADABS(pSrc[x] - pRef[x]);                                   \
-        }                                                                       \
-        pSrc8 += nSrcPitch;                                                     \
-        pRef8 += nRefPitch;                                                     \
-    }                                                                           \
-    return sum;                                                                 \
+// opt can fit in four bits, if the width and height need more than eight bits each.
+#define KEY(width, height, bits, opt) (width) << 24 | (height) << 16 | (bits) << 8 | (opt)
+
+
+#if defined(MVTOOLS_X86)
+#define SAD_X264_U8_MMX(width, height) \
+    { KEY(width, height, 8, MMX), mvtools_pixel_sad_##width##x##height##_mmx2 },
+
+#define SAD_X264_U8_MMX_CACHE64(width, height) \
+    { KEY(width, height, 8, MMX_CACHE64), mvtools_pixel_sad_##width##x##height##_cache64_mmx2 },
+
+#define SAD_X264_U8_SSE2(width, height) \
+    { KEY(width, height, 8, SSE2), mvtools_pixel_sad_##width##x##height##_sse2 },
+
+#define SAD_X264_U8_SSE3(width, height) \
+    { KEY(width, height, 8, SSE3), mvtools_pixel_sad_##width##x##height##_sse3 },
+
+#define SAD_X264_U8_SSSE3_CACHE64(width, height) \
+    { KEY(width, height, 8, SSSE3_CACHE64), mvtools_pixel_sad_##width##x##height##_cache64_ssse3 },
+
+#define SAD_U8_SSE2(width, height) \
+    { KEY(width, height, 8, SSE2), mvtools_sad_##width##x##height##_sse2 },
+
+#define SAD_U16_SSE2(width, height) \
+    { KEY(width, height, 16, SSE2), mvtools_sad_##width##x##height##_u16_sse2 },
+#else
+#define SAD_X264_U8_MMX(width, height)
+#define SAD_X264_U8_MMX_CACHE64(width, height)
+#define SAD_X264_U8_SSE2(width, height)
+#define SAD_X264_U8_SSE3(width, height)
+#define SAD_X264_U8_SSSE3_CACHE64(width, height)
+#define SAD_U8_SSE2(width, height)
+#define SAD_U16_SSE2(width, height)
+#endif
+
+#define SAD(width, height) \
+    { KEY(width, height, 8, Scalar), sad_c<width, height, uint8_t> }, \
+    { KEY(width, height, 16, Scalar), sad_c<width, height, uint16_t> }, \
+    SAD_U16_SSE2(width, height)
+
+static const std::unordered_map<uint32_t, SADFunction> sad_functions = {
+    SAD(2, 2)
+    SAD(2, 4)
+    SAD(4, 2)
+    SAD(4, 4)
+    SAD(4, 8)
+    SAD(8, 1)
+    SAD(8, 2)
+    SAD(8, 4)
+    SAD(8, 8)
+    SAD(8, 16)
+    SAD(16, 1)
+    SAD(16, 2)
+    SAD(16, 4)
+    SAD(16, 8)
+    SAD(16, 16)
+    SAD(16, 32)
+    SAD(32, 8)
+    SAD(32, 16)
+    SAD(32, 32)
+    SAD_X264_U8_MMX(4, 4)
+    SAD_X264_U8_MMX(4, 8)
+    SAD_X264_U8_MMX(8, 4)
+    SAD_X264_U8_MMX(8, 8)
+    SAD_X264_U8_MMX_CACHE64(8, 4)
+    SAD_X264_U8_MMX_CACHE64(8, 8)
+    SAD_X264_U8_SSE2(8, 16)
+    SAD_X264_U8_SSE2(16, 8)
+    SAD_X264_U8_SSE2(16, 16)
+    SAD_X264_U8_SSE3(16, 8)
+    SAD_X264_U8_SSE3(16, 16)
+    SAD_X264_U8_SSSE3_CACHE64(16, 8)
+    SAD_X264_U8_SSSE3_CACHE64(16, 16)
+    SAD_U8_SSE2(4, 2)
+    SAD_U8_SSE2(8, 1)
+    SAD_U8_SSE2(8, 2)
+    SAD_U8_SSE2(16, 1)
+    SAD_U8_SSE2(16, 2)
+    SAD_U8_SSE2(16, 4)
+    SAD_U8_SSE2(16, 32)
+    SAD_U8_SSE2(32, 8)
+    SAD_U8_SSE2(32, 16)
+    SAD_U8_SSE2(32, 32)
+};
+
+SADFunction selectSADFunction(unsigned width, unsigned height, unsigned bits, int opt, unsigned cpu) {
+    SADFunction sad = sad_functions.at(KEY(width, height, bits, Scalar));
+
+#if defined(MVTOOLS_X86)
+    if (opt) {
+        try {
+            sad = sad_functions.at(KEY(width, height, bits, MMX));
+        } catch (std::out_of_range &) { }
+
+        if (cpu & X264_CPU_CACHELINE_64) {
+            try {
+                sad = sad_functions.at(KEY(width, height, bits, MMX_CACHE64));
+            } catch (std::out_of_range &) { }
+        }
+
+        try {
+            sad = sad_functions.at(KEY(width, height, bits, SSE2));
+        } catch (std::out_of_range &) { }
+
+        if (cpu & X264_CPU_SSE3) {
+            try {
+                sad = sad_functions.at(KEY(width, height, bits, SSE3));
+            } catch (std::out_of_range &) { }
+        }
+
+        if ((cpu & X264_CPU_SSSE3) && (cpu & X264_CPU_CACHELINE_64)) {
+            try {
+                sad = sad_functions.at(KEY(width, height, bits, SSSE3_CACHE64));
+            } catch (std::out_of_range &) { }
+        }
+    }
+#endif
+
+    return sad;
 }
 
-DEFINE_SAD(2, 2, 8)
-DEFINE_SAD(2, 4, 8)
-DEFINE_SAD(4, 2, 8)
-DEFINE_SAD(4, 4, 8)
-DEFINE_SAD(4, 8, 8)
-DEFINE_SAD(8, 1, 8)
-DEFINE_SAD(8, 2, 8)
-DEFINE_SAD(8, 4, 8)
-DEFINE_SAD(8, 8, 8)
-DEFINE_SAD(8, 16, 8)
-DEFINE_SAD(16, 1, 8)
-DEFINE_SAD(16, 2, 8)
-DEFINE_SAD(16, 4, 8)
-DEFINE_SAD(16, 8, 8)
-DEFINE_SAD(16, 16, 8)
-DEFINE_SAD(16, 32, 8)
-DEFINE_SAD(32, 8, 8)
-DEFINE_SAD(32, 16, 8)
-DEFINE_SAD(32, 32, 8)
+#undef SAD_X264_U8_MMX
+#undef SAD_X264_U8_MMX_CACHE64
+#undef SAD_X264_U8_SSE2
+#undef SAD_X264_U8_SSE3
+#undef SAD_X264_U8_SSSE3_CACHE64
+#undef SAD_U8_SSE2
+#undef SAD_U16_SSE2
+#undef SAD
 
-DEFINE_SAD(2, 2, 16)
-DEFINE_SAD(2, 4, 16)
-DEFINE_SAD(4, 2, 16)
-DEFINE_SAD(4, 4, 16)
-DEFINE_SAD(4, 8, 16)
-DEFINE_SAD(8, 1, 16)
-DEFINE_SAD(8, 2, 16)
-DEFINE_SAD(8, 4, 16)
-DEFINE_SAD(8, 8, 16)
-DEFINE_SAD(8, 16, 16)
-DEFINE_SAD(16, 1, 16)
-DEFINE_SAD(16, 2, 16)
-DEFINE_SAD(16, 4, 16)
-DEFINE_SAD(16, 8, 16)
-DEFINE_SAD(16, 16, 16)
-DEFINE_SAD(16, 32, 16)
-DEFINE_SAD(32, 8, 16)
-DEFINE_SAD(32, 16, 16)
-DEFINE_SAD(32, 32, 16)
 
 
 #define HADAMARD4(d0, d1, d2, d3, s0, s1, s2, s3) \
@@ -373,19 +580,118 @@ static FORCE_INLINE unsigned int Satd_C(const uint8_t *pSrc, intptr_t nSrcPitch,
     }
 }
 
-#define DEFINE_SATD(width, height, bits) \
-unsigned int mvtools_satd_##width##x##height##_u##bits##_c(const uint8_t *pSrc8, intptr_t nSrcPitch, const uint8_t *pRef8, intptr_t nRefPitch) { \
-    return Satd_C<width, height, uint##bits##_t>(pSrc8, nSrcPitch, pRef8, nRefPitch); \
+
+#if defined(MVTOOLS_X86)
+#define SATD_X264_U8_MMX(width, height) \
+    { KEY(width, height, 8, MMX), mvtools_pixel_satd_##width##x##height##_mmx2 },
+
+#define SATD_X264_U8_SSE2(width, height) \
+    { KEY(width, height, 8, SSE2), mvtools_pixel_satd_##width##x##height##_sse2 },
+
+#define SATD_X264_U8_SSSE3(width, height) \
+    { KEY(width, height, 8, SSSE3), mvtools_pixel_satd_##width##x##height##_ssse3 },
+
+#define SATD_X264_U8_SSE4(width, height) \
+    { KEY(width, height, 8, SSE4), mvtools_pixel_satd_##width##x##height##_sse4 },
+
+#define SATD_X264_U8_AVX(width, height) \
+    { KEY(width, height, 8, AVX), mvtools_pixel_satd_##width##x##height##_avx },
+
+#define SATD_X264_U8_XOP(width, height) \
+    { KEY(width, height, 8, XOP), mvtools_pixel_satd_##width##x##height##_xop },
+
+#define SATD_X264_U8_AVX2(width, height) \
+    { KEY(width, height, 8, AVX2), mvtools_pixel_satd_##width##x##height##_avx2 },
+
+#else
+#define SATD_X264_U8_MMX(width, height)
+#define SATD_X264_U8_SSE2(width, height)
+#define SATD_X264_U8_SSSE3(width, height)
+#define SATD_X264_U8_SSE4(width, height)
+#define SATD_X264_U8_AVX(width, height)
+#define SATD_X264_U8_XOP(width, height)
+#define SATD_X264_U8_AVX2(width, height)
+#endif
+
+#define SATD(width, height) \
+    { KEY(width, height, 8, Scalar), Satd_C<width, height, uint8_t> }, \
+    { KEY(width, height, 16, Scalar), Satd_C<width, height, uint16_t> }, \
+    SATD_X264_U8_SSSE3(width, height) \
+    SATD_X264_U8_SSE4(width, height) \
+    SATD_X264_U8_AVX(width, height) \
+    SATD_X264_U8_XOP(width, height)
+
+static const std::unordered_map<uint32_t, SADFunction> satd_functions = {
+    SATD(4, 4)
+    SATD(8, 4)
+    SATD(8, 8)
+    SATD(16, 8)
+    SATD(16, 16)
+    SATD_X264_U8_MMX(4, 4)
+    SATD_X264_U8_SSE2(8, 4)
+    SATD_X264_U8_SSE2(8, 8)
+    SATD_X264_U8_SSE2(16, 8)
+    SATD_X264_U8_SSE2(16, 16)
+    SATD_X264_U8_AVX2(8, 8)
+    SATD_X264_U8_AVX2(16, 8)
+    SATD_X264_U8_AVX2(16, 16)
+};
+
+SADFunction selectSATDFunction(unsigned width, unsigned height, unsigned bits, int opt, unsigned cpu) {
+    SADFunction satd = satd_functions.at(KEY(width, height, bits, Scalar));
+
+#if defined(MVTOOLS_X86)
+    if (opt) {
+        try {
+            satd = satd_functions.at(KEY(width, height, bits, MMX));
+        } catch (std::out_of_range &) { }
+
+        try {
+            satd = satd_functions.at(KEY(width, height, bits, SSE2));
+        } catch (std::out_of_range &) { }
+
+        if (cpu & X264_CPU_SSSE3) {
+            try {
+                satd = satd_functions.at(KEY(width, height, bits, SSSE3));
+            } catch (std::out_of_range &) { }
+        }
+
+        if (cpu & X264_CPU_SSE4) {
+            try {
+                satd = satd_functions.at(KEY(width, height, bits, SSE4));
+            } catch (std::out_of_range &) { }
+        }
+
+        if (cpu & X264_CPU_AVX) {
+            try {
+                satd = satd_functions.at(KEY(width, height, bits, AVX));
+            } catch (std::out_of_range &) { }
+        }
+
+        if (cpu & X264_CPU_XOP) {
+            try {
+                satd = satd_functions.at(KEY(width, height, bits, XOP));
+            } catch (std::out_of_range &) { }
+        }
+
+        if (cpu & X264_CPU_AVX2) {
+            try {
+                satd = satd_functions.at(KEY(width, height, bits, AVX2));
+            } catch (std::out_of_range &) { }
+        }
+    }
+#endif
+
+    return satd;
 }
 
-DEFINE_SATD(4, 4, 8)
-DEFINE_SATD(8, 4, 8)
-DEFINE_SATD(8, 8, 8)
-DEFINE_SATD(16, 8, 8)
-DEFINE_SATD(16, 16, 8)
+#undef SATD_X264_U8_MMX
+#undef SATD_X264_U8_SSE2
+#undef SATD_X264_U8_SSSE3
+#undef SATD_X264_U8_SSE4
+#undef SATD_X264_U8_AVX
+#undef SATD_X264_U8_XOP
+#undef SATD_X264_U8_AVX2
+#undef SATD
 
-DEFINE_SATD(4, 4, 16)
-DEFINE_SATD(8, 4, 16)
-DEFINE_SATD(8, 8, 16)
-DEFINE_SATD(16, 8, 16)
-DEFINE_SATD(16, 16, 16)
+#undef KEY

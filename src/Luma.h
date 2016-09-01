@@ -1,5 +1,5 @@
-#ifndef __VARIANCE_H__
-#define __VARIANCE_H__
+#ifndef LUMA_H
+#define LUMA_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -11,42 +11,10 @@ extern "C" {
 typedef unsigned int (*LUMAFunction)(const uint8_t *pSrc, intptr_t nSrcPitch);
 
 
-#define DECLARE_LUMA(width, height, bits, opt) unsigned int mvtools_luma_##width##x##height##_u##bits##_##opt(const uint8_t *pSrc, intptr_t nSrcPitch);
-
-DECLARE_LUMA(4, 4, 8, c)
-DECLARE_LUMA(8, 4, 8, c)
-DECLARE_LUMA(8, 8, 8, c)
-DECLARE_LUMA(16, 2, 8, c)
-DECLARE_LUMA(16, 8, 8, c)
-DECLARE_LUMA(16, 16, 8, c)
-DECLARE_LUMA(32, 16, 8, c)
-DECLARE_LUMA(32, 32, 8, c)
-
-DECLARE_LUMA(4, 4, 16, c)
-DECLARE_LUMA(8, 4, 16, c)
-DECLARE_LUMA(8, 8, 16, c)
-DECLARE_LUMA(16, 2, 16, c)
-DECLARE_LUMA(16, 8, 16, c)
-DECLARE_LUMA(16, 16, 16, c)
-DECLARE_LUMA(32, 16, 16, c)
-DECLARE_LUMA(32, 32, 16, c)
-
-#if defined(MVTOOLS_X86)
-DECLARE_LUMA(4, 4, 8, sse2)
-DECLARE_LUMA(8, 4, 8, sse2)
-DECLARE_LUMA(8, 8, 8, sse2)
-DECLARE_LUMA(16, 2, 8, sse2)
-DECLARE_LUMA(16, 8, 8, sse2)
-DECLARE_LUMA(16, 16, 8, sse2)
-DECLARE_LUMA(32, 16, 8, sse2)
-DECLARE_LUMA(32, 32, 8, sse2)
-#endif
-
-#undef DECLARE_LUMA
-
+LUMAFunction selectLumaFunction(unsigned width, unsigned height, unsigned bits, int opt);
 
 #ifdef __cplusplus
 } // extern "C"
 #endif
 
-#endif
+#endif // LUMA_H

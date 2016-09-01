@@ -1,5 +1,5 @@
-#ifndef __MV_DEGRAINS__
-#define __MV_DEGRAINS__
+#ifndef MVDEGRAINS_H
+#define MVDEGRAINS_H
 
 #include <cstdint>
 #include <cstring>
@@ -226,4 +226,4 @@ static inline void normaliseWeights(int &WSrc, int *WRefs) {
 }
 
 
-#endif
+#endif // MVDEGRAINS_H
