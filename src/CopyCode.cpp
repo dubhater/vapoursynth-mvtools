@@ -41,6 +41,14 @@ static const std::unordered_map<uint32_t, COPYFunction> copy_functions = {
     COPY(32, 8)
     COPY(32, 16)
     COPY(32, 32)
+    COPY(32, 64)
+    COPY(64, 16)
+    COPY(64, 32)
+    COPY(64, 64)
+    COPY(64, 128)
+    COPY(128, 32)
+    COPY(128, 64)
+    COPY(128, 128)
 };
 
 COPYFunction selectCopyFunction(unsigned width, unsigned height, unsigned bits) {

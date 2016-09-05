@@ -409,10 +409,14 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 2) &&
         (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 8) &&
         (d.analysisData.nBlkSizeX != 16 || d.analysisData.nBlkSizeY != 16) &&
+        (d.analysisData.nBlkSizeX != 32 || d.analysisData.nBlkSizeY != 16) &&
         (d.analysisData.nBlkSizeX != 32 || d.analysisData.nBlkSizeY != 32) &&
-        (d.analysisData.nBlkSizeX != 32 || d.analysisData.nBlkSizeY != 16)) {
+        (d.analysisData.nBlkSizeX != 64 || d.analysisData.nBlkSizeY != 32) &&
+        (d.analysisData.nBlkSizeX != 64 || d.analysisData.nBlkSizeY != 64) &&
+        (d.analysisData.nBlkSizeX != 128 || d.analysisData.nBlkSizeY != 64) &&
+        (d.analysisData.nBlkSizeX != 128 || d.analysisData.nBlkSizeY != 128)) {
 
-        vsapi->setError(out, "Analyse: the block size must be 4x4, 8x4, 8x8, 16x2, 16x8, 16x16, 32x16, or 32x32.");
+        vsapi->setError(out, "Analyse: the block size must be 4x4, 8x4, 8x8, 16x2, 16x8, 16x16, 32x16, 32x32, 64x32, 64x64, 128x64, or 128x128.");
         return;
     }
 
@@ -482,7 +486,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
     d.badSAD = (int)((double)d.badSAD * pixelMax / 255.0 + 0.5);
     d.nLambda = (int)((double)d.nLambda * pixelMax / 255.0 + 0.5);
 
-    d.lsad = d.lsad * (d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY) / 64;
+    d.lsad = (int64_t)d.lsad * (d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY) / 64;
     d.badSAD = d.badSAD * (d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY) / 64;
 
 

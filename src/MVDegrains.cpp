@@ -390,7 +390,7 @@ enum InstructionSets {
 
 
 // opt can fit in four bits, if the width and height need more than eight bits each.
-#define KEY(width, height, bits, opt) (width) << 24 | (height) << 16 | (bits) << 8 | (opt)
+#define KEY(width, height, bits, opt) (unsigned)(width) << 24 | (height) << 16 | (bits) << 8 | (opt)
 
 #if defined(MVTOOLS_X86)
 #define DEGRAIN_SSE2(radius, width, height) \
@@ -425,6 +425,14 @@ static const std::unordered_map<uint32_t, DenoiseFunction> degrain_functions[3] 
         DEGRAIN(1, 32, 8)
         DEGRAIN(1, 32, 16)
         DEGRAIN(1, 32, 32)
+        DEGRAIN(1, 32, 64)
+        DEGRAIN(1, 64, 16)
+        DEGRAIN(1, 64, 32)
+        DEGRAIN(1, 64, 64)
+        DEGRAIN(1, 64, 128)
+        DEGRAIN(1, 128, 32)
+        DEGRAIN(1, 128, 64)
+        DEGRAIN(1, 128, 128)
     },
     {
         DEGRAIN(2, 2, 2)
@@ -446,6 +454,14 @@ static const std::unordered_map<uint32_t, DenoiseFunction> degrain_functions[3] 
         DEGRAIN(2, 32, 8)
         DEGRAIN(2, 32, 16)
         DEGRAIN(2, 32, 32)
+        DEGRAIN(2, 32, 64)
+        DEGRAIN(2, 64, 16)
+        DEGRAIN(2, 64, 32)
+        DEGRAIN(2, 64, 64)
+        DEGRAIN(2, 64, 128)
+        DEGRAIN(2, 128, 32)
+        DEGRAIN(2, 128, 64)
+        DEGRAIN(2, 128, 128)
     },
     {
         DEGRAIN(3, 2, 2)
@@ -467,6 +483,14 @@ static const std::unordered_map<uint32_t, DenoiseFunction> degrain_functions[3] 
         DEGRAIN(3, 32, 8)
         DEGRAIN(3, 32, 16)
         DEGRAIN(3, 32, 32)
+        DEGRAIN(3, 32, 64)
+        DEGRAIN(3, 64, 16)
+        DEGRAIN(3, 64, 32)
+        DEGRAIN(3, 64, 64)
+        DEGRAIN(3, 64, 128)
+        DEGRAIN(3, 128, 32)
+        DEGRAIN(3, 128, 64)
+        DEGRAIN(3, 128, 128)
     }
 };
 

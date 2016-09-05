@@ -146,7 +146,7 @@ unsigned int sad_c(const uint8_t *pSrc8, intptr_t nSrcPitch, const uint8_t *pRef
 
 
 // opt can fit in four bits, if the width and height need more than eight bits each.
-#define KEY(width, height, bits, opt) (width) << 24 | (height) << 16 | (bits) << 8 | (opt)
+#define KEY(width, height, bits, opt) (unsigned)(width) << 24 | (height) << 16 | (bits) << 8 | (opt)
 
 
 #if defined(MVTOOLS_X86)
@@ -182,8 +182,7 @@ unsigned int sad_c(const uint8_t *pSrc8, intptr_t nSrcPitch, const uint8_t *pRef
 
 #define SAD(width, height) \
     { KEY(width, height, 8, Scalar), sad_c<width, height, uint8_t> }, \
-    { KEY(width, height, 16, Scalar), sad_c<width, height, uint16_t> }, \
-    SAD_U16_SSE2(width, height)
+    { KEY(width, height, 16, Scalar), sad_c<width, height, uint16_t> },
 
 static const std::unordered_map<uint32_t, SADFunction> sad_functions = {
     SAD(2, 2)
@@ -205,6 +204,14 @@ static const std::unordered_map<uint32_t, SADFunction> sad_functions = {
     SAD(32, 8)
     SAD(32, 16)
     SAD(32, 32)
+    SAD(32, 64)
+    SAD(64, 16)
+    SAD(64, 32)
+    SAD(64, 64)
+    SAD(64, 128)
+    SAD(128, 32)
+    SAD(128, 64)
+    SAD(128, 128)
     SAD_X264_U8_MMX(4, 4)
     SAD_X264_U8_MMX(4, 8)
     SAD_X264_U8_MMX(8, 4)
@@ -228,6 +235,25 @@ static const std::unordered_map<uint32_t, SADFunction> sad_functions = {
     SAD_U8_SSE2(32, 8)
     SAD_U8_SSE2(32, 16)
     SAD_U8_SSE2(32, 32)
+    SAD_U16_SSE2(2, 2)
+    SAD_U16_SSE2(2, 4)
+    SAD_U16_SSE2(4, 2)
+    SAD_U16_SSE2(4, 4)
+    SAD_U16_SSE2(4, 8)
+    SAD_U16_SSE2(8, 1)
+    SAD_U16_SSE2(8, 2)
+    SAD_U16_SSE2(8, 4)
+    SAD_U16_SSE2(8, 8)
+    SAD_U16_SSE2(8, 16)
+    SAD_U16_SSE2(16, 1)
+    SAD_U16_SSE2(16, 2)
+    SAD_U16_SSE2(16, 4)
+    SAD_U16_SSE2(16, 8)
+    SAD_U16_SSE2(16, 16)
+    SAD_U16_SSE2(16, 32)
+    SAD_U16_SSE2(32, 8)
+    SAD_U16_SSE2(32, 16)
+    SAD_U16_SSE2(32, 32)
 };
 
 SADFunction selectSADFunction(unsigned width, unsigned height, unsigned bits, int opt, unsigned cpu) {

@@ -44,7 +44,7 @@ DECLARE_LUMA(32, 32, 8, sse2)
 
 
 // opt can fit in four bits, if the width and height need more than eight bits each.
-#define KEY(width, height, bits, opt) (width) << 24 | (height) << 16 | (bits) << 8 | (opt)
+#define KEY(width, height, bits, opt) (unsigned)(width) << 24 | (height) << 16 | (bits) << 8 | (opt)
 
 #if defined(MVTOOLS_X86)
 #define LUMA_SSE2(width, height) \
@@ -55,8 +55,7 @@ DECLARE_LUMA(32, 32, 8, sse2)
 
 #define LUMA(width, height) \
     { KEY(width, height, 8, Scalar), luma_c<width, height, uint8_t> }, \
-    { KEY(width, height, 16, Scalar), luma_c<width, height, uint16_t> }, \
-    LUMA_SSE2(width, height)
+    { KEY(width, height, 16, Scalar), luma_c<width, height, uint16_t> },
 
 static const std::unordered_map<uint32_t, LUMAFunction> luma_functions = {
     LUMA(4, 4)
@@ -67,6 +66,18 @@ static const std::unordered_map<uint32_t, LUMAFunction> luma_functions = {
     LUMA(16, 16)
     LUMA(32, 16)
     LUMA(32, 32)
+    LUMA(64, 32)
+    LUMA(64, 64)
+    LUMA(128, 64)
+    LUMA(128, 128)
+    LUMA_SSE2(4, 4)
+    LUMA_SSE2(8, 4)
+    LUMA_SSE2(8, 8)
+    LUMA_SSE2(16, 2)
+    LUMA_SSE2(16, 8)
+    LUMA_SSE2(16, 16)
+    LUMA_SSE2(32, 16)
+    LUMA_SSE2(32, 32)
 };
 
 LUMAFunction selectLumaFunction(unsigned width, unsigned height, unsigned bits, int opt) {

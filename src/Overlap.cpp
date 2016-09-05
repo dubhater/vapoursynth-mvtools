@@ -192,7 +192,7 @@ enum InstructionSets {
 
 
 // opt can fit in four bits, if the width and height need more than eight bits each.
-#define KEY(width, height, bits, opt) (width) << 24 | (height) << 16 | (bits) << 8 | (opt)
+#define KEY(width, height, bits, opt) (unsigned)(width) << 24 | (height) << 16 | (bits) << 8 | (opt)
 
 #if defined(MVTOOLS_X86)
 #define OVERS_SSE2(width, height) \
@@ -203,8 +203,7 @@ enum InstructionSets {
 
 #define OVERS(width, height) \
     { KEY(width, height, 8, Scalar), overlaps_c<width, height, uint16_t, uint8_t> }, \
-    { KEY(width, height, 16, Scalar), overlaps_c<width, height, uint32_t, uint16_t> }, \
-    OVERS_SSE2(width, height)
+    { KEY(width, height, 16, Scalar), overlaps_c<width, height, uint32_t, uint16_t> },
 
 static const std::unordered_map<uint32_t, OverlapsFunction> overlaps_functions = {
     OVERS(2, 2)
@@ -226,6 +225,33 @@ static const std::unordered_map<uint32_t, OverlapsFunction> overlaps_functions =
     OVERS(32, 8)
     OVERS(32, 16)
     OVERS(32, 32)
+    OVERS(32, 64)
+    OVERS(64, 16)
+    OVERS(64, 32)
+    OVERS(64, 64)
+    OVERS(64, 128)
+    OVERS(128, 32)
+    OVERS(128, 64)
+    OVERS(128, 128)
+    OVERS_SSE2(2, 2)
+    OVERS_SSE2(2, 4)
+    OVERS_SSE2(4, 2)
+    OVERS_SSE2(4, 4)
+    OVERS_SSE2(4, 8)
+    OVERS_SSE2(8, 1)
+    OVERS_SSE2(8, 2)
+    OVERS_SSE2(8, 4)
+    OVERS_SSE2(8, 8)
+    OVERS_SSE2(8, 16)
+    OVERS_SSE2(16, 1)
+    OVERS_SSE2(16, 2)
+    OVERS_SSE2(16, 4)
+    OVERS_SSE2(16, 8)
+    OVERS_SSE2(16, 16)
+    OVERS_SSE2(16, 32)
+    OVERS_SSE2(32, 8)
+    OVERS_SSE2(32, 16)
+    OVERS_SSE2(32, 32)
 };
 
 OverlapsFunction selectOverlapsFunction(unsigned width, unsigned height, unsigned bits, int opt) {
