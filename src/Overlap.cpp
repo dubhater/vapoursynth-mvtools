@@ -158,29 +158,74 @@ void overlaps_c(uint8_t *pDst8, intptr_t nDstPitch, const uint8_t *pSrc8, intptr
 
 #if defined(MVTOOLS_X86)
 
-#define DECLARE_OVERS(width, height) extern "C" void mvtools_overlaps_##width##x##height##_sse2(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, int16_t *pWin, intptr_t nWinPitch);
+#include <emmintrin.h>
 
-DECLARE_OVERS(2, 2)
-DECLARE_OVERS(2, 4)
-DECLARE_OVERS(4, 2)
-DECLARE_OVERS(4, 4)
-DECLARE_OVERS(4, 8)
-DECLARE_OVERS(8, 1)
-DECLARE_OVERS(8, 2)
-DECLARE_OVERS(8, 4)
-DECLARE_OVERS(8, 8)
-DECLARE_OVERS(8, 16)
-DECLARE_OVERS(16, 1)
-DECLARE_OVERS(16, 2)
-DECLARE_OVERS(16, 4)
-DECLARE_OVERS(16, 8)
-DECLARE_OVERS(16, 16)
-DECLARE_OVERS(16, 32)
-DECLARE_OVERS(32, 8)
-DECLARE_OVERS(32, 16)
-DECLARE_OVERS(32, 32)
 
-#undef DECLARE_OVERS
+#define zeroes _mm_setzero_si128()
+
+
+template <unsigned blockWidth, unsigned blockHeight>
+struct OverlapsWrapper {
+
+    static void overlaps_sse2(uint8_t *pDst8, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, int16_t *pWin, intptr_t nWinPitch) {
+        /* pWin from 0 to 2048 */
+        for (unsigned y = 0; y < blockHeight; y++) {
+            for (unsigned x = 0; x < blockWidth; x += 8) {
+                uint16_t *pDst = (uint16_t *)pDst8;
+
+                __m128i src = _mm_loadl_epi64((const __m128i *)&pSrc[x]);
+                __m128i win = _mm_loadu_si128((const __m128i *)&pWin[x]);
+                __m128i dst = _mm_loadu_si128((__m128i *)&pDst[x]);
+
+                src = _mm_unpacklo_epi8(src, zeroes);
+
+                __m128i lo = _mm_mullo_epi16(src, win);
+                __m128i hi = _mm_mulhi_epi16(src, win);
+                lo = _mm_srli_epi16(lo, 6);
+                hi = _mm_slli_epi16(hi, 10);
+                dst = _mm_adds_epu16(dst, _mm_or_si128(lo, hi));
+                _mm_storeu_si128((__m128i *)&pDst[x], dst);
+            }
+
+            pDst8 += nDstPitch;
+            pSrc += nSrcPitch;
+            pWin += nWinPitch;
+        }
+    }
+
+};
+
+
+template <unsigned blockHeight>
+struct OverlapsWrapper<4, blockHeight> {
+
+    static void overlaps_sse2(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, int16_t *pWin, intptr_t nWinPitch) {
+        /* pWin from 0 to 2048 */
+        for (unsigned y = 0; y < blockHeight; y++) {
+            __m128i src = _mm_cvtsi32_si128(*(const int *)pSrc);
+            __m128i win = _mm_loadl_epi64((const __m128i *)pWin);
+            __m128i dst = _mm_loadl_epi64((const __m128i *)pDst);
+
+            src = _mm_unpacklo_epi8(src, zeroes);
+
+            __m128i lo = _mm_mullo_epi16(src, win);
+            __m128i hi = _mm_mulhi_epi16(src, win);
+            lo = _mm_srli_epi16(lo, 6);
+            hi = _mm_slli_epi16(hi, 10);
+            dst = _mm_adds_epu16(dst, _mm_or_si128(lo, hi));
+            _mm_storel_epi64((__m128i *)pDst, dst);
+
+            pDst += nDstPitch;
+            pSrc += nSrcPitch;
+            pWin += nWinPitch;
+        }
+    }
+
+};
+
+
+#undef zeroes
+
 
 #endif
 
@@ -196,7 +241,7 @@ enum InstructionSets {
 
 #if defined(MVTOOLS_X86)
 #define OVERS_SSE2(width, height) \
-    { KEY(width, height, 8, SSE2), mvtools_overlaps_##width##x##height##_sse2 },
+    { KEY(width, height, 8, SSE2), OverlapsWrapper<width, height>::overlaps_sse2 },
 #else
 #define OVERS_SSE2(width, height)
 #endif
@@ -233,8 +278,6 @@ static const std::unordered_map<uint32_t, OverlapsFunction> overlaps_functions =
     OVERS(128, 32)
     OVERS(128, 64)
     OVERS(128, 128)
-    OVERS_SSE2(2, 2)
-    OVERS_SSE2(2, 4)
     OVERS_SSE2(4, 2)
     OVERS_SSE2(4, 4)
     OVERS_SSE2(4, 8)

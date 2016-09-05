@@ -27,18 +27,41 @@ unsigned int luma_c(const uint8_t *pSrc8, intptr_t nSrcPitch) {
 
 #if defined(MVTOOLS_X86)
 
-#define DECLARE_LUMA(width, height, bits, opt) extern "C" unsigned int mvtools_luma_##width##x##height##_u##bits##_##opt(const uint8_t *pSrc, intptr_t nSrcPitch);
+#include <emmintrin.h>
 
-DECLARE_LUMA(4, 4, 8, sse2)
-DECLARE_LUMA(8, 4, 8, sse2)
-DECLARE_LUMA(8, 8, 8, sse2)
-DECLARE_LUMA(16, 2, 8, sse2)
-DECLARE_LUMA(16, 8, 8, sse2)
-DECLARE_LUMA(16, 16, 8, sse2)
-DECLARE_LUMA(32, 16, 8, sse2)
-DECLARE_LUMA(32, 32, 8, sse2)
 
-#undef DECLARE_LUMA
+#define zeroes _mm_setzero_si128()
+
+
+template <unsigned width, unsigned height>
+unsigned int luma_sse2(const uint8_t *pSrc, intptr_t nSrcPitch) {
+    __m128i sum = zeroes;
+
+    for (unsigned y = 0; y < height; y++) {
+        for (unsigned x = 0; x < width; x += 16) {
+            __m128i src;
+            if (width == 4)
+                src = _mm_cvtsi32_si128(*(const int *)pSrc);
+            else if (width == 8)
+                src = _mm_loadl_epi64((const __m128i *)pSrc);
+            else
+                src = _mm_loadu_si128((const __m128i *)&pSrc[x]);
+
+            sum = _mm_add_epi64(sum, _mm_sad_epu8(src, zeroes));
+        }
+
+        pSrc += nSrcPitch;
+    }
+
+    if (width >= 16)
+        sum = _mm_add_epi64(sum, _mm_srli_si128(sum, 8));
+
+    return (unsigned)_mm_cvtsi128_si32(sum);
+}
+
+
+#undef zeroes
+
 
 #endif // MVTOOLS_X86
 
@@ -48,7 +71,7 @@ DECLARE_LUMA(32, 32, 8, sse2)
 
 #if defined(MVTOOLS_X86)
 #define LUMA_SSE2(width, height) \
-    { KEY(width, height, 8, SSE2), mvtools_luma_##width##x##height##_u8_sse2 },
+    { KEY(width, height, 8, SSE2), luma_sse2<width, height> },
 #else
 #define LUMA_SSE2(width, height)
 #endif

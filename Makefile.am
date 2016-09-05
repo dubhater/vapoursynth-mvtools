@@ -69,10 +69,7 @@ libmvtools_la_SOURCES += src/asm/const-a.asm \
 						 src/asm/pixel-a.asm \
 						 src/asm/sad-a.asm \
 						 src/asm/Interpolation.asm \
-						 src/asm/Luma.asm \
-						 src/asm/MVDegrains.asm \
-						 src/asm/Overlap.asm \
-						 src/asm/SAD.asm
+						 src/asm/MVDegrains.asm
 endif
 
 libmvtools_la_LDFLAGS = -no-undefined -avoid-version $(PLUGINLDFLAGS)

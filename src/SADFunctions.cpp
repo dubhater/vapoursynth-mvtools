@@ -29,39 +29,218 @@ enum InstructionSets {
 
 #if defined(MVTOOLS_X86)
 
+#include <emmintrin.h>
+
+
+#define zeroes _mm_setzero_si128()
+
+
+// This version used for width >= 16.
+template <unsigned width, unsigned height>
+struct SADWrapperU8 {
+
+    static unsigned int sad_u8_sse2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
+        __m128i sum = zeroes;
+
+        for (unsigned y = 0; y < height; y++) {
+            for (unsigned x = 0; x < width; x += 16) {
+                __m128i m2 = _mm_loadu_si128((const __m128i *)&pSrc[x]);
+                __m128i m3 = _mm_loadu_si128((const __m128i *)&pRef[x]);
+
+                __m128i diff = _mm_sad_epu8(m2, m3);
+
+                sum = _mm_add_epi64(sum, diff);
+            }
+
+            pSrc += nSrcPitch;
+            pRef += nRefPitch;
+        }
+
+        sum = _mm_add_epi32(sum, _mm_srli_si128(sum, 8));
+
+        return (unsigned)_mm_cvtsi128_si32(sum);
+    }
+
+};
+
+
+template <unsigned height>
+struct SADWrapperU8<4, height> {
+
+    static unsigned int sad_u8_sse2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
+        __m128i sum = zeroes;
+
+        for (unsigned y = 0; y < height; y++) {
+            __m128i m2 = _mm_cvtsi32_si128(*(const int *)pSrc);
+            __m128i m3 = _mm_cvtsi32_si128(*(const int *)pRef);
+
+            __m128i diff = _mm_sad_epu8(m2, m3);
+
+            sum = _mm_add_epi64(sum, diff);
+
+            pSrc += nSrcPitch;
+            pRef += nRefPitch;
+        }
+
+        return (unsigned)_mm_cvtsi128_si32(sum);
+    }
+
+};
+
+
+template <unsigned height>
+struct SADWrapperU8<8, height> {
+
+    static unsigned int sad_u8_sse2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
+        __m128i sum = zeroes;
+
+        for (unsigned y = 0; y < height; y++) {
+            __m128i m2 = _mm_loadl_epi64((const __m128i *)pSrc);
+            __m128i m3 = _mm_loadl_epi64((const __m128i *)pRef);
+
+            __m128i diff = _mm_sad_epu8(m2, m3);
+
+            sum = _mm_add_epi64(sum, diff);
+
+            pSrc += nSrcPitch;
+            pRef += nRefPitch;
+        }
+
+        return (unsigned)_mm_cvtsi128_si32(sum);
+    }
+
+};
+
+
+static FORCE_INLINE __m128i abs_diff_epu16(const __m128i &a, const __m128i &b) {
+    return _mm_or_si128(_mm_subs_epu16(a, b),
+                        _mm_subs_epu16(b, a));
+}
+
+
+static FORCE_INLINE __m128i hsum_epi32(const __m128i &a) {
+    __m128i sum = a;
+    __m128i m0 = _mm_srli_si128(sum, 8);
+    sum = _mm_add_epi32(sum, m0);
+    m0 = _mm_srli_epi64(sum, 32);
+    sum = _mm_add_epi32(sum, m0);
+
+    return sum;
+}
+
+
+// This version used for width >= 8.
+template <unsigned width, unsigned height>
+struct SADWrapperU16 {
+
+    static unsigned int sad_u16_sse2(const uint8_t *pSrc8, intptr_t nSrcPitch, const uint8_t *pRef8, intptr_t nRefPitch) {
+        __m128i sum = zeroes;
+
+        for (unsigned y = 0; y < height; y++) {
+            for (unsigned x = 0; x < width; x += 8) {
+                const uint16_t *pSrc = (const uint16_t *)pSrc8;
+                const uint16_t *pRef = (const uint16_t *)pRef8;
+
+                __m128i m2 = _mm_loadu_si128((const __m128i *)&pSrc[x]);
+                __m128i m3 = _mm_loadu_si128((const __m128i *)&pRef[x]);
+
+                __m128i diff = abs_diff_epu16(m2, m3);
+
+                sum = _mm_add_epi32(sum, _mm_unpacklo_epi16(diff, zeroes));
+                sum = _mm_add_epi32(sum, _mm_unpackhi_epi16(diff, zeroes));
+            }
+
+            pSrc8 += nSrcPitch;
+            pRef8 += nRefPitch;
+        }
+
+        return (unsigned)_mm_cvtsi128_si32(hsum_epi32(sum));
+    }
+
+};
+
+
+template <>
+struct SADWrapperU16<2, 2> {
+
+    static unsigned int sad_u16_sse2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
+        __m128i m2 = _mm_cvtsi32_si128(*(const int *)(pSrc));
+        __m128i m4 = _mm_cvtsi32_si128(*(const int *)(pSrc + nSrcPitch));
+        m2 = _mm_unpacklo_epi16(m2, m4);
+        __m128i m3 = _mm_cvtsi32_si128(*(const int *)(pRef));
+        __m128i m5 = _mm_cvtsi32_si128(*(const int *)(pRef + nRefPitch));
+        m3 = _mm_unpacklo_epi16(m3, m5);
+
+        m2 = abs_diff_epu16(m2, m3);
+
+        m2 = _mm_unpacklo_epi16(m2, zeroes);
+
+        return (unsigned)_mm_cvtsi128_si32(hsum_epi32(m2));
+    }
+
+};
+
+
+template <>
+struct SADWrapperU16<2, 4> {
+
+    static unsigned int sad_u16_sse2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
+        __m128i m2 = _mm_cvtsi32_si128(*(const int *)(pSrc));
+        __m128i m4 = _mm_cvtsi32_si128(*(const int *)(pSrc + nSrcPitch));
+        m2 = _mm_unpacklo_epi16(m2, m4);
+        __m128i m3 = _mm_cvtsi32_si128(*(const int *)(pRef));
+        __m128i m5 = _mm_cvtsi32_si128(*(const int *)(pRef + nRefPitch));
+        m3 = _mm_unpacklo_epi16(m3, m5);
+
+        __m128i m6 = _mm_cvtsi32_si128(*(const int *)(pSrc + nSrcPitch * 2));
+        __m128i m8 = _mm_cvtsi32_si128(*(const int *)(pSrc + nSrcPitch * 3));
+        m6 = _mm_unpacklo_epi16(m6, m8);
+        __m128i m7 = _mm_cvtsi32_si128(*(const int *)(pRef + nRefPitch * 2));
+        __m128i m9 = _mm_cvtsi32_si128(*(const int *)(pRef + nRefPitch * 3));
+        m7 = _mm_unpacklo_epi16(m7, m9);
+
+        m2 = _mm_unpacklo_epi16(m2, m6);
+        m3 = _mm_unpacklo_epi16(m3, m7);
+
+        m2 = abs_diff_epu16(m2, m3);
+
+        m2 = _mm_add_epi32(_mm_unpacklo_epi16(m2, zeroes),
+                           _mm_unpackhi_epi16(m2, zeroes));
+
+        return (unsigned)_mm_cvtsi128_si32(hsum_epi32(m2));
+    }
+
+};
+
+
+template <unsigned height>
+struct SADWrapperU16<4, height> {
+
+    static unsigned int sad_u16_sse2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
+        __m128i sum = zeroes;
+
+        for (unsigned y = 0; y < height; y++) {
+            __m128i m2 = _mm_loadl_epi64((const __m128i *)pSrc);
+            __m128i m3 = _mm_loadl_epi64((const __m128i *)pRef);
+
+            __m128i diff = abs_diff_epu16(m2, m3);
+
+            sum = _mm_add_epi32(sum, _mm_unpacklo_epi16(diff, zeroes));
+
+            pSrc += nSrcPitch;
+            pRef += nRefPitch;
+        }
+
+        return (unsigned)_mm_cvtsi128_si32(hsum_epi32(sum));
+    }
+
+};
+
+
+#undef zeroes
+
+
 #define MK_CFUNC(functionname) extern "C" unsigned int functionname(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch)
-
-// From SAD.asm
-MK_CFUNC(mvtools_sad_4x2_sse2);
-MK_CFUNC(mvtools_sad_8x1_sse2);
-MK_CFUNC(mvtools_sad_8x2_sse2);
-MK_CFUNC(mvtools_sad_16x1_sse2);
-MK_CFUNC(mvtools_sad_16x2_sse2);
-MK_CFUNC(mvtools_sad_16x4_sse2);
-MK_CFUNC(mvtools_sad_16x32_sse2);
-MK_CFUNC(mvtools_sad_32x8_sse2);
-MK_CFUNC(mvtools_sad_32x16_sse2);
-MK_CFUNC(mvtools_sad_32x32_sse2);
-
-MK_CFUNC(mvtools_sad_2x2_u16_sse2);
-MK_CFUNC(mvtools_sad_2x4_u16_sse2);
-MK_CFUNC(mvtools_sad_4x2_u16_sse2);
-MK_CFUNC(mvtools_sad_4x4_u16_sse2);
-MK_CFUNC(mvtools_sad_4x8_u16_sse2);
-MK_CFUNC(mvtools_sad_8x1_u16_sse2);
-MK_CFUNC(mvtools_sad_8x2_u16_sse2);
-MK_CFUNC(mvtools_sad_8x4_u16_sse2);
-MK_CFUNC(mvtools_sad_8x8_u16_sse2);
-MK_CFUNC(mvtools_sad_8x16_u16_sse2);
-MK_CFUNC(mvtools_sad_16x1_u16_sse2);
-MK_CFUNC(mvtools_sad_16x2_u16_sse2);
-MK_CFUNC(mvtools_sad_16x4_u16_sse2);
-MK_CFUNC(mvtools_sad_16x8_u16_sse2);
-MK_CFUNC(mvtools_sad_16x16_u16_sse2);
-MK_CFUNC(mvtools_sad_16x32_u16_sse2);
-MK_CFUNC(mvtools_sad_32x8_u16_sse2);
-MK_CFUNC(mvtools_sad_32x16_u16_sse2);
-MK_CFUNC(mvtools_sad_32x32_u16_sse2);
 
 // From sad-a.asm - stolen from x264
 MK_CFUNC(mvtools_pixel_sad_4x4_mmx2);
@@ -166,10 +345,10 @@ unsigned int sad_c(const uint8_t *pSrc8, intptr_t nSrcPitch, const uint8_t *pRef
     { KEY(width, height, 8, SSSE3_CACHE64), mvtools_pixel_sad_##width##x##height##_cache64_ssse3 },
 
 #define SAD_U8_SSE2(width, height) \
-    { KEY(width, height, 8, SSE2), mvtools_sad_##width##x##height##_sse2 },
+    { KEY(width, height, 8, SSE2), SADWrapperU8<width, height>::sad_u8_sse2 },
 
 #define SAD_U16_SSE2(width, height) \
-    { KEY(width, height, 16, SSE2), mvtools_sad_##width##x##height##_u16_sse2 },
+    { KEY(width, height, 16, SSE2), SADWrapperU16<width, height>::sad_u16_sse2 },
 #else
 #define SAD_X264_U8_MMX(width, height)
 #define SAD_X264_U8_MMX_CACHE64(width, height)
