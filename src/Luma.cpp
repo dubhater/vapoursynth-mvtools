@@ -101,6 +101,10 @@ static const std::unordered_map<uint32_t, LUMAFunction> luma_functions = {
     LUMA_SSE2(16, 16)
     LUMA_SSE2(32, 16)
     LUMA_SSE2(32, 32)
+    LUMA_SSE2(64, 32)
+    LUMA_SSE2(64, 64)
+    LUMA_SSE2(128, 64)
+    LUMA_SSE2(128, 128)
 };
 
 LUMAFunction selectLumaFunction(unsigned width, unsigned height, unsigned bits, int opt) {

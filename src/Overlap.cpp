@@ -295,6 +295,14 @@ static const std::unordered_map<uint32_t, OverlapsFunction> overlaps_functions =
     OVERS_SSE2(32, 8)
     OVERS_SSE2(32, 16)
     OVERS_SSE2(32, 32)
+    OVERS_SSE2(32, 64)
+    OVERS_SSE2(64, 16)
+    OVERS_SSE2(64, 32)
+    OVERS_SSE2(64, 64)
+    OVERS_SSE2(64, 128)
+    OVERS_SSE2(128, 32)
+    OVERS_SSE2(128, 64)
+    OVERS_SSE2(128, 128)
 };
 
 OverlapsFunction selectOverlapsFunction(unsigned width, unsigned height, unsigned bits, int opt) {
