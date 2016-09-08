@@ -203,7 +203,7 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
             DCTFFTW *DCTc = NULL;
             if (d->dctmode != 0) {
                 DCTc = (DCTFFTW *)malloc(sizeof(DCTFFTW));
-                dctInit(DCTc, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->dctmode, d->supervi->format->bitsPerSample);
+                dctInit(DCTc, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->dctmode, d->supervi->format->bitsPerSample, d->opt);
             }
 
 

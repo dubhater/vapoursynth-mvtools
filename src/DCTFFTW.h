@@ -28,6 +28,12 @@ extern "C" {
 
 #include <fftw3.h>
 
+
+typedef struct DCTFFTW DCTFFTW;
+
+typedef void (*Float2PixelsFunction)(const DCTFFTW *dct, uint8_t *dstp, int dst_pitch, float *realdata);
+
+
 typedef struct DCTFFTW {
     int sizex;
     int sizey;
@@ -40,10 +46,12 @@ typedef struct DCTFFTW {
 
     int dctshift;
     int dctshift0;
+
+    Float2PixelsFunction Float2Pixels;
 } DCTFFTW;
 
 
-void dctInit(DCTFFTW *dct, int sizex, int sizey, int dctmode, int bitsPerSample);
+void dctInit(DCTFFTW *dct, int sizex, int sizey, int dctmode, int bitsPerSample, int opt);
 
 void dctDeinit(DCTFFTW *dct);
 

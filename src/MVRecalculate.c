@@ -200,7 +200,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             DCTFFTW *DCTc = NULL;
             if (d->dctmode != 0) {
                 DCTc = (DCTFFTW *)malloc(sizeof(DCTFFTW));
-                dctInit(DCTc, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->dctmode, d->vi->format->bitsPerSample);
+                dctInit(DCTc, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->dctmode, d->vi->format->bitsPerSample, d->opt);
             }
 
 
