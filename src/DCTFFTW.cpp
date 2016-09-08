@@ -27,47 +27,27 @@
 template <typename PixelType>
 static void Float2Pixels_C(const DCTFFTW *dct, uint8_t *dstp8, int dst_pitch, float *realdata) {
     PixelType *dstp = (PixelType *)dstp8;
-
     dst_pitch /= sizeof(PixelType);
+
+    PixelType *dstp_orig = dstp;
+    float *realdata_orig = realdata;
 
     int pixelMax = (1 << dct->bitsPerSample) - 1;
     int pixelHalf = 1 << (dct->bitsPerSample - 1);
 
-    int floatpitch = dct->sizex;
-    int i, j;
-    int integ;
-    float f = realdata[0] * 0.5f; // to be compatible with integer DCTINT8
-    /*
-       _asm fld f;
-       _asm fistp integ;
-       */
-    // XXX function call to nearbyintf can be avoided by using cvtss2si
-    integ = (int)(nearbyintf(f));
-    dstp[0] = std::min(pixelMax, std::max(0, (integ >> dct->dctshift0) + pixelHalf)); // DC
-    for (i = 1; i < dct->sizex; i += 1) {
-        f = realdata[i] * 0.707f; // to be compatible with integer DCTINT8
-        /*
-           _asm fld f;
-           _asm fistp integ;
-           */
-        integ = (int)(nearbyintf(f));
-        dstp[i] = std::min(pixelMax, std::max(0, (integ >> dct->dctshift) + pixelHalf));
-    }
-    dstp += dst_pitch;
-    realdata += floatpitch;
-    for (j = 1; j < dct->sizey; j++) {
-        for (i = 0; i < dct->sizex; i += 1) {
-            f = realdata[i] * 0.707f; // to be compatible with integer DCTINT8
-            /*
-               _asm fld f;
-               _asm fistp integ;
-               */
-            integ = (int)(nearbyintf(f));
+    for (int j = 0; j < dct->sizey; j++) {
+        for (int i = 0; i < dct->sizex; i++) {
+            float f = realdata[i] * 0.707f; // to be compatible with integer DCTINT8
+            int integ = (int)(nearbyintf(f));
             dstp[i] = std::min(pixelMax, std::max(0, (integ >> dct->dctshift) + pixelHalf));
         }
         dstp += dst_pitch;
-        realdata += floatpitch;
+        realdata += dct->sizex;
     }
+
+    float f = realdata_orig[0] * 0.5f; // to be compatible with integer DCTINT8
+    int integ = (int)(nearbyintf(f));
+    dstp_orig[0] = std::min(pixelMax, std::max(0, (integ >> dct->dctshift0) + pixelHalf)); // DC
 }
 
 
@@ -200,15 +180,13 @@ void dctDeinit(DCTFFTW *dct) {
 //  put source data to real array for FFT
 template <typename PixelType>
 static void Pixels2Float(const DCTFFTW *dct, const uint8_t *srcp8, int src_pitch, float *realdata) {
-    int floatpitch = dct->sizex;
-    int i, j;
-    for (j = 0; j < dct->sizey; j++) {
-        for (i = 0; i < dct->sizex; i += 1) {
+    for (int j = 0; j < dct->sizey; j++) {
+        for (int i = 0; i < dct->sizex; i++) {
             PixelType *srcp = (PixelType *)srcp8;
             realdata[i] = srcp[i];
         }
         srcp8 += src_pitch;
-        realdata += floatpitch;
+        realdata += dct->sizex;
     }
 }
 
