@@ -31,7 +31,7 @@ libmvtools_la_SOURCES =	src/Bullshit.h \
 						src/Interpolation.h \
 						src/Luma.cpp \
 						src/Luma.h \
-						src/MaskFun.c \
+						src/MaskFun.cpp \
 						src/MaskFun.h \
 						src/MVAnalyse.c \
 						src/MVAnalysisData.c \
@@ -60,7 +60,7 @@ libmvtools_la_SOURCES =	src/Bullshit.h \
 						src/PlaneOfBlocks.h \
 						src/SADFunctions.cpp \
 						src/SADFunctions.h \
-						src/SimpleResize.c \
+						src/SimpleResize.cpp \
 						src/SimpleResize.h
 
 if MVTOOLS_X86
