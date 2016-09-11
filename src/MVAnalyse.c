@@ -12,6 +12,9 @@
 #include "MVAnalysisData.h"
 
 
+extern uint32_t g_cpuinfo;
+
+
 typedef struct MVAnalyseData {
     VSNodeRef *node;
     const VSVideoInfo *vi;
@@ -497,7 +500,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
 
     if (d.opt) {
-        d.analysisData.nCPUFlags = cpu_detect();
+        d.analysisData.nCPUFlags = g_cpuinfo;
     }
 
     if (d.vi->format->bitsPerSample > 8)

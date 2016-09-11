@@ -1,5 +1,7 @@
 #include <VapourSynth.h>
 
+#include "CPU.h"
+
 
 // Extra indirection to keep the parameter lists with the respective filters.
 
@@ -20,6 +22,9 @@ void mvscdetectionRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 void mvdepanRegister(VSRegisterFunction registerFunc, VSPlugin *plugin);
 
 
+uint32_t g_cpuinfo = 0;
+
+
 VS_EXTERNAL_API(void)
 VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegisterFunction registerFunc, VSPlugin *plugin) {
     configFunc("com.nodame.mvtools", "mv", "MVTools v" PACKAGE_VERSION, VAPOURSYNTH_API_VERSION, 1, plugin);
@@ -38,4 +43,6 @@ VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegisterFunction registerFunc
     mvblockfpsRegister(registerFunc, plugin);
     mvscdetectionRegister(registerFunc, plugin);
     mvdepanRegister(registerFunc, plugin);
+
+    g_cpuinfo = cpu_detect();
 }
