@@ -73,6 +73,10 @@ typedef struct MVFlowFPSData {
     SimpleResize upsizerUV;
 
     int64_t fa, fb;
+
+    FlowInterSimpleFunction FlowInterSimple;
+    FlowInterFunction FlowInter;
+    FlowInterExtraFunction FlowInterExtra;
 } MVFlowFPSData;
 
 
@@ -388,9 +392,12 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
                 upsizer->simpleResize_int16_t(upsizer, VXFullYFF, VPitchY, VXSmallYFF, nBlkXP);
                 upsizer->simpleResize_int16_t(upsizer, VYFullYFF, VPitchY, VYSmallYFF, nBlkXP);
 
-                FlowInterExtra(pDst[0], nDstPitches[0], pRef[0] + nOffsetY, pSrc[0] + nOffsetY, nRefPitches[0],
-                               VXFullYB, VXFullYF, VYFullYB, VYFullYF, MaskFullYB, MaskFullYF, VPitchY,
-                               nWidth, nHeight, time256, nPel, VXFullYBB, VXFullYFF, VYFullYBB, VYFullYFF, bitsPerSample);
+                d->FlowInterExtra(pDst[0], nDstPitches[0],
+                                  pRef[0] + nOffsetY, pSrc[0] + nOffsetY, nRefPitches[0],
+                                  VXFullYB, VXFullYF, VYFullYB, VYFullYF,
+                                  MaskFullYB, MaskFullYF, VPitchY,
+                                  nWidth, nHeight, time256, nPel,
+                                  VXFullYBB, VXFullYFF, VYFullYBB, VYFullYFF);
                 if (d->vi.format->colorFamily != cmGray) {
                     VectorSmallMaskYToHalfUV(VXSmallYBB, nBlkXP, nBlkYP, VXSmallUVBB, xRatioUV);
                     VectorSmallMaskYToHalfUV(VYSmallYBB, nBlkXP, nBlkYP, VYSmallUVBB, yRatioUV);
@@ -403,36 +410,54 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
                     upsizerUV->simpleResize_int16_t(upsizerUV, VXFullUVFF, VPitchUV, VXSmallUVFF, nBlkXP);
                     upsizerUV->simpleResize_int16_t(upsizerUV, VYFullUVFF, VPitchUV, VYSmallUVFF, nBlkXP);
 
-                    FlowInterExtra(pDst[1], nDstPitches[1], pRef[1] + nOffsetUV, pSrc[1] + nOffsetUV, nRefPitches[1],
-                                   VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
-                                   nWidthUV, nHeightUV, time256, nPel, VXFullUVBB, VXFullUVFF, VYFullUVBB, VYFullUVFF, bitsPerSample);
-                    FlowInterExtra(pDst[2], nDstPitches[2], pRef[2] + nOffsetUV, pSrc[2] + nOffsetUV, nRefPitches[2],
-                                   VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
-                                   nWidthUV, nHeightUV, time256, nPel, VXFullUVBB, VXFullUVFF, VYFullUVBB, VYFullUVFF, bitsPerSample);
+                    d->FlowInterExtra(pDst[1], nDstPitches[1],
+                                      pRef[1] + nOffsetUV, pSrc[1] + nOffsetUV, nRefPitches[1],
+                                      VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF,
+                                      MaskFullUVB, MaskFullUVF, VPitchUV,
+                                      nWidthUV, nHeightUV, time256, nPel,
+                                      VXFullUVBB, VXFullUVFF, VYFullUVBB, VYFullUVFF);
+                    d->FlowInterExtra(pDst[2], nDstPitches[2],
+                                      pRef[2] + nOffsetUV, pSrc[2] + nOffsetUV, nRefPitches[2],
+                                      VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF,
+                                      MaskFullUVB, MaskFullUVF, VPitchUV,
+                                      nWidthUV, nHeightUV, time256, nPel,
+                                      VXFullUVBB, VXFullUVFF, VYFullUVBB, VYFullUVFF);
                 }
             } else if (maskmode == 1) { // old method without extra frames
-                FlowInter(pDst[0], nDstPitches[0], pRef[0] + nOffsetY, pSrc[0] + nOffsetY, nRefPitches[0],
-                          VXFullYB, VXFullYF, VYFullYB, VYFullYF, MaskFullYB, MaskFullYF, VPitchY,
-                          nWidth, nHeight, time256, nPel, bitsPerSample);
+                d->FlowInter(pDst[0], nDstPitches[0],
+                             pRef[0] + nOffsetY, pSrc[0] + nOffsetY, nRefPitches[0],
+                             VXFullYB, VXFullYF, VYFullYB, VYFullYF,
+                             MaskFullYB, MaskFullYF, VPitchY,
+                             nWidth, nHeight, time256, nPel);
                 if (d->vi.format->colorFamily != cmGray) {
-                    FlowInter(pDst[1], nDstPitches[1], pRef[1] + nOffsetUV, pSrc[1] + nOffsetUV, nRefPitches[1],
-                              VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
-                              nWidthUV, nHeightUV, time256, nPel, bitsPerSample);
-                    FlowInter(pDst[2], nDstPitches[2], pRef[2] + nOffsetUV, pSrc[2] + nOffsetUV, nRefPitches[2],
-                              VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
-                              nWidthUV, nHeightUV, time256, nPel, bitsPerSample);
+                    d->FlowInter(pDst[1], nDstPitches[1],
+                                 pRef[1] + nOffsetUV, pSrc[1] + nOffsetUV, nRefPitches[1],
+                                 VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF,
+                                 MaskFullUVB, MaskFullUVF, VPitchUV,
+                                 nWidthUV, nHeightUV, time256, nPel);
+                    d->FlowInter(pDst[2], nDstPitches[2],
+                                 pRef[2] + nOffsetUV, pSrc[2] + nOffsetUV, nRefPitches[2],
+                                 VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF,
+                                 MaskFullUVB, MaskFullUVF, VPitchUV,
+                                 nWidthUV, nHeightUV, time256, nPel);
                 }
             } else { // mode=0, faster simple method
-                FlowInterSimple(pDst[0], nDstPitches[0], pRef[0] + nOffsetY, pSrc[0] + nOffsetY, nRefPitches[0],
-                                VXFullYB, VXFullYF, VYFullYB, VYFullYF, MaskFullYB, MaskFullYF, VPitchY,
-                                nWidth, nHeight, time256, nPel, bitsPerSample);
+                d->FlowInterSimple(pDst[0], nDstPitches[0],
+                                   pRef[0] + nOffsetY, pSrc[0] + nOffsetY, nRefPitches[0],
+                                   VXFullYB, VXFullYF, VYFullYB, VYFullYF,
+                                   MaskFullYB, MaskFullYF, VPitchY,
+                                   nWidth, nHeight, time256, nPel);
                 if (d->vi.format->colorFamily != cmGray) {
-                    FlowInterSimple(pDst[1], nDstPitches[1], pRef[1] + nOffsetUV, pSrc[1] + nOffsetUV, nRefPitches[1],
-                                    VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
-                                    nWidthUV, nHeightUV, time256, nPel, bitsPerSample);
-                    FlowInterSimple(pDst[2], nDstPitches[2], pRef[2] + nOffsetUV, pSrc[2] + nOffsetUV, nRefPitches[2],
-                                    VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF, MaskFullUVB, MaskFullUVF, VPitchUV,
-                                    nWidthUV, nHeightUV, time256, nPel, bitsPerSample);
+                    d->FlowInterSimple(pDst[1], nDstPitches[1],
+                                       pRef[1] + nOffsetUV, pSrc[1] + nOffsetUV, nRefPitches[1],
+                                       VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF,
+                                       MaskFullUVB, MaskFullUVF, VPitchUV,
+                                       nWidthUV, nHeightUV, time256, nPel);
+                    d->FlowInterSimple(pDst[2], nDstPitches[2],
+                                       pRef[2] + nOffsetUV, pSrc[2] + nOffsetUV, nRefPitches[2],
+                                       VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF,
+                                       MaskFullUVB, MaskFullUVF, VPitchUV,
+                                       nWidthUV, nHeightUV, time256, nPel);
                 }
             }
 
@@ -847,6 +872,8 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
 
     if (d.vi.format->bitsPerSample > 8)
         d.opt = 0;
+
+    selectFlowInterFunctions(&d.FlowInterSimple, &d.FlowInter, &d.FlowInterExtra, d.vi.format->bitsPerSample, d.opt);
 
 
     MVFlowFPSHelperData *hb = (MVFlowFPSHelperData *)malloc(sizeof(MVFlowFPSHelperData));
