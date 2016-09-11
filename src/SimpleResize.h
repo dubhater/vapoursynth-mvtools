@@ -17,8 +17,8 @@
 
 // I (Fizick) borrow code from Tom Barry's SimpleResize here
 
-#ifndef __SIMPLERESIZE__
-#define __SIMPLERESIZE__
+#ifndef SIMPLERESIZE_H
+#define SIMPLERESIZE_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,6 +26,20 @@ extern "C" {
 
 
 #include <stdint.h>
+
+
+enum {
+    simple_resize_weight_shift = 14,
+    simple_resize_weight_max = 1 << simple_resize_weight_shift,
+    simple_resize_weight_half = simple_resize_weight_max / 2,
+};
+
+
+typedef struct SimpleResize SimpleResize;
+
+
+typedef void (*ResizeFunction8)(const SimpleResize *simple, uint8_t *dstp, int dst_stride, const uint8_t *srcp, int src_stride);
+typedef void (*ResizeFunction16)(const SimpleResize *simple, int16_t *dstp, int dst_stride, const int16_t *srcp, int src_stride);
 
 
 typedef struct SimpleResize {
@@ -39,17 +53,18 @@ typedef struct SimpleResize {
 
     int *horizontal_offsets;
     int *horizontal_weights;
+
+    ResizeFunction8 simpleResize_uint8_t;
+    ResizeFunction16 simpleResize_int16_t;
 } SimpleResize;
 
 
-void simpleInit(SimpleResize *simple, int dst_width, int dst_height, int src_width, int src_height);
+void simpleInit(SimpleResize *simple, int dst_width, int dst_height, int src_width, int src_height, int opt);
 void simpleDeinit(SimpleResize *simple);
-void simpleResize_uint8_t(const SimpleResize *simple, uint8_t *dstp, int dst_stride, const uint8_t *srcp, int src_stride);
-void simpleResize_int16_t(const SimpleResize *simple, int16_t *dstp, int dst_stride, const int16_t *srcp, int src_stride);
 
 
 #ifdef __cplusplus
 } // extern "C"
 #endif
 
-#endif // __SIMPLERESIZE__
+#endif // SIMPLERESIZE_H

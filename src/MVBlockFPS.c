@@ -445,12 +445,12 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
 
 
                 // upsize small mask to full frame size
-                simpleResize_uint8_t(upsizer, MaskFullYF, nPitch[0], smallMaskF, nBlkXP);
-                simpleResize_uint8_t(upsizer, MaskFullYB, nPitch[0], smallMaskB, nBlkXP);
+                upsizer->simpleResize_uint8_t(upsizer, MaskFullYF, nPitch[0], smallMaskF, nBlkXP);
+                upsizer->simpleResize_uint8_t(upsizer, MaskFullYB, nPitch[0], smallMaskB, nBlkXP);
 
                 if (nSuperModeYUV & UVPLANES) {
-                    simpleResize_uint8_t(upsizerUV, MaskFullUVF, nPitch[1], smallMaskF, nBlkXP);
-                    simpleResize_uint8_t(upsizerUV, MaskFullUVB, nPitch[1], smallMaskB, nBlkXP);
+                    upsizerUV->simpleResize_uint8_t(upsizerUV, MaskFullUVF, nPitch[1], smallMaskF, nBlkXP);
+                    upsizerUV->simpleResize_uint8_t(upsizerUV, MaskFullUVB, nPitch[1], smallMaskB, nBlkXP);
                 }
             }
 
@@ -458,9 +458,9 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
                 // make final (both directions) occlusion mask
                 MultMasks(smallMaskF, smallMaskB, smallMaskO, nBlkXP, nBlkYP);
                 // upsize small mask to full frame size
-                simpleResize_uint8_t(upsizer, MaskOccY, nPitch[0], smallMaskO, nBlkXP);
+                upsizer->simpleResize_uint8_t(upsizer, MaskOccY, nPitch[0], smallMaskO, nBlkXP);
                 if (nSuperModeYUV & UVPLANES)
-                    simpleResize_uint8_t(upsizerUV, MaskOccUV, nPitch[1], smallMaskO, nBlkXP);
+                    upsizerUV->simpleResize_uint8_t(upsizerUV, MaskOccUV, nPitch[1], smallMaskO, nBlkXP);
             }
 
             pSrc[0] += nSuperHPad * bytesPerSample + nSrcPitches[0] * nSuperVPad; // add offset source in super
@@ -947,9 +947,6 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
         return;
     }
 
-    if (d.vi.format->bitsPerSample > 8)
-        d.opt = 0;
-
 
     d.nBlkXP = (d.mvbw_data.nBlkX * (d.mvbw_data.nBlkSizeX - d.mvbw_data.nOverlapX) + d.mvbw_data.nOverlapX < d.mvbw_data.nWidth) ? d.mvbw_data.nBlkX + 1 : d.mvbw_data.nBlkX;
     d.nBlkYP = (d.mvbw_data.nBlkY * (d.mvbw_data.nBlkSizeY - d.mvbw_data.nOverlapY) + d.mvbw_data.nOverlapY < d.mvbw_data.nHeight) ? d.mvbw_data.nBlkY + 1 : d.mvbw_data.nBlkY;
@@ -965,9 +962,9 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     d.nPitchUV = (d.nWidthPUV + 15) & (~15);
 
 
-    simpleInit(&d.upsizer, d.nWidthP, d.nHeightP, d.nBlkXP, d.nBlkYP);
+    simpleInit(&d.upsizer, d.nWidthP, d.nHeightP, d.nBlkXP, d.nBlkYP, d.opt);
     if (d.nSuperModeYUV & UVPLANES)
-        simpleInit(&d.upsizerUV, d.nWidthPUV, d.nHeightPUV, d.nBlkXP, d.nBlkYP);
+        simpleInit(&d.upsizerUV, d.nWidthPUV, d.nHeightPUV, d.nBlkXP, d.nBlkYP, d.opt);
 
     if (d.mvbw_data.nOverlapX || d.mvbw_data.nOverlapY) {
         d.OverWins = (OverlapWindows *)malloc(sizeof(OverlapWindows));
@@ -984,6 +981,9 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
 
 
     selectFunctions(&d);
+
+    if (d.vi.format->bitsPerSample > 8)
+        d.opt = 0;
 
 
     data = (MVBlockFPSData *)malloc(sizeof(d));

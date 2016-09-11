@@ -40,6 +40,7 @@ typedef struct MVMaskData {
     int nSceneChangeValue;
     int thscd1;
     int thscd2;
+    int opt;
 
     float fMaskNormFactor;
     float fMaskNormFactor2;
@@ -165,7 +166,7 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
             if (kind == 5) { // do not change luma for kind=5
                 memcpy(pDst[0], pSrc[0], nSrcPitches[0] * nHeight);
             } else {
-                simpleResize_uint8_t(upsizer, pDst[0], nDstPitches[0], smallMask, nBlkX);
+                upsizer->simpleResize_uint8_t(upsizer, pDst[0], nDstPitches[0], smallMask, nBlkX);
                 if (nWidth > nWidthB)
                     for (int h = 0; h < nHeight; h++)
                         for (int w = nWidthB; w < nWidth; w++)
@@ -175,10 +176,10 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
             }
 
             // chroma
-            simpleResize_uint8_t(upsizerUV, pDst[1], nDstPitches[1], smallMask, nBlkX);
+            upsizerUV->simpleResize_uint8_t(upsizerUV, pDst[1], nDstPitches[1], smallMask, nBlkX);
 
             if (kind == 5)
-                simpleResize_uint8_t(upsizerUV, pDst[2], nDstPitches[2], smallMaskV, nBlkX);
+                upsizerUV->simpleResize_uint8_t(upsizerUV, pDst[2], nDstPitches[2], smallMaskV, nBlkX);
             else
                 memcpy(pDst[2], pDst[1], nHeightUV * nDstPitches[1]);
 
@@ -261,6 +262,10 @@ static void VS_CC mvmaskCreate(const VSMap *in, VSMap *out, void *userData, VSCo
     if (err)
         d.thscd2 = MV_DEFAULT_SCD2;
 
+    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
+    if (err)
+        d.opt = 1;
+
 
     if (d.fGamma < 0.0f) {
         vsapi->setError(out, "Mask: gamma must not be negative.");
@@ -329,8 +334,8 @@ static void VS_CC mvmaskCreate(const VSMap *in, VSMap *out, void *userData, VSCo
     if (d.vi.format->colorFamily == cmGray)
         d.vi.format = vsapi->getFormatPreset(pfYUV444P8, core);
 
-    simpleInit(&d.upsizer, d.nWidthB, d.nHeightB, d.vectors_data.nBlkX, d.vectors_data.nBlkY);
-    simpleInit(&d.upsizerUV, d.nWidthBUV, d.nHeightBUV, d.vectors_data.nBlkX, d.vectors_data.nBlkY);
+    simpleInit(&d.upsizer, d.nWidthB, d.nHeightB, d.vectors_data.nBlkX, d.vectors_data.nBlkY, d.opt);
+    simpleInit(&d.upsizerUV, d.nWidthBUV, d.nHeightBUV, d.vectors_data.nBlkX, d.vectors_data.nBlkY, d.opt);
 
     d.time256 = (int)(time * 256 / 100);
 
@@ -352,6 +357,7 @@ void mvmaskRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "time:float:opt;"
                  "ysc:int:opt;"
                  "thscd1:int:opt;"
-                 "thscd2:int:opt;",
-                 mvmaskCreate, 0, plugin);
+                 "thscd2:int:opt;"
+                 "opt:int:opt;"
+                 , mvmaskCreate, 0, plugin);
 }

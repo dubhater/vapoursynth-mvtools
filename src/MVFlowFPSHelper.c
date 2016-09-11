@@ -78,8 +78,8 @@ const VSFrameRef *VS_CC mvflowfpshelperGetFrame(int n, int activationReason, voi
                 }
             }
 
-            simpleResize_int16_t(upsizer, VXFullY, VPitchY, VXSmallY, nBlkXP);
-            simpleResize_int16_t(upsizer, VYFullY, VPitchY, VYSmallY, nBlkXP);
+            upsizer->simpleResize_int16_t(upsizer, VXFullY, VPitchY, VXSmallY, nBlkXP);
+            upsizer->simpleResize_int16_t(upsizer, VYFullY, VPitchY, VYSmallY, nBlkXP);
 
             vsapi->propSetData(props, prop_VXFullY, (const char *)VXFullY, full_size_y, paReplace);
             vsapi->propSetData(props, prop_VYFullY, (const char *)VYFullY, full_size_y, paReplace);
@@ -98,8 +98,8 @@ const VSFrameRef *VS_CC mvflowfpshelperGetFrame(int n, int activationReason, voi
                 VectorSmallMaskYToHalfUV(VXSmallY, nBlkXP, nBlkYP, VXSmallUV, xRatioUV);
                 VectorSmallMaskYToHalfUV(VYSmallY, nBlkXP, nBlkYP, VYSmallUV, yRatioUV);
 
-                simpleResize_int16_t(upsizerUV, VXFullUV, VPitchUV, VXSmallUV, nBlkXP);
-                simpleResize_int16_t(upsizerUV, VYFullUV, VPitchUV, VYSmallUV, nBlkXP);
+                upsizerUV->simpleResize_int16_t(upsizerUV, VXFullUV, VPitchUV, VXSmallUV, nBlkXP);
+                upsizerUV->simpleResize_int16_t(upsizerUV, VYFullUV, VPitchUV, VYSmallUV, nBlkXP);
 
                 free(VXSmallUV);
                 free(VYSmallUV);

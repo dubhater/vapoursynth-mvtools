@@ -63,6 +63,10 @@ libmvtools_la_SOURCES =	src/Bullshit.h \
 						src/SimpleResize.cpp \
 						src/SimpleResize.h
 
+libmvtools_la_LDFLAGS = -no-undefined -avoid-version $(PLUGINLDFLAGS)
+
+libmvtools_la_LIBADD = $(FFTW3F_LIBS)
+
 if MVTOOLS_X86
 libmvtools_la_SOURCES += src/asm/const-a.asm \
 						 src/asm/cpu-a.asm \
@@ -70,8 +74,12 @@ libmvtools_la_SOURCES += src/asm/const-a.asm \
 						 src/asm/sad-a.asm \
 						 src/asm/Interpolation.asm \
 						 src/asm/MVDegrains.asm
+
+noinst_LTLIBRARIES = libavx2.la
+
+libavx2_la_SOURCES = src/SimpleResize_AVX2.cpp
+
+libavx2_la_CXXFLAGS = $(AM_CXXFLAGS) -mavx2
+
+libmvtools_la_LIBADD += libavx2.la
 endif
-
-libmvtools_la_LDFLAGS = -no-undefined -avoid-version $(PLUGINLDFLAGS)
-
-libmvtools_la_LIBADD = $(FFTW3F_LIBS)
