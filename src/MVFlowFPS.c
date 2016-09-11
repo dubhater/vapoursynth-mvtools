@@ -866,9 +866,12 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
     d.VPitchY = (d.nWidthP + 15) & (~15);
     d.VPitchUV = (d.nWidthPUV + 15) & (~15);
 
-    simpleInit(&d.upsizer, d.nWidthP, d.nHeightP, d.nBlkXP, d.nBlkYP, d.opt);
+    int avx2_resize = !!vsapi->propGetInt(in, "avx2_resize", 0, &err);
+    if (err)
+        avx2_resize = 1;
+    simpleInit(&d.upsizer, d.nWidthP, d.nHeightP, d.nBlkXP, d.nBlkYP, avx2_resize);
     if (d.vi.format->colorFamily != cmGray)
-        simpleInit(&d.upsizerUV, d.nWidthPUV, d.nHeightPUV, d.nBlkXP, d.nBlkYP, d.opt);
+        simpleInit(&d.upsizerUV, d.nWidthPUV, d.nHeightPUV, d.nBlkXP, d.nBlkYP, avx2_resize);
 
     if (d.vi.format->bitsPerSample > 8)
         d.opt = 0;
@@ -984,6 +987,7 @@ void mvflowfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "blend:int:opt;"
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
-                 "opt:int:opt;",
-                 mvflowfpsCreate, 0, plugin);
+                 "opt:int:opt;"
+                 "avx2_resize:int:opt;"
+                 , mvflowfpsCreate, 0, plugin);
 }
