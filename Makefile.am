@@ -77,7 +77,8 @@ libmvtools_la_SOURCES += src/asm/const-a.asm \
 
 noinst_LTLIBRARIES = libavx2.la
 
-libavx2_la_SOURCES = src/SimpleResize_AVX2.cpp
+libavx2_la_SOURCES = src/MaskFun_AVX2.cpp \
+					 src/SimpleResize_AVX2.cpp
 
 libavx2_la_CXXFLAGS = $(AM_CXXFLAGS) -mavx2
 

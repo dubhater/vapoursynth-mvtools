@@ -51,18 +51,36 @@ uint8_t SADToMask(unsigned int sad, unsigned int sadnorm1024);
 void Blend(uint8_t *pdst, const uint8_t *psrc, const uint8_t *pref, int height, int width, int dst_pitch, int src_pitch, int ref_pitch, int time256, int bitsPerSample);
 
 
-void FlowInter(uint8_t *pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
-               const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
-               int VPitch, int width, int height, int time256, int nPel, int bitsPerSample);
+typedef void (*FlowInterSimpleFunction)(
+        uint8_t *pdst, int dst_pitch,
+        const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
+        const int16_t *VXFullB, const int16_t *VXFullF,
+        const int16_t *VYFullB, const int16_t *VYFullF,
+        const uint8_t *MaskB, const uint8_t *MaskF, int VPitch,
+        int width, int height,
+        int time256, int nPel);
 
-void FlowInterSimple(uint8_t *pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
-                     const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
-                     int VPitch, int width, int height, int time256, int nPel, int bitsPerSample);
+typedef void (*FlowInterFunction)(
+        uint8_t *pdst, int dst_pitch,
+        const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
+        const int16_t *VXFullB, const int16_t *VXFullF,
+        const int16_t *VYFullB, const int16_t *VYFullF,
+        const uint8_t *MaskB, const uint8_t *MaskF, int VPitch,
+        int width, int height,
+        int time256, int nPel);
 
-void FlowInterExtra(uint8_t *pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
-                    const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
-                    int VPitch, int width, int height, int time256, int nPel,
-                    const int16_t *VXFullBB, const int16_t *VXFullFF, const int16_t *VYFullBB, const int16_t *VYFullFF, int bitsPerSample);
+typedef void (*FlowInterExtraFunction)(
+        uint8_t *pdst, int dst_pitch,
+        const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
+        const int16_t *VXFullB, const int16_t *VXFullF,
+        const int16_t *VYFullB, const int16_t *VYFullF,
+        const uint8_t *MaskB, const uint8_t *MaskF, int VPitch,
+        int width, int height,
+        int time256, int nPel,
+        const int16_t *VXFullBB, const int16_t *VXFullFF,
+        const int16_t *VYFullBB, const int16_t *VYFullFF);
+
+void selectFlowInterFunctions(FlowInterSimpleFunction *simple, FlowInterFunction *regular, FlowInterExtraFunction *extra, int bitsPerSample, int opt);
 
 #ifdef __cplusplus
 } // extern "C"

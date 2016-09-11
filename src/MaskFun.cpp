@@ -22,7 +22,17 @@
 #include <string.h>
 
 #include "CommonFunctions.h"
+#include "CPU.h"
 #include "MaskFun.h"
+
+
+extern uint32_t g_cpuinfo;
+
+
+#if defined(MVTOOLS_X86)
+void selectFlowInterFunctions_AVX2(FlowInterSimpleFunction *simple, FlowInterFunction *regular, FlowInterExtraFunction *extra, int bitsPerSample);
+#endif
+
 
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define min(a, b) ((a) > (b) ? (b) : (a))
@@ -317,7 +327,7 @@ void Blend(uint8_t *pdst, const uint8_t *psrc, const uint8_t *pref, int height, 
 
 
 template <typename PixelType>
-static void RealFlowInter(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch,
+static void FlowInter(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch,
                    const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
                    int VPitch, int width, int height, int time256, int nPel) {
     const PixelType *prefB = (const PixelType *)prefB8;
@@ -356,16 +366,6 @@ static void RealFlowInter(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, 
 }
 
 
-void FlowInter(uint8_t *pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
-               const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
-               int VPitch, int width, int height, int time256, int nPel, int bitsPerSample) {
-    if (bitsPerSample == 8)
-        RealFlowInter<uint8_t>(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel);
-    else
-        RealFlowInter<uint16_t>(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel);
-}
-
-
 static inline int Median3r(int a, int b, int c) {
     // reduced median - if it is known that a <= c (more fast)
 
@@ -382,7 +382,7 @@ static inline int Median3r(int a, int b, int c) {
 
 
 template <typename PixelType>
-static void RealFlowInterExtra(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch,
+static void FlowInterExtra(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch,
                         const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
                         int VPitch, int width, int height, int time256, int nPel,
                         const int16_t *VXFullBB, const int16_t *VXFullFF, const int16_t *VYFullBB, const int16_t *VYFullFF) {
@@ -449,19 +449,8 @@ static void RealFlowInterExtra(uint8_t *pdst8, int dst_pitch, const uint8_t *pre
 }
 
 
-void FlowInterExtra(uint8_t *pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
-                    const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
-                    int VPitch, int width, int height, int time256, int nPel,
-                    const int16_t *VXFullBB, const int16_t *VXFullFF, const int16_t *VYFullBB, const int16_t *VYFullFF, int bitsPerSample) {
-    if (bitsPerSample == 8)
-        RealFlowInterExtra<uint8_t>(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, VXFullBB, VXFullFF, VYFullBB, VYFullFF);
-    else
-        RealFlowInterExtra<uint16_t>(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel, VXFullBB, VXFullFF, VYFullBB, VYFullFF);
-}
-
-
 template <typename PixelType>
-static void RealFlowInterSimple(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch,
+static void FlowInterSimple(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch,
                          const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
                          int VPitch, int width, int height, int time256, int nPel) {
     const PixelType *prefB = (const PixelType *)prefB8;
@@ -521,13 +510,19 @@ static void RealFlowInterSimple(uint8_t *pdst8, int dst_pitch, const uint8_t *pr
 }
 
 
-void FlowInterSimple(uint8_t *pdst, int dst_pitch, const uint8_t *prefB, const uint8_t *prefF, int ref_pitch,
-                     const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
-                     int VPitch, int width, int height, int time256, int nPel, int bitsPerSample) {
-    if (bitsPerSample == 8)
-        RealFlowInterSimple<uint8_t>(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel);
-    else
-        RealFlowInterSimple<uint16_t>(pdst, dst_pitch, prefB, prefF, ref_pitch, VXFullB, VXFullF, VYFullB, VYFullF, MaskB, MaskF, VPitch, width, height, time256, nPel);
+void selectFlowInterFunctions(FlowInterSimpleFunction *simple, FlowInterFunction *regular, FlowInterExtraFunction *extra, int bitsPerSample, int opt) {
+    if (bitsPerSample == 8) {
+        *simple = FlowInterSimple<uint8_t>;
+        *regular = FlowInter<uint8_t>;
+        *extra = FlowInterExtra<uint8_t>;
+    } else {
+        *simple = FlowInterSimple<uint16_t>;
+        *regular = FlowInter<uint16_t>;
+        *extra = FlowInterExtra<uint16_t>;
+    }
+
+#if defined(MVTOOLS_X86)
+    if (opt && (g_cpuinfo & X264_CPU_AVX2))
+        selectFlowInterFunctions_AVX2(simple, regular, extra, bitsPerSample);
+#endif
 }
-
-
