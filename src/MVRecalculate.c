@@ -244,8 +244,10 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
 
         free(vectors);
 
+#if defined(MVTOOLS_X86)
         // FIXME: Get rid of all mmx shit.
         mvtools_cpu_emms();
+#endif
 
         vsapi->freeFrame(src);
 
