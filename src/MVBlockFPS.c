@@ -982,9 +982,6 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
 
     selectFunctions(&d);
 
-    if (d.vi.format->bitsPerSample > 8)
-        d.opt = 0;
-
 
     data = (MVBlockFPSData *)malloc(sizeof(d));
     *data = d;

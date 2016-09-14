@@ -743,9 +743,6 @@ static void VS_CC mvflowinterCreate(const VSMap *in, VSMap *out, void *userData,
     selectFlowInterFunctions(&d.FlowInterSimple, &d.FlowInter, &d.FlowInterExtra, d.vi->format->bitsPerSample, d.opt);
 
 
-    if (d.vi->format->bitsPerSample > 8)
-        d.opt = 0;
-
     data = (MVFlowInterData *)malloc(sizeof(d));
     *data = d;
 

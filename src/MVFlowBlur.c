@@ -563,9 +563,6 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
     if (d.vi->format->colorFamily != cmGray)
         simpleInit(&d.upsizerUV, d.nWidthUV, d.nHeightUV, d.mvbw_data.nBlkX, d.mvbw_data.nBlkY, d.opt);
 
-    if (d.vi->format->bitsPerSample > 8)
-        d.opt = 0;
-
 
     data = (MVFlowBlurData *)malloc(sizeof(d));
     *data = d;

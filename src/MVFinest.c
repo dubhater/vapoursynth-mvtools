@@ -167,9 +167,6 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
         return;
     }
 
-    if (d.vi.format->bitsPerSample > 8)
-        d.opt = 0;
-
 #define ERROR_SIZE 1024
     char errorMsg[ERROR_SIZE] = "Finest: failed to retrieve first frame from super clip. Error message: ";
     size_t errorLen = strlen(errorMsg);

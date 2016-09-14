@@ -728,9 +728,6 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
         return;
     }
 
-    if (d.vi->format->bitsPerSample > 8)
-        d.opt = 0;
-
     int pixelMax = (1 << d.vi->format->bitsPerSample) - 1;
 
     d.nLimit[0] = int64ToIntS(vsapi->propGetInt(in, "limit", 0, &err));

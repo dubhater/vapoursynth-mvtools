@@ -216,10 +216,6 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
     d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
 
 
-    if (d.vi.format->bitsPerSample > 8)
-        d.opt = 0;
-
-
     d.xRatioUV = 1 << d.vi.format->subSamplingW;
     d.yRatioUV = 1 << d.vi.format->subSamplingH;
 

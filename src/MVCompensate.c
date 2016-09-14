@@ -552,9 +552,6 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
         return;
     }
 
-    if (d.vi->format->bitsPerSample > 8)
-        d.opt = 0;
-
     if (d.vectors_data.nOverlapX || d.vectors_data.nOverlapY) {
         d.OverWins = (OverlapWindows *)malloc(sizeof(OverlapWindows));
         overInit(d.OverWins, d.vectors_data.nBlkSizeX, d.vectors_data.nBlkSizeY, d.vectors_data.nOverlapX, d.vectors_data.nOverlapY);

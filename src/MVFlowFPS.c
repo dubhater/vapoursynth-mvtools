@@ -873,9 +873,6 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
     if (d.vi.format->colorFamily != cmGray)
         simpleInit(&d.upsizerUV, d.nWidthPUV, d.nHeightPUV, d.nBlkXP, d.nBlkYP, avx2_resize);
 
-    if (d.vi.format->bitsPerSample > 8)
-        d.opt = 0;
-
     selectFlowInterFunctions(&d.FlowInterSimple, &d.FlowInter, &d.FlowInterExtra, d.vi.format->bitsPerSample, d.opt);
 
 
