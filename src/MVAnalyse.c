@@ -505,9 +505,6 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         d.analysisData.nCPUFlags = g_cpuinfo;
     }
 
-    if (d.vi->format->bitsPerSample > 8)
-        d.opt = 0; // needed here because MVPlane can't have opt=1 with more than 8 bits
-
     if (d.analysisData.nOverlapX % (1 << d.vi->format->subSamplingW) ||
         d.analysisData.nOverlapY % (1 << d.vi->format->subSamplingH)) {
         vsapi->setError(out, "Analyse: The requested overlap is incompatible with the super clip's subsampling.");

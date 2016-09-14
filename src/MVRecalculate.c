@@ -519,9 +519,6 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
         d.analysisData.nCPUFlags = g_cpuinfo;
     }
 
-    if (d.vi->format->bitsPerSample > 8)
-        d.opt = 0; // needed here because MVPlane can't have opt=1 with more than 8 bits
-
     d.analysisData.nPel = d.nSuperPel; //x
 
     int nSuperWidth = d.vi->width;

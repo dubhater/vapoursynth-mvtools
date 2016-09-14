@@ -595,9 +595,6 @@ static void VS_CC mvflowCreate(const VSMap *in, VSMap *out, void *userData, VSCo
     if (d.vi->format->colorFamily != cmGray)
         simpleInit(&d.upsizerUV, d.nWidthPUV, d.nHeightPUV, d.nBlkXP, d.nBlkYP, d.opt);
 
-    if (d.vi->format->bitsPerSample > 8)
-        d.opt = 0;
-
 
     if (d.vi->format->bitsPerSample == 8) {
         if (d.mode == Fetch)
