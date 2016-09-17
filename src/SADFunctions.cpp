@@ -623,7 +623,7 @@ static unsigned int Satd_C(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_
             sum += Satd_8x4_C<PixelType>(pSrc + 8 * bytesPerSample, nSrcPitch,
                                          pRef + 8 * bytesPerSample, nRefPitch)
                  + Satd_8x4_C<PixelType>(pSrc + 8 * bytesPerSample + 4 * nSrcPitch, nSrcPitch,
-                                         pRef + 8 * bytesPerSample + 4 * nSrcPitch, nRefPitch);
+                                         pRef + 8 * bytesPerSample + 4 * nRefPitch, nRefPitch);
 
         if (nBlkHeight == 16)
             sum += Satd_8x4_C<PixelType>(pSrc + 8 * nSrcPitch, nSrcPitch,
