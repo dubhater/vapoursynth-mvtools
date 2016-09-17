@@ -614,16 +614,28 @@ static unsigned int Satd_C(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_
     else {
         int bytesPerSample = sizeof(PixelType);
 
-        unsigned int sum = Satd_8x4_C<PixelType>(pSrc, nSrcPitch, pRef, nRefPitch) + Satd_8x4_C<PixelType>(pSrc + 4 * nSrcPitch, nSrcPitch, pRef + 4 * nRefPitch, nRefPitch);
+        unsigned int sum = Satd_8x4_C<PixelType>(pSrc, nSrcPitch,
+                                                 pRef, nRefPitch)
+                         + Satd_8x4_C<PixelType>(pSrc + 4 * nSrcPitch, nSrcPitch,
+                                                 pRef + 4 * nRefPitch, nRefPitch);
 
         if (nBlkWidth == 16)
-            sum += Satd_8x4_C<PixelType>(pSrc + 8 * bytesPerSample, nSrcPitch, pRef + 8 * bytesPerSample, nRefPitch) + Satd_8x4_C<PixelType>(pSrc + 8 * bytesPerSample + 4 * nSrcPitch, nSrcPitch, pRef + 8 * bytesPerSample + 4 * nSrcPitch, nRefPitch);
+            sum += Satd_8x4_C<PixelType>(pSrc + 8 * bytesPerSample, nSrcPitch,
+                                         pRef + 8 * bytesPerSample, nRefPitch)
+                 + Satd_8x4_C<PixelType>(pSrc + 8 * bytesPerSample + 4 * nSrcPitch, nSrcPitch,
+                                         pRef + 8 * bytesPerSample + 4 * nSrcPitch, nRefPitch);
 
         if (nBlkHeight == 16)
-            sum += Satd_8x4_C<PixelType>(pSrc + 8 * nSrcPitch, nSrcPitch, pRef + 8 * nRefPitch, nRefPitch) + Satd_8x4_C<PixelType>(pSrc + 12 * nSrcPitch, nSrcPitch, pRef + 12 * nRefPitch, nRefPitch);
+            sum += Satd_8x4_C<PixelType>(pSrc + 8 * nSrcPitch, nSrcPitch,
+                                         pRef + 8 * nRefPitch, nRefPitch)
+                 + Satd_8x4_C<PixelType>(pSrc + 12 * nSrcPitch, nSrcPitch,
+                                         pRef + 12 * nRefPitch, nRefPitch);
 
         if (nBlkWidth == 16 && nBlkHeight == 16)
-            sum += Satd_8x4_C<PixelType>(pSrc + 8 * bytesPerSample + 8 * nSrcPitch, nSrcPitch, pRef + 8 * bytesPerSample + 8 * nRefPitch, nRefPitch) + Satd_8x4_C<PixelType>(pSrc + 8 * bytesPerSample + 12 * nSrcPitch, nSrcPitch, pRef + 8 * bytesPerSample + 12 * nRefPitch, nRefPitch);
+            sum += Satd_8x4_C<PixelType>(pSrc + 8 * bytesPerSample + 8 * nSrcPitch, nSrcPitch,
+                                         pRef + 8 * bytesPerSample + 8 * nRefPitch, nRefPitch)
+                 + Satd_8x4_C<PixelType>(pSrc + 8 * bytesPerSample + 12 * nSrcPitch, nSrcPitch,
+                                         pRef + 8 * bytesPerSample + 12 * nRefPitch, nRefPitch);
 
         return sum;
     }
