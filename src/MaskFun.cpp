@@ -327,9 +327,15 @@ void Blend(uint8_t *pdst, const uint8_t *psrc, const uint8_t *pref, int height, 
 
 
 template <typename PixelType>
-static void FlowInter(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch,
-                   const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
-                   int VPitch, int width, int height, int time256, int nPel) {
+static void FlowInter(
+        uint8_t *pdst8, int dst_pitch,
+        const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch,
+        const int16_t *VXFullB, const int16_t *VXFullF,
+        const int16_t *VYFullB, const int16_t *VYFullF,
+        const uint8_t *MaskB, const uint8_t *MaskF, int VPitch,
+        int width, int height,
+        int time256, int nPel) {
+
     const PixelType *prefB = (const PixelType *)prefB8;
     const PixelType *prefF = (const PixelType *)prefF8;
     PixelType *pdst = (PixelType *)pdst8;
@@ -366,26 +372,18 @@ static void FlowInter(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, cons
 }
 
 
-static inline int Median3r(int a, int b, int c) {
-    // reduced median - if it is known that a <= c (more fast)
-
-    // b a c
-    if (b <= a)
-        return a;
-    // a c b
-    else if (c <= b)
-        return c;
-    // a b c
-    else
-        return b;
-}
-
-
 template <typename PixelType>
-static void FlowInterExtra(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch,
-                        const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
-                        int VPitch, int width, int height, int time256, int nPel,
-                        const int16_t *VXFullBB, const int16_t *VXFullFF, const int16_t *VYFullBB, const int16_t *VYFullFF) {
+static void FlowInterExtra(
+        uint8_t *pdst8, int dst_pitch,
+        const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch,
+        const int16_t *VXFullB, const int16_t *VXFullF,
+        const int16_t *VYFullB, const int16_t *VYFullF,
+        const uint8_t *MaskB, const uint8_t *MaskF, int VPitch,
+        int width, int height,
+        int time256, int nPel,
+        const int16_t *VXFullBB, const int16_t *VXFullFF,
+        const int16_t *VYFullBB, const int16_t *VYFullFF) {
+
     const PixelType *prefB = (const PixelType *)prefB8;
     const PixelType *prefF = (const PixelType *)prefF8;
     PixelType *pdst = (PixelType *)pdst8;
@@ -418,18 +416,14 @@ static void FlowInterExtra(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8,
             int dstBB = prefB[adrBB];
 
             /* use median, firsly get min max of compensations */
-            int minfb;
-            int maxfb;
-            if (dstF > dstB) {
-                minfb = dstB;
-                maxfb = dstF;
-            } else {
-                maxfb = dstB;
-                minfb = dstF;
-            }
+            int minfb = min(dstB, dstF);
+            int maxfb = max(dstB, dstF);
 
-            pdst[w] = (((Median3r(minfb, dstBB, maxfb) * MaskF[w] + dstF * (255 - MaskF[w]) + 255) >> 8) * (256 - time256) +
-                       ((Median3r(minfb, dstFF, maxfb) * MaskB[w] + dstB * (255 - MaskB[w]) + 255) >> 8) * time256) >>
+            int medianBB = max(minfb, min(dstBB, maxfb));
+            int medianFF = max(minfb, min(dstFF, maxfb));
+
+            pdst[w] = (((medianBB * MaskF[w] + dstF * (255 - MaskF[w]) + 255) >> 8) * (256 - time256) +
+                       ((medianFF * MaskB[w] + dstB * (255 - MaskB[w]) + 255) >> 8) * time256) >>
                       8;
         }
         pdst += dst_pitch;
@@ -450,9 +444,15 @@ static void FlowInterExtra(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8,
 
 
 template <typename PixelType>
-static void FlowInterSimple(uint8_t *pdst8, int dst_pitch, const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch,
-                         const int16_t *VXFullB, const int16_t *VXFullF, const int16_t *VYFullB, const int16_t *VYFullF, const uint8_t *MaskB, const uint8_t *MaskF,
-                         int VPitch, int width, int height, int time256, int nPel) {
+static void FlowInterSimple(
+        uint8_t *pdst8, int dst_pitch,
+        const uint8_t *prefB8, const uint8_t *prefF8, int ref_pitch,
+        const int16_t *VXFullB, const int16_t *VXFullF,
+        const int16_t *VYFullB, const int16_t *VYFullF,
+        const uint8_t *MaskB, const uint8_t *MaskF, int VPitch,
+        int width, int height,
+        int time256, int nPel) {
+
     const PixelType *prefB = (const PixelType *)prefB8;
     const PixelType *prefF = (const PixelType *)prefF8;
     PixelType *pdst = (PixelType *)pdst8;
