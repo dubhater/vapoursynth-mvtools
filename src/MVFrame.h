@@ -113,10 +113,6 @@ typedef struct MVFrame {
     MVPlane *planes[3];
 
     int nMode;
-    int opt;
-    int xRatioUV;
-    int yRatioUV;
-    int bitsPerSample;
 } MVFrame;
 
 
@@ -148,7 +144,6 @@ typedef struct MVGroupOfFrames {
     int nVPad[3];
     int xRatioUV;
     int yRatioUV;
-    int bitsPerSample;
 } MVGroupOfFrames;
 
 

@@ -577,10 +577,6 @@ const uint8_t *mvpGetAbsolutePelPointer(const MVPlane *mvp, int nX, int nY) {
 
 void mvfInit(MVFrame *mvf, int nWidth, int nHeight, int nPel, int nHPad, int nVPad, int nMode, int opt, int xRatioUV, int yRatioUV, int bitsPerSample) {
     mvf->nMode = nMode;
-    mvf->opt = opt;
-    mvf->xRatioUV = xRatioUV;
-    mvf->yRatioUV = yRatioUV;
-    mvf->bitsPerSample = bitsPerSample;
 
     mvf->planes[0] = mvf->planes[1] = mvf->planes[2] = NULL;
 
@@ -680,19 +676,18 @@ void mvgofInit(MVGroupOfFrames *mvgof, int nLevelCount, int nWidth, int nHeight,
     mvgof->nVPad[1] = mvgof->nVPad[2] = nVPad / yRatioUV;
     mvgof->xRatioUV = xRatioUV;
     mvgof->yRatioUV = yRatioUV;
-    mvgof->bitsPerSample = bitsPerSample;
 
     mvgof->frames = (MVFrame **)malloc(mvgof->nLevelCount * sizeof(MVFrame *));
 
     mvgof->frames[0] = (MVFrame *)malloc(sizeof(MVFrame));
-    mvfInit(mvgof->frames[0], mvgof->nWidth[0], mvgof->nHeight[0], mvgof->nPel, mvgof->nHPad[0], mvgof->nVPad[0], nMode, opt, mvgof->xRatioUV, mvgof->yRatioUV, mvgof->bitsPerSample);
+    mvfInit(mvgof->frames[0], mvgof->nWidth[0], mvgof->nHeight[0], mvgof->nPel, mvgof->nHPad[0], mvgof->nVPad[0], nMode, opt, mvgof->xRatioUV, mvgof->yRatioUV, bitsPerSample);
 
     for (int i = 1; i < mvgof->nLevelCount; i++) {
         int nWidthi = PlaneWidthLuma(mvgof->nWidth[0], i, mvgof->xRatioUV, mvgof->nHPad[0]);    //(nWidthi / 2) - ((nWidthi / 2) % xRatioUV); //  even for YV12
         int nHeighti = PlaneHeightLuma(mvgof->nHeight[0], i, mvgof->yRatioUV, mvgof->nVPad[0]); //(nHeighti / 2) - ((nHeighti / 2) % yRatioUV); // even for YV12
 
         mvgof->frames[i] = (MVFrame *)malloc(sizeof(MVFrame));
-        mvfInit(mvgof->frames[i], nWidthi, nHeighti, 1, mvgof->nHPad[0], mvgof->nVPad[0], nMode, opt, mvgof->xRatioUV, mvgof->yRatioUV, mvgof->bitsPerSample);
+        mvfInit(mvgof->frames[i], nWidthi, nHeighti, 1, mvgof->nHPad[0], mvgof->nVPad[0], nMode, opt, mvgof->xRatioUV, mvgof->yRatioUV, bitsPerSample);
     }
 }
 

@@ -32,15 +32,11 @@ typedef struct GroupOfPlanes {
     int nBlkSizeX;
     int nBlkSizeY;
     int nLevelCount;
-    int nPel;
-    int nMotionFlags;
-    int nCPUFlags;
     int nOverlapX;
     int nOverlapY;
     int xRatioUV;
     int yRatioUV;
     int divideExtra;
-    int bitsPerSample;
 
     PlaneOfBlocks **planes;
 } GroupOfPlanes;
