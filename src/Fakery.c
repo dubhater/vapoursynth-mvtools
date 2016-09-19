@@ -16,21 +16,15 @@ void fbdUpdate(FakeBlockData *fbd, const int *array) {
 
 // FakePlaneOfBlocks
 
-void fpobInit(FakePlaneOfBlocks *fpob, int sizeX, int sizeY, int lv, int pel, int nOverlapX, int nOverlapY, int nBlkX, int nBlkY) {
+void fpobInit(FakePlaneOfBlocks *fpob, int sizeX, int sizeY, int pel, int nOverlapX, int nOverlapY, int nBlkX, int nBlkY) {
     fpob->nBlkSizeX = sizeX;
     fpob->nBlkSizeY = sizeY;
     fpob->nOverlapX = nOverlapX;
     fpob->nOverlapY = nOverlapY;
     fpob->nBlkX = nBlkX;
     fpob->nBlkY = nBlkY;
-    fpob->nWidth_Bi = fpob->nOverlapX + fpob->nBlkX * (fpob->nBlkSizeX - fpob->nOverlapX);  //w;
-    fpob->nHeight_Bi = fpob->nOverlapY + fpob->nBlkY * (fpob->nBlkSizeY - fpob->nOverlapY); //h;
     fpob->nBlkCount = fpob->nBlkX * fpob->nBlkY;
     fpob->nPel = pel;
-
-    fpob->nLogPel = ilog2(fpob->nPel);
-    fpob->nLogScale = lv;
-    fpob->nScale = iexp2(fpob->nLogScale);
 
     fpob->blocks = (FakeBlockData *)malloc(fpob->nBlkCount * sizeof(FakeBlockData));
 
@@ -77,20 +71,20 @@ void fgopInit(FakeGroupOfPlanes *fgop, const MVAnalysisData *ad) {
     fgop->nLvCount = ad->nLvCount;
     int nBlkX1 = ad->nBlkX;
     int nBlkY1 = ad->nBlkY;
-    fgop->nWidth_B = (ad->nBlkSizeX - ad->nOverlapX) * nBlkX1 + ad->nOverlapX;
-    fgop->nHeight_B = (ad->nBlkSizeY - ad->nOverlapY) * nBlkY1 + ad->nOverlapY;
+    int nWidth_B = (ad->nBlkSizeX - ad->nOverlapX) * nBlkX1 + ad->nOverlapX;
+    int nHeight_B = (ad->nBlkSizeY - ad->nOverlapY) * nBlkY1 + ad->nOverlapY;
 
     fgop->planes = (FakePlaneOfBlocks **)malloc(ad->nLvCount * sizeof(FakePlaneOfBlocks *));
 
     fgop->planes[0] = (FakePlaneOfBlocks *)malloc(sizeof(FakePlaneOfBlocks));
-    fpobInit(fgop->planes[0], ad->nBlkSizeX, ad->nBlkSizeY, 0, ad->nPel, ad->nOverlapX, ad->nOverlapY, nBlkX1, nBlkY1);
+    fpobInit(fgop->planes[0], ad->nBlkSizeX, ad->nBlkSizeY, ad->nPel, ad->nOverlapX, ad->nOverlapY, nBlkX1, nBlkY1);
 
     for (int i = 1; i < ad->nLvCount; i++) {
-        nBlkX1 = ((fgop->nWidth_B >> i) - ad->nOverlapX) / (ad->nBlkSizeX - ad->nOverlapX);
-        nBlkY1 = ((fgop->nHeight_B >> i) - ad->nOverlapY) / (ad->nBlkSizeY - ad->nOverlapY);
+        nBlkX1 = ((nWidth_B >> i) - ad->nOverlapX) / (ad->nBlkSizeX - ad->nOverlapX);
+        nBlkY1 = ((nHeight_B >> i) - ad->nOverlapY) / (ad->nBlkSizeY - ad->nOverlapY);
 
         fgop->planes[i] = (FakePlaneOfBlocks *)malloc(sizeof(FakePlaneOfBlocks));
-        fpobInit(fgop->planes[i], ad->nBlkSizeX, ad->nBlkSizeY, i, 1, ad->nOverlapX, ad->nOverlapY, nBlkX1, nBlkY1); // fixed bug with nOverlapX in v1.10.2
+        fpobInit(fgop->planes[i], ad->nBlkSizeX, ad->nBlkSizeY, 1, ad->nOverlapX, ad->nOverlapY, nBlkX1, nBlkY1); // fixed bug with nOverlapX in v1.10.2
     }
 }
 

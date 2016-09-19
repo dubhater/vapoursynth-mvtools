@@ -24,23 +24,19 @@ void gopInit(GroupOfPlanes *gop, int nBlkSizeX, int nBlkSizeY, int nLevelCount, 
     gop->nBlkSizeX = nBlkSizeX;
     gop->nBlkSizeY = nBlkSizeY;
     gop->nLevelCount = nLevelCount;
-    gop->nPel = nPel;
-    gop->nMotionFlags = nMotionFlags;
-    gop->nCPUFlags = nCPUFlags;
     gop->nOverlapX = nOverlapX;
     gop->nOverlapY = nOverlapY;
     gop->xRatioUV = xRatioUV;
     gop->yRatioUV = yRatioUV;
     gop->divideExtra = divideExtra;
-    gop->bitsPerSample = bitsPerSample;
 
     gop->planes = (PlaneOfBlocks **)malloc(gop->nLevelCount * sizeof(PlaneOfBlocks *));
 
     int nBlkXCurrent = nBlkX;
     int nBlkYCurrent = nBlkY;
 
-    int nPelCurrent = gop->nPel;
-    int nMotionFlagsCurrent = gop->nMotionFlags;
+    int nPelCurrent = nPel;
+    int nMotionFlagsCurrent = nMotionFlags;
 
     int nWidth_B = (gop->nBlkSizeX - gop->nOverlapX) * nBlkX + gop->nOverlapX;
     int nHeight_B = (gop->nBlkSizeY - gop->nOverlapY) * nBlkY + gop->nOverlapY;
@@ -52,7 +48,7 @@ void gopInit(GroupOfPlanes *gop, int nBlkSizeX, int nBlkSizeY, int nLevelCount, 
         nBlkYCurrent = ((nHeight_B >> i) - gop->nOverlapY) / (gop->nBlkSizeY - gop->nOverlapY);
 
         gop->planes[i] = (PlaneOfBlocks *)malloc(sizeof(PlaneOfBlocks));
-        pobInit(gop->planes[i], nBlkXCurrent, nBlkYCurrent, gop->nBlkSizeX, gop->nBlkSizeY, nPelCurrent, i, nMotionFlagsCurrent, gop->nCPUFlags, gop->nOverlapX, gop->nOverlapY, gop->xRatioUV, gop->yRatioUV, gop->bitsPerSample);
+        pobInit(gop->planes[i], nBlkXCurrent, nBlkYCurrent, gop->nBlkSizeX, gop->nBlkSizeY, nPelCurrent, i, nMotionFlagsCurrent, nCPUFlags, gop->nOverlapX, gop->nOverlapY, gop->xRatioUV, gop->yRatioUV, bitsPerSample);
         nPelCurrent = 1;
     }
 }

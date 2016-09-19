@@ -17,17 +17,12 @@ typedef struct FakeBlockData {
 
 
 typedef struct FakePlaneOfBlocks {
-    int nWidth_Bi;
-    int nHeight_Bi;
     int nBlkX;
     int nBlkY;
     int nBlkSizeX;
     int nBlkSizeY;
     int nBlkCount;
     int nPel;
-    int nLogPel;
-    int nScale;
-    int nLogScale;
     int nOverlapX;
     int nOverlapY;
 
@@ -38,8 +33,6 @@ typedef struct FakePlaneOfBlocks {
 typedef struct FakeGroupOfPlanes {
     int nLvCount;
     int validity;
-    int nWidth_B;
-    int nHeight_B;
 
     FakePlaneOfBlocks **planes;
 } FakeGroupOfPlanes;
@@ -52,7 +45,7 @@ void fbdUpdate(FakeBlockData *fbd, const int *array);
 
 // FakePlaneOfBlocks
 
-void fpobInit(FakePlaneOfBlocks *fpob, int sizeX, int sizeY, int lv, int pel, int nOverlapX, int nOverlapY, int nBlkX, int nBlkY);
+void fpobInit(FakePlaneOfBlocks *fpob, int sizeX, int sizeY, int pel, int nOverlapX, int nOverlapY, int nBlkX, int nBlkY);
 
 void fpobDeinit(FakePlaneOfBlocks *fpob);
 

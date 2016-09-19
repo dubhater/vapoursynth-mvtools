@@ -381,7 +381,7 @@ static inline int Median(int a, int b, int c) {
 }
 
 
-void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int _nMotionFlags, int _nCPUFlags, int _nOverlapX, int _nOverlapY, int _xRatioUV, int _yRatioUV, int _bitsPerSample) {
+void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int nMotionFlags, int nCPUFlags, int _nOverlapX, int _nOverlapY, int _xRatioUV, int _yRatioUV, int bitsPerSample) {
 
     /* constant fields */
 
@@ -400,19 +400,16 @@ void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nB
     pob->nBlkY = _nBlkY;
     pob->nBlkCount = pob->nBlkX * pob->nBlkY;
 
-    pob->nMotionFlags = _nMotionFlags;
-    pob->nCPUFlags = _nCPUFlags;
     pob->xRatioUV = _xRatioUV;
     pob->yRatioUV = _yRatioUV;
     pob->nLogxRatioUV = ilog2(pob->xRatioUV);
     pob->nLogyRatioUV = ilog2(pob->yRatioUV);
 
-    pob->bitsPerSample = _bitsPerSample;
-    pob->bytesPerSample = (pob->bitsPerSample + 7) / 8;
+    pob->bytesPerSample = (bitsPerSample + 7) / 8;
 
-    pob->smallestPlane = !!(pob->nMotionFlags & MOTION_SMALLEST_PLANE);
-    pob->opt = !!(pob->nMotionFlags & MOTION_USE_SIMD);
-    pob->chroma = !!(pob->nMotionFlags & MOTION_USE_CHROMA_MOTION);
+    pob->smallestPlane = !!(nMotionFlags & MOTION_SMALLEST_PLANE);
+    int opt = !!(nMotionFlags & MOTION_USE_SIMD);
+    pob->chroma = !!(nMotionFlags & MOTION_USE_CHROMA_MOTION);
 
     pob->globalMVPredictor.x = zeroMV.x;
     pob->globalMVPredictor.y = zeroMV.y;
@@ -424,15 +421,15 @@ void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nB
     memset(pob->vectors, 0, pob->nBlkCount * sizeof(VECTOR));
 
     /* function pointers initialization */
-    pob->SAD = selectSADFunction(pob->nBlkSizeX, pob->nBlkSizeY, pob->bytesPerSample * 8, pob->opt, pob->nCPUFlags);
-    pob->LUMA = selectLumaFunction(pob->nBlkSizeX, pob->nBlkSizeY, pob->bytesPerSample * 8, pob->opt);
+    pob->SAD = selectSADFunction(pob->nBlkSizeX, pob->nBlkSizeY, pob->bytesPerSample * 8, opt, nCPUFlags);
+    pob->LUMA = selectLumaFunction(pob->nBlkSizeX, pob->nBlkSizeY, pob->bytesPerSample * 8, opt);
     pob->BLITLUMA = selectCopyFunction(pob->nBlkSizeX, pob->nBlkSizeY, pob->bytesPerSample * 8);
 
-    pob->SADCHROMA = selectSADFunction(pob->nBlkSizeX / pob->xRatioUV, pob->nBlkSizeY / pob->yRatioUV, pob->bytesPerSample * 8, pob->opt, pob->nCPUFlags);
+    pob->SADCHROMA = selectSADFunction(pob->nBlkSizeX / pob->xRatioUV, pob->nBlkSizeY / pob->yRatioUV, pob->bytesPerSample * 8, opt, nCPUFlags);
     pob->BLITCHROMA = selectCopyFunction(pob->nBlkSizeX / pob->xRatioUV, pob->nBlkSizeY / pob->yRatioUV, pob->bytesPerSample * 8);
 
     if (pob->nBlkSizeX <= 16 && pob->nBlkSizeY <= 16)
-        pob->SATD = selectSATDFunction(pob->nBlkSizeX, pob->nBlkSizeY, pob->bytesPerSample * 8, pob->opt, pob->nCPUFlags);
+        pob->SATD = selectSATDFunction(pob->nBlkSizeX, pob->nBlkSizeY, pob->bytesPerSample * 8, opt, nCPUFlags);
     else
         pob->SATD = NULL;
 
@@ -462,7 +459,7 @@ void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nB
     pob->freqSize = 8192 * pob->nPel * 2; // half must be more than max vector length, which is (framewidth + Padding) * nPel
     pob->freqArray = (int *)malloc(pob->freqSize * sizeof(int));
 
-    pob->verybigSAD = pob->nBlkSizeX * pob->nBlkSizeY * (1 << pob->bitsPerSample);
+    pob->verybigSAD = pob->nBlkSizeX * pob->nBlkSizeY * (1 << bitsPerSample);
 }
 
 

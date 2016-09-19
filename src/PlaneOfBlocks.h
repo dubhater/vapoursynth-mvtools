@@ -46,15 +46,12 @@ typedef struct PlaneOfBlocks {
     int nLogPel;      /* logarithm of the pel refinement accuracy */
     int nScale;       /* scaling factor of the plane */
     int nLogScale;    /* logarithm of the scaling factor */
-    int nMotionFlags; /* additionnal flags */
-    int nCPUFlags;
     int nOverlapX; // overlap size
     int nOverlapY; // overlap size
     int xRatioUV;
     int yRatioUV;
     int nLogxRatioUV; // log of xRatioUV (0 for 1 and 1 for 2)
     int nLogyRatioUV; // log of yRatioUV (0 for 1 and 1 for 2)
-    int bitsPerSample;
     int bytesPerSample;
 
     SADFunction SAD;   /* function which computes the sad */
@@ -69,7 +66,6 @@ typedef struct PlaneOfBlocks {
     /* after the search, contains the best motion vector */
 
     int smallestPlane; /* say whether vectors can used predictors from a smaller plane */
-    int opt;           /* can we use asm code */
     int chroma;        /* do we do chroma me */
 
     /* working fields */
@@ -140,7 +136,7 @@ typedef struct PlaneOfBlocks {
 } PlaneOfBlocks;
 
 
-void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int _nMotionFlags, int _nCPUFlags, int _nOverlapX, int _nOverlapY, int _xRatioUV, int _yRatioUV, int _bitsPerSample);
+void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nBlkSizeY, int _nPel, int _nLevel, int nMotionFlags, int nCPUFlags, int _nOverlapX, int _nOverlapY, int _xRatioUV, int _yRatioUV, int bitsPerSample);
 
 void pobDeinit(PlaneOfBlocks *pob);
 
