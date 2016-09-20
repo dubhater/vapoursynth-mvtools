@@ -353,13 +353,8 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
         return;
     }
 
-    if (d.dctmode >= 5 &&
-        !((d.analysisData.nBlkSizeX == 4 && d.analysisData.nBlkSizeY == 4) ||
-          (d.analysisData.nBlkSizeX == 8 && d.analysisData.nBlkSizeY == 4) ||
-          (d.analysisData.nBlkSizeX == 8 && d.analysisData.nBlkSizeY == 8) ||
-          (d.analysisData.nBlkSizeX == 16 && d.analysisData.nBlkSizeY == 8) ||
-          (d.analysisData.nBlkSizeX == 16 && d.analysisData.nBlkSizeY == 16))) {
-        vsapi->setError(out, "Recalculate: dct 5..10 can only work with 4x4, 8x4, 8x8, 16x8, and 16x16 blocks.");
+    if (d.dctmode >= 5 && d.analysisData.nBlkSizeX == 16 && d.analysisData.nBlkSizeY == 2) {
+        vsapi->setError(out, "Recalculate: dct 5..10 cannot work with 16x2 blocks.");
         return;
     }
 
