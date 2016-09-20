@@ -604,41 +604,60 @@ static FORCE_INLINE unsigned int Satd_8x4_C(const uint8_t *pSrc, intptr_t nSrcPi
 }
 
 
-// Only handles 4x4, 8x4, 8x8, 8x16, 16x8, and 16x16.
+// Doesn't handle 16x2 blocks.
 template <int nBlkWidth, int nBlkHeight, typename PixelType>
 static unsigned int Satd_C(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
     if (nBlkWidth == 4 && nBlkHeight == 4)
         return Satd_4x4_C<PixelType>(pSrc, nSrcPitch, pRef, nRefPitch);
-    else if (nBlkWidth == 8 && nBlkHeight == 4)
-        return Satd_8x4_C<PixelType>(pSrc, nSrcPitch, pRef, nRefPitch);
     else {
-        int bytesPerSample = sizeof(PixelType);
+        const int bytesPerSample = sizeof(PixelType);
+        const int partition_width = 8;
+        const int partition_height = 4;
 
-        unsigned int sum = Satd_8x4_C<PixelType>(pSrc, nSrcPitch,
-                                                 pRef, nRefPitch)
-                         + Satd_8x4_C<PixelType>(pSrc + 4 * nSrcPitch, nSrcPitch,
-                                                 pRef + 4 * nRefPitch, nRefPitch);
+        unsigned sum = 0;
 
-        if (nBlkWidth == 16)
-            sum += Satd_8x4_C<PixelType>(pSrc + 8 * bytesPerSample, nSrcPitch,
-                                         pRef + 8 * bytesPerSample, nRefPitch)
-                 + Satd_8x4_C<PixelType>(pSrc + 8 * bytesPerSample + 4 * nSrcPitch, nSrcPitch,
-                                         pRef + 8 * bytesPerSample + 4 * nRefPitch, nRefPitch);
+        for (int y = 0; y < nBlkHeight; y += partition_height) {
+            for (int x = 0; x < nBlkWidth; x += partition_width)
+                sum += Satd_8x4_C<PixelType>(pSrc + x * bytesPerSample, nSrcPitch,
+                                             pRef + x * bytesPerSample, nRefPitch);
 
-        if (nBlkHeight == 16)
-            sum += Satd_8x4_C<PixelType>(pSrc + 8 * nSrcPitch, nSrcPitch,
-                                         pRef + 8 * nRefPitch, nRefPitch)
-                 + Satd_8x4_C<PixelType>(pSrc + 12 * nSrcPitch, nSrcPitch,
-                                         pRef + 12 * nRefPitch, nRefPitch);
-
-        if (nBlkWidth == 16 && nBlkHeight == 16)
-            sum += Satd_8x4_C<PixelType>(pSrc + 8 * bytesPerSample + 8 * nSrcPitch, nSrcPitch,
-                                         pRef + 8 * bytesPerSample + 8 * nRefPitch, nRefPitch)
-                 + Satd_8x4_C<PixelType>(pSrc + 8 * bytesPerSample + 12 * nSrcPitch, nSrcPitch,
-                                         pRef + 8 * bytesPerSample + 12 * nRefPitch, nRefPitch);
+            pSrc += nSrcPitch * partition_height;
+            pRef += nRefPitch * partition_height;
+        }
 
         return sum;
     }
+}
+
+
+template <unsigned nBlkWidth, unsigned nBlkHeight, InstructionSets opt>
+static unsigned int Satd_SIMD(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
+    const unsigned partition_width = 16;
+    const unsigned partition_height = 16;
+
+    unsigned sum = 0;
+
+    for (unsigned y = 0; y < nBlkHeight; y += partition_height) {
+        for (unsigned x = 0; x < nBlkWidth; x += partition_width) {
+            if (opt == SSE2)
+                sum += mvtools_pixel_satd_16x16_sse2(pSrc + x, nSrcPitch, pRef + x, nRefPitch);
+            else if (opt == SSSE3)
+                sum += mvtools_pixel_satd_16x16_ssse3(pSrc + x, nSrcPitch, pRef + x, nRefPitch);
+            else if (opt == SSE4)
+                sum += mvtools_pixel_satd_16x16_sse4(pSrc + x, nSrcPitch, pRef + x, nRefPitch);
+            else if (opt == AVX)
+                sum += mvtools_pixel_satd_16x16_avx(pSrc + x, nSrcPitch, pRef + x, nRefPitch);
+            else if (opt == XOP)
+                sum += mvtools_pixel_satd_16x16_xop(pSrc + x, nSrcPitch, pRef + x, nRefPitch);
+            else if (opt == AVX2)
+                sum += mvtools_pixel_satd_16x16_avx2(pSrc + x, nSrcPitch, pRef + x, nRefPitch);
+        }
+
+        pSrc += nSrcPitch * partition_height;
+        pRef += nRefPitch * partition_height;
+    }
+
+    return sum;
 }
 
 
@@ -676,11 +695,21 @@ static unsigned int Satd_C(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_
 
 #define SATD(width, height) \
     { KEY(width, height, 8, Scalar), Satd_C<width, height, uint8_t> }, \
-    { KEY(width, height, 16, Scalar), Satd_C<width, height, uint16_t> }, \
+    { KEY(width, height, 16, Scalar), Satd_C<width, height, uint16_t> },
+
+#define SATD_X264_U8(width, height) \
     SATD_X264_U8_SSSE3(width, height) \
     SATD_X264_U8_SSE4(width, height) \
     SATD_X264_U8_AVX(width, height) \
     SATD_X264_U8_XOP(width, height)
+
+#define SATD_U8_SIMD(width, height) \
+    { KEY(width, height, 8, SSE2), Satd_SIMD<width, height, SSE2> }, \
+    { KEY(width, height, 8, SSSE3), Satd_SIMD<width, height, SSSE3> }, \
+    { KEY(width, height, 8, SSE4), Satd_SIMD<width, height, SSE4> }, \
+    { KEY(width, height, 8, AVX), Satd_SIMD<width, height, AVX> }, \
+    { KEY(width, height, 8, XOP), Satd_SIMD<width, height, XOP> }, \
+    { KEY(width, height, 8, AVX2), Satd_SIMD<width, height, AVX2> },
 
 static const std::unordered_map<uint32_t, SADFunction> satd_functions = {
     SATD(4, 4)
@@ -688,6 +717,17 @@ static const std::unordered_map<uint32_t, SADFunction> satd_functions = {
     SATD(8, 8)
     SATD(16, 8)
     SATD(16, 16)
+    SATD(32, 16)
+    SATD(32, 32)
+    SATD(64, 32)
+    SATD(64, 64)
+    SATD(128, 64)
+    SATD(128, 128)
+    SATD_X264_U8(4, 4)
+    SATD_X264_U8(8, 4)
+    SATD_X264_U8(8, 8)
+    SATD_X264_U8(16, 8)
+    SATD_X264_U8(16, 16)
     SATD_X264_U8_MMX(4, 4)
     SATD_X264_U8_SSE2(8, 4)
     SATD_X264_U8_SSE2(8, 8)
@@ -696,6 +736,12 @@ static const std::unordered_map<uint32_t, SADFunction> satd_functions = {
     SATD_X264_U8_AVX2(8, 8)
     SATD_X264_U8_AVX2(16, 8)
     SATD_X264_U8_AVX2(16, 16)
+    SATD_U8_SIMD(32, 16)
+    SATD_U8_SIMD(32, 32)
+    SATD_U8_SIMD(64, 32)
+    SATD_U8_SIMD(64, 64)
+    SATD_U8_SIMD(128, 64)
+    SATD_U8_SIMD(128, 128)
 };
 
 SADFunction selectSATDFunction(unsigned width, unsigned height, unsigned bits, int opt, unsigned cpu) {

@@ -428,10 +428,10 @@ void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nB
     pob->SADCHROMA = selectSADFunction(pob->nBlkSizeX / pob->xRatioUV, pob->nBlkSizeY / pob->yRatioUV, pob->bytesPerSample * 8, opt, nCPUFlags);
     pob->BLITCHROMA = selectCopyFunction(pob->nBlkSizeX / pob->xRatioUV, pob->nBlkSizeY / pob->yRatioUV, pob->bytesPerSample * 8);
 
-    if (pob->nBlkSizeX <= 16 && pob->nBlkSizeY <= 16)
-        pob->SATD = selectSATDFunction(pob->nBlkSizeX, pob->nBlkSizeY, pob->bytesPerSample * 8, opt, nCPUFlags);
-    else
+    if (pob->nBlkSizeX == 16 && pob->nBlkSizeY == 2)
         pob->SATD = NULL;
+    else
+        pob->SATD = selectSATDFunction(pob->nBlkSizeX, pob->nBlkSizeY, pob->bytesPerSample * 8, opt, nCPUFlags);
 
     if (!pob->chroma)
         pob->SADCHROMA = NULL;
