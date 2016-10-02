@@ -46,9 +46,9 @@ void gopInit(GroupOfPlanes *gop, int nBlkSizeX, int nBlkSizeY, int nLevelCount, 
 
 void gopDeinit(GroupOfPlanes *gop);
 
-void gopSearchMVs(GroupOfPlanes *gop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF, SearchType searchType, int nSearchParam, int nPelSearch, int nLambda, int lsad, int pnew, int plevel, int global, int *out, int fieldShift, DCTFFTW *DCT, int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int tryMany, SearchType coarseSearchType);
+void gopSearchMVs(GroupOfPlanes *gop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF, SearchType searchType, int nSearchParam, int nPelSearch, int nLambda, int lsad, int pnew, int plevel, int global, int *out, int fieldShift, DCTFFTW *DCT, int dctmode, int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int tryMany, SearchType coarseSearchType);
 
-void gopRecalculateMVs(GroupOfPlanes *gop, FakeGroupOfPlanes *fgop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF, SearchType searchType, int nSearchParam, int nLambda, int pnew, int *out, int fieldShift, int thSAD, DCTFFTW *DCT, int smooth, int meander);
+void gopRecalculateMVs(GroupOfPlanes *gop, FakeGroupOfPlanes *fgop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF, SearchType searchType, int nSearchParam, int nLambda, int pnew, int *out, int fieldShift, int thSAD, DCTFFTW *DCT, int dctmode, int smooth, int meander);
 
 void gopWriteDefaultToArray(GroupOfPlanes *gop, int *array);
 

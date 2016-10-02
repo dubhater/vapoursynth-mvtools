@@ -1020,13 +1020,13 @@ void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
 void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame,
                   SearchType st, int stp, int lambda, int lsad, int pnew,
                   int plevel, int *out, VECTOR *globalMVec,
-                  int fieldShift, DCTFFTW *DCT, int *pmeanLumaChange,
+                  int fieldShift, DCTFFTW *DCT, int dctmode, int *pmeanLumaChange,
                   int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int tryMany) {
     pob->DCT = DCT;
     if (pob->DCT == 0)
         pob->dctmode = 0;
     else
-        pob->dctmode = pob->DCT->dctmode;
+        pob->dctmode = dctmode;
     pob->dctweight16 = VSMIN(16, abs(*pmeanLumaChange) / (pob->nBlkSizeX * pob->nBlkSizeY)); //equal dct and spatial weights for meanLumaChange=8 (empirical)
     pob->badSAD = badSAD;
     pob->badrange = badrange;
@@ -1185,12 +1185,12 @@ void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame,
 
 void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFrame *pSrcFrame, MVFrame *pRefFrame,
                        SearchType st, int stp, int lambda, int pnew, int *out,
-                       int fieldShift, int thSAD, DCTFFTW *DCT, int smooth, int meander) {
+                       int fieldShift, int thSAD, DCTFFTW *DCT, int dctmode, int smooth, int meander) {
     pob->DCT = DCT;
     if (pob->DCT == 0)
         pob->dctmode = 0;
     else
-        pob->dctmode = pob->DCT->dctmode;
+        pob->dctmode = dctmode;
     pob->dctweight16 = 8; //min(16,abs(*pmeanLumaChange)/(nBlkSizeX*nBlkSizeY)); //equal dct and spatial weights for meanLumaChange=8 (empirical)
     pob->zeroMVfieldShifted.x = 0;
     pob->zeroMVfieldShifted.y = fieldShift;

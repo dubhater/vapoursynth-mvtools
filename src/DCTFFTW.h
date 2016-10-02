@@ -17,8 +17,8 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html .
 
-#ifndef __MV_DCTFFTW__
-#define __MV_DCTFFTW__
+#ifndef DCTFFTW_H
+#define DCTFFTW_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,7 +37,6 @@ typedef void (*Float2PixelsFunction)(const DCTFFTW *dct, uint8_t *dstp, int dst_
 typedef struct DCTFFTW {
     int sizex;
     int sizey;
-    int dctmode;
     int bitsPerSample;
 
     float *fSrc;
@@ -51,7 +50,7 @@ typedef struct DCTFFTW {
 } DCTFFTW;
 
 
-void dctInit(DCTFFTW *dct, int sizex, int sizey, int dctmode, int bitsPerSample, int opt);
+void dctInit(DCTFFTW *dct, int sizex, int sizey, int bitsPerSample, int opt);
 
 void dctDeinit(DCTFFTW *dct);
 
@@ -61,4 +60,4 @@ void dctBytes2D(DCTFFTW *dct, const uint8_t *srcp, int src_pitch, uint8_t *dctp,
 } // extern "C"
 #endif
 
-#endif
+#endif // DCTFFTW_H

@@ -201,13 +201,13 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
 
 
             DCTFFTW *DCTc = NULL;
-            if (d->dctmode != 0) {
+            if (d->dctmode >= 1 && d->dctmode <= 4) {
                 DCTc = (DCTFFTW *)malloc(sizeof(DCTFFTW));
-                dctInit(DCTc, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->dctmode, d->vi->format->bitsPerSample, d->opt);
+                dctInit(DCTc, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->vi->format->bitsPerSample, d->opt);
             }
 
 
-            gopRecalculateMVs(&vectorFields, &fgop, &pSrcGOF, &pRefGOF, d->searchType, d->nSearchParam, d->nLambda, d->pnew, vectors, fieldShift, d->thSAD, DCTc, d->smooth, d->meander);
+            gopRecalculateMVs(&vectorFields, &fgop, &pSrcGOF, &pRefGOF, d->searchType, d->nSearchParam, d->nLambda, d->pnew, vectors, fieldShift, d->thSAD, DCTc, d->dctmode, d->smooth, d->meander);
 
             if (d->divideExtra) {
                 // make extra level with divided sublocks with median (not estimated) motion

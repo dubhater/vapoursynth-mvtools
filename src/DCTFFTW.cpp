@@ -125,10 +125,9 @@ static void Float2Pixels_SSE2(const DCTFFTW *dct, uint8_t *dstp8, int dst_pitch,
 std::mutex g_fftw_plans_mutex;
 
 
-void dctInit(DCTFFTW *dct, int sizex, int sizey, int dctmode, int bitsPerSample, int opt) {
+void dctInit(DCTFFTW *dct, int sizex, int sizey, int bitsPerSample, int opt) {
     dct->sizex = sizex;
     dct->sizey = sizey;
-    dct->dctmode = dctmode;
     dct->bitsPerSample = bitsPerSample;
 
     int size2d = sizey * sizex;

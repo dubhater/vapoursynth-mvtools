@@ -146,9 +146,9 @@ int pobGetArraySize(PlaneOfBlocks *pob, int divideMode);
 
 void pobInterpolatePrediction(PlaneOfBlocks *pob, const PlaneOfBlocks *pob2);
 
-void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFrame *pSrcFrame, MVFrame *pRefFrame, SearchType st, int stp, int lambda, int pnew, int *out, int fieldShift, int thSAD, DCTFFTW *DCT, int smooth, int meander);
+void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFrame *pSrcFrame, MVFrame *pRefFrame, SearchType st, int stp, int lambda, int pnew, int *out, int fieldShift, int thSAD, DCTFFTW *DCT, int dctmode, int smooth, int meander);
 
-void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame, SearchType st, int stp, int lambda, int lsad, int pnew, int plevel, int *out, VECTOR *globalMVec, int fieldShift, DCTFFTW *DCT, int *pmeanLumaChange, int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int tryMany);
+void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame, SearchType st, int stp, int lambda, int lsad, int pnew, int plevel, int *out, VECTOR *globalMVec, int fieldShift, DCTFFTW *DCT, int dctmode, int *pmeanLumaChange, int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int tryMany);
 
 int pobWriteDefaultToArray(PlaneOfBlocks *pob, int *array, int divideMode);
 
