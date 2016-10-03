@@ -243,6 +243,8 @@ cglobal DiagonalBilinear_sse2, 6, 7, 6, x, srcp, stride, width, height, dstp, sr
 
     lea srcpnq, [srcpq + strideq]
 
+    dec heightq
+
 .d_loopy:
     xor xq, xq
 .d_loopx:
