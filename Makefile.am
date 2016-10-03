@@ -28,7 +28,6 @@ libmvtools_la_SOURCES =	src/Bullshit.h \
 						src/Fakery.h \
 						src/GroupOfPlanes.c \
 						src/GroupOfPlanes.h \
-						src/Interpolation.h \
 						src/Luma.cpp \
 						src/Luma.h \
 						src/MaskFun.cpp \

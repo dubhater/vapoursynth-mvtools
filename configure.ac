@@ -1,4 +1,4 @@
-AC_INIT([MVTools], [18], [https://github.com/dubhater/vapoursynth-mvtools/issues], [MVTools], [https://github.com/dubhater/vapoursynth-mvtools/])
+AC_INIT([MVTools], [19], [https://github.com/dubhater/vapoursynth-mvtools/issues], [MVTools], [https://github.com/dubhater/vapoursynth-mvtools/])
 
 : ${CFLAGS=""}
 : ${CXXFLAGS=""}
