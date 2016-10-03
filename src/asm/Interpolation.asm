@@ -160,7 +160,7 @@ cglobal RB2CubicVerticalLine_sse2, 4, 7, 8, dstp, srcp, src_stride, width, x, sr
 
 INIT_XMM
 cglobal RB2QuadraticVerticalLine_sse2, 4, 7, 8, dstp, srcp, src_stride, width, x, src_stride3, src_stride5
-    RB2CubicVerticalLine_sse2_macro 5, 10, 5
+    RB2CubicVerticalLine_sse2_macro 9, 22, 6
 
 
 INIT_XMM
