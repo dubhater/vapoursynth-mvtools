@@ -47,7 +47,7 @@ libmvtools_la_SOURCES =	src/Bullshit.h \
 						src/MVFlowFPSHelper.c \
 						src/MVFlowFPSHelper.h \
 						src/MVFlowInter.c \
-						src/MVFrame.c \
+						src/MVFrame.cpp \
 						src/MVFrame.h \
 						src/MVMask.c \
 						src/MVRecalculate.c \

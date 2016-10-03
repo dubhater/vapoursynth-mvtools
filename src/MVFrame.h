@@ -80,12 +80,6 @@ void mvpPad(MVPlane *mvp);
 
 void mvpRefine(MVPlane *mvp, int sharp);
 
-void mvpRefineExtPel2_uint8_t(MVPlane *mvp, const uint8_t *pSrc2x8, int nSrc2xPitch, int isExtPadded);
-void mvpRefineExtPel2_uint16_t(MVPlane *mvp, const uint8_t *pSrc2x8, int nSrc2xPitch, int isExtPadded);
-
-void mvpRefineExtPel4_uint8_t(MVPlane *mvp, const uint8_t *pSrc2x8, int nSrc2xPitch, int isExtPadded);
-void mvpRefineExtPel4_uint16_t(MVPlane *mvp, const uint8_t *pSrc2x8, int nSrc2xPitch, int isExtPadded);
-
 void mvpRefineExt(MVPlane *mvp, const uint8_t *pSrc2x, int nSrc2xPitch, int isExtPadded);
 
 void mvpReduceTo(MVPlane *mvp, MVPlane *pReducedPlane, int rfilter);
