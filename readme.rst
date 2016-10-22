@@ -43,6 +43,10 @@ Differences
 
     * The optimised SAD, SATD, and SSD functions from x264 have been updated to the latest versions (as of September 2014).
 
+    * Block sizes of 64x32, 64x64, 128x64, and 128x128 are supported.
+
+    * The "dct" parameter can be 5..10 even with blocks larger than 16x16.
+
 * Recalculate:
     * Same as Analyse.
 
