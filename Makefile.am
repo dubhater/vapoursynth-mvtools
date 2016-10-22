@@ -71,7 +71,6 @@ libmvtools_la_SOURCES += src/asm/const-a.asm \
 						 src/asm/cpu-a.asm \
 						 src/asm/pixel-a.asm \
 						 src/asm/sad-a.asm \
-						 src/asm/Interpolation.asm \
 						 src/asm/MVDegrains.asm
 
 noinst_LTLIBRARIES = libavx2.la

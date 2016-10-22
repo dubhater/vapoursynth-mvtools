@@ -35,6 +35,10 @@
 
 #if defined(MVTOOLS_X86)
 
+#include <emmintrin.h>
+
+#define zeroes _mm_setzero_si128()
+
 /* TODO: port these
    extern "C" void  VerticalBicubic_iSSE(uint8_t *pDst, const uint8_t *pSrc, intptr_t nDstPitch,
    intptr_t nWidth, intptr_t nHeight);
@@ -46,26 +50,444 @@
    extern "C" void  RB2FilteredHorizontalInplaceLine_SSE(uint8_t *pSrc, intptr_t nWidthMMX);
    */
 
-void mvtools_Average2_sse2(uint8_t *pDst, const uint8_t *pSrc1, const uint8_t *pSrc2, intptr_t nPitch, intptr_t nWidth, intptr_t nHeight);
+static void Average2_sse2(uint8_t *pDst, const uint8_t *pSrc1, const uint8_t *pSrc2, intptr_t nPitch, intptr_t nWidth, intptr_t nHeight) {
+    for (int y = 0; y < nHeight; y++) {
+        for (int x = 0; x < nWidth; x += 16) {
+            __m128i m0 = _mm_loadu_si128((const __m128i *)&pSrc1[x]);
+            __m128i m1 = _mm_loadu_si128((const __m128i *)&pSrc2[x]);
 
-void mvtools_VerticalBilinear_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
-                                   intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample);
-void mvtools_HorizontalBilinear_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
-                                     intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample);
-void mvtools_DiagonalBilinear_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
-                                   intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample);
+            m0 = _mm_avg_epu8(m0, m1);
+            _mm_storeu_si128((__m128i *)&pDst[x], m0);
+        }
+
+        pSrc1 += nPitch;
+        pSrc2 += nPitch;
+        pDst += nPitch;
+    }
+}
 
 
-void mvtools_RB2CubicHorizontalInplaceLine_sse2(uint8_t *pSrc, intptr_t nWidthMMX);
-void mvtools_RB2CubicVerticalLine_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX);
-void mvtools_RB2QuadraticHorizontalInplaceLine_sse2(uint8_t *pSrc, intptr_t nWidthMMX);
-void mvtools_RB2QuadraticVerticalLine_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX);
-void mvtools_RB2BilinearFilteredVerticalLine_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX);
-void mvtools_RB2BilinearFilteredHorizontalInplaceLine_sse2(uint8_t *pSrc, intptr_t nWidthMMX);
-void mvtools_VerticalWiener_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
-                                 intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample);
-void mvtools_HorizontalWiener_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
-                                   intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample);
+static void VerticalBilinear_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
+                                  intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample) {
+    (void)bitsPerSample;
+
+    for (int y = 0; y < nHeight - 1; y++) {
+        for (int x = 0; x < nWidth; x += 16) {
+            __m128i m0 = _mm_loadu_si128((const __m128i *)&pSrc[x]);
+            __m128i m1 = _mm_loadu_si128((const __m128i *)&pSrc[x + nPitch]);
+
+            m0 = _mm_avg_epu8(m0, m1);
+            _mm_storeu_si128((__m128i *)&pDst[x], m0);
+        }
+
+        pSrc += nPitch;
+        pDst += nPitch;
+    }
+
+    for (int x = 0; x < nWidth; x++)
+        pDst[x] = pSrc[x];
+}
+
+
+static void HorizontalBilinear_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
+                                    intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample) {
+    (void)bitsPerSample;
+
+    for (int y = 0; y < nHeight; y++) {
+        for (int x = 0; x < nWidth; x += 16) {
+            __m128i m0 = _mm_loadu_si128((const __m128i *)&pSrc[x]);
+            __m128i m1 = _mm_loadu_si128((const __m128i *)&pSrc[x + 1]);
+
+            m0 = _mm_avg_epu8(m0, m1);
+            _mm_storeu_si128((__m128i *)&pDst[x], m0);
+        }
+
+        pDst[nWidth - 1] = pSrc[nWidth - 1];
+
+        pSrc += nPitch;
+        pDst += nPitch;
+    }
+}
+
+
+static void DiagonalBilinear_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
+                                  intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample) {
+    (void)bitsPerSample;
+
+    for (int y = 0; y < nHeight - 1; y++) {
+        for (int x = 0; x < nWidth; x += 8) {
+            __m128i m0 = _mm_loadl_epi64((const __m128i *)&pSrc[x]);
+            __m128i m1 = _mm_loadl_epi64((const __m128i *)&pSrc[x + 1]);
+            __m128i m2 = _mm_loadl_epi64((const __m128i *)&pSrc[x + nPitch]);
+            __m128i m3 = _mm_loadl_epi64((const __m128i *)&pSrc[x + nPitch + 1]);
+
+            m0 = _mm_unpacklo_epi8(m0, zeroes);
+            m1 = _mm_unpacklo_epi8(m1, zeroes);
+            m2 = _mm_unpacklo_epi8(m2, zeroes);
+            m3 = _mm_unpacklo_epi8(m3, zeroes);
+
+            m0 = _mm_add_epi16(m0, m1);
+            m2 = _mm_add_epi16(m2, m3);
+            m0 = _mm_add_epi16(m0, _mm_set1_epi16(2));
+            m0 = _mm_add_epi16(m0, m2);
+
+            m0 = _mm_srli_epi16(m0, 2);
+
+            m0 = _mm_packus_epi16(m0, m0);
+            _mm_storel_epi64((__m128i *)&pDst[x], m0);
+        }
+
+        pDst[nWidth - 1] = (pSrc[nWidth - 1] + pSrc[nWidth - 1 + nPitch] + 1) >> 1;
+
+        pSrc += nPitch;
+        pDst += nPitch;
+    }
+
+    for (int x = 0; x < nWidth; x += 8) {
+        __m128i m0 = _mm_loadl_epi64((const __m128i *)&pSrc[x]);
+        __m128i m1 = _mm_loadl_epi64((const __m128i *)&pSrc[x + 1]);
+
+        m0 = _mm_avg_epu8(m0, m1);
+        _mm_storel_epi64((__m128i *)&pDst[x], m0);
+    }
+
+    pDst[nWidth - 1] = pSrc[nWidth - 1];
+}
+
+
+static void RB2CubicHorizontalInplaceLine_sse2(uint8_t *pSrc, intptr_t nWidthMMX) {
+    __m128i words_255 = _mm_set1_epi16(255);
+
+    for (int x = 1; x < nWidthMMX; x += 8) {
+        __m128i m0 = _mm_loadu_si128((const __m128i *)&pSrc[x * 2 - 2]);
+        __m128i m1 = _mm_loadu_si128((const __m128i *)&pSrc[x * 2 - 1]);
+        __m128i m2 = _mm_loadu_si128((const __m128i *)&pSrc[x * 2]);
+        __m128i m3 = _mm_loadu_si128((const __m128i *)&pSrc[x * 2 + 1]);
+        __m128i m4 = _mm_loadu_si128((const __m128i *)&pSrc[x * 2 + 2]);
+        __m128i m5 = _mm_loadu_si128((const __m128i *)&pSrc[x * 2 + 3]);
+
+        m0 = _mm_and_si128(m0, words_255);
+        m1 = _mm_and_si128(m1, words_255);
+        m2 = _mm_and_si128(m2, words_255);
+        m3 = _mm_and_si128(m3, words_255);
+        m4 = _mm_and_si128(m4, words_255);
+        m5 = _mm_and_si128(m5, words_255);
+
+        m2 = _mm_add_epi16(m2, m3);
+        m3 = _mm_slli_epi16(m2, 3);
+        m2 = _mm_slli_epi16(m2, 1);
+        m2 = _mm_add_epi16(m2, m3);
+
+        m1 = _mm_add_epi16(m1, m4);
+        m4 = _mm_slli_epi16(m1, 2);
+        m1 = _mm_add_epi16(m1, m4);
+
+        m2 = _mm_add_epi16(m2, m1);
+        m2 = _mm_add_epi16(m2, m0);
+        m2 = _mm_add_epi16(m2, m5);
+
+        m2 = _mm_add_epi16(m2, _mm_set1_epi16(16));
+        m2 = _mm_srli_epi16(m2, 5);
+        m2 = _mm_packus_epi16(m2, m2);
+        _mm_storel_epi64((__m128i *)&pSrc[x], m2);
+    }
+}
+
+
+static void RB2CubicVerticalLine_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX) {
+    for (int x = 0; x < nWidthMMX; x += 8) {
+        __m128i m0 = _mm_loadl_epi64((const __m128i *)&pSrc[x - nSrcPitch * 2]);
+        __m128i m1 = _mm_loadl_epi64((const __m128i *)&pSrc[x - nSrcPitch]);
+        __m128i m2 = _mm_loadl_epi64((const __m128i *)&pSrc[x]);
+        __m128i m3 = _mm_loadl_epi64((const __m128i *)&pSrc[x + nSrcPitch]);
+        __m128i m4 = _mm_loadl_epi64((const __m128i *)&pSrc[x + nSrcPitch * 2]);
+        __m128i m5 = _mm_loadl_epi64((const __m128i *)&pSrc[x + nSrcPitch * 3]);
+
+        m0 = _mm_unpacklo_epi8(m0, zeroes);
+        m1 = _mm_unpacklo_epi8(m1, zeroes);
+        m2 = _mm_unpacklo_epi8(m2, zeroes);
+        m3 = _mm_unpacklo_epi8(m3, zeroes);
+        m4 = _mm_unpacklo_epi8(m4, zeroes);
+        m5 = _mm_unpacklo_epi8(m5, zeroes);
+
+        m2 = _mm_add_epi16(m2, m3);
+        m3 = _mm_slli_epi16(m2, 3);
+        m2 = _mm_slli_epi16(m2, 1);
+        m2 = _mm_add_epi16(m2, m3);
+
+        m1 = _mm_add_epi16(m1, m4);
+        m4 = _mm_slli_epi16(m1, 2);
+        m1 = _mm_add_epi16(m1, m4);
+
+        m2 = _mm_add_epi16(m2, m1);
+        m2 = _mm_add_epi16(m2, m0);
+        m2 = _mm_add_epi16(m2, m5);
+
+        m2 = _mm_add_epi16(m2, _mm_set1_epi16(16));
+        m2 = _mm_srli_epi16(m2, 5);
+        m2 = _mm_packus_epi16(m2, m2);
+        _mm_storel_epi64((__m128i *)&pDst[x], m2);
+    }
+}
+
+
+static void RB2QuadraticHorizontalInplaceLine_sse2(uint8_t *pSrc, intptr_t nWidthMMX) {
+    __m128i words_255 = _mm_set1_epi16(255);
+
+    for (int x = 1; x < nWidthMMX; x += 8) {
+        __m128i m0 = _mm_loadu_si128((const __m128i *)&pSrc[x * 2 - 2]);
+        __m128i m1 = _mm_loadu_si128((const __m128i *)&pSrc[x * 2 - 1]);
+        __m128i m2 = _mm_loadu_si128((const __m128i *)&pSrc[x * 2]);
+        __m128i m3 = _mm_loadu_si128((const __m128i *)&pSrc[x * 2 + 1]);
+        __m128i m4 = _mm_loadu_si128((const __m128i *)&pSrc[x * 2 + 2]);
+        __m128i m5 = _mm_loadu_si128((const __m128i *)&pSrc[x * 2 + 3]);
+
+        m0 = _mm_and_si128(m0, words_255);
+        m1 = _mm_and_si128(m1, words_255);
+        m2 = _mm_and_si128(m2, words_255);
+        m3 = _mm_and_si128(m3, words_255);
+        m4 = _mm_and_si128(m4, words_255);
+        m5 = _mm_and_si128(m5, words_255);
+
+        m2 = _mm_add_epi16(m2, m3);
+        m2 = _mm_mullo_epi16(m2, _mm_set1_epi16(22));
+
+        m1 = _mm_add_epi16(m1, m4);
+        m4 = _mm_slli_epi16(m1, 3);
+        m1 = _mm_add_epi16(m1, m4);
+
+        m2 = _mm_add_epi16(m2, m1);
+        m2 = _mm_add_epi16(m2, m0);
+        m2 = _mm_add_epi16(m2, m5);
+
+        m2 = _mm_add_epi16(m2, _mm_set1_epi16(32));
+        m2 = _mm_srli_epi16(m2, 6);
+        m2 = _mm_packus_epi16(m2, m2);
+        _mm_storel_epi64((__m128i *)&pSrc[x], m2);
+    }
+}
+
+
+static void RB2QuadraticVerticalLine_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX) {
+    for (int x = 0; x < nWidthMMX; x += 8) {
+        __m128i m0 = _mm_loadl_epi64((const __m128i *)&pSrc[x - nSrcPitch * 2]);
+        __m128i m1 = _mm_loadl_epi64((const __m128i *)&pSrc[x - nSrcPitch]);
+        __m128i m2 = _mm_loadl_epi64((const __m128i *)&pSrc[x]);
+        __m128i m3 = _mm_loadl_epi64((const __m128i *)&pSrc[x + nSrcPitch]);
+        __m128i m4 = _mm_loadl_epi64((const __m128i *)&pSrc[x + nSrcPitch * 2]);
+        __m128i m5 = _mm_loadl_epi64((const __m128i *)&pSrc[x + nSrcPitch * 3]);
+
+        m0 = _mm_unpacklo_epi8(m0, zeroes);
+        m1 = _mm_unpacklo_epi8(m1, zeroes);
+        m2 = _mm_unpacklo_epi8(m2, zeroes);
+        m3 = _mm_unpacklo_epi8(m3, zeroes);
+        m4 = _mm_unpacklo_epi8(m4, zeroes);
+        m5 = _mm_unpacklo_epi8(m5, zeroes);
+
+        m2 = _mm_add_epi16(m2, m3);
+        m2 = _mm_mullo_epi16(m2, _mm_set1_epi16(22));
+
+        m1 = _mm_add_epi16(m1, m4);
+        m4 = _mm_slli_epi16(m1, 3);
+        m1 = _mm_add_epi16(m1, m4);
+
+        m2 = _mm_add_epi16(m2, m1);
+        m2 = _mm_add_epi16(m2, m0);
+        m2 = _mm_add_epi16(m2, m5);
+
+        m2 = _mm_add_epi16(m2, _mm_set1_epi16(32));
+        m2 = _mm_srli_epi16(m2, 6);
+        m2 = _mm_packus_epi16(m2, m2);
+        _mm_storel_epi64((__m128i *)&pDst[x], m2);
+    }
+}
+
+
+static void RB2BilinearFilteredVerticalLine_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidthMMX) {
+    for (int x = 0; x < nWidthMMX; x += 8) {
+        __m128i m0 = _mm_loadl_epi64((const __m128i *)&pSrc[x - nSrcPitch]);
+        __m128i m1 = _mm_loadl_epi64((const __m128i *)&pSrc[x]);
+        __m128i m2 = _mm_loadl_epi64((const __m128i *)&pSrc[x + nSrcPitch]);
+        __m128i m3 = _mm_loadl_epi64((const __m128i *)&pSrc[x + nSrcPitch * 2]);
+
+        m0 = _mm_unpacklo_epi8(m0, zeroes);
+        m1 = _mm_unpacklo_epi8(m1, zeroes);
+        m2 = _mm_unpacklo_epi8(m2, zeroes);
+        m3 = _mm_unpacklo_epi8(m3, zeroes);
+
+        m1 = _mm_add_epi16(m1, m2);
+        m2 = _mm_slli_epi16(m1, 1);
+        m1 = _mm_add_epi16(m1, m2);
+
+        m0 = _mm_add_epi16(m0, m1);
+        m0 = _mm_add_epi16(m0, m3);
+        m0 = _mm_add_epi16(m0, _mm_set1_epi16(4));
+        m0 = _mm_srli_epi16(m0, 3);
+
+        m0 = _mm_packus_epi16(m0, m0);
+        _mm_storel_epi64((__m128i *)&pDst[x], m0);
+    }
+}
+
+
+static void RB2BilinearFilteredHorizontalInplaceLine_sse2(uint8_t *pSrc, intptr_t nWidthMMX) {
+    for (int x = 1; x < nWidthMMX; x += 8) {
+        __m128i m0 = _mm_loadu_si128((const __m128i *)&pSrc[x * 2 - 1]);
+        __m128i m1 = _mm_loadu_si128((const __m128i *)&pSrc[x * 2]);
+        __m128i m2 = _mm_loadu_si128((const __m128i *)&pSrc[x * 2 + 1]);
+        __m128i m3 = _mm_loadu_si128((const __m128i *)&pSrc[x * 2 + 2]);
+
+        __m128i words_255 = _mm_set1_epi16(255);
+
+        m0 = _mm_and_si128(m0, words_255);
+        m1 = _mm_and_si128(m1, words_255);
+        m2 = _mm_and_si128(m2, words_255);
+        m3 = _mm_and_si128(m3, words_255);
+
+        m1 = _mm_add_epi16(m1, m2);
+        m2 = _mm_slli_epi16(m1, 1);
+        m1 = _mm_add_epi16(m1, m2);
+
+        m0 = _mm_add_epi16(m0, m1);
+        m0 = _mm_add_epi16(m0, m3);
+        m0 = _mm_add_epi16(m0, _mm_set1_epi16(4));
+        m0 = _mm_srli_epi16(m0, 3);
+
+        m0 = _mm_packus_epi16(m0, m0);
+        _mm_storel_epi64((__m128i *)&pSrc[x], m0);
+    }
+}
+
+
+static void VerticalWiener_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
+                                intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample) {
+    (void)bitsPerSample;
+
+    for (int y = 0; y < 2; y++) {
+        for (int x = 0; x < nWidth; x += 16) {
+            __m128i m0 = _mm_loadu_si128((const __m128i *)&pSrc[x]);
+            __m128i m1 = _mm_loadu_si128((const __m128i *)&pSrc[x + nPitch]);
+
+            m0 = _mm_avg_epu8(m0, m1);
+            _mm_storeu_si128((__m128i *)&pDst[x], m0);
+        }
+
+        pSrc += nPitch;
+        pDst += nPitch;
+    }
+
+    for (int y = 2; y < nHeight - 4; y++) {
+        for (int x = 0; x < nWidth; x += 8) {
+            __m128i m0 = _mm_loadl_epi64((const __m128i *)&pSrc[x - nPitch * 2]);
+            __m128i m1 = _mm_loadl_epi64((const __m128i *)&pSrc[x - nPitch]);
+            __m128i m2 = _mm_loadl_epi64((const __m128i *)&pSrc[x]);
+            __m128i m3 = _mm_loadl_epi64((const __m128i *)&pSrc[x + nPitch]);
+            __m128i m4 = _mm_loadl_epi64((const __m128i *)&pSrc[x + nPitch * 2]);
+            __m128i m5 = _mm_loadl_epi64((const __m128i *)&pSrc[x + nPitch * 3]);
+
+            m0 = _mm_unpacklo_epi8(m0, zeroes);
+            m1 = _mm_unpacklo_epi8(m1, zeroes);
+            m2 = _mm_unpacklo_epi8(m2, zeroes);
+            m3 = _mm_unpacklo_epi8(m3, zeroes);
+            m4 = _mm_unpacklo_epi8(m4, zeroes);
+            m5 = _mm_unpacklo_epi8(m5, zeroes);
+
+            m2 = _mm_add_epi16(m2, m3);
+            m2 = _mm_slli_epi16(m2, 2);
+
+            m1 = _mm_add_epi16(m1, m4);
+
+            m2 = _mm_sub_epi16(m2, m1);
+            m3 = _mm_slli_epi16(m2, 2);
+            m2 = _mm_add_epi16(m2, m3);
+
+            m0 = _mm_add_epi16(m0, m5);
+            m0 = _mm_add_epi16(m0, m2);
+            m0 = _mm_add_epi16(m0, _mm_set1_epi16(16));
+
+            m0 = _mm_srai_epi16(m0, 5);
+            m0 = _mm_packus_epi16(m0, m0);
+            _mm_storel_epi64((__m128i *)&pDst[x], m0);
+        }
+
+        pSrc += nPitch;
+        pDst += nPitch;
+    }
+
+    for (int y = nHeight - 4; y < nHeight - 1; y++) {
+        for (int x = 0; x < nWidth; x += 16) {
+            __m128i m0 = _mm_loadu_si128((const __m128i *)&pSrc[x]);
+            __m128i m1 = _mm_loadu_si128((const __m128i *)&pSrc[x + nPitch]);
+
+            m0 = _mm_avg_epu8(m0, m1);
+            _mm_storeu_si128((__m128i *)&pDst[x], m0);
+        }
+
+        pSrc += nPitch;
+        pDst += nPitch;
+    }
+
+    for (int x = 0; x < nWidth; x++)
+        pDst[x] = pSrc[x];
+}
+
+
+static void HorizontalWiener_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
+                                  intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample) {
+    (void)bitsPerSample;
+
+    for (int y = 0; y < nHeight; y++) {
+        __m128i a = _mm_cvtsi32_si128(*(const int *)&pSrc[0]);
+        __m128i b = _mm_cvtsi32_si128(*(const int *)&pSrc[1]);
+
+        a = _mm_avg_epu8(a, b);
+        *(int *)&pDst[0] = _mm_cvtsi128_si32(a);
+
+        for (int x = 4; x < nWidth - 4; x += 8) {
+            __m128i m0 = _mm_loadl_epi64((const __m128i *)&pSrc[x - 2]);
+            __m128i m1 = _mm_loadl_epi64((const __m128i *)&pSrc[x - 1]);
+            __m128i m2 = _mm_loadl_epi64((const __m128i *)&pSrc[x]);
+            __m128i m3 = _mm_loadl_epi64((const __m128i *)&pSrc[x + 1]);
+            __m128i m4 = _mm_loadl_epi64((const __m128i *)&pSrc[x + 2]);
+            __m128i m5 = _mm_loadl_epi64((const __m128i *)&pSrc[x + 3]);
+
+            m0 = _mm_unpacklo_epi8(m0, zeroes);
+            m1 = _mm_unpacklo_epi8(m1, zeroes);
+            m2 = _mm_unpacklo_epi8(m2, zeroes);
+            m3 = _mm_unpacklo_epi8(m3, zeroes);
+            m4 = _mm_unpacklo_epi8(m4, zeroes);
+            m5 = _mm_unpacklo_epi8(m5, zeroes);
+
+            m2 = _mm_add_epi16(m2, m3);
+            m2 = _mm_slli_epi16(m2, 2);
+
+            m1 = _mm_add_epi16(m1, m4);
+
+            m2 = _mm_sub_epi16(m2, m1);
+            m3 = _mm_slli_epi16(m2, 2);
+            m2 = _mm_add_epi16(m2, m3);
+
+            m0 = _mm_add_epi16(m0, m5);
+            m0 = _mm_add_epi16(m0, m2);
+            m0 = _mm_add_epi16(m0, _mm_set1_epi16(16));
+
+            m0 = _mm_srai_epi16(m0, 5);
+            m0 = _mm_packus_epi16(m0, m0);
+            _mm_storel_epi64((__m128i *)&pDst[x], m0);
+        }
+
+        a = _mm_cvtsi32_si128(*(const int *)&pSrc[nWidth - 4]);
+        b = _mm_cvtsi32_si128(*(const int *)&pSrc[nWidth - 4 + 1]);
+
+        a = _mm_avg_epu8(a, b);
+        *(int *)&pDst[nWidth - 4] = _mm_cvtsi128_si32(a);
+
+        pDst[nWidth - 1] = pSrc[nWidth - 1];
+
+        pDst += nPitch;
+        pSrc += nPitch;
+    }
+}
 
 #endif // MVTOOLS_X86
 
@@ -281,7 +703,7 @@ static void RB2BilinearFilteredVertical(uint8_t *pDst8, const uint8_t *pSrc8, in
 
         if (sizeof(PixelType) == 1 && opt && nWidthMMX >= 8) {
 #if defined(MVTOOLS_X86)
-            mvtools_RB2BilinearFilteredVerticalLine_sse2((uint8_t *)pDst, (const uint8_t *)pSrc, nSrcPitch, nWidthMMX);
+            RB2BilinearFilteredVerticalLine_sse2((uint8_t *)pDst, (const uint8_t *)pSrc, nSrcPitch, nWidthMMX);
             xstart = nWidthMMX;
 #endif
         }
@@ -319,7 +741,7 @@ static void RB2BilinearFilteredHorizontalInplace(uint8_t *pSrc8, int nSrcPitch, 
 
         if (sizeof(PixelType) == 1 && opt) {
 #if defined(MVTOOLS_X86)
-            mvtools_RB2BilinearFilteredHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX); /* very first is skipped */
+            RB2BilinearFilteredHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX); /* very first is skipped */
             xstart = nWidthMMX;
 #endif
         }
@@ -371,7 +793,7 @@ static void RB2QuadraticVertical(uint8_t *pDst8, const uint8_t *pSrc8, int nDstP
 
         if (sizeof(PixelType) == 1 && opt && nWidthMMX >= 8) {
 #if defined(MVTOOLS_X86)
-            mvtools_RB2QuadraticVerticalLine_sse2((uint8_t *)pDst, (const uint8_t *)pSrc, nSrcPitch, nWidthMMX);
+            RB2QuadraticVerticalLine_sse2((uint8_t *)pDst, (const uint8_t *)pSrc, nSrcPitch, nWidthMMX);
             xstart = nWidthMMX;
 #endif
         }
@@ -410,7 +832,7 @@ static void RB2QuadraticHorizontalInplace(uint8_t *pSrc8, int nSrcPitch, int nWi
 
         if (sizeof(PixelType) == 1 && opt) {
 #if defined(MVTOOLS_X86)
-            mvtools_RB2QuadraticHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX);
+            RB2QuadraticHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX);
             xstart = nWidthMMX;
 #endif
         }
@@ -462,7 +884,7 @@ static void RB2CubicVertical(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch
 
         if (sizeof(PixelType) == 1 && opt && nWidthMMX >= 8) {
 #if defined(MVTOOLS_X86)
-            mvtools_RB2CubicVerticalLine_sse2((uint8_t *)pDst, (const uint8_t *)pSrc, nSrcPitch, nWidthMMX);
+            RB2CubicVerticalLine_sse2((uint8_t *)pDst, (const uint8_t *)pSrc, nSrcPitch, nWidthMMX);
             xstart = nWidthMMX;
 #endif
         }
@@ -501,7 +923,7 @@ static void RB2CubicHorizontalInplace(uint8_t *pSrc8, int nSrcPitch, int nWidth,
 
         if (sizeof(PixelType) == 1 && opt) {
 #if defined(MVTOOLS_X86)
-            mvtools_RB2CubicHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX);
+            RB2CubicHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX);
             xstart = nWidthMMX;
 #endif
         }
@@ -888,9 +1310,9 @@ void mvpRefine(MVPlane *mvp, int sharp) {
 
             if (mvp->opt) {
 #if defined(MVTOOLS_X86)
-                refine[0] = mvtools_HorizontalBilinear_sse2;
-                refine[1] = mvtools_VerticalBilinear_sse2;
-                refine[2] = mvtools_DiagonalBilinear_sse2;
+                refine[0] = HorizontalBilinear_sse2;
+                refine[1] = VerticalBilinear_sse2;
+                refine[2] = DiagonalBilinear_sse2;
 #endif
             }
         } else {
@@ -921,8 +1343,8 @@ void mvpRefine(MVPlane *mvp, int sharp) {
 
             if (mvp->opt) {
 #if defined(MVTOOLS_X86)
-                refine[0] = refine[2] = mvtools_HorizontalWiener_sse2;
-                refine[1] = mvtools_VerticalWiener_sse2;
+                refine[0] = refine[2] = HorizontalWiener_sse2;
+                refine[1] = VerticalWiener_sse2;
 #endif
             }
         } else {
@@ -967,7 +1389,7 @@ void mvpRefine(MVPlane *mvp, int sharp) {
 
             if (mvp->opt) {
 #if defined(MVTOOLS_X86)
-                avg = mvtools_Average2_sse2;
+                avg = Average2_sse2;
 #endif
             }
         } else {
