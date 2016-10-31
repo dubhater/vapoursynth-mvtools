@@ -437,13 +437,10 @@ static void HorizontalWiener_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t n
     (void)bitsPerSample;
 
     for (int y = 0; y < nHeight; y++) {
-        __m128i a = _mm_cvtsi32_si128(*(const int *)&pSrc[0]);
-        __m128i b = _mm_cvtsi32_si128(*(const int *)&pSrc[1]);
+        pDst[0] = (pSrc[0] + pSrc[1] + 1) >> 1;
+        pDst[1] = (pSrc[1] + pSrc[2] + 1) >> 1;
 
-        a = _mm_avg_epu8(a, b);
-        *(int *)&pDst[0] = _mm_cvtsi128_si32(a);
-
-        for (int x = 4; x < nWidth - 4; x += 8) {
+        for (int x = 2; x < nWidth - 4; x += 8) {
             __m128i m0 = _mm_loadl_epi64((const __m128i *)&pSrc[x - 2]);
             __m128i m1 = _mm_loadl_epi64((const __m128i *)&pSrc[x - 1]);
             __m128i m2 = _mm_loadl_epi64((const __m128i *)&pSrc[x]);
@@ -476,11 +473,8 @@ static void HorizontalWiener_sse2(uint8_t *pDst, const uint8_t *pSrc, intptr_t n
             _mm_storel_epi64((__m128i *)&pDst[x], m0);
         }
 
-        a = _mm_cvtsi32_si128(*(const int *)&pSrc[nWidth - 4]);
-        b = _mm_cvtsi32_si128(*(const int *)&pSrc[nWidth - 4 + 1]);
-
-        a = _mm_avg_epu8(a, b);
-        *(int *)&pDst[nWidth - 4] = _mm_cvtsi128_si32(a);
+        for (int x = nWidth - 4; x < nWidth - 1; x++)
+            pDst[x] = (pSrc[x] + pSrc[x + 1] + 1) >> 1;
 
         pDst[nWidth - 1] = pSrc[nWidth - 1];
 
