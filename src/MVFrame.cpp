@@ -702,7 +702,7 @@ static void RB2BilinearFilteredVertical(uint8_t *pDst8, const uint8_t *pSrc8, in
 #endif
         }
         for (int x = xstart; x < nWidth; x++)
-            pDst[x] = (pSrc[x - nSrcPitch] + pSrc[x] * 3 + pSrc[x + nSrcPitch] * 3 + pSrc[x + nSrcPitch * 2] + 4) / 8;
+            pDst[x] = (pSrc[x - nSrcPitch] + (pSrc[x] + pSrc[x + nSrcPitch]) * 3 + pSrc[x + nSrcPitch * 2] + 4) / 8;
 \
         pDst += nDstPitch;
         pSrc += nSrcPitch * 2;
@@ -740,7 +740,7 @@ static void RB2BilinearFilteredHorizontalInplace(uint8_t *pSrc8, int nSrcPitch, 
 #endif
         }
         for (x = xstart; x < nWidth - 1; x++)
-            pSrc[x] = (pSrc[x * 2 - 1] + pSrc[x * 2] * 3 + pSrc[x * 2 + 1] * 3 + pSrc[x * 2 + 2] + 4) / 8;
+            pSrc[x] = (pSrc[x * 2 - 1] + (pSrc[x * 2] + pSrc[x * 2 + 1]) * 3 + pSrc[x * 2 + 2] + 4) / 8;
 
         pSrc[0] = pSrc0;
 
@@ -792,10 +792,22 @@ static void RB2QuadraticVertical(uint8_t *pDst8, const uint8_t *pSrc8, int nDstP
 #endif
         }
 
-        for (int x = xstart; x < nWidth; x++)
-            pDst[x] = (pSrc[x - nSrcPitch * 2] + pSrc[x - nSrcPitch] * 9 + pSrc[x] * 22 +
-                       pSrc[x + nSrcPitch] * 22 + pSrc[x + nSrcPitch * 2] * 9 + pSrc[x + nSrcPitch * 3] + 32) / 64;
-\
+        for (int x = xstart; x < nWidth; x++) {
+            int m0 = pSrc[x - nSrcPitch * 2];
+            int m1 = pSrc[x - nSrcPitch];
+            int m2 = pSrc[x];
+            int m3 = pSrc[x + nSrcPitch];
+            int m4 = pSrc[x + nSrcPitch * 2];
+            int m5 = pSrc[x + nSrcPitch * 3];
+
+            m2 = (m2 + m3) * 22;
+            m1 = (m1 + m4) * 9;
+            m0 += m5 + m2 + m1 + 32;
+            m0 >>= 6;
+
+            pDst[x] = m0;
+        }
+
         pDst += nDstPitch;
         pSrc += nSrcPitch * 2;
     }
@@ -831,8 +843,21 @@ static void RB2QuadraticHorizontalInplace(uint8_t *pSrc8, int nSrcPitch, int nWi
 #endif
         }
 
-        for (x = xstart; x < nWidth - 1; x++)
-            pSrc[x] = (pSrc[x * 2 - 2] + pSrc[x * 2 - 1] * 9 + pSrc[x * 2] * 22 + pSrc[x * 2 + 1] * 22 + pSrc[x * 2 + 2] * 9 + pSrc[x * 2 + 3] + 32) / 64;
+        for (x = xstart; x < nWidth - 1; x++) {
+            int m0 = pSrc[x * 2 - 2];
+            int m1 = pSrc[x * 2 - 1];
+            int m2 = pSrc[x * 2];
+            int m3 = pSrc[x * 2 + 1];
+            int m4 = pSrc[x * 2 + 2];
+            int m5 = pSrc[x * 2 + 3];
+
+            m2 = (m2 + m3) * 22;
+            m1 = (m1 + m4) * 9;
+            m0 += m5 + m2 + m1 + 32;
+            m0 >>= 6;
+
+            pSrc[x] = m0;
+        }
 
         pSrc[0] = pSrc0;
 
@@ -883,9 +908,21 @@ static void RB2CubicVertical(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch
 #endif
         }
 
-        for (int x = xstart; x < nWidth; x++)
-            pDst[x] = (pSrc[x - nSrcPitch * 2] + pSrc[x - nSrcPitch] * 5 + pSrc[x] * 10 +
-                       pSrc[x + nSrcPitch] * 10 + pSrc[x + nSrcPitch * 2] * 5 + pSrc[x + nSrcPitch * 3] + 16) / 32;
+        for (int x = xstart; x < nWidth; x++) {
+            int m0 = pSrc[x - nSrcPitch * 2];
+            int m1 = pSrc[x - nSrcPitch];
+            int m2 = pSrc[x];
+            int m3 = pSrc[x + nSrcPitch];
+            int m4 = pSrc[x + nSrcPitch * 2];
+            int m5 = pSrc[x + nSrcPitch * 3];
+
+            m2 = (m2 + m3) * 10;
+            m1 = (m1 + m4) * 5;
+            m0 += m5 + m2 + m1 + 16;
+            m0 >>= 5;
+
+            pDst[x] = m0;
+        }
 
         pDst += nDstPitch;
         pSrc += nSrcPitch * 2;
@@ -922,8 +959,21 @@ static void RB2CubicHorizontalInplace(uint8_t *pSrc8, int nSrcPitch, int nWidth,
 #endif
         }
 
-        for (x = xstart; x < nWidth - 1; x++)
-            pSrc[x] = (pSrc[x * 2 - 2] + pSrc[x * 2 - 1] * 5 + pSrc[x * 2] * 10 + pSrc[x * 2 + 1] * 10 + pSrc[x * 2 + 2] * 5 + pSrc[x * 2 + 3] + 16) / 32;
+        for (x = xstart; x < nWidth - 1; x++) {
+            int m0 = pSrc[x * 2 - 2];
+            int m1 = pSrc[x * 2 - 1];
+            int m2 = pSrc[x * 2];
+            int m3 = pSrc[x * 2 + 1];
+            int m4 = pSrc[x * 2 + 2];
+            int m5 = pSrc[x * 2 + 3];
+
+            m2 = (m2 + m3) * 10;
+            m1 = (m1 + m4) * 5;
+            m0 += m5 + m2 + m1 + 16;
+            m0 >>= 5;
+
+            pSrc[x] = m0;
+        }
 
         pSrc[0] = pSrcw0;
 
@@ -965,8 +1015,22 @@ static void VerticalWiener(uint8_t *pDst8, const uint8_t *pSrc8,
     }
     for (int j = 2; j < nHeight - 4; j++) {
         for (int i = 0; i < nWidth; i++) {
-            pDst[i] = min(pixelMax, max(0,
-                                        ((pSrc[i - nPitch * 2]) + (-(pSrc[i - nPitch]) + (pSrc[i] << 2) + (pSrc[i + nPitch] << 2) - (pSrc[i + nPitch * 2])) * 5 + (pSrc[i + nPitch * 3]) + 16) >> 5));
+            int m0 = pSrc[i - nPitch * 2];
+            int m1 = pSrc[i - nPitch];
+            int m2 = pSrc[i];
+            int m3 = pSrc[i + nPitch];
+            int m4 = pSrc[i + nPitch * 2];
+            int m5 = pSrc[i + nPitch * 3];
+
+            m2 = (m2 + m3) * 4;
+
+            m2 -= m1 + m4;
+            m2 *= 5;
+
+            m0 += m5 + m2 + 16;
+            m0 >>= 5;
+
+            pDst[i] = max(0, min(m0, pixelMax));
         }
         pDst += nPitch;
         pSrc += nPitch;
@@ -998,9 +1062,26 @@ static void HorizontalWiener(uint8_t *pDst8, const uint8_t *pSrc8,
     for (int j = 0; j < nHeight; j++) {
         pDst[0] = (pSrc[0] + pSrc[1] + 1) >> 1;
         pDst[1] = (pSrc[1] + pSrc[2] + 1) >> 1;
+
         for (int i = 2; i < nWidth - 4; i++) {
-            pDst[i] = min(pixelMax, max(0, ((pSrc[i - 2]) + (-(pSrc[i - 1]) + (pSrc[i] << 2) + (pSrc[i + 1] << 2) - (pSrc[i + 2])) * 5 + (pSrc[i + 3]) + 16) >> 5));
+            int m0 = pSrc[i - 2];
+            int m1 = pSrc[i - 1];
+            int m2 = pSrc[i];
+            int m3 = pSrc[i + 1];
+            int m4 = pSrc[i + 2];
+            int m5 = pSrc[i + 3];
+
+            m2 = (m2 + m3) * 4;
+
+            m2 -= m1 + m4;
+            m2 *= 5;
+
+            m0 += m5 + m2 + 16;
+            m0 >>= 5;
+
+            pDst[i] = max(0, min(m0, pixelMax));
         }
+
         for (int i = nWidth - 4; i < nWidth - 1; i++)
             pDst[i] = (pSrc[i] + pSrc[i + 1] + 1) >> 1;
 
