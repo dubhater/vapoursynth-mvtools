@@ -139,6 +139,7 @@ static void VS_CC mvsuperFree(void *instanceData, VSCore *core, const VSAPI *vsa
     MVSuperData *d = (MVSuperData *)instanceData;
 
     vsapi->freeNode(d->node);
+    vsapi->freeNode(d->pelclip);
     free(d);
 }
 
