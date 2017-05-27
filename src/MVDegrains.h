@@ -165,31 +165,18 @@ static void Degrain_sse2(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int 
 
 static void LimitChanges_sse2(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidth, intptr_t nHeight, intptr_t nLimit) {
     __m128i bytes_limit = _mm_set1_epi8(nLimit);
-    __m128i zeroes = _mm_setzero_si128();
 
     for (int y = 0; y < nHeight; y++) {
         for (int x = 0; x < nWidth; x += 16) {
-            __m128i m0, m1, m2, m3;
-            m0 = _mm_load_si128((const __m128i *)&pSrc[x]);
-            m1 = _mm_load_si128((const __m128i *)&pDst[x]);
+            __m128i m0 = _mm_load_si128((const __m128i *)&pSrc[x]);
+            __m128i m1 = _mm_load_si128((const __m128i *)&pDst[x]);
 
-            m2 = _mm_adds_epu8(m0, bytes_limit);
-            m3 = _mm_adds_epu8(m0, m1);
-            m3 = _mm_adds_epu8(m3, bytes_limit);
-            m3 = _mm_cmpeq_epi8(m3, zeroes);
-            m1 = _mm_and_si128(m1, m3);
-            m3 = _mm_andnot_si128(m3, m2);
-            m1 = _mm_or_si128(m1, m3);
+            __m128i lower = _mm_subs_epu8(m0, bytes_limit);
+            __m128i upper = _mm_adds_epu8(m0, bytes_limit);
 
-            m2 = _mm_subs_epu8(m0, bytes_limit);
-            m3 = _mm_subs_epu8(m0, m1);
-            m3 = _mm_subs_epu8(m3, bytes_limit);
-            m3 = _mm_cmpeq_epi8(m3, zeroes);
-            m1 = _mm_and_si128(m1, m3);
-            m3 = _mm_andnot_si128(m3, m2);
-            m1 = _mm_or_si128(m1, m3);
+            m0 = _mm_min_epu8(_mm_max_epu8(lower, m1), upper);
 
-            _mm_store_si128((__m128i *)&pDst[x], m1);
+            _mm_store_si128((__m128i *)&pDst[x], m0);
         }
 
         pSrc += nSrcPitch;
