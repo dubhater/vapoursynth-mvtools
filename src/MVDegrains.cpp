@@ -529,7 +529,7 @@ static void selectFunctions(MVDegrainData *d) {
 
         if (d->opt) {
 #if defined(MVTOOLS_X86)
-            d->LimitChanges = mvtools_LimitChanges_sse2;
+            d->LimitChanges = LimitChanges_sse2;
 #endif
         }
     } else {
