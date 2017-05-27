@@ -1229,7 +1229,7 @@ unsigned int PlaneSuperOffset(int chroma, int src_height, int level, int pel, in
 
 
 template <typename PixelType>
-void PadCorner(PixelType *p, PixelType v, int hPad, int vPad, int refPitch) {
+static void PadCorner(PixelType *p, PixelType v, int hPad, int vPad, int refPitch) {
     for (int i = 0; i < vPad; i++) {
         if (sizeof(PixelType) == 1)
             memset(p, v, hPad); /* faster than loop */
@@ -1243,7 +1243,7 @@ void PadCorner(PixelType *p, PixelType v, int hPad, int vPad, int refPitch) {
 
 
 template <typename PixelType>
-void PadReferenceFrame(uint8_t *refFrame8, int refPitch, int hPad, int vPad, int width, int height) {
+static void PadReferenceFrame(uint8_t *refFrame8, int refPitch, int hPad, int vPad, int width, int height) {
     refPitch /= sizeof(PixelType);
     PixelType *refFrame = (PixelType *)refFrame8;
     PixelType value;
@@ -1492,7 +1492,7 @@ void mvpRefine(MVPlane *mvp, int sharp) {
 
 
 template <typename PixelType>
-void mvpRefineExtPel2(MVPlane *mvp, const uint8_t *pSrc2x8, int nSrc2xPitch, int isExtPadded) {
+static void mvpRefineExtPel2(MVPlane *mvp, const uint8_t *pSrc2x8, int nSrc2xPitch, int isExtPadded) {
     const PixelType *pSrc2x = (const PixelType *)pSrc2x8;
     PixelType *pp1 = (PixelType *)mvp->pPlane[1];
     PixelType *pp2 = (PixelType *)mvp->pPlane[2];
@@ -1531,7 +1531,7 @@ void mvpRefineExtPel2(MVPlane *mvp, const uint8_t *pSrc2x8, int nSrc2xPitch, int
 
 
 template <typename PixelType>
-void mvpRefineExtPel4(MVPlane *mvp, const uint8_t *pSrc2x8, int nSrc2xPitch, int isExtPadded) {
+static void mvpRefineExtPel4(MVPlane *mvp, const uint8_t *pSrc2x8, int nSrc2xPitch, int isExtPadded) {
     const PixelType *pSrc2x = (const PixelType *)pSrc2x8;
     PixelType *pp[16];
     for (int i = 1; i < 16; i++)

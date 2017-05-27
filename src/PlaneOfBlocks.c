@@ -476,12 +476,12 @@ void pobDeinit(PlaneOfBlocks *pob) {
 }
 
 
-void pobWriteHeaderToArray(PlaneOfBlocks *pob, int *array) {
+static void pobWriteHeaderToArray(PlaneOfBlocks *pob, int *array) {
     array[0] = pob->nBlkCount * N_PER_BLOCK + 1;
 }
 
 
-void pobFetchPredictors(PlaneOfBlocks *pob) {
+static void pobFetchPredictors(PlaneOfBlocks *pob) {
     // Left (or right) predictor
     if ((pob->blkScanDir == 1 && pob->blkx > 0) || (pob->blkScanDir == -1 && pob->blkx < pob->nBlkX - 1))
         pob->predictors[1] = pobClipMV(pob, pob->vectors[pob->blkIdx - pob->blkScanDir]);
@@ -529,7 +529,7 @@ void pobFetchPredictors(PlaneOfBlocks *pob) {
 }
 
 
-void pobNStepSearch(PlaneOfBlocks *pob, int stp) {
+static void pobNStepSearch(PlaneOfBlocks *pob, int stp) {
     int dx, dy;
     int length = stp;
     while (length > 0) {
@@ -550,7 +550,7 @@ void pobNStepSearch(PlaneOfBlocks *pob, int stp) {
 }
 
 
-void pobOneTimeSearch(PlaneOfBlocks *pob, int length) {
+static void pobOneTimeSearch(PlaneOfBlocks *pob, int length) {
     int direction = 0;
     int dx = pob->bestMV.x;
     int dy = pob->bestMV.y;
@@ -591,7 +591,7 @@ void pobOneTimeSearch(PlaneOfBlocks *pob, int length) {
 }
 
 
-void pobDiamondSearch(PlaneOfBlocks *pob, int length) {
+static void pobDiamondSearch(PlaneOfBlocks *pob, int length) {
     // The meaning of the directions are the following :
     //		* 1 means right
     //		* 2 means left
@@ -695,7 +695,7 @@ void pobDiamondSearch(PlaneOfBlocks *pob, int length) {
 }
 
 
-void pobExpandingSearch(PlaneOfBlocks *pob, int r, int s, int mvx, int mvy) {
+static void pobExpandingSearch(PlaneOfBlocks *pob, int r, int s, int mvx, int mvy) {
     // diameter = 2*r + 1, step=s
     // part of true enhaustive search (thin expanding square) around mvx, mvy
     int i, j;
@@ -725,7 +725,7 @@ static const int mod6m1[8] = { 5, 0, 1, 2, 3, 4, 5, 0 };
 /* radius 2 hexagon. repeated entries are to avoid having to compute mod6 every time. */
 static const int hex2[8][2] = { { -1, -2 }, { -2, 0 }, { -1, 2 }, { 1, 2 }, { 2, 0 }, { 1, -2 }, { -1, -2 }, { -2, 0 } };
 
-void pobHex2Search(PlaneOfBlocks *pob, int i_me_range) { //adopted from x264
+static void pobHex2Search(PlaneOfBlocks *pob, int i_me_range) { //adopted from x264
     int dir = -2;
     int bmx = pob->bestMV.x;
     int bmy = pob->bestMV.y;
@@ -785,7 +785,7 @@ void pobHex2Search(PlaneOfBlocks *pob, int i_me_range) { //adopted from x264
 }
 
 
-void pobCrossSearch(PlaneOfBlocks *pob, int start, int x_max, int y_max, int mvx, int mvy) { // part of umh  search
+static void pobCrossSearch(PlaneOfBlocks *pob, int start, int x_max, int y_max, int mvx, int mvy) { // part of umh  search
 
     for (int i = start; i < x_max; i += 2) {
         pobCheckMV(pob, mvx - i, mvy);
@@ -799,7 +799,7 @@ void pobCrossSearch(PlaneOfBlocks *pob, int start, int x_max, int y_max, int mvx
 }
 
 
-void pobUMHSearch(PlaneOfBlocks *pob, int i_me_range, int omx, int omy) { // radius
+static void pobUMHSearch(PlaneOfBlocks *pob, int i_me_range, int omx, int omy) { // radius
     // Uneven-cross Multi-Hexagon-grid Search (see x264)
     /* hexagon grid */
 
@@ -828,7 +828,7 @@ void pobUMHSearch(PlaneOfBlocks *pob, int i_me_range, int omx, int omy) { // rad
 }
 
 
-void pobRefine(PlaneOfBlocks *pob) {
+static void pobRefine(PlaneOfBlocks *pob) {
     // then, we refine, according to the search type
     if (pob->searchType == SearchOnetime)
         for (int i = pob->nSearchParam; i > 0; i /= 2)
@@ -874,7 +874,7 @@ void pobRefine(PlaneOfBlocks *pob) {
 }
 
 
-void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
+static void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
 
     pobFetchPredictors(pob);
 
