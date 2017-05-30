@@ -411,9 +411,7 @@ void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nB
     int opt = !!(nMotionFlags & MOTION_USE_SIMD);
     pob->chroma = !!(nMotionFlags & MOTION_USE_CHROMA_MOTION);
 
-    pob->globalMVPredictor.x = zeroMV.x;
-    pob->globalMVPredictor.y = zeroMV.y;
-    pob->globalMVPredictor.sad = zeroMV.sad;
+    pob->globalMVPredictor = zeroMV;
 
     /* arrays memory allocation */
 
@@ -517,9 +515,7 @@ static void pobFetchPredictors(PlaneOfBlocks *pob) {
         //		predictors[0].y = (predictors[1].y + predictors[2].y + predictors[3].y);
         //      predictors[0].sad = (predictors[1].sad + predictors[2].sad + predictors[3].sad);
         // but for top line we have only left predictor[1] - v1.6.0
-        pob->predictors[0].x = pob->predictors[1].x;
-        pob->predictors[0].y = pob->predictors[1].y;
-        pob->predictors[0].sad = pob->predictors[1].sad;
+        pob->predictors[0] = pob->predictors[1];
     }
 
     // if there are no other planes, predictor is the median
@@ -1009,11 +1005,7 @@ static void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
 
 
     // we store the result
-    pob->vectors[pob->blkIdx].x = pob->bestMV.x;
-    pob->vectors[pob->blkIdx].y = pob->bestMV.y;
-    pob->vectors[pob->blkIdx].sad = pob->bestMV.sad;
-
-    pob->planeSAD += pob->bestMV.sad;
+    pob->vectors[pob->blkIdx] = pob->bestMV;
 }
 
 
@@ -1078,7 +1070,6 @@ void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame,
 
     pob->penaltyZero = pzero;
     pob->pglobal = pglobal;
-    pob->planeSAD = 0;
     pob->badcount = 0;
     pob->tryMany = tryMany;
     // Functions using float must not be used here
@@ -1103,7 +1094,6 @@ void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame,
         for (int iblkx = 0; iblkx < pob->nBlkX; iblkx++) {
             pob->blkx = blkxStart + iblkx * pob->blkScanDir;
             pob->blkIdx = pob->blky * pob->nBlkX + pob->blkx;
-            pob->iter = 0;
 
             pob->pSrc[0] = mvpGetAbsolutePelPointer(pob->pSrcFrame->planes[0], pob->x[0], pob->y[0]);
             if (pob->chroma) {
@@ -1357,9 +1347,7 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
             pob->predictor = pobClipMV(pob, vectorOld);                                                                    // predictor
             pob->predictor.sad = (int64_t)vectorOld.sad * (pob->nBlkSizeX * pob->nBlkSizeY) / (nBlkSizeXold * nBlkSizeYold); // normalized to new block size
 
-            pob->bestMV.x = pob->predictor.x;
-            pob->bestMV.y = pob->predictor.y;
-            pob->bestMV.sad = pob->predictor.sad;
+            pob->bestMV = pob->predictor;
 
             // update SAD
             if (pob->dctmode != 0) { // DCT method (luma only - currently use normal spatial SAD chroma)
@@ -1424,9 +1412,7 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
             }
 
             // we store the result
-            pob->vectors[pob->blkIdx].x = pob->bestMV.x;
-            pob->vectors[pob->blkIdx].y = pob->bestMV.y;
-            pob->vectors[pob->blkIdx].sad = pob->bestMV.sad;
+            pob->vectors[pob->blkIdx] = pob->bestMV;
 
 
             /* write the results */
@@ -1525,10 +1511,10 @@ void pobInterpolatePrediction(PlaneOfBlocks *pob, const PlaneOfBlocks *pob2) {
 }
 
 
-int pobGetArraySize(PlaneOfBlocks *pob, int divideMode) {
+int pobGetArraySize(const PlaneOfBlocks *pob, int divideMode) {
     int size = 0;
     size += 1;                       // mb data size storage
-    size += pob->nBlkCount * N_PER_BLOCK; // vectors, sad, luma src, luma ref, var
+    size += pob->nBlkCount * N_PER_BLOCK; // vectors
 
     if (pob->nLogScale == 0) {
         if (divideMode)
@@ -1539,7 +1525,7 @@ int pobGetArraySize(PlaneOfBlocks *pob, int divideMode) {
 }
 
 
-int pobWriteDefaultToArray(PlaneOfBlocks *pob, int *array, int divideMode) {
+int pobWriteDefaultToArray(const PlaneOfBlocks *pob, int *array, int divideMode) {
     array[0] = pob->nBlkCount * N_PER_BLOCK + 1;
     for (int i = 0; i < pob->nBlkCount * N_PER_BLOCK; i += N_PER_BLOCK) {
         array[i + 1] = 0;

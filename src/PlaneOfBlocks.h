@@ -28,7 +28,7 @@
 #include "Luma.h"
 #include "DCTFFTW.h"
 
-#define MAX_PREDICTOR 20 // right now 5 should be enough (TSchniede)
+#define MAX_PREDICTOR 5 // right now 5 should be enough (TSchniede)
 
 //#define    ONLY_CHECK_NONDEFAULT_MV // make the check if it is no default reference (zero, global,...)
 
@@ -78,7 +78,6 @@ typedef struct PlaneOfBlocks {
     int nRefPitch[3];
 
     VECTOR bestMV;    /* best vector found so far during the search */
-    int nBestSad;     /* sad linked to the best vector */
     int nMinCost;     /* minimum cost ( sad + mv cost ) found so far */
     VECTOR predictor; /* best predictor for the current vector */
 
@@ -108,12 +107,8 @@ typedef struct PlaneOfBlocks {
     //   int nLambdaLen; //  penalty factor (lambda) for vector length
     int64_t badSAD;   // SAD threshold for more wide search
     int badrange;     // wide search radius
-    int64_t planeSAD; // summary SAD of plane
     int badcount;     // number of bad blocks refined
-    int temporal;    // use temporal predictor
     int tryMany;     // try refine around many predictors
-
-    int iter;
 
     VECTOR globalMVPredictor;  // predictor of global motion vector
     VECTOR zeroMVfieldShifted; // zero motion vector for fieldbased video at finest level pel2
@@ -142,7 +137,7 @@ void pobDeinit(PlaneOfBlocks *pob);
 
 void pobEstimateGlobalMVDoubled(PlaneOfBlocks *pob, VECTOR *globalMVec);
 
-int pobGetArraySize(PlaneOfBlocks *pob, int divideMode);
+int pobGetArraySize(const PlaneOfBlocks *pob, int divideMode);
 
 void pobInterpolatePrediction(PlaneOfBlocks *pob, const PlaneOfBlocks *pob2);
 
@@ -150,6 +145,6 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
 
 void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame, SearchType st, int stp, int lambda, int lsad, int pnew, int plevel, int *out, VECTOR *globalMVec, int fieldShift, DCTFFTW *DCT, int dctmode, int *pmeanLumaChange, int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int tryMany);
 
-int pobWriteDefaultToArray(PlaneOfBlocks *pob, int *array, int divideMode);
+int pobWriteDefaultToArray(const PlaneOfBlocks *pob, int *array, int divideMode);
 
 #endif

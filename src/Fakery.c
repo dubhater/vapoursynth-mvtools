@@ -43,7 +43,6 @@ void fpobDeinit(FakePlaneOfBlocks *fpob) {
 
 
 void fpobUpdate(FakePlaneOfBlocks *fpob, const int *array) {
-    array += 0;
     for (int i = 0; i < fpob->nBlkCount; i++) {
         fbdUpdate(&fpob->blocks[i], array);
         array += N_PER_BLOCK;
@@ -108,17 +107,9 @@ static inline int fgopGetValidity(const int *array) {
 
 
 void fgopUpdate(FakeGroupOfPlanes *fgop, const int *array) {
-    const int *pA = array;
     fgop->validity = fgopGetValidity(array);
 
-    pA += 2;
-    for (int i = fgop->nLvCount - 1; i >= 0; i--)
-        pA += pA[0];
-
-    pA++;
-
-    pA = array;
-    pA += 2;
+    const int *pA = array + 2;
     for (int i = fgop->nLvCount - 1; i >= 0; i--) {
         fpobUpdate(fgop->planes[i], pA + 1);
         pA += pA[0];

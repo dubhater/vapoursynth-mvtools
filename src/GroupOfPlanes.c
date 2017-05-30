@@ -82,10 +82,7 @@ void gopSearchMVs(GroupOfPlanes *gop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames 
 
     int fieldShiftCur = (gop->nLevelCount - 1 == 0) ? fieldShift : 0; // may be non zero for finest level only
 
-    VECTOR globalMV; // create and init global motion vector as zero
-    globalMV.x = zeroMV.x;
-    globalMV.y = zeroMV.y;
-    globalMV.sad = zeroMV.sad;
+    VECTOR globalMV = zeroMV; // create and init global motion vector as zero
 
     if (!global)
         pglobal = pzero;
@@ -141,8 +138,6 @@ void gopRecalculateMVs(GroupOfPlanes *gop, FakeGroupOfPlanes *fgop, MVGroupOfFra
     pobRecalculateMVs(gop->planes[0], fgop, pSrcGOF->frames[0], pRefGOF->frames[0],
                       searchType, nSearchParam, nLambda, pnew,
                       out, fieldShift, thSAD, DCT, dctmode, smooth, meander);
-
-    out += pobGetArraySize(gop->planes[0], gop->divideExtra);
 }
 
 
@@ -211,7 +206,6 @@ void gopExtraDivide(GroupOfPlanes *gop, int *out) {
 
     int nBlkY = gop->planes[0]->nBlkY;
     int nBlkXN = N_PER_BLOCK * gop->planes[0]->nBlkX;
-    // 6 stored variables
 
     int by = 0; // top blocks
     for (int bx = 0; bx < nBlkXN; bx += N_PER_BLOCK) {
@@ -222,7 +216,7 @@ void gopExtraDivide(GroupOfPlanes *gop, int *out) {
             out[bx * 2 + nBlkXN * 2 + i] = inp[bx + i];               // bottom left subblock
             out[bx * 2 + N_PER_BLOCK + nBlkXN * 2 + i] = inp[bx + i]; // bottom right subblock
         }
-        for (int i = 2; i < N_PER_BLOCK; i++) // sad, var, luma, ref
+        for (int i = 2; i < N_PER_BLOCK; i++) // sad
         {
             out[bx * 2 + i] = inp[bx + i] >> 2;                            // top left subblock
             out[bx * 2 + N_PER_BLOCK + i] = inp[bx + i] >> 2;              // top right subblock
@@ -257,8 +251,7 @@ void gopExtraDivide(GroupOfPlanes *gop, int *out) {
                 out[bx * 2 + N_PER_BLOCK + 1] = inp[bx + 1];              // top right subblock
                 out[bx * 2 + nBlkXN * 2 + 1] = inp[bx + 1];               // bottom left subblock
                 out[bx * 2 + N_PER_BLOCK + nBlkXN * 2 + 1] = inp[bx + 1]; // bottom right subblock
-            } else                                                        // divideExtra=2
-            {
+            } else {                                                      // divideExtra=2
                 int vx;
                 int vy;
                 GetMedian(&vx, &vy, inp[bx], inp[bx + 1], inp[bx - N_PER_BLOCK], inp[bx + 1 - N_PER_BLOCK], inp[bx - nBlkXN], inp[bx + 1 - nBlkXN]); // top left subblock
