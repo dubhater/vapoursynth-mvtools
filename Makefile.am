@@ -1,5 +1,5 @@
 warningflags = -Wall -Wextra -Wshadow
-commonflags = -O2 $(MFLAGS) $(STACKREALIGN) $(warningflags)
+commonflags = -O2 $(MFLAGS) $(STACKREALIGN) $(warningflags) -fvisibility=hidden
 AM_CFLAGS = -std=c99 $(commonflags)
 AM_CXXFLAGS = -std=c++11 $(commonflags)
 
