@@ -31,7 +31,7 @@ typedef struct MVSCDetectionData {
 
     VSNodeRef *vectors;
 
-    int thscd1;
+    int64_t thscd1;
     int thscd2;
 
     MVAnalysisData vectors_data;
@@ -99,7 +99,7 @@ static void VS_CC mvscdetectionCreate(const VSMap *in, VSMap *out, void *userDat
 
     int err;
 
-    d.thscd1 = int64ToIntS(vsapi->propGetInt(in, "thscd1", 0, &err));
+    d.thscd1 = vsapi->propGetInt(in, "thscd1", 0, &err);
     if (err)
         d.thscd1 = MV_DEFAULT_SCD1;
 

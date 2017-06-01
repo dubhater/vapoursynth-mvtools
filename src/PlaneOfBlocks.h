@@ -78,7 +78,7 @@ typedef struct PlaneOfBlocks {
     int nRefPitch[3];
 
     VECTOR bestMV;    /* best vector found so far during the search */
-    int nMinCost;     /* minimum cost ( sad + mv cost ) found so far */
+    int64_t nMinCost; /* minimum cost ( sad + mv cost ) found so far */
     VECTOR predictor; /* best predictor for the current vector */
 
     VECTOR predictors[MAX_PREDICTOR]; /* set of predictors for the current block */
@@ -124,7 +124,7 @@ typedef struct PlaneOfBlocks {
     int dctweight16;
     int *freqArray; // temporary array for global motion estimaton
     int freqSize;   // size of freqArray
-    int verybigSAD;
+    int64_t verybigSAD;
 
     int nSrcPitch_temp[3];
     uint8_t *pSrc_temp[3]; //for easy WRITE access to temp block
@@ -141,7 +141,7 @@ MVArraySizeType pobGetArraySize(const PlaneOfBlocks *pob, int divideMode);
 
 void pobInterpolatePrediction(PlaneOfBlocks *pob, const PlaneOfBlocks *pob2);
 
-void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFrame *pSrcFrame, MVFrame *pRefFrame, SearchType st, int stp, int lambda, int pnew, uint8_t *out, int fieldShift, int thSAD, DCTFFTW *DCT, int dctmode, int smooth, int meander);
+void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFrame *pSrcFrame, MVFrame *pRefFrame, SearchType st, int stp, int lambda, int pnew, uint8_t *out, int fieldShift, int64_t thSAD, DCTFFTW *DCT, int dctmode, int smooth, int meander);
 
 void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame, SearchType st, int stp, int lambda, int lsad, int pnew, int plevel, uint8_t *out, VECTOR *globalMVec, int fieldShift, DCTFFTW *DCT, int dctmode, int *pmeanLumaChange, int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int tryMany);
 

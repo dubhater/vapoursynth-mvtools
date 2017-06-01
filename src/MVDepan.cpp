@@ -47,7 +47,7 @@ typedef struct DepanAnalyseData {
     int info;
     float wrong;
     float zerow;
-    int thscd1;
+    int64_t thscd1;
     int thscd2;
     int fields;
     int tff;
@@ -198,7 +198,7 @@ static void TrasformUpdate(transform *tr, const float *blockDx, const float *blo
 //----------------------------------------------------------------------------
 
 
-static void RejectBadBlocks(const transform *tr, const float *blockDx, const float *blockDy, const int *blockSAD, const int *blockX, const int *blockY, float *blockWeight, int nBlkX, int nBlkY, float wrongDif, float globalDif, int thSCD1, float zeroWeight, const float *blockWeightMask, int ignoredBorder) {
+static void RejectBadBlocks(const transform *tr, const float *blockDx, const float *blockDy, const int64_t *blockSAD, const int *blockX, const int *blockY, float *blockWeight, int nBlkX, int nBlkY, float wrongDif, float globalDif, int64_t thSCD1, float zeroWeight, const float *blockWeightMask, int ignoredBorder) {
     for (int j = 0; j < nBlkY; j++) {
         for (int i = 0; i < nBlkX; i++) {
             int n = j * nBlkX + i;
@@ -277,7 +277,7 @@ static const VSFrameRef *VS_CC depanAnalyseGetFrame(int n, int activationReason,
 
         float *blockDx =         (float *)malloc(num_blocks * sizeof(float)); // dx vector
         float *blockDy =         (float *)malloc(num_blocks * sizeof(float)); // dy
-        int *blockSAD =            (int *)malloc(num_blocks * sizeof(int));
+        int64_t *blockSAD =    (int64_t *)malloc(num_blocks * sizeof(int64_t));
         int *blockX =              (int *)malloc(num_blocks * sizeof(int)); // block x position
         int *blockY =              (int *)malloc(num_blocks * sizeof(int));
         float *blockWeight =     (float *)malloc(num_blocks * sizeof(float));
@@ -511,7 +511,7 @@ static void VS_CC depanAnalyseCreate(const VSMap *in, VSMap *out, void *userData
     if (err)
         d.zerow = 0.05f;
 
-    d.thscd1 = int64ToIntS(vsapi->propGetInt(in, "thscd1", 0, &err));
+    d.thscd1 = vsapi->propGetInt(in, "thscd1", 0, &err);
     if (err)
         d.thscd1 = MV_DEFAULT_SCD1;
 

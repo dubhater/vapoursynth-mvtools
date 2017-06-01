@@ -51,7 +51,7 @@ void fpobDeinit(FakePlaneOfBlocks *fpob);
 
 void fpobUpdate(FakePlaneOfBlocks *fpob, const uint8_t *array);
 
-int fpobIsSceneChange(const FakePlaneOfBlocks *fpob, int nTh1, int nTh2);
+int fpobIsSceneChange(const FakePlaneOfBlocks *fpob, int64_t nTh1, int nTh2);
 
 const FakeBlockData *fpobGetBlock(const FakePlaneOfBlocks *fpob, int i);
 
@@ -64,7 +64,7 @@ void fgopDeinit(FakeGroupOfPlanes *fgop);
 
 void fgopUpdate(FakeGroupOfPlanes *fgop, const uint8_t *array);
 
-int fgopIsSceneChange(const FakeGroupOfPlanes *fgop, int nThSCD1, int nThSCD2);
+int fgopIsSceneChange(const FakeGroupOfPlanes *fgop, int64_t nThSCD1, int nThSCD2);
 
 int fgopIsValid(const FakeGroupOfPlanes *fgop);
 
@@ -72,7 +72,7 @@ const FakePlaneOfBlocks *fgopGetPlane(const FakeGroupOfPlanes *fgop, int i);
 
 const FakeBlockData *fgopGetBlock(const FakeGroupOfPlanes *fgop, int nLevel, int nBlk);
 
-int fgopIsUsable(const FakeGroupOfPlanes *fgop, int thscd1, int thscd2);
+int fgopIsUsable(const FakeGroupOfPlanes *fgop, int64_t thscd1, int thscd2);
 
 
 #ifdef __cplusplus

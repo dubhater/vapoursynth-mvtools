@@ -48,7 +48,7 @@ void gopDeinit(GroupOfPlanes *gop);
 
 void gopSearchMVs(GroupOfPlanes *gop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF, SearchType searchType, int nSearchParam, int nPelSearch, int nLambda, int lsad, int pnew, int plevel, int global, uint8_t *out, int fieldShift, DCTFFTW *DCT, int dctmode, int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int tryMany, SearchType coarseSearchType);
 
-void gopRecalculateMVs(GroupOfPlanes *gop, FakeGroupOfPlanes *fgop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF, SearchType searchType, int nSearchParam, int nLambda, int pnew, uint8_t *out, int fieldShift, int thSAD, DCTFFTW *DCT, int dctmode, int smooth, int meander);
+void gopRecalculateMVs(GroupOfPlanes *gop, FakeGroupOfPlanes *fgop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF, SearchType searchType, int nSearchParam, int nLambda, int pnew, uint8_t *out, int fieldShift, int64_t thSAD, DCTFFTW *DCT, int dctmode, int smooth, int meander);
 
 void gopWriteDefaultToArray(GroupOfPlanes *gop, uint8_t *array);
 

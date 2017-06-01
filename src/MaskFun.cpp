@@ -87,7 +87,7 @@ void MakeVectorOcclusionMaskTime(const FakeGroupOfPlanes *fgop, int isBackward, 
 }
 
 
-static unsigned char ByteNorm(unsigned int sad, double dSADNormFactor, double fGamma) {
+static unsigned char ByteNorm(int64_t sad, double dSADNormFactor, double fGamma) {
     //	    double dSADNormFactor = 4 / (dMaskNormFactor*blkSizeX*blkSizeY);
     double l = 255 * pow(sad * dSADNormFactor, fGamma); // Fizick - now linear for gm=1
     return (unsigned char)((l > 255) ? 255 : l);
@@ -114,7 +114,7 @@ void MakeSADMaskTime(const FakeGroupOfPlanes *fgop, int nBlkX, int nBlkY, double
                 byi = by;
             }
             int i1 = bxi + byi * nBlkX;
-            int sad = fgopGetBlock(fgop, 0, i1)->vector.sad >> (bitsPerSample - 8);
+            int64_t sad = fgopGetBlock(fgop, 0, i1)->vector.sad >> (bitsPerSample - 8);
             Mask[bx + by * MaskPitch] = ByteNorm(sad, dSADNormFactor, fGamma);
         }
     }

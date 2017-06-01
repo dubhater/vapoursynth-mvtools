@@ -56,7 +56,7 @@ typedef struct MVRecalculateData {
     int chroma;
     int truemotion;
     int smooth;
-    int thSAD;
+    int64_t thSAD;
     VSNodeRef *vectors;
 
     int fields;
@@ -279,7 +279,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
     int err;
 
-    d.thSAD = int64ToIntS(vsapi->propGetInt(in, "thsad", 0, &err));
+    d.thSAD = vsapi->propGetInt(in, "thsad", 0, &err);
     if (err)
         d.thSAD = 200;
 
@@ -494,7 +494,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     d.analysisData.bitsPerSample = d.vi->format->bitsPerSample;
 
     int pixelMax = (1 << d.vi->format->bitsPerSample) - 1;
-    d.thSAD = (int)((double)d.thSAD * pixelMax / 255.0 + 0.5);
+    d.thSAD = (int64_t)((double)d.thSAD * pixelMax / 255.0 + 0.5);
     d.nLambda = (int)((double)d.nLambda * pixelMax / 255.0 + 0.5);
 
     // normalize threshold to block size

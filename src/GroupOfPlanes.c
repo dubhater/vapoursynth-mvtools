@@ -128,7 +128,7 @@ void gopSearchMVs(GroupOfPlanes *gop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames 
 void gopRecalculateMVs(GroupOfPlanes *gop, FakeGroupOfPlanes *fgop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
                        SearchType searchType, int nSearchParam, int nLambda,
                        int pnew,
-                       uint8_t *out, int fieldShift, int thSAD, DCTFFTW *DCT, int dctmode, int smooth, int meander) {
+                       uint8_t *out, int fieldShift, int64_t thSAD, DCTFFTW *DCT, int dctmode, int smooth, int meander) {
     // write group's size
     MVArraySizeType size = gopGetArraySize(gop);
     memcpy(out, &size, sizeof(size));

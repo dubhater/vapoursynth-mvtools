@@ -40,7 +40,7 @@ static const char prop_MVTools_vectors[] = "MVTools_vectors";
 typedef struct VECTOR {
     int x;
     int y;
-    int sad;
+    int64_t sad;
 } VECTOR;
 
 
@@ -134,7 +134,7 @@ typedef struct MVAnalysisData {
 } MVAnalysisData;
 
 
-void scaleThSCD(int *thscd1, int *thscd2, const MVAnalysisData *ad, const char *filter_name, char *error, size_t error_size);
+void scaleThSCD(int64_t *thscd1, int *thscd2, const MVAnalysisData *ad, const char *filter_name, char *error, size_t error_size);
 
 void adataFromVectorClip(struct MVAnalysisData *ad, VSNodeRef *clip, const char *filter_name, const char *vector_name, const VSAPI *vsapi, char *error, size_t error_size);
 

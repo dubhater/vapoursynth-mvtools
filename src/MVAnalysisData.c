@@ -4,7 +4,7 @@
 #include "MVAnalysisData.h"
 
 
-void scaleThSCD(int *thscd1, int *thscd2, const MVAnalysisData *ad, const char *filter_name, char *error, size_t error_size) {
+void scaleThSCD(int64_t *thscd1, int *thscd2, const MVAnalysisData *ad, const char *filter_name, char *error, size_t error_size) {
     if (error_size) {
         if (error[0])
             return;
@@ -25,7 +25,7 @@ void scaleThSCD(int *thscd1, int *thscd2, const MVAnalysisData *ad, const char *
         *thscd1 += *thscd1 / (ad->xRatioUV * ad->yRatioUV) * 2;
 
     int pixelMax = (1 << ad->bitsPerSample) - 1;
-    *thscd1 = (int)((double)*thscd1 * pixelMax / 255.0 + 0.5);
+    *thscd1 = (int64_t)((double)*thscd1 * pixelMax / 255.0 + 0.5);
 
     *thscd2 = *thscd2 * ad->nBlkX * ad->nBlkY / 256;
 }

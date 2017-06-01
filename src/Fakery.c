@@ -49,7 +49,7 @@ void fpobUpdate(FakePlaneOfBlocks *fpob, const uint8_t *array) {
 }
 
 
-int fpobIsSceneChange(const FakePlaneOfBlocks *fpob, int nTh1, int nTh2) {
+int fpobIsSceneChange(const FakePlaneOfBlocks *fpob, int64_t nTh1, int nTh2) {
     int sum = 0;
     for (int i = 0; i < fpob->nBlkCount; i++)
         sum += (fpob->blocks[i].vector.sad > nTh1) ? 1 : 0;
@@ -121,7 +121,7 @@ void fgopUpdate(FakeGroupOfPlanes *fgop, const uint8_t *array) {
 }
 
 
-int fgopIsSceneChange(const FakeGroupOfPlanes *fgop, int nThSCD1, int nThSCD2) {
+int fgopIsSceneChange(const FakeGroupOfPlanes *fgop, int64_t nThSCD1, int nThSCD2) {
     return fpobIsSceneChange(fgop->planes[0], nThSCD1, nThSCD2);
 }
 
@@ -141,6 +141,6 @@ const FakeBlockData *fgopGetBlock(const FakeGroupOfPlanes *fgop, int nLevel, int
 }
 
 
-int fgopIsUsable(const FakeGroupOfPlanes *fgop, int thscd1, int thscd2) {
+int fgopIsUsable(const FakeGroupOfPlanes *fgop, int64_t thscd1, int thscd2) {
     return !fgopIsSceneChange(fgop, thscd1, thscd2) && fgopIsValid(fgop);
 }

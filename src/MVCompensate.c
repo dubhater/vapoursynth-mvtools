@@ -37,10 +37,10 @@ typedef struct MVCompensateData {
     VSNodeRef *vectors;
 
     int scBehavior;
-    int thSAD;
+    int64_t thSAD;
     int fields;
     int time256;
-    int nSCD1;
+    int64_t nSCD1;
     int nSCD2;
     int opt;
     int tff;
@@ -143,7 +143,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
         const int nBlkX = d->vectors_data.nBlkX;
         const int nBlkY = d->vectors_data.nBlkY;
         const int opt = d->opt;
-        const int thSAD = d->thSAD;
+        const int64_t thSAD = d->thSAD;
         const int dstTempPitch[3] = { d->dstTempPitch, d->dstTempPitchUV, d->dstTempPitchUV };
         const int nSuperModeYUV = d->nSuperModeYUV;
         const int nPel = d->vectors_data.nPel;
@@ -432,7 +432,7 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
     if (err)
         d.scBehavior = 1;
 
-    d.thSAD = int64ToIntS(vsapi->propGetInt(in, "thsad", 0, &err));
+    d.thSAD = vsapi->propGetInt(in, "thsad", 0, &err);
     if (err)
         d.thSAD = 10000;
 
@@ -442,7 +442,7 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
     if (err)
         time = 100.0;
 
-    d.nSCD1 = int64ToIntS(vsapi->propGetInt(in, "thscd1", 0, &err));
+    d.nSCD1 = vsapi->propGetInt(in, "thscd1", 0, &err);
     if (err)
         d.nSCD1 = MV_DEFAULT_SCD1;
 
@@ -502,7 +502,7 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
 
     adataFromVectorClip(&d.vectors_data, d.vectors, filter_name, "vectors", vsapi, error, ERROR_SIZE);
 
-    int nSCD1_old = d.nSCD1;
+    int64_t nSCD1_old = d.nSCD1;
     scaleThSCD(&d.nSCD1, &d.nSCD2, &d.vectors_data, filter_name, error, ERROR_SIZE);
 #undef ERROR_SIZE
 
@@ -522,7 +522,7 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
         return;
     }
 
-    d.thSAD = (int64_t)d.thSAD * d.nSCD1 / nSCD1_old; // normalize to block SAD
+    d.thSAD = d.thSAD * d.nSCD1 / nSCD1_old; // normalize to block SAD
 
 
     d.node = vsapi->propGetNode(in, "clip", 0, 0);

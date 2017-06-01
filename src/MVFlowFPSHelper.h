@@ -16,7 +16,8 @@ typedef struct MVFlowFPSHelperData {
 
     const VSVideoInfo *supervi;
 
-    int thscd1, thscd2;
+    int64_t thscd1;
+    int thscd2;
 
     MVAnalysisData vectors_data;
 

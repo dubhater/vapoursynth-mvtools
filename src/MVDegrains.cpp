@@ -38,10 +38,10 @@ struct MVDegrainData {
     VSNodeRef *super;
     VSNodeRef *vectors[6];
 
-    int thSAD[3];
+    int64_t thSAD[3];
     int YUVplanes;
     int nLimit[3];
-    int nSCD1;
+    int64_t nSCD1;
     int nSCD2;
     int opt;
 
@@ -203,7 +203,7 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
         const int *nBlkSizeY = d->nBlkSizeY;
         const int *nWidth_B = d->nWidth_B;
         const int *nHeight_B = d->nHeight_B;
-        const int *thSAD = d->thSAD;
+        const int64_t *thSAD = d->thSAD;
         const int *nLimit = d->nLimit;
 
 
@@ -558,11 +558,11 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
 
     int err;
 
-    d.thSAD[0] = int64ToIntS(vsapi->propGetInt(in, "thsad", 0, &err));
+    d.thSAD[0] = vsapi->propGetInt(in, "thsad", 0, &err);
     if (err)
         d.thSAD[0] = 400;
 
-    d.thSAD[1] = d.thSAD[2] = int64ToIntS(vsapi->propGetInt(in, "thsadc", 0, &err));
+    d.thSAD[1] = d.thSAD[2] = vsapi->propGetInt(in, "thsadc", 0, &err);
     if (err)
         d.thSAD[1] = d.thSAD[2] = d.thSAD[0];
 
@@ -570,7 +570,7 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
     if (err)
         plane = 4;
 
-    d.nSCD1 = int64ToIntS(vsapi->propGetInt(in, "thscd1", 0, &err));
+    d.nSCD1 = vsapi->propGetInt(in, "thscd1", 0, &err);
     if (err)
         d.nSCD1 = MV_DEFAULT_SCD1;
 
@@ -631,7 +631,7 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
         adataFromVectorClip(&d.vectors_data[r], d.vectors[r], filter.c_str(), vector_names[r], vsapi, error, ERROR_SIZE);
     }
 
-    int nSCD1_old = d.nSCD1;
+    int64_t nSCD1_old = d.nSCD1;
     scaleThSCD(&d.nSCD1, &d.nSCD2, &d.vectors_data[0], filter.c_str(), error, ERROR_SIZE);
 
     for (int r = 1; r < radius * 2; r++)
@@ -696,8 +696,8 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
     }
 
 
-    d.thSAD[0] = (int64_t)d.thSAD[0] * d.nSCD1 / nSCD1_old;              // normalize to block SAD
-    d.thSAD[1] = d.thSAD[2] = (int64_t)d.thSAD[1] * d.nSCD1 / nSCD1_old; // chroma threshold, normalized to block SAD
+    d.thSAD[0] = d.thSAD[0] * d.nSCD1 / nSCD1_old;              // normalize to block SAD
+    d.thSAD[1] = d.thSAD[2] = d.thSAD[1] * d.nSCD1 / nSCD1_old; // chroma threshold, normalized to block SAD
 
 
     d.node = vsapi->propGetNode(in, "clip", 0, 0);

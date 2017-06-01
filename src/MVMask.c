@@ -38,7 +38,7 @@ typedef struct MVMaskData {
     int kind;
     int time256;
     int nSceneChangeValue;
-    int thscd1;
+    int64_t thscd1;
     int thscd2;
     int opt;
 
@@ -254,7 +254,7 @@ static void VS_CC mvmaskCreate(const VSMap *in, VSMap *out, void *userData, VSCo
 
     d.nSceneChangeValue = int64ToIntS(vsapi->propGetInt(in, "ysc", 0, &err));
 
-    d.thscd1 = int64ToIntS(vsapi->propGetInt(in, "thscd1", 0, &err));
+    d.thscd1 = vsapi->propGetInt(in, "thscd1", 0, &err);
     if (err)
         d.thscd1 = MV_DEFAULT_SCD1;
 

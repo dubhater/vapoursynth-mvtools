@@ -48,7 +48,8 @@ typedef struct MVBlockFPSData {
     int mode;
     double ml;
     int blend;
-    int thscd1, thscd2;
+    int64_t thscd1;
+    int thscd2;
     int opt;
 
     MVAnalysisData mvbw_data;
@@ -777,7 +778,7 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     if (err)
         d.blend = 1;
 
-    d.thscd1 = int64ToIntS(vsapi->propGetInt(in, "thscd1", 0, &err));
+    d.thscd1 = vsapi->propGetInt(in, "thscd1", 0, &err);
     if (err)
         d.thscd1 = MV_DEFAULT_SCD1;
 
