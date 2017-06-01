@@ -474,8 +474,9 @@ void pobDeinit(PlaneOfBlocks *pob) {
 }
 
 
-static void pobWriteHeaderToArray(PlaneOfBlocks *pob, int *array) {
-    array[0] = pob->nBlkCount * N_PER_BLOCK + 1;
+static void pobWriteHeaderToArray(PlaneOfBlocks *pob, uint8_t *array) {
+    MVArraySizeType size = sizeof(size) + pob->nBlkCount * sizeof(VECTOR);
+    memcpy(array, &size, sizeof(size));
 }
 
 
@@ -1011,7 +1012,7 @@ static void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
 
 void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame,
                   SearchType st, int stp, int lambda, int lsad, int pnew,
-                  int plevel, int *out, VECTOR *globalMVec,
+                  int plevel, uint8_t *out, VECTOR *globalMVec,
                   int fieldShift, DCTFFTW *DCT, int dctmode, int *pmeanLumaChange,
                   int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int tryMany) {
     pob->DCT = DCT;
@@ -1032,7 +1033,7 @@ void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame,
     // write the plane's header
     pobWriteHeaderToArray(pob, out);
 
-    int *pBlkData = out + 1;
+    VECTOR *pBlkData = (VECTOR *)(out + sizeof(MVArraySizeType));
 
     pob->pSrcFrame = pSrcFrame;
     pob->pRefFrame = pRefFrame;
@@ -1143,9 +1144,7 @@ void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame,
             pobPseudoEPZSearch(pob);
 
             /* write the results */
-            pBlkData[pob->blkx * N_PER_BLOCK + 0] = pob->bestMV.x;
-            pBlkData[pob->blkx * N_PER_BLOCK + 1] = pob->bestMV.y;
-            pBlkData[pob->blkx * N_PER_BLOCK + 2] = pob->bestMV.sad;
+            pBlkData[pob->blkx] = pob->bestMV;
 
 
             if (pob->smallestPlane)
@@ -1160,7 +1159,7 @@ void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame,
                     pob->x[2] += ((pob->nBlkSizeX - pob->nOverlapX) >> pob->nLogxRatioUV) * pob->blkScanDir;
             }
         }
-        pBlkData += pob->nBlkX * N_PER_BLOCK;
+        pBlkData += pob->nBlkX;
 
         pob->y[0] += (pob->nBlkSizeY - pob->nOverlapY);
         if (pob->pSrcFrame->nMode & UPLANE)
@@ -1174,7 +1173,7 @@ void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame,
 
 
 void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFrame *pSrcFrame, MVFrame *pRefFrame,
-                       SearchType st, int stp, int lambda, int pnew, int *out,
+                       SearchType st, int stp, int lambda, int pnew, uint8_t *out,
                        int fieldShift, int thSAD, DCTFFTW *DCT, int dctmode, int smooth, int meander) {
     pob->DCT = DCT;
     if (pob->DCT == 0)
@@ -1191,7 +1190,7 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
     // write the plane's header
     pobWriteHeaderToArray(pob, out);
 
-    int *pBlkData = out + 1;
+    VECTOR *pBlkData = (VECTOR *)(out + sizeof(MVArraySizeType));
 
     pob->pSrcFrame = pSrcFrame;
     pob->pRefFrame = pRefFrame;
@@ -1416,9 +1415,7 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
 
 
             /* write the results */
-            pBlkData[pob->blkx * N_PER_BLOCK + 0] = pob->bestMV.x;
-            pBlkData[pob->blkx * N_PER_BLOCK + 1] = pob->bestMV.y;
-            pBlkData[pob->blkx * N_PER_BLOCK + 2] = pob->bestMV.sad;
+            pBlkData[pob->blkx] = pob->bestMV;
 
 
             if (pob->smallestPlane)
@@ -1432,7 +1429,7 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
                     pob->x[2] += ((pob->nBlkSizeX - pob->nOverlapX) >> pob->nLogxRatioUV) * pob->blkScanDir;
             }
         }
-        pBlkData += pob->nBlkX * N_PER_BLOCK;
+        pBlkData += pob->nBlkX;
 
         pob->y[0] += (pob->nBlkSizeY - pob->nOverlapY);
         if (pob->pSrcFrame->nMode & UPLANE)
@@ -1511,38 +1508,42 @@ void pobInterpolatePrediction(PlaneOfBlocks *pob, const PlaneOfBlocks *pob2) {
 }
 
 
-int pobGetArraySize(const PlaneOfBlocks *pob, int divideMode) {
-    int size = 0;
-    size += 1;                       // mb data size storage
-    size += pob->nBlkCount * N_PER_BLOCK; // vectors
+MVArraySizeType pobGetArraySize(const PlaneOfBlocks *pob, int divideMode) {
+    MVArraySizeType size = sizeof(size) + pob->nBlkCount * sizeof(VECTOR);
 
     if (pob->nLogScale == 0) {
         if (divideMode)
-            size += 1 + pob->nBlkCount * N_PER_BLOCK * 4; // reserve space for divided subblocks extra level
+            size += sizeof(MVArraySizeType) + pob->nBlkCount * sizeof(VECTOR) * 4; // reserve space for divided subblocks extra level
     }
 
     return size;
 }
 
 
-int pobWriteDefaultToArray(const PlaneOfBlocks *pob, int *array, int divideMode) {
-    array[0] = pob->nBlkCount * N_PER_BLOCK + 1;
-    for (int i = 0; i < pob->nBlkCount * N_PER_BLOCK; i += N_PER_BLOCK) {
-        array[i + 1] = 0;
-        array[i + 2] = 0;
-        array[i + 3] = pob->verybigSAD;
-    }
+MVArraySizeType pobWriteDefaultToArray(const PlaneOfBlocks *pob, uint8_t *array, int divideMode) {
+    MVArraySizeType size = sizeof(size) + pob->nBlkCount * sizeof(VECTOR);
+
+    memcpy(array, &size, sizeof(size));
+
+    VECTOR def = { 0, 0, pob->verybigSAD };
+
+    VECTOR *blocks = (VECTOR *)(array + sizeof(size));
+
+    for (int i = 0; i < pob->nBlkCount; i++)
+        blocks[i] = def;
 
     if (pob->nLogScale == 0) {
-        array += array[0];
-        if (divideMode) {                               // reserve space for divided subblocks extra level
-            array[0] = pob->nBlkCount * N_PER_BLOCK * 4 + 1; // 4 subblocks
-            for (int i = 0; i < pob->nBlkCount * 4 * N_PER_BLOCK; i += N_PER_BLOCK) {
-                array[i + 1] = 0;
-                array[i + 2] = 0;
-                array[i + 3] = pob->verybigSAD;
-            }
-            array += array[0];
+        if (divideMode) { // reserve space for divided subblocks extra level
+            array += size;
+
+            size = sizeof(size) + pob->nBlkCount * sizeof(VECTOR) * 4; // 4 subblocks
+
+            memcpy(array, &size, sizeof(size));
+
+            blocks = (VECTOR *)(array + sizeof(size));
+
+            for (int i = 0; i < pob->nBlkCount * 4; i++)
+                blocks[i] = def;
         }
     }
     return pobGetArraySize(pob, divideMode);

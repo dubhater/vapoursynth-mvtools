@@ -40,7 +40,7 @@ typedef struct FakeGroupOfPlanes {
 
 // FakeBlockData
 
-void fbdUpdate(FakeBlockData *fbd, const int *array);
+void fbdUpdate(FakeBlockData *fbd, const VECTOR *array);
 
 
 // FakePlaneOfBlocks
@@ -49,7 +49,7 @@ void fpobInit(FakePlaneOfBlocks *fpob, int sizeX, int sizeY, int pel, int nOverl
 
 void fpobDeinit(FakePlaneOfBlocks *fpob);
 
-void fpobUpdate(FakePlaneOfBlocks *fpob, const int *array);
+void fpobUpdate(FakePlaneOfBlocks *fpob, const uint8_t *array);
 
 int fpobIsSceneChange(const FakePlaneOfBlocks *fpob, int nTh1, int nTh2);
 
@@ -62,7 +62,7 @@ void fgopInit(FakeGroupOfPlanes *fgop, const MVAnalysisData *ad);
 
 void fgopDeinit(FakeGroupOfPlanes *fgop);
 
-void fgopUpdate(FakeGroupOfPlanes *fgop, const int *array);
+void fgopUpdate(FakeGroupOfPlanes *fgop, const uint8_t *array);
 
 int fgopIsSceneChange(const FakeGroupOfPlanes *fgop, int nThSCD1, int nThSCD2);
 

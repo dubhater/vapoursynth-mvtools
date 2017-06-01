@@ -181,13 +181,13 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
         if (n - off >= 0 && n + off < d->vi->numFrames) {
             const VSFrameRef *mvF = vsapi->getFrameFilter(n + off, d->mvfw, frameCtx);
             const VSMap *mvprops = vsapi->getFramePropsRO(mvF);
-            fgopUpdate(&fgopF, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+            fgopUpdate(&fgopF, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
             isUsableF = fgopIsUsable(&fgopF, d->thscd1, d->thscd2);
             vsapi->freeFrame(mvF);
 
             const VSFrameRef *mvB = vsapi->getFrameFilter(n - off, d->mvbw, frameCtx);
             mvprops = vsapi->getFramePropsRO(mvB);
-            fgopUpdate(&fgopB, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+            fgopUpdate(&fgopB, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
             isUsableB = fgopIsUsable(&fgopB, d->thscd1, d->thscd2);
             vsapi->freeFrame(mvB);
         }

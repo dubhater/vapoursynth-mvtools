@@ -32,7 +32,7 @@ const VSFrameRef *VS_CC mvflowfpshelperGetFrame(int n, int activationReason, voi
         fgopInit(&fgop, &d->vectors_data);
 
         const VSMap *mvprops = vsapi->getFramePropsRO(src);
-        fgopUpdate(&fgop, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+        fgopUpdate(&fgop, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
 
         int isUsable = fgopIsUsable(&fgop, d->thscd1, d->thscd2);
 

@@ -17,6 +17,8 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html .
 
+#include <string.h>
+
 #include "GroupOfPlanes.h"
 
 
@@ -67,18 +69,20 @@ void gopDeinit(GroupOfPlanes *gop) {
 void gopSearchMVs(GroupOfPlanes *gop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
                   SearchType searchType, int nSearchParam, int nPelSearch, int nLambda,
                   int lsad, int pnew, int plevel, int global,
-                  int *out, int fieldShift, DCTFFTW *DCT, int dctmode,
+                  uint8_t *out, int fieldShift, DCTFFTW *DCT, int dctmode,
                   int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int tryMany,
                   SearchType coarseSearchType) {
     int i;
 
     // write group's size
-    out[0] = gopGetArraySize(gop);
+    MVArraySizeType size = gopGetArraySize(gop);
+    memcpy(out, &size, sizeof(size));
 
     // write validity : 1 in that case
-    out[1] = 1;
+    MVArraySizeType validity = 1;
+    memcpy(out + sizeof(size), &validity, sizeof(validity));
 
-    out += 2;
+    out += sizeof(size) + sizeof(validity);
 
     int fieldShiftCur = (gop->nLevelCount - 1 == 0) ? fieldShift : 0; // may be non zero for finest level only
 
@@ -124,14 +128,16 @@ void gopSearchMVs(GroupOfPlanes *gop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames 
 void gopRecalculateMVs(GroupOfPlanes *gop, FakeGroupOfPlanes *fgop, MVGroupOfFrames *pSrcGOF, MVGroupOfFrames *pRefGOF,
                        SearchType searchType, int nSearchParam, int nLambda,
                        int pnew,
-                       int *out, int fieldShift, int thSAD, DCTFFTW *DCT, int dctmode, int smooth, int meander) {
+                       uint8_t *out, int fieldShift, int thSAD, DCTFFTW *DCT, int dctmode, int smooth, int meander) {
     // write group's size
-    out[0] = gopGetArraySize(gop);
+    MVArraySizeType size = gopGetArraySize(gop);
+    memcpy(out, &size, sizeof(size));
 
     // write validity : 1 in that case
-    out[1] = 1;
+    MVArraySizeType validity = 1;
+    memcpy(out + sizeof(size), &validity, sizeof(validity));
 
-    out += 2;
+    out += sizeof(size) + sizeof(validity);
 
     // Search the motion vectors, for the low details interpolations first
     // Refining the search until we reach the highest detail interpolation.
@@ -141,24 +147,25 @@ void gopRecalculateMVs(GroupOfPlanes *gop, FakeGroupOfPlanes *fgop, MVGroupOfFra
 }
 
 
-void gopWriteDefaultToArray(GroupOfPlanes *gop, int *array) {
+void gopWriteDefaultToArray(GroupOfPlanes *gop, uint8_t *array) {
     // write group's size
-    array[0] = gopGetArraySize(gop);
+    MVArraySizeType size = gopGetArraySize(gop);
+    memcpy(array, &size, sizeof(size));
 
     // write validity : unvalid in that case
-    array[1] = 0;
+    MVArraySizeType validity = 0;
+    memcpy(array + sizeof(size), &validity, sizeof(validity));
 
-    array += 2;
+    array += sizeof(size) + sizeof(validity);
 
     // write planes
-    for (int i = gop->nLevelCount - 1; i >= 0; i--) {
+    for (int i = gop->nLevelCount - 1; i >= 0; i--)
         array += pobWriteDefaultToArray(gop->planes[i], array, gop->divideExtra);
-    }
 }
 
 
-int gopGetArraySize(GroupOfPlanes *gop) {
-    int size = 2; // size, validity
+MVArraySizeType gopGetArraySize(GroupOfPlanes *gop) {
+    MVArraySizeType size = 2 * sizeof(MVArraySizeType); // size, validity
     for (int i = gop->nLevelCount - 1; i >= 0; i--)
         size += pobGetArraySize(gop->planes[i], gop->divideExtra);
 
@@ -196,113 +203,100 @@ static void GetMedian(int *vx, int *vy, int vx1, int vy1, int vx2, int vy2, int 
 }
 
 
-void gopExtraDivide(GroupOfPlanes *gop, int *out) {
-    out += 2;                                  // skip full size and validity
+void gopExtraDivide(GroupOfPlanes *gop, uint8_t *out) {
+    out += 2 * sizeof(MVArraySizeType);             // skip full size and validity
     for (int i = gop->nLevelCount - 1; i >= 1; i--) // skip all levels up to finest estimated
         out += pobGetArraySize(gop->planes[i], 0);
 
-    int *inp = out + 1; // finest estimated plane
-    out += out[0] + 1;  // position for divided sublocks data
+    MVArraySizeType size;
+    memcpy(&size, out, sizeof(size));
+
+    const VECTOR *blocks_in = (const VECTOR *)(out + sizeof(size)); // finest estimated plane
+    VECTOR *blocks_out = (VECTOR *)(out + size + sizeof(MVArraySizeType)); // position for divided subblocks data
 
     int nBlkY = gop->planes[0]->nBlkY;
-    int nBlkXN = N_PER_BLOCK * gop->planes[0]->nBlkX;
+    int nBlkX = gop->planes[0]->nBlkX;
 
-    int by = 0; // top blocks
-    for (int bx = 0; bx < nBlkXN; bx += N_PER_BLOCK) {
-        for (int i = 0; i < 2; i++) // vx, vy
-        {
-            out[bx * 2 + i] = inp[bx + i];                            // top left subblock
-            out[bx * 2 + N_PER_BLOCK + i] = inp[bx + i];              // top right subblock
-            out[bx * 2 + nBlkXN * 2 + i] = inp[bx + i];               // bottom left subblock
-            out[bx * 2 + N_PER_BLOCK + nBlkXN * 2 + i] = inp[bx + i]; // bottom right subblock
-        }
-        for (int i = 2; i < N_PER_BLOCK; i++) // sad
-        {
-            out[bx * 2 + i] = inp[bx + i] >> 2;                            // top left subblock
-            out[bx * 2 + N_PER_BLOCK + i] = inp[bx + i] >> 2;              // top right subblock
-            out[bx * 2 + nBlkXN * 2 + i] = inp[bx + i] >> 2;               // bottom left subblock
-            out[bx * 2 + N_PER_BLOCK + nBlkXN * 2 + i] = inp[bx + i] >> 2; // bottom right subblock
-        }
+    // top blocks
+    for (int bx = 0; bx < nBlkX; bx++) {
+        VECTOR block = blocks_in[bx];
+        block.sad >>= 2;
+
+        blocks_out[bx * 2] = block;                 // top left subblock
+        blocks_out[bx * 2 + 1] = block;             // top right subblock
+        blocks_out[bx * 2 + nBlkX * 2] = block;     // bottom left subblock
+        blocks_out[bx * 2 + nBlkX * 2 + 1] = block; // bottom right subblock
     }
-    out += nBlkXN * 4;
-    inp += nBlkXN;
-    for (by = 1; by < nBlkY - 1; by++) // middle blocks
-    {
+
+    blocks_out += nBlkX * 4;
+    blocks_in += nBlkX;
+
+    // middle blocks
+    for (int by = 1; by < nBlkY - 1; by++) {
         int bx = 0;
-        for (int i = 0; i < 2; i++) {
-            out[bx * 2 + i] = inp[bx + i];                            // top left subblock
-            out[bx * 2 + N_PER_BLOCK + i] = inp[bx + i];              // top right subblock
-            out[bx * 2 + nBlkXN * 2 + i] = inp[bx + i];               // bottom left subblock
-            out[bx * 2 + N_PER_BLOCK + nBlkXN * 2 + i] = inp[bx + i]; // bottom right subblock
-        }
-        for (int i = 2; i < N_PER_BLOCK; i++) {
-            out[bx * 2 + i] = inp[bx + i] >> 2;                            // top left subblock
-            out[bx * 2 + N_PER_BLOCK + i] = inp[bx + i] >> 2;              // top right subblock
-            out[bx * 2 + nBlkXN * 2 + i] = inp[bx + i] >> 2;               // bottom left subblock
-            out[bx * 2 + N_PER_BLOCK + nBlkXN * 2 + i] = inp[bx + i] >> 2; // bottom right subblock
-        }
-        for (bx = N_PER_BLOCK; bx < nBlkXN - N_PER_BLOCK; bx += N_PER_BLOCK) {
-            if (gop->divideExtra == 1) {
-                out[bx * 2] = inp[bx];                                    // top left subblock
-                out[bx * 2 + N_PER_BLOCK] = inp[bx];                      // top right subblock
-                out[bx * 2 + nBlkXN * 2] = inp[bx];                       // bottom left subblock
-                out[bx * 2 + N_PER_BLOCK + nBlkXN * 2] = inp[bx];         // bottom right subblock
-                out[bx * 2 + 1] = inp[bx + 1];                            // top left subblock
-                out[bx * 2 + N_PER_BLOCK + 1] = inp[bx + 1];              // top right subblock
-                out[bx * 2 + nBlkXN * 2 + 1] = inp[bx + 1];               // bottom left subblock
-                out[bx * 2 + N_PER_BLOCK + nBlkXN * 2 + 1] = inp[bx + 1]; // bottom right subblock
-            } else {                                                      // divideExtra=2
-                int vx;
-                int vy;
-                GetMedian(&vx, &vy, inp[bx], inp[bx + 1], inp[bx - N_PER_BLOCK], inp[bx + 1 - N_PER_BLOCK], inp[bx - nBlkXN], inp[bx + 1 - nBlkXN]); // top left subblock
-                out[bx * 2] = vx;
-                out[bx * 2 + 1] = vy;
-                GetMedian(&vx, &vy, inp[bx], inp[bx + 1], inp[bx + N_PER_BLOCK], inp[bx + 1 + N_PER_BLOCK], inp[bx - nBlkXN], inp[bx + 1 - nBlkXN]); // top right subblock
-                out[bx * 2 + N_PER_BLOCK] = vx;
-                out[bx * 2 + N_PER_BLOCK + 1] = vy;
-                GetMedian(&vx, &vy, inp[bx], inp[bx + 1], inp[bx - N_PER_BLOCK], inp[bx + 1 - N_PER_BLOCK], inp[bx + nBlkXN], inp[bx + 1 + nBlkXN]); // bottom left subblock
-                out[bx * 2 + nBlkXN * 2] = vx;
-                out[bx * 2 + nBlkXN * 2 + 1] = vy;
-                GetMedian(&vx, &vy, inp[bx], inp[bx + 1], inp[bx + N_PER_BLOCK], inp[bx + 1 + N_PER_BLOCK], inp[bx + nBlkXN], inp[bx + 1 + nBlkXN]); // bottom right subblock
-                out[bx * 2 + N_PER_BLOCK + nBlkXN * 2] = vx;
-                out[bx * 2 + N_PER_BLOCK + nBlkXN * 2 + 1] = vy;
-            }
-            for (int i = 2; i < N_PER_BLOCK; i++) {
-                out[bx * 2 + i] = inp[bx + i] >> 2;                            // top left subblock
-                out[bx * 2 + N_PER_BLOCK + i] = inp[bx + i] >> 2;              // top right subblock
-                out[bx * 2 + nBlkXN * 2 + i] = inp[bx + i] >> 2;               // bottom left subblock
-                out[bx * 2 + N_PER_BLOCK + nBlkXN * 2 + i] = inp[bx + i] >> 2; // bottom right subblock
+
+        VECTOR block = blocks_in[bx];
+        block.sad >>= 2;
+
+        blocks_out[bx * 2] = block;                 // top left subblock
+        blocks_out[bx * 2 + 1] = block;             // top right subblock
+        blocks_out[bx * 2 + nBlkX * 2] = block;     // bottom left subblock
+        blocks_out[bx * 2 + nBlkX * 2 + 1] = block; // bottom right subblock
+
+        for (bx = 1; bx < nBlkX - 1; bx++) {
+            block = blocks_in[bx];
+            block.sad >>= 2;
+
+            blocks_out[bx * 2] = block;                 // top left subblock
+            blocks_out[bx * 2 + 1] = block;             // top right subblock
+            blocks_out[bx * 2 + nBlkX * 2] = block;     // bottom left subblock
+            blocks_out[bx * 2 + nBlkX * 2 + 1] = block; // bottom right subblock
+
+            if (gop->divideExtra > 1) {
+                GetMedian(&blocks_out[bx * 2].x,    &blocks_out[bx * 2].y,
+                          blocks_in[bx].x,          blocks_in[bx].y,
+                          blocks_in[bx - 1].x,      blocks_in[bx - 1].y,
+                          blocks_in[bx - nBlkX].x,  blocks_in[bx - nBlkX].y);
+
+                GetMedian(&blocks_out[bx * 2 + 1].x,    &blocks_out[bx * 2 + 1].y,
+                          blocks_in[bx].x,              blocks_in[bx].y,
+                          blocks_in[bx + 1].x,          blocks_in[bx + 1].y,
+                          blocks_in[bx - nBlkX].x,      blocks_in[bx - nBlkX].y);
+
+                GetMedian(&blocks_out[bx * 2 + nBlkX * 2].x,    &blocks_out[bx * 2 + nBlkX * 2].y,
+                          blocks_in[bx].x,                      blocks_in[bx].y,
+                          blocks_in[bx - 1].x,                  blocks_in[bx - 1].y,
+                          blocks_in[bx + nBlkX].x,              blocks_in[bx + nBlkX].y);
+
+                GetMedian(&blocks_out[bx * 2 + nBlkX * 2 + 1].x,    &blocks_out[bx * 2 + nBlkX * 2 + 1].y,
+                          blocks_in[bx].x,                          blocks_in[bx].y,
+                          blocks_in[bx + 1].x,                      blocks_in[bx + 1].y,
+                          blocks_in[bx + nBlkX].x,                  blocks_in[bx + nBlkX].y);
             }
         }
-        bx = nBlkXN - N_PER_BLOCK;
-        for (int i = 0; i < 2; i++) {
-            out[bx * 2 + i] = inp[bx + i];                            // top left subblock
-            out[bx * 2 + N_PER_BLOCK + i] = inp[bx + i];              // top right subblock
-            out[bx * 2 + nBlkXN * 2 + i] = inp[bx + i];               // bottom left subblock
-            out[bx * 2 + N_PER_BLOCK + nBlkXN * 2 + i] = inp[bx + i]; // bottom right subblock
-        }
-        for (int i = 2; i < N_PER_BLOCK; i++) {
-            out[bx * 2 + i] = inp[bx + i] >> 2;                            // top left subblock
-            out[bx * 2 + N_PER_BLOCK + i] = inp[bx + i] >> 2;              // top right subblock
-            out[bx * 2 + nBlkXN * 2 + i] = inp[bx + i] >> 2;               // bottom left subblock
-            out[bx * 2 + N_PER_BLOCK + nBlkXN * 2 + i] = inp[bx + i] >> 2; // bottom right subblock
-        }
-        out += nBlkXN * 4;
-        inp += nBlkXN;
+
+        bx = nBlkX - 1;
+
+        block = blocks_in[bx];
+        block.sad >>= 2;
+
+        blocks_out[bx * 2] = block;                 // top left subblock
+        blocks_out[bx * 2 + 1] = block;             // top right subblock
+        blocks_out[bx * 2 + nBlkX * 2] = block;     // bottom left subblock
+        blocks_out[bx * 2 + nBlkX * 2 + 1] = block; // bottom right subblock
+
+        blocks_out += nBlkX * 4;
+        blocks_in += nBlkX;
     }
-    by = nBlkY - 1; // bottom blocks
-    for (int bx = 0; bx < nBlkXN; bx += N_PER_BLOCK) {
-        for (int i = 0; i < 2; i++) {
-            out[bx * 2 + i] = inp[bx + i];                            // top left subblock
-            out[bx * 2 + N_PER_BLOCK + i] = inp[bx + i];              // top right subblock
-            out[bx * 2 + nBlkXN * 2 + i] = inp[bx + i];               // bottom left subblock
-            out[bx * 2 + N_PER_BLOCK + nBlkXN * 2 + i] = inp[bx + i]; // bottom right subblock
-        }
-        for (int i = 2; i < N_PER_BLOCK; i++) {
-            out[bx * 2 + i] = inp[bx + i] >> 2;                            // top left subblock
-            out[bx * 2 + N_PER_BLOCK + i] = inp[bx + i] >> 2;              // top right subblock
-            out[bx * 2 + nBlkXN * 2 + i] = inp[bx + i] >> 2;               // bottom left subblock
-            out[bx * 2 + N_PER_BLOCK + nBlkXN * 2 + i] = inp[bx + i] >> 2; // bottom right subblock
-        }
+
+    // bottom blocks
+    for (int bx = 0; bx < nBlkX; bx++) {
+        VECTOR block = blocks_in[bx];
+        block.sad >>= 2;
+
+        blocks_out[bx * 2] = block;                 // top left subblock
+        blocks_out[bx * 2 + 1] = block;             // top right subblock
+        blocks_out[bx * 2 + nBlkX * 2] = block;     // bottom left subblock
+        blocks_out[bx * 2 + nBlkX * 2 + 1] = block; // bottom right subblock
     }
 }

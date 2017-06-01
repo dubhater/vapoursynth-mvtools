@@ -159,8 +159,8 @@ static const VSFrameRef *VS_CC mvanalyseGetFrame(int n, int activationReason, vo
         }
 
 
-        int vectors_size = gopGetArraySize(&vectorFields) * sizeof(int);
-        int *vectors = (int *)malloc(vectors_size);
+        MVArraySizeType vectors_size = gopGetArraySize(&vectorFields);
+        uint8_t *vectors = (uint8_t *)malloc(vectors_size);
 
 
         if (nref >= 0 && nref < d->vi->numFrames) {

@@ -44,7 +44,8 @@ typedef struct VECTOR {
 } VECTOR;
 
 
-#define N_PER_BLOCK 3
+// Type of the size fields in the arrays of VECTOR.
+typedef int MVArraySizeType;
 
 
 /*! \brief Search type : defines the algorithm used for minimizing the SAD */

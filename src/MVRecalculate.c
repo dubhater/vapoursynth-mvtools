@@ -152,11 +152,11 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
         const VSFrameRef *mvn = vsapi->getFrameFilter(n, d->vectors, frameCtx);
         const VSMap *mvprops = vsapi->getFramePropsRO(mvn);
 
-        fgopUpdate(&fgop, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+        fgopUpdate(&fgop, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
         vsapi->freeFrame(mvn);
 
-        int vectors_size = gopGetArraySize(&vectorFields) * sizeof(int);
-        int *vectors = (int *)malloc(vectors_size);
+        MVArraySizeType vectors_size = gopGetArraySize(&vectorFields);
+        uint8_t *vectors = (uint8_t *)malloc(vectors_size);
 
         if (fgopIsValid(&fgop) && nref >= 0 && nref < d->vi->numFrames) {
             const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->node, frameCtx);

@@ -310,14 +310,14 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
             // forward from current to next
             const VSFrameRef *mvF = vsapi->getFrameFilter(nright, d->mvfw, frameCtx);
             const VSMap *mvprops = vsapi->getFramePropsRO(mvF);
-            fgopUpdate(&fgopF, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+            fgopUpdate(&fgopF, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
             isUsableF = fgopIsUsable(&fgopF, d->thscd1, d->thscd2);
             vsapi->freeFrame(mvF);
 
             // backward from next to current
             const VSFrameRef *mvB = vsapi->getFrameFilter(nleft, d->mvbw, frameCtx);
             mvprops = vsapi->getFramePropsRO(mvB);
-            fgopUpdate(&fgopB, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+            fgopUpdate(&fgopB, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
             isUsableB = fgopIsUsable(&fgopB, d->thscd1, d->thscd2);
             vsapi->freeFrame(mvB);
         }

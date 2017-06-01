@@ -298,7 +298,7 @@ static const VSFrameRef *VS_CC depanAnalyseGetFrame(int n, int activationReason,
         const VSFrameRef *mvn = vsapi->getFrameFilter(nframemv, d->vectors, frameCtx);
         const VSMap *mvn_props = vsapi->getFramePropsRO(mvn);
 
-        fgopUpdate(&fgop, (const int *)vsapi->propGetData(mvn_props, prop_MVTools_vectors, 0, NULL));
+        fgopUpdate(&fgop, (const uint8_t *)vsapi->propGetData(mvn_props, prop_MVTools_vectors, 0, NULL));
         vsapi->freeFrame(mvn);
 
         if (fgopIsUsable(&fgop, d->thscd1, d->thscd2)) {

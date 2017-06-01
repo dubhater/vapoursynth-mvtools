@@ -217,7 +217,7 @@ static const VSFrameRef *VS_CC mvflowGetFrame(int n, int activationReason, void 
 
         const VSFrameRef *mvn = vsapi->getFrameFilter(n, d->vectors, frameCtx);
         const VSMap *mvprops = vsapi->getFramePropsRO(mvn);
-        fgopUpdate(&fgop, (const int *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+        fgopUpdate(&fgop, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
         vsapi->freeFrame(mvn);
 
 
