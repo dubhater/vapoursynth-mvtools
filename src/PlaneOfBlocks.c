@@ -589,12 +589,12 @@ static void pobOneTimeSearch(PlaneOfBlocks *pob, int length) {
 
 
 static void pobDiamondSearch(PlaneOfBlocks *pob, int length) {
-    // The meaning of the directions are the following :
-    //		* 1 means right
-    //		* 2 means left
-    //		* 4 means down
-    //		* 8 means up
-    // So 1 + 4 means down right, and so on...
+    enum Direction {
+        Right = 1,
+        Left = 2,
+        Down = 4,
+        Up = 8,
+    };
 
     int dx;
     int dy;
@@ -613,14 +613,14 @@ static void pobDiamondSearch(PlaneOfBlocks *pob, int length) {
         // First, we look the directions that were hinted by the previous step
         // of the algorithm. If we find one, we add it to the set of directions
         // we'll test next
-        if (lastDirection & 1)
-            pobCheckMV2(pob, dx + length, dy, &direction, 1);
-        if (lastDirection & 2)
-            pobCheckMV2(pob, dx - length, dy, &direction, 2);
-        if (lastDirection & 4)
-            pobCheckMV2(pob, dx, dy + length, &direction, 4);
-        if (lastDirection & 8)
-            pobCheckMV2(pob, dx, dy - length, &direction, 8);
+        if (lastDirection & Right)
+            pobCheckMV2(pob, dx + length, dy, &direction, Right);
+        if (lastDirection & Left)
+            pobCheckMV2(pob, dx - length, dy, &direction, Left);
+        if (lastDirection & Down)
+            pobCheckMV2(pob, dx, dy + length, &direction, Down);
+        if (lastDirection & Up)
+            pobCheckMV2(pob, dx, dy - length, &direction, Up);
 
         // If one of the directions improves the SAD, we make further tests
         // on the diagonals
@@ -629,12 +629,12 @@ static void pobDiamondSearch(PlaneOfBlocks *pob, int length) {
             dx = pob->bestMV.x;
             dy = pob->bestMV.y;
 
-            if (lastDirection & 3) {
-                pobCheckMV2(pob, dx, dy + length, &direction, 4);
-                pobCheckMV2(pob, dx, dy - length, &direction, 8);
+            if (lastDirection & (Right + Left)) {
+                pobCheckMV2(pob, dx, dy + length, &direction, Down);
+                pobCheckMV2(pob, dx, dy - length, &direction, Up);
             } else {
-                pobCheckMV2(pob, dx + length, dy, &direction, 1);
-                pobCheckMV2(pob, dx - length, dy, &direction, 2);
+                pobCheckMV2(pob, dx + length, dy, &direction, Right);
+                pobCheckMV2(pob, dx - length, dy, &direction, Left);
             }
         }
 
@@ -642,49 +642,49 @@ static void pobDiamondSearch(PlaneOfBlocks *pob, int length) {
         // diagonals to be checked, because we might be lucky.
         else {
             switch (lastDirection) {
-                case 1:
-                    pobCheckMV2(pob, dx + length, dy + length, &direction, 1 + 4);
-                    pobCheckMV2(pob, dx + length, dy - length, &direction, 1 + 8);
+                case Right:
+                    pobCheckMV2(pob, dx + length, dy + length, &direction, Right + Down);
+                    pobCheckMV2(pob, dx + length, dy - length, &direction, Right + Up);
                     break;
-                case 2:
-                    pobCheckMV2(pob, dx - length, dy + length, &direction, 2 + 4);
-                    pobCheckMV2(pob, dx - length, dy - length, &direction, 2 + 8);
+                case Left:
+                    pobCheckMV2(pob, dx - length, dy + length, &direction, Left + Down);
+                    pobCheckMV2(pob, dx - length, dy - length, &direction, Left + Up);
                     break;
-                case 4:
-                    pobCheckMV2(pob, dx + length, dy + length, &direction, 1 + 4);
-                    pobCheckMV2(pob, dx - length, dy + length, &direction, 2 + 4);
+                case Down:
+                    pobCheckMV2(pob, dx + length, dy + length, &direction, Right + Down);
+                    pobCheckMV2(pob, dx - length, dy + length, &direction, Left + Down);
                     break;
-                case 8:
-                    pobCheckMV2(pob, dx + length, dy - length, &direction, 1 + 8);
-                    pobCheckMV2(pob, dx - length, dy - length, &direction, 2 + 8);
+                case Up:
+                    pobCheckMV2(pob, dx + length, dy - length, &direction, Right + Up);
+                    pobCheckMV2(pob, dx - length, dy - length, &direction, Left + Up);
                     break;
-                case 1 + 4:
-                    pobCheckMV2(pob, dx + length, dy + length, &direction, 1 + 4);
-                    pobCheckMV2(pob, dx - length, dy + length, &direction, 2 + 4);
-                    pobCheckMV2(pob, dx + length, dy - length, &direction, 1 + 8);
+                case Right + Down:
+                    pobCheckMV2(pob, dx + length, dy + length, &direction, Right + Down);
+                    pobCheckMV2(pob, dx - length, dy + length, &direction, Left + Down);
+                    pobCheckMV2(pob, dx + length, dy - length, &direction, Right + Up);
                     break;
-                case 2 + 4:
-                    pobCheckMV2(pob, dx + length, dy + length, &direction, 1 + 4);
-                    pobCheckMV2(pob, dx - length, dy + length, &direction, 2 + 4);
-                    pobCheckMV2(pob, dx - length, dy - length, &direction, 2 + 8);
+                case Left + Down:
+                    pobCheckMV2(pob, dx + length, dy + length, &direction, Right + Down);
+                    pobCheckMV2(pob, dx - length, dy + length, &direction, Left + Down);
+                    pobCheckMV2(pob, dx - length, dy - length, &direction, Left + Up);
                     break;
-                case 1 + 8:
-                    pobCheckMV2(pob, dx + length, dy + length, &direction, 1 + 4);
-                    pobCheckMV2(pob, dx - length, dy - length, &direction, 2 + 8);
-                    pobCheckMV2(pob, dx + length, dy - length, &direction, 1 + 8);
+                case Right + Up:
+                    pobCheckMV2(pob, dx + length, dy + length, &direction, Right + Down);
+                    pobCheckMV2(pob, dx - length, dy - length, &direction, Left + Up);
+                    pobCheckMV2(pob, dx + length, dy - length, &direction, Right + Up);
                     break;
-                case 2 + 8:
-                    pobCheckMV2(pob, dx - length, dy - length, &direction, 2 + 8);
-                    pobCheckMV2(pob, dx - length, dy + length, &direction, 2 + 4);
-                    pobCheckMV2(pob, dx + length, dy - length, &direction, 1 + 8);
+                case Left + Up:
+                    pobCheckMV2(pob, dx - length, dy - length, &direction, Left + Up);
+                    pobCheckMV2(pob, dx - length, dy + length, &direction, Left + Down);
+                    pobCheckMV2(pob, dx + length, dy - length, &direction, Right + Up);
                     break;
                 default:
                     // Even the default case may happen, in the first step of the
                     // algorithm for example.
-                    pobCheckMV2(pob, dx + length, dy + length, &direction, 1 + 4);
-                    pobCheckMV2(pob, dx - length, dy + length, &direction, 2 + 4);
-                    pobCheckMV2(pob, dx + length, dy - length, &direction, 1 + 8);
-                    pobCheckMV2(pob, dx - length, dy - length, &direction, 2 + 8);
+                    pobCheckMV2(pob, dx + length, dy + length, &direction, Right + Down);
+                    pobCheckMV2(pob, dx - length, dy + length, &direction, Left + Down);
+                    pobCheckMV2(pob, dx + length, dy - length, &direction, Right + Up);
+                    pobCheckMV2(pob, dx - length, dy - length, &direction, Left + Up);
                     break;
             }
         }
