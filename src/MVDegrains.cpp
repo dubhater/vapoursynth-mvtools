@@ -699,6 +699,20 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
     d.thSAD[0] = d.thSAD[0] * d.nSCD1 / nSCD1_old;              // normalize to block SAD
     d.thSAD[1] = d.thSAD[2] = d.thSAD[1] * d.nSCD1 / nSCD1_old; // chroma threshold, normalized to block SAD
 
+    if (d.thSAD[0] >= INT_MAX || d.thSAD[1] >= INT_MAX) {
+        int64_t maximum = INT_MAX * nSCD1_old / d.nSCD1;
+
+        bool c = d.thSAD[0] < INT_MAX;
+
+        vsapi->setError(out, (filter + ": with this block size and video format, thsad" + (c ? "c" : "") + " must not exceed " + std::to_string(maximum) + " or some calculations would overflow.").c_str());
+        vsapi->freeNode(d.super);
+
+        for (int r = 0; r < radius * 2; r++)
+            vsapi->freeNode(d.vectors[r]);
+
+        return;
+    }
+
 
     d.node = vsapi->propGetNode(in, "clip", 0, 0);
     d.vi = vsapi->getVideoInfo(d.node);
