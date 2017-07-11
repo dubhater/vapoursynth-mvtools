@@ -24,6 +24,9 @@
 #include "DCTFFTW.h"
 
 
+static const float sqrt_2_div_2 = 0.70710678118654752440084436210485f;
+
+
 template <typename PixelType>
 static void Float2Pixels_C(const DCTFFTW *dct, uint8_t *dstp8, int dst_pitch, float *realdata) {
     PixelType *dstp = (PixelType *)dstp8;
@@ -37,7 +40,7 @@ static void Float2Pixels_C(const DCTFFTW *dct, uint8_t *dstp8, int dst_pitch, fl
 
     for (int j = 0; j < dct->sizey; j++) {
         for (int i = 0; i < dct->sizex; i++) {
-            float f = realdata[i] * 0.707f; // to be compatible with integer DCTINT8
+            float f = realdata[i] * sqrt_2_div_2; // to be compatible with integer DCTINT8
             int integ = (int)(nearbyintf(f));
             dstp[i] = std::min(pixelMax, std::max(0, (integ >> dct->dctshift) + pixelHalf));
         }
@@ -93,7 +96,7 @@ static void Float2Pixels_SSE2(const DCTFFTW *dct, uint8_t *dstp8, int dst_pitch,
     for (unsigned y = 0; y < height; y++) {
         for (unsigned x = 0; x < width; x += 4) {
             __m128 f = _mm_load_ps(&realdata[x]);
-            f = _mm_mul_ps(f, _mm_set1_ps(0.707f));
+            f = _mm_mul_ps(f, _mm_set1_ps(sqrt_2_div_2));
 
             __m128i i = _mm_cvtps_epi32(f);
             i = _mm_sra_epi32(i, dwords_dctshift);
