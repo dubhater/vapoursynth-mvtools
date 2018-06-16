@@ -7,13 +7,13 @@ AM_CPPFLAGS = $(VapourSynth_CFLAGS) $(FFTW3F_CFLAGS)
 
 lib_LTLIBRARIES = libmvtools.la
 
-AM_V_YASM = $(am__v_YASM_$(V))
-am__v_YASM_ = $(am__v_YASM_$(AM_DEFAULT_VERBOSITY))
-am__v_YASM_0 = @echo "  YASM    " $@;
-am__v_YASM_1 =
+AM_V_NASM = $(am__v_NASM_$(V))
+am__v_NASM_ = $(am__v_NASM_$(AM_DEFAULT_VERBOSITY))
+am__v_NASM_0 = @echo "  NASM    " $@;
+am__v_NASM_1 =
 
 .asm.lo:
-	$(AM_V_YASM)$(LIBTOOL) $(AM_V_lt) --mode=compile --tag=CC $(YASM) $(YASMFLAGS) -o $@ $< -prefer-non-pic
+	$(AM_V_NASM)$(LIBTOOL) $(AM_V_lt) --mode=compile --tag=CC $(NASM) $(NASMFLAGS) -o $@ $< -prefer-non-pic
 
 libmvtools_la_SOURCES =	src/Bullshit.h \
 						src/CommonFunctions.h \
@@ -71,6 +71,10 @@ libmvtools_la_SOURCES += src/asm/const-a.asm \
 						 src/asm/cpu-a.asm \
 						 src/asm/pixel-a.asm \
 						 src/asm/sad-a.asm
+
+if MVTOOLS_I686
+libmvtools_la_SOURCES += src/asm/pixel-32.asm
+endif
 
 noinst_LTLIBRARIES = libavx2.la
 

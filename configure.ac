@@ -51,8 +51,8 @@ ARM="false"
 
 AS_CASE(
   [$host_cpu],
-  [i?86],         [BITS="32" YASMFLAGS="$YASMFLAGS -DARCH_X86_64=0" X86="true"],
-  [x86_64|amd64], [BITS="64" YASMFLAGS="$YASMFLAGS -DARCH_X86_64=1 -DPIC -m amd64" X86="true"],
+  [i?86],         [BITS="32" NASMFLAGS="$NASMFLAGS -DARCH_X86_64=0" X86="true"],
+  [x86_64|amd64], [BITS="64" NASMFLAGS="$NASMFLAGS -DARCH_X86_64=1 -DPIC" X86="true"],
   [powerpc*],     [PPC="true"],
   [arm*],         [ARM="true"],
   [AC_MSG_ERROR([Unknown host CPU: $host_cpu.])]
@@ -62,19 +62,19 @@ AS_CASE(
    [$host_os],
    [darwin*],
    [
-      YASMFLAGS="$YASMFLAGS -f macho$BITS -DPREFIX"
+      NASMFLAGS="$NASMFLAGS -f macho$BITS -DPREFIX"
    ],
    [*linux*|gnu*|dragonfly*|*bsd*],
    [
-      YASMFLAGS="$YASMFLAGS -f elf"
+      NASMFLAGS="$NASMFLAGS -f elf$BITS"
    ],
    [cygwin*|mingw*],
    [
-      YASMFLAGS="$YASMFLAGS -f win32"
+      NASMFLAGS="$NASMFLAGS -f win$BITS"
       AS_IF(
          [test "x$BITS" = "x32"],
          [
-          YASMFLAGS="$YASMFLAGS -DPREFIX"
+          NASMFLAGS="$NASMFLAGS -DPREFIX"
           AC_SUBST([PLUGINLDFLAGS], ["-Wl,--kill-at"])
           AC_SUBST([STACKREALIGN], ["-mstackrealign"])
          ]
@@ -90,16 +90,16 @@ AS_IF(
 
        AC_SUBST([MFLAGS], ["-mfpmath=sse -msse2"])
 
-       YASMFLAGS="$YASMFLAGS -Dprivate_prefix=mvtools -DHIGH_BIT_DEPTH=0 -DBIT_DEPTH=8"
+       NASMFLAGS="$NASMFLAGS -I$srcdir/src/asm/include/ -w -Worphan-labels -Wunrecognized-char -Dprivate_prefix=mvtools -DHIGH_BIT_DEPTH=0 -DBIT_DEPTH=8"
 
-       AC_SUBST([YASMFLAGS])
+       AC_SUBST([NASMFLAGS])
 
-       AC_CHECK_PROGS([YASM], [yasm])
+       AC_CHECK_PROGS([NASM], [nasm])
        AS_IF(
-             [test "x$YASM" = "x"],
-             [AC_MSG_ERROR([yasm required but not found])]
+             [test "x$NASM" = "x"],
+             [AC_MSG_ERROR([nasm required but not found])]
        )
-       AC_SUBST([YASM])
+       AC_SUBST([NASM])
       ]
 )
 
@@ -117,6 +117,7 @@ AS_IF(
 AM_CONDITIONAL([MVTOOLS_X86], [test "x$X86" = "xtrue"])
 AM_CONDITIONAL([MVTOOLS_ARM], [test "x$ARM" = "xtrue"])
 AM_CONDITIONAL([MVTOOLS_PPC], [test "x$PPC" = "xtrue"])
+AM_CONDITIONAL([MVTOOLS_I686], [test "x$BITS" = "x32"])
 
 
 PKG_CHECK_MODULES([VapourSynth], [vapoursynth])

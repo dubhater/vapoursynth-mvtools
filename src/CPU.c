@@ -64,26 +64,20 @@ uint32_t cpu_detect(void) {
         cpu |= X264_CPU_SSE4;
     if (ecx & 0x00100000)
         cpu |= X264_CPU_SSE42;
-    /* Check OXSAVE and AVX bits */
-    if ((ecx & 0x18000000) == 0x18000000) {
-        /* Check for OS support */
-        mvtools_cpu_xgetbv(0, &eax, &edx);
-        if ((eax & 0x6) == 0x6) {
-            cpu |= X264_CPU_AVX;
+    
+    if (ecx & 0x08000000) { /* XGETBV supported and XSAVE enabled by OS */
+        uint64_t xcr0 = mvtools_cpu_xgetbv(0);
+        if ((xcr0 & 0x6) == 0x6) { /* XMM/YMM state */
+            if (ecx & 0x10000000)
+                cpu |= X264_CPU_AVX;
             if (ecx & 0x00001000)
                 cpu |= X264_CPU_FMA3;
-        }
-    }
-
-    if (max_basic_cap >= 7) {
-        mvtools_cpu_cpuid(7, &eax, &ebx, &ecx, &edx);
-        /* AVX2 requires OS support, but BMI1/2 don't. */
-        if ((cpu & X264_CPU_AVX) && (ebx & 0x00000020))
-            cpu |= X264_CPU_AVX2;
-        if (ebx & 0x00000008) {
-            cpu |= X264_CPU_BMI1;
-            if (ebx & 0x00000100)
-                cpu |= X264_CPU_BMI2;
+ 
+            if (max_basic_cap >= 7) {
+                mvtools_cpu_cpuid(7, &eax, &ebx, &ecx, &edx);
+                if (ebx & 0x00000020)
+                    cpu |= X264_CPU_AVX2;
+            }
         }
     }
 
