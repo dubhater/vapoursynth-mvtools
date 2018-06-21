@@ -1523,7 +1523,7 @@ static void mvpRefineExtPel2(MVPlane *mvp, const uint8_t *pSrc2x8, int nSrc2xPit
 
     if (!isExtPadded) {
         for (int i = 1; i < 4; i++)
-            PadReferenceFrame<PixelType>(mvp->pPlane[1], mvp->nPitch, mvp->nHPadding, mvp->nVPadding, mvp->nWidth, mvp->nHeight);
+            PadReferenceFrame<PixelType>(mvp->pPlane[i], mvp->nPitch, mvp->nHPadding, mvp->nVPadding, mvp->nWidth, mvp->nHeight);
     }
 
     mvp->isPadded = 1;
