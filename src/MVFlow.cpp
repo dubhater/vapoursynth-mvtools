@@ -266,18 +266,7 @@ static const VSFrameRef *VS_CC mvflowGetFrame(int n, int activationReason, void 
 
             MakeVectorSmallMasks(&fgop, nBlkX, nBlkY, VXSmallY, nBlkXP, VYSmallY, nBlkXP);
 
-            if (nBlkXP > nBlkX) { // fill right
-                for (int j = 0; j < nBlkY; j++) {
-                    VXSmallY[j * nBlkXP + nBlkX] = VSMIN(VXSmallY[j * nBlkXP + nBlkX - 1], 0);
-                    VYSmallY[j * nBlkXP + nBlkX] = VYSmallY[j * nBlkXP + nBlkX - 1];
-                }
-            }
-            if (nBlkYP > nBlkY) { // fill bottom
-                for (int i = 0; i < nBlkXP; i++) {
-                    VXSmallY[nBlkXP * nBlkY + i] = VXSmallY[nBlkXP * (nBlkY - 1) + i];
-                    VYSmallY[nBlkXP * nBlkY + i] = VSMIN(VYSmallY[nBlkXP * (nBlkY - 1) + i], 0);
-                }
-            }
+            CheckAndPadSmallY(VXSmallY, VYSmallY, nBlkXP, nBlkYP, nBlkX, nBlkY);
 
             int fieldShift = 0;
             if (d->fields && nPel > 1 && ((nref - n) % 2 != 0)) {
@@ -570,9 +559,13 @@ static void VS_CC mvflowCreate(const VSMap *in, VSMap *out, void *userData, VSCo
         return;
     }
 
+    d.nBlkXP = d.vectors_data.nBlkX;
+    d.nBlkYP = d.vectors_data.nBlkY;
+    while (d.nBlkXP * (d.vectors_data.nBlkSizeX - d.vectors_data.nOverlapX) + d.vectors_data.nOverlapX < d.vectors_data.nWidth)
+        d.nBlkXP++;
+    while (d.nBlkYP * (d.vectors_data.nBlkSizeY - d.vectors_data.nOverlapY) + d.vectors_data.nOverlapY < d.vectors_data.nHeight)
+        d.nBlkYP++;
 
-    d.nBlkXP = (d.vectors_data.nBlkX * (d.vectors_data.nBlkSizeX - d.vectors_data.nOverlapX) + d.vectors_data.nOverlapX < d.vectors_data.nWidth) ? d.vectors_data.nBlkX + 1 : d.vectors_data.nBlkX;
-    d.nBlkYP = (d.vectors_data.nBlkY * (d.vectors_data.nBlkSizeY - d.vectors_data.nOverlapY) + d.vectors_data.nOverlapY < d.vectors_data.nHeight) ? d.vectors_data.nBlkY + 1 : d.vectors_data.nBlkY;
     d.nWidthP = d.nBlkXP * (d.vectors_data.nBlkSizeX - d.vectors_data.nOverlapX) + d.vectors_data.nOverlapX; /// can be a local
     d.nHeightP = d.nBlkYP * (d.vectors_data.nBlkSizeY - d.vectors_data.nOverlapY) + d.vectors_data.nOverlapY;
 

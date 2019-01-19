@@ -29,6 +29,10 @@ extern "C" {
 #include "Fakery.h"
 #include "MVFrame.h"
 
+void CheckAndPadSmallY(int16_t *VXSmallY, int16_t *VYSmallY, int nBlkXP, int nBlkYP, int nBlkX, int nBlkY);
+
+void CheckAndPadMaskSmall(uint8_t *MaskSmall, int nBlkXP, int nBlkYP, int nBlkX, int nBlkY);
+
 void MakeVectorOcclusionMaskTime(const FakeGroupOfPlanes *fgop, int isBackward, int nBlkX, int nBlkY, double dMaskNormDivider, double fGamma, int nPel, uint8_t *occMask, int occMaskPitch, int time256, int nBlkStepX, int nBlkStepY);
 
 void MakeSADMaskTime(const FakeGroupOfPlanes *fgop, int nBlkX, int nBlkY, double dSADNormFactor, double fGamma, int nPel, uint8_t *Mask, int MaskPitch, int time256, int nBlkStepX, int nBlkStepY, int bitsPerSample);

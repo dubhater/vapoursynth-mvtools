@@ -37,6 +37,54 @@ void selectFlowInterFunctions_AVX2(FlowInterSimpleFunction *simple, FlowInterFun
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define min(a, b) ((a) > (b) ? (b) : (a))
 
+
+void CheckAndPadSmallY(int16_t *VXSmallY, int16_t *VYSmallY, int nBlkXP, int nBlkYP, int nBlkX, int nBlkY) {
+    if (nBlkXP > nBlkX) { // fill right
+        for (int j = 0; j < nBlkY; j++) {
+            int16_t VXright = min(VXSmallY[j * nBlkXP + nBlkX - 1], (int16_t)0); // not positive
+            int16_t VYright = VYSmallY[j * nBlkXP + nBlkX - 1];
+            // clone: multiple 2.7.30-
+            for (int dx = nBlkX; dx < nBlkXP; dx++) {
+                VXSmallY[j * nBlkXP + dx] = VXright;
+                VYSmallY[j * nBlkXP + dx] = VYright;
+            }
+        }
+    }
+    if (nBlkYP > nBlkY) { // fill bottom
+        for (int i = 0; i < nBlkXP; i++) {
+            int16_t VXbottom = VXSmallY[nBlkXP * (nBlkY - 1) + i];
+            int16_t VYbottom = min(VYSmallY[nBlkXP * (nBlkY - 1) + i], (int16_t)0);
+            for (int dy = nBlkY; dy < nBlkYP; dy++) {
+                VXSmallY[nBlkXP * dy + i] = VXbottom;
+                VYSmallY[nBlkXP * dy + i] = VYbottom;
+            }
+        }
+    }
+}
+
+
+void CheckAndPadMaskSmall(uint8_t *MaskSmall, int nBlkXP, int nBlkYP, int nBlkX, int nBlkY) {
+    if (nBlkXP > nBlkX) { // fill right
+        for (int j = 0; j < nBlkY; j++) {
+            uint8_t right = MaskSmall[j * nBlkXP + nBlkX - 1];
+            // clone: multiple 2.7.30-
+            for (int dx = nBlkX; dx < nBlkXP; dx++) {
+                MaskSmall[j * nBlkXP + dx] = right;
+            }
+        }
+    }
+    if (nBlkYP > nBlkY) { // fill bottom
+        for (int i = 0; i < nBlkXP; i++) {
+            uint8_t bottom = MaskSmall[nBlkXP * (nBlkY - 1) + i];
+            // clone: multiple 2.7.30-
+            for (int dy = nBlkY; dy < nBlkYP; dy++) {
+                MaskSmall[nBlkXP * dy + i] = bottom;
+            }
+        }
+    }
+}
+
+
 static inline void ByteOccMask(uint8_t *occMask, int occlusion, double occnorm, double fGamma) {
     if (fGamma == 1.0)
         *occMask = max(*occMask, min((int)(255 * occlusion * occnorm), 255));
