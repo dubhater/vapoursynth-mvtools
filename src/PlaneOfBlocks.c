@@ -1068,6 +1068,7 @@ void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame,
     pob->pglobal = pglobal;
     pob->badcount = 0;
     pob->tryMany = tryMany;
+    pob->sumLumaChange = 0;
     // Functions using float must not be used here
 
     for (pob->blky = 0; pob->blky < pob->nBlkY; pob->blky++) {
@@ -1409,9 +1410,6 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
             /* write the results */
             pBlkData[pob->blkx] = pob->bestMV;
 
-
-            if (pob->smallestPlane)
-                pob->sumLumaChange += pob->LUMA(pobGetRefBlock(pob, 0, 0), pob->nRefPitch[0]) - pob->LUMA(pob->pSrc[0], pob->nSrcPitch[0]);
 
             if (iblkx < pob->nBlkX - 1) {
                 pob->x[0] += (pob->nBlkSizeX - pob->nOverlapX) * pob->blkScanDir;
