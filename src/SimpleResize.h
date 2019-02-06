@@ -38,8 +38,12 @@ enum {
 typedef struct SimpleResize SimpleResize;
 
 
-typedef void (*ResizeFunction8)(const SimpleResize *simple, uint8_t *dstp, int dst_stride, const uint8_t *srcp, int src_stride);
-typedef void (*ResizeFunction16)(const SimpleResize *simple, int16_t *dstp, int dst_stride, const int16_t *srcp, int src_stride);
+typedef void (*ResizeFunction8)(const SimpleResize *simple,
+                                uint8_t *dstp, int dst_stride,
+                                const uint8_t *srcp, int src_stride);
+typedef void (*ResizeFunction16)(const SimpleResize *simple,
+                                 int16_t *dstp, int dst_stride,
+                                 const int16_t *srcp, int src_stride);
 
 
 typedef struct SimpleResize {

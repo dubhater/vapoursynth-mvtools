@@ -12,8 +12,12 @@
 
 
 #if defined(MVTOOLS_X86)
-void simpleResize_uint8_t_avx2(const SimpleResize *simple, uint8_t *dstp, int dst_stride, const uint8_t *srcp, int src_stride);
-void simpleResize_int16_t_avx2(const SimpleResize *simple, int16_t *dstp, int dst_stride, const int16_t *srcp, int src_stride);
+void simpleResize_uint8_t_avx2(const SimpleResize *simple,
+                               uint8_t *dstp, int dst_stride,
+                               const uint8_t *srcp, int src_stride);
+void simpleResize_int16_t_avx2(const SimpleResize *simple,
+                               int16_t *dstp, int dst_stride,
+                               const int16_t *srcp, int src_stride);
 #endif
 
 
@@ -54,7 +58,9 @@ static void InitTables(int *offsets, int *weights, int out, int in) {
 
 // Thread-safe.
 template <typename PixelType>
-static void simpleResize(const SimpleResize *simple, PixelType *dstp, int dst_stride, const PixelType *srcp, int src_stride) {
+static void simpleResize(const SimpleResize *simple,
+                         PixelType *dstp, int dst_stride,
+                         const PixelType *srcp, int src_stride) {
     PixelType *workp = (PixelType *)malloc(simple->src_width * sizeof(PixelType));
 
     for (int y = 0; y < simple->dst_height; y++) {

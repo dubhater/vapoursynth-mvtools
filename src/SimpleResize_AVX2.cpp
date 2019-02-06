@@ -47,7 +47,9 @@ static FORCE_INLINE void simpleResize_uint8_t_horizontal_8px_avx2(const SimpleRe
 
 
 // Thread-safe.
-void simpleResize_uint8_t_avx2(const SimpleResize *simple, uint8_t *dstp, int dst_stride, const uint8_t *srcp, int src_stride) {
+void simpleResize_uint8_t_avx2(const SimpleResize *simple,
+                               uint8_t *dstp, int dst_stride,
+                               const uint8_t *srcp, int src_stride) {
     // Two additional bytes because of vpgatherdd.
     uint8_t *workp = (uint8_t *)malloc(simple->src_width * sizeof(uint8_t) + 2);
 
@@ -123,7 +125,9 @@ static FORCE_INLINE void simpleResize_int16_t_horizontal_8px_avx2(const SimpleRe
 
 
 // Thread-safe.
-void simpleResize_int16_t_avx2(const SimpleResize *simple, int16_t *dstp, int dst_stride, const int16_t *srcp, int src_stride) {
+void simpleResize_int16_t_avx2(const SimpleResize *simple,
+                               int16_t *dstp, int dst_stride,
+                               const int16_t *srcp, int src_stride) {
     int16_t *workp = (int16_t *)malloc(simple->src_width * sizeof(int16_t));
 
     for (int y = 0; y < simple->dst_height; y++) {
