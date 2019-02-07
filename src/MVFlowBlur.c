@@ -250,10 +250,10 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
             // upsize (bilinear interpolate) vector masks to fullframe size
 
 
-            d->upsizer.simpleResize_int16_t(&d->upsizer, VXFullYB, VPitchY, VXSmallYB, nBlkX);
-            d->upsizer.simpleResize_int16_t(&d->upsizer, VYFullYB, VPitchY, VYSmallYB, nBlkX);
-            d->upsizer.simpleResize_int16_t(&d->upsizer, VXFullYF, VPitchY, VXSmallYF, nBlkX);
-            d->upsizer.simpleResize_int16_t(&d->upsizer, VYFullYF, VPitchY, VYSmallYF, nBlkX);
+            d->upsizer.simpleResize_int16_t(&d->upsizer, VXFullYB, VPitchY, VXSmallYB, nBlkX, 1);
+            d->upsizer.simpleResize_int16_t(&d->upsizer, VYFullYB, VPitchY, VYSmallYB, nBlkX, 0);
+            d->upsizer.simpleResize_int16_t(&d->upsizer, VXFullYF, VPitchY, VXSmallYF, nBlkX, 1);
+            d->upsizer.simpleResize_int16_t(&d->upsizer, VYFullYF, VPitchY, VYSmallYF, nBlkX, 0);
 
             FlowBlur(pDst[0], nDstPitches[0], pRef[0] + nOffsetY, nRefPitches[0],
                      VXFullYB, VXFullYF, VYFullYB, VYFullYF, VPitchY,
@@ -281,11 +281,11 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
                 VectorSmallMaskYToHalfUV(VXSmallYF, nBlkX, nBlkY, VXSmallUVF, xRatioUV);
                 VectorSmallMaskYToHalfUV(VYSmallYF, nBlkX, nBlkY, VYSmallUVF, yRatioUV);
 
-                d->upsizerUV.simpleResize_int16_t(&d->upsizerUV, VXFullUVB, VPitchUV, VXSmallUVB, nBlkX);
-                d->upsizerUV.simpleResize_int16_t(&d->upsizerUV, VYFullUVB, VPitchUV, VYSmallUVB, nBlkX);
+                d->upsizerUV.simpleResize_int16_t(&d->upsizerUV, VXFullUVB, VPitchUV, VXSmallUVB, nBlkX, 1);
+                d->upsizerUV.simpleResize_int16_t(&d->upsizerUV, VYFullUVB, VPitchUV, VYSmallUVB, nBlkX, 0);
 
-                d->upsizerUV.simpleResize_int16_t(&d->upsizerUV, VXFullUVF, VPitchUV, VXSmallUVF, nBlkX);
-                d->upsizerUV.simpleResize_int16_t(&d->upsizerUV, VYFullUVF, VPitchUV, VYSmallUVF, nBlkX);
+                d->upsizerUV.simpleResize_int16_t(&d->upsizerUV, VXFullUVF, VPitchUV, VXSmallUVF, nBlkX, 1);
+                d->upsizerUV.simpleResize_int16_t(&d->upsizerUV, VYFullUVF, VPitchUV, VYSmallUVF, nBlkX, 0);
 
 
                 FlowBlur(pDst[1], nDstPitches[1], pRef[1] + nOffsetUV, nRefPitches[1],
@@ -559,9 +559,9 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
     d.VPitchY = d.mvbw_data.nWidth;
     d.VPitchUV = d.nWidthUV;
 
-    simpleInit(&d.upsizer, d.mvbw_data.nWidth, d.mvbw_data.nHeight, d.mvbw_data.nBlkX, d.mvbw_data.nBlkY, d.opt);
+    simpleInit(&d.upsizer, d.mvbw_data.nWidth, d.mvbw_data.nHeight, d.mvbw_data.nBlkX, d.mvbw_data.nBlkY, d.mvbw_data.nWidth, d.mvbw_data.nHeight, d.mvbw_data.nPel, d.opt);
     if (d.vi->format->colorFamily != cmGray)
-        simpleInit(&d.upsizerUV, d.nWidthUV, d.nHeightUV, d.mvbw_data.nBlkX, d.mvbw_data.nBlkY, d.opt);
+        simpleInit(&d.upsizerUV, d.nWidthUV, d.nHeightUV, d.mvbw_data.nBlkX, d.mvbw_data.nBlkY, d.nWidthUV, d.nHeightUV, d.mvbw_data.nPel, d.opt);
 
 
     data = (MVFlowBlurData *)malloc(sizeof(d));

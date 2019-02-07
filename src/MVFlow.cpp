@@ -309,8 +309,8 @@ static const VSFrameRef *VS_CC mvflowGetFrame(int n, int activationReason, void 
                 }
             }
 
-            d->upsizer.simpleResize_int16_t(&d->upsizer, VXFullY, VPitchY, VXSmallY, nBlkXP);
-            d->upsizer.simpleResize_int16_t(&d->upsizer, VYFullY, VPitchY, VYSmallY, nBlkXP);
+            d->upsizer.simpleResize_int16_t(&d->upsizer, VXFullY, VPitchY, VXSmallY, nBlkXP, 1);
+            d->upsizer.simpleResize_int16_t(&d->upsizer, VYFullY, VPitchY, VYSmallY, nBlkXP, 0);
 
             int nOffsetY = nRefPitches[0] * nVPadding * nPel + nHPadding * bytesPerSample * nPel;
             int nOffsetUV = nRefPitches[1] * nVPaddingUV * nPel + nHPaddingUV * bytesPerSample * nPel;
@@ -335,8 +335,8 @@ static const VSFrameRef *VS_CC mvflowGetFrame(int n, int activationReason, void 
                 VectorSmallMaskYToHalfUV(VXSmallY, nBlkXP, nBlkYP, VXSmallUV, xRatioUV);
                 VectorSmallMaskYToHalfUV(VYSmallY, nBlkXP, nBlkYP, VYSmallUV, yRatioUV);
 
-                d->upsizerUV.simpleResize_int16_t(&d->upsizerUV, VXFullUV, VPitchUV, VXSmallUV, nBlkXP);
-                d->upsizerUV.simpleResize_int16_t(&d->upsizerUV, VYFullUV, VPitchUV, VYSmallUV, nBlkXP);
+                d->upsizerUV.simpleResize_int16_t(&d->upsizerUV, VXFullUV, VPitchUV, VXSmallUV, nBlkXP, 1);
+                d->upsizerUV.simpleResize_int16_t(&d->upsizerUV, VYFullUV, VPitchUV, VYSmallUV, nBlkXP, 0);
 
 
                 if (d->mode == Shift) {
@@ -584,9 +584,9 @@ static void VS_CC mvflowCreate(const VSMap *in, VSMap *out, void *userData, VSCo
     d.pixel_max = (1 << d.vi->format->bitsPerSample) - 1;
 
 
-    simpleInit(&d.upsizer, d.nWidthP, d.nHeightP, d.nBlkXP, d.nBlkYP, d.opt);
+    simpleInit(&d.upsizer, d.nWidthP, d.nHeightP, d.nBlkXP, d.nBlkYP, d.vectors_data.nWidth, d.vectors_data.nHeight, d.vectors_data.nPel, d.opt);
     if (d.vi->format->colorFamily != cmGray)
-        simpleInit(&d.upsizerUV, d.nWidthPUV, d.nHeightPUV, d.nBlkXP, d.nBlkYP, d.opt);
+        simpleInit(&d.upsizerUV, d.nWidthPUV, d.nHeightPUV, d.nBlkXP, d.nBlkYP, d.nWidthUV, d.nHeightUV, d.vectors_data.nPel, d.opt);
 
 
     if (d.vi->format->bitsPerSample == 8) {

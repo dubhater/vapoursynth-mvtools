@@ -232,12 +232,12 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
             // upsize (bilinear interpolate) vector masks to fullframe size
 
 
-            upsizer->simpleResize_int16_t(upsizer, VXFullYB, VPitchY, VXSmallYB, nBlkXP);
-            upsizer->simpleResize_int16_t(upsizer, VYFullYB, VPitchY, VYSmallYB, nBlkXP);
-            upsizer->simpleResize_int16_t(upsizer, VXFullYF, VPitchY, VXSmallYF, nBlkXP);
-            upsizer->simpleResize_int16_t(upsizer, VYFullYF, VPitchY, VYSmallYF, nBlkXP);
-            upsizer->simpleResize_uint8_t(upsizer, MaskFullYB, VPitchY, MaskSmallB, nBlkXP);
-            upsizer->simpleResize_uint8_t(upsizer, MaskFullYF, VPitchY, MaskSmallF, nBlkXP);
+            upsizer->simpleResize_int16_t(upsizer, VXFullYB, VPitchY, VXSmallYB, nBlkXP, 1);
+            upsizer->simpleResize_int16_t(upsizer, VYFullYB, VPitchY, VYSmallYB, nBlkXP, 0);
+            upsizer->simpleResize_int16_t(upsizer, VXFullYF, VPitchY, VXSmallYF, nBlkXP, 1);
+            upsizer->simpleResize_int16_t(upsizer, VYFullYF, VPitchY, VYSmallYF, nBlkXP, 0);
+            upsizer->simpleResize_uint8_t(upsizer, MaskFullYB, VPitchY, MaskSmallB, nBlkXP, 0);
+            upsizer->simpleResize_uint8_t(upsizer, MaskFullYF, VPitchY, MaskSmallF, nBlkXP, 0);
 
             if (d->vi->format->colorFamily != cmGray) {
                 VXFullUVB = (int16_t *)malloc(nHeightPUV * VPitchUV * sizeof(int16_t));
@@ -256,12 +256,12 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
                 VectorSmallMaskYToHalfUV(VXSmallYF, nBlkXP, nBlkYP, VXSmallUVF, xRatioUV);
                 VectorSmallMaskYToHalfUV(VYSmallYF, nBlkXP, nBlkYP, VYSmallUVF, yRatioUV);
 
-                upsizerUV->simpleResize_int16_t(upsizerUV, VXFullUVB, VPitchUV, VXSmallUVB, nBlkXP);
-                upsizerUV->simpleResize_int16_t(upsizerUV, VYFullUVB, VPitchUV, VYSmallUVB, nBlkXP);
-                upsizerUV->simpleResize_int16_t(upsizerUV, VXFullUVF, VPitchUV, VXSmallUVF, nBlkXP);
-                upsizerUV->simpleResize_int16_t(upsizerUV, VYFullUVF, VPitchUV, VYSmallUVF, nBlkXP);
-                upsizerUV->simpleResize_uint8_t(upsizerUV, MaskFullUVB, VPitchUV, MaskSmallB, nBlkXP);
-                upsizerUV->simpleResize_uint8_t(upsizerUV, MaskFullUVF, VPitchUV, MaskSmallF, nBlkXP);
+                upsizerUV->simpleResize_int16_t(upsizerUV, VXFullUVB, VPitchUV, VXSmallUVB, nBlkXP, 1);
+                upsizerUV->simpleResize_int16_t(upsizerUV, VYFullUVB, VPitchUV, VYSmallUVB, nBlkXP, 0);
+                upsizerUV->simpleResize_int16_t(upsizerUV, VXFullUVF, VPitchUV, VXSmallUVF, nBlkXP, 1);
+                upsizerUV->simpleResize_int16_t(upsizerUV, VYFullUVF, VPitchUV, VYSmallUVF, nBlkXP, 0);
+                upsizerUV->simpleResize_uint8_t(upsizerUV, MaskFullUVB, VPitchUV, MaskSmallB, nBlkXP, 0);
+                upsizerUV->simpleResize_uint8_t(upsizerUV, MaskFullUVF, VPitchUV, MaskSmallF, nBlkXP, 0);
             }
 
 
@@ -298,10 +298,10 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
                 CheckAndPadSmallY(VXSmallYFF, VYSmallYFF, nBlkXP, nBlkYP, nBlkX, nBlkY);
 
                 // upsize vectors to full frame
-                upsizer->simpleResize_int16_t(upsizer, VXFullYBB, VPitchY, VXSmallYBB, nBlkXP);
-                upsizer->simpleResize_int16_t(upsizer, VYFullYBB, VPitchY, VYSmallYBB, nBlkXP);
-                upsizer->simpleResize_int16_t(upsizer, VXFullYFF, VPitchY, VXSmallYFF, nBlkXP);
-                upsizer->simpleResize_int16_t(upsizer, VYFullYFF, VPitchY, VYSmallYFF, nBlkXP);
+                upsizer->simpleResize_int16_t(upsizer, VXFullYBB, VPitchY, VXSmallYBB, nBlkXP, 1);
+                upsizer->simpleResize_int16_t(upsizer, VYFullYBB, VPitchY, VYSmallYBB, nBlkXP, 0);
+                upsizer->simpleResize_int16_t(upsizer, VXFullYFF, VPitchY, VXSmallYFF, nBlkXP, 1);
+                upsizer->simpleResize_int16_t(upsizer, VYFullYFF, VPitchY, VYSmallYFF, nBlkXP, 0);
 
                 d->FlowInterExtra(pDst[0], nDstPitches[0],
                                   pRef[0] + nOffsetY, pSrc[0] + nOffsetY, nRefPitches[0],
@@ -325,10 +325,10 @@ static const VSFrameRef *VS_CC mvflowinterGetFrame(int n, int activationReason, 
                     VectorSmallMaskYToHalfUV(VXSmallYFF, nBlkXP, nBlkYP, VXSmallUVFF, xRatioUV);
                     VectorSmallMaskYToHalfUV(VYSmallYFF, nBlkXP, nBlkYP, VYSmallUVFF, yRatioUV);
 
-                    upsizerUV->simpleResize_int16_t(upsizerUV, VXFullUVBB, VPitchUV, VXSmallUVBB, nBlkXP);
-                    upsizerUV->simpleResize_int16_t(upsizerUV, VYFullUVBB, VPitchUV, VYSmallUVBB, nBlkXP);
-                    upsizerUV->simpleResize_int16_t(upsizerUV, VXFullUVFF, VPitchUV, VXSmallUVFF, nBlkXP);
-                    upsizerUV->simpleResize_int16_t(upsizerUV, VYFullUVFF, VPitchUV, VYSmallUVFF, nBlkXP);
+                    upsizerUV->simpleResize_int16_t(upsizerUV, VXFullUVBB, VPitchUV, VXSmallUVBB, nBlkXP, 1);
+                    upsizerUV->simpleResize_int16_t(upsizerUV, VYFullUVBB, VPitchUV, VYSmallUVBB, nBlkXP, 0);
+                    upsizerUV->simpleResize_int16_t(upsizerUV, VXFullUVFF, VPitchUV, VXSmallUVFF, nBlkXP, 1);
+                    upsizerUV->simpleResize_int16_t(upsizerUV, VYFullUVFF, VPitchUV, VYSmallUVFF, nBlkXP, 0);
 
                     d->FlowInterExtra(pDst[1], nDstPitches[1],
                                       pRef[1] + nOffsetUV, pSrc[1] + nOffsetUV, nRefPitches[1],
@@ -702,9 +702,9 @@ static void VS_CC mvflowinterCreate(const VSMap *in, VSMap *out, void *userData,
     d.VPitchUV = (d.nWidthPUV + 15) & (~15);
 
 
-    simpleInit(&d.upsizer, d.nWidthP, d.nHeightP, d.nBlkXP, d.nBlkYP, d.opt);
+    simpleInit(&d.upsizer, d.nWidthP, d.nHeightP, d.nBlkXP, d.nBlkYP, d.mvbw_data.nWidth, d.mvbw_data.nHeight, d.mvbw_data.nPel, d.opt);
     if (d.vi->format->colorFamily != cmGray)
-        simpleInit(&d.upsizerUV, d.nWidthPUV, d.nHeightPUV, d.nBlkXP, d.nBlkYP, d.opt);
+        simpleInit(&d.upsizerUV, d.nWidthPUV, d.nHeightPUV, d.nBlkXP, d.nBlkYP, d.nWidthUV, d.nHeightUV, d.mvbw_data.nPel, d.opt);
 
     selectFlowInterFunctions(&d.FlowInterSimple, &d.FlowInter, &d.FlowInterExtra, d.vi->format->bitsPerSample, d.opt);
 

@@ -166,7 +166,7 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
             if (kind == 5) { // do not change luma for kind=5
                 memcpy(pDst[0], pSrc[0], nSrcPitches[0] * nHeight);
             } else {
-                upsizer->simpleResize_uint8_t(upsizer, pDst[0], nDstPitches[0], smallMask, nBlkX);
+                upsizer->simpleResize_uint8_t(upsizer, pDst[0], nDstPitches[0], smallMask, nBlkX, 0);
                 if (nWidth > nWidthB)
                     for (int h = 0; h < nHeight; h++)
                         for (int w = nWidthB; w < nWidth; w++)
@@ -176,10 +176,10 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
             }
 
             // chroma
-            upsizerUV->simpleResize_uint8_t(upsizerUV, pDst[1], nDstPitches[1], smallMask, nBlkX);
+            upsizerUV->simpleResize_uint8_t(upsizerUV, pDst[1], nDstPitches[1], smallMask, nBlkX, 0);
 
             if (kind == 5)
-                upsizerUV->simpleResize_uint8_t(upsizerUV, pDst[2], nDstPitches[2], smallMaskV, nBlkX);
+                upsizerUV->simpleResize_uint8_t(upsizerUV, pDst[2], nDstPitches[2], smallMaskV, nBlkX, 0);
             else
                 memcpy(pDst[2], pDst[1], nHeightUV * nDstPitches[1]);
 
@@ -334,8 +334,8 @@ static void VS_CC mvmaskCreate(const VSMap *in, VSMap *out, void *userData, VSCo
     if (d.vi.format->colorFamily == cmGray)
         d.vi.format = vsapi->getFormatPreset(pfYUV444P8, core);
 
-    simpleInit(&d.upsizer, d.nWidthB, d.nHeightB, d.vectors_data.nBlkX, d.vectors_data.nBlkY, d.opt);
-    simpleInit(&d.upsizerUV, d.nWidthBUV, d.nHeightBUV, d.vectors_data.nBlkX, d.vectors_data.nBlkY, d.opt);
+    simpleInit(&d.upsizer, d.nWidthB, d.nHeightB, d.vectors_data.nBlkX, d.vectors_data.nBlkY, d.vectors_data.nWidth, d.vectors_data.nHeight, d.vectors_data.nPel, d.opt);
+    simpleInit(&d.upsizerUV, d.nWidthBUV, d.nHeightBUV, d.vectors_data.nBlkX, d.vectors_data.nBlkY, d.nWidthUV, d.nHeightUV, d.vectors_data.nPel, d.opt);
 
     d.time256 = (int)(time * 256 / 100);
 

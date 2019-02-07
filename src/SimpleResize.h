@@ -40,10 +40,12 @@ typedef struct SimpleResize SimpleResize;
 
 typedef void (*ResizeFunction8)(const SimpleResize *simple,
                                 uint8_t *dstp, int dst_stride,
-                                const uint8_t *srcp, int src_stride);
+                                const uint8_t *srcp, int src_stride,
+                                int horizontal_vectors);
 typedef void (*ResizeFunction16)(const SimpleResize *simple,
                                  int16_t *dstp, int dst_stride,
-                                 const int16_t *srcp, int src_stride);
+                                 const int16_t *srcp, int src_stride,
+                                 int horizontal_vectors);
 
 
 typedef struct SimpleResize {
@@ -51,6 +53,13 @@ typedef struct SimpleResize {
     int dst_height;
     int src_width;
     int src_height;
+
+    // Used only to limit the vectors in the 16 bit resizer.
+    // dst_width and dst_height are usually the padded dimensions.
+    // The two below are the unpadded dimensions, i.e. the actual frame size.
+    int limit_width;
+    int limit_height;
+    int pel;
 
     int *vertical_offsets;
     int *vertical_weights;
@@ -63,7 +72,7 @@ typedef struct SimpleResize {
 } SimpleResize;
 
 
-void simpleInit(SimpleResize *simple, int dst_width, int dst_height, int src_width, int src_height, int opt);
+void simpleInit(SimpleResize *simple, int dst_width, int dst_height, int src_width, int src_height, int limit_width, int limit_height, int pel, int opt);
 void simpleDeinit(SimpleResize *simple);
 
 
