@@ -1,25 +1,42 @@
-
 #include <cstdint>
 #include <cstring>
 #include <unordered_map>
 
 #include "CopyCode.h"
+#include "CPU.h"
 
+extern "C" uint32_t g_cpuinfo;
 
-template <unsigned width, unsigned height, typename PixelType>
-void copyBlock(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch) {
-    for (unsigned j = 0; j < height; j++) {
-        memcpy(pDst, pSrc, width * sizeof(PixelType));
-        pDst += nDstPitch;
-        pSrc += nSrcPitch;
+template <unsigned width, unsigned height>
+void copyBlock(uint8_t * __restrict pDst, intptr_t nDstPitch, const uint8_t * __restrict pSrc, intptr_t nSrcPitch) {
+    int unroll = (height >= 8 ? 8 : (height >= 4 ? 4 : (height >= 2 ? 2 : 1))) / ((width + 15) / 16);
+    unroll = unroll < 1 ? 1 : unroll;
+
+    for (unsigned j = 0; j < height; j += unroll) {
+        memcpy(pDst + 0 * nDstPitch, pSrc + 0 * nSrcPitch, width);
+        if (unroll > 1) {
+            memcpy(pDst + 1 * nDstPitch, pSrc + 1 * nSrcPitch, width);
+        }
+        if (unroll > 2) {
+            memcpy(pDst + 2 * nDstPitch, pSrc + 2 * nSrcPitch, width);
+            memcpy(pDst + 3 * nDstPitch, pSrc + 3 * nSrcPitch, width);
+        }
+        if (unroll > 4) {
+            memcpy(pDst + 4 * nDstPitch, pSrc + 4 * nSrcPitch, width);
+            memcpy(pDst + 5 * nDstPitch, pSrc + 5 * nSrcPitch, width);
+            memcpy(pDst + 6 * nDstPitch, pSrc + 6 * nSrcPitch, width);
+            memcpy(pDst + 7 * nDstPitch, pSrc + 7 * nSrcPitch, width);
+        }
+        pDst += nDstPitch * unroll;
+        pSrc += nSrcPitch * unroll;
     }
 }
 
 
 #define KEY(width, height, bits) (width) << 16 | (height) << 8 | (bits)
 #define COPY(width, height) \
-    { KEY(width, height, 8), copyBlock<width, height, uint8_t> }, \
-    { KEY(width, height, 16), copyBlock<width, height, uint16_t> },
+    { KEY(width, height, 8), copyBlock<width * sizeof(uint8_t), height> }, \
+    { KEY(width, height, 16), copyBlock<width * sizeof(uint16_t), height> },
 
 static const std::unordered_map<uint32_t, COPYFunction> copy_functions = {
     COPY(2, 2)
