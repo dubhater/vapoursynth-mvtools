@@ -25,12 +25,14 @@
 #include <VSHelper.h>
 
 #include "Bullshit.h"
+#include "CPU.h"
 #include "Fakery.h"
 #include "MVAnalysisData.h"
 #include "MVDegrains.h"
 #include "MVFrame.h"
 #include "Overlap.h"
 
+extern "C" uint32_t g_cpuinfo;
 
 struct MVDegrainData {
     VSNodeRef *node;
@@ -389,6 +391,7 @@ static void VS_CC mvdegrainFree(void *instanceData, VSCore *core, const VSAPI *v
 enum InstructionSets {
     Scalar,
     SSE2,
+    AVX2,
 };
 
 
@@ -404,8 +407,7 @@ enum InstructionSets {
 
 #define DEGRAIN(radius, width, height) \
     { KEY(width, height, 8, Scalar), Degrain_C<radius, width, height, uint8_t> }, \
-    { KEY(width, height, 16, Scalar), Degrain_C<radius, width, height, uint16_t> }, \
-    DEGRAIN_SSE2(radius, width, height)
+    { KEY(width, height, 16, Scalar), Degrain_C<radius, width, height, uint16_t> },
 
 static const std::unordered_map<uint32_t, DenoiseFunction> degrain_functions[3] = {
     {
@@ -497,14 +499,104 @@ static const std::unordered_map<uint32_t, DenoiseFunction> degrain_functions[3] 
     }
 };
 
+static const std::unordered_map<uint32_t, DenoiseFunction> degrain_functions_sse2[3] = {
+    {
+        DEGRAIN_SSE2(1, 4, 2)
+        DEGRAIN_SSE2(1, 4, 4)
+        DEGRAIN_SSE2(1, 4, 8)
+        DEGRAIN_SSE2(1, 8, 1)
+        DEGRAIN_SSE2(1, 8, 2)
+        DEGRAIN_SSE2(1, 8, 4)
+        DEGRAIN_SSE2(1, 8, 8)
+        DEGRAIN_SSE2(1, 8, 16)
+        DEGRAIN_SSE2(1, 16, 1)
+        DEGRAIN_SSE2(1, 16, 2)
+        DEGRAIN_SSE2(1, 16, 4)
+        DEGRAIN_SSE2(1, 16, 8)
+        DEGRAIN_SSE2(1, 16, 16)
+        DEGRAIN_SSE2(1, 16, 32)
+        DEGRAIN_SSE2(1, 32, 8)
+        DEGRAIN_SSE2(1, 32, 16)
+        DEGRAIN_SSE2(1, 32, 32)
+        DEGRAIN_SSE2(1, 32, 64)
+        DEGRAIN_SSE2(1, 64, 16)
+        DEGRAIN_SSE2(1, 64, 32)
+        DEGRAIN_SSE2(1, 64, 64)
+        DEGRAIN_SSE2(1, 64, 128)
+        DEGRAIN_SSE2(1, 128, 32)
+        DEGRAIN_SSE2(1, 128, 64)
+        DEGRAIN_SSE2(1, 128, 128)
+    },
+    {
+        DEGRAIN_SSE2(2, 4, 2)
+        DEGRAIN_SSE2(2, 4, 4)
+        DEGRAIN_SSE2(2, 4, 8)
+        DEGRAIN_SSE2(2, 8, 1)
+        DEGRAIN_SSE2(2, 8, 2)
+        DEGRAIN_SSE2(2, 8, 4)
+        DEGRAIN_SSE2(2, 8, 8)
+        DEGRAIN_SSE2(2, 8, 16)
+        DEGRAIN_SSE2(2, 16, 1)
+        DEGRAIN_SSE2(2, 16, 2)
+        DEGRAIN_SSE2(2, 16, 4)
+        DEGRAIN_SSE2(2, 16, 8)
+        DEGRAIN_SSE2(2, 16, 16)
+        DEGRAIN_SSE2(2, 16, 32)
+        DEGRAIN_SSE2(2, 32, 8)
+        DEGRAIN_SSE2(2, 32, 16)
+        DEGRAIN_SSE2(2, 32, 32)
+        DEGRAIN_SSE2(2, 32, 64)
+        DEGRAIN_SSE2(2, 64, 16)
+        DEGRAIN_SSE2(2, 64, 32)
+        DEGRAIN_SSE2(2, 64, 64)
+        DEGRAIN_SSE2(2, 64, 128)
+        DEGRAIN_SSE2(2, 128, 32)
+        DEGRAIN_SSE2(2, 128, 64)
+        DEGRAIN_SSE2(2, 128, 128)
+    },
+    {
+        DEGRAIN_SSE2(3, 4, 2)
+        DEGRAIN_SSE2(3, 4, 4)
+        DEGRAIN_SSE2(3, 4, 8)
+        DEGRAIN_SSE2(3, 8, 1)
+        DEGRAIN_SSE2(3, 8, 2)
+        DEGRAIN_SSE2(3, 8, 4)
+        DEGRAIN_SSE2(3, 8, 8)
+        DEGRAIN_SSE2(3, 8, 16)
+        DEGRAIN_SSE2(3, 16, 1)
+        DEGRAIN_SSE2(3, 16, 2)
+        DEGRAIN_SSE2(3, 16, 4)
+        DEGRAIN_SSE2(3, 16, 8)
+        DEGRAIN_SSE2(3, 16, 16)
+        DEGRAIN_SSE2(3, 16, 32)
+        DEGRAIN_SSE2(3, 32, 8)
+        DEGRAIN_SSE2(3, 32, 16)
+        DEGRAIN_SSE2(3, 32, 32)
+        DEGRAIN_SSE2(3, 32, 64)
+        DEGRAIN_SSE2(3, 64, 16)
+        DEGRAIN_SSE2(3, 64, 32)
+        DEGRAIN_SSE2(3, 64, 64)
+        DEGRAIN_SSE2(3, 64, 128)
+        DEGRAIN_SSE2(3, 128, 32)
+        DEGRAIN_SSE2(3, 128, 64)
+        DEGRAIN_SSE2(3, 128, 128)
+    }
+};
+
 static DenoiseFunction selectDegrainFunction(unsigned radius, unsigned width, unsigned height, unsigned bits, int opt) {
     DenoiseFunction degrain = degrain_functions[radius - 1].at(KEY(width, height, bits, Scalar));
 
 #if defined(MVTOOLS_X86)
     if (opt) {
         try {
-            degrain = degrain_functions[radius - 1].at(KEY(width, height, bits, SSE2));
+            degrain = degrain_functions_sse2[radius - 1].at(KEY(width, height, bits, SSE2));
         } catch (std::out_of_range &) { }
+    }
+
+    if (opt >= AVX2 && (g_cpuinfo & X264_CPU_AVX2)) {
+        DenoiseFunction tmp = selectDegrainFunctionAVX2(radius, width, height, bits);
+        if (tmp)
+            degrain = tmp;
     }
 #endif
 
@@ -583,7 +675,7 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
 
     d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.opt = 1;
+        d.opt = AVX2;
 
 
     if (plane < 0 || plane > 4) {
