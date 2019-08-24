@@ -21,7 +21,10 @@
 #include <stdexcept>
 #include <unordered_map>
 
+#include "CPU.h"
 #include "Overlap.h"
+
+extern "C" uint32_t g_cpuinfo;
 
 #ifndef M_PI
 #define M_PI       3.14159265358979323846f
@@ -167,6 +170,7 @@ void overlaps_c(uint8_t *pDst8, intptr_t nDstPitch, const uint8_t *pSrc8, intptr
 
 template <unsigned blockWidth, unsigned blockHeight>
 struct OverlapsWrapper {
+    static_assert(blockWidth >= 8, "");
 
     static void overlaps_sse2(uint8_t *pDst8, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, int16_t *pWin, intptr_t nWinPitch) {
         /* pWin from 0 to 2048 */
@@ -234,6 +238,7 @@ struct OverlapsWrapper<4, blockHeight> {
 enum InstructionSets {
     Scalar,
     SSE2,
+    AVX2,
 };
 
 
@@ -314,6 +319,12 @@ OverlapsFunction selectOverlapsFunction(unsigned width, unsigned height, unsigne
         try {
             overs = overlaps_functions.at(KEY(width, height, bits, SSE2));
         } catch (std::out_of_range &) { }
+    }
+
+    if (opt >= AVX2 && (g_cpuinfo & X264_CPU_AVX2)) {
+        OverlapsFunction tmp = selectOverlapsFunctionAVX2(width, height, bits);
+        if (tmp)
+            overs = tmp;
     }
 #endif
 

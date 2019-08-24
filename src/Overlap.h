@@ -56,6 +56,10 @@ void ToPixels_uint32_t_uint16_t(uint8_t *pDst8, int nDstPitch, const uint8_t *pS
 
 OverlapsFunction selectOverlapsFunction(unsigned width, unsigned height, unsigned bits, int opt);
 
+#if defined(MVTOOLS_X86)
+OverlapsFunction selectOverlapsFunctionAVX2(unsigned width, unsigned height, unsigned bits);
+#endif
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
