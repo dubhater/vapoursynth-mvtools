@@ -421,7 +421,7 @@ static void VS_CC mvflowCreate(const VSMap *in, VSMap *out, void *userData, VSCo
 
     d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.opt = 1;
+        d.opt = 2;
 
     d.tff = !!vsapi->propGetInt(in, "tff", 0, &err);
     d.tff_exists = !err;

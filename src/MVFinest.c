@@ -155,7 +155,7 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
 
     d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.opt = 1;
+        d.opt = 2;
 
 
     d.super = vsapi->propGetNode(in, "super", 0, 0);

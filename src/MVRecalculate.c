@@ -331,7 +331,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
     d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.opt = 1;
+        d.opt = 2;
 
     d.meander = !!vsapi->propGetInt(in, "meander", 0, &err);
     if (err)

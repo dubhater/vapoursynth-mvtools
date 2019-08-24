@@ -363,7 +363,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
 
     d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.opt = 1;
+        d.opt = 2;
 
     d.meander = !!vsapi->propGetInt(in, "meander", 0, &err);
     if (err)

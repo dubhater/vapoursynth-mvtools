@@ -453,7 +453,7 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
 
     d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.opt = 1;
+        d.opt = 2;
 
     d.tff = !!vsapi->propGetInt(in, "tff", 0, &err);
     d.tff_exists = !err;
