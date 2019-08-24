@@ -272,12 +272,12 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
                 for (int by = 0; by < nBlkY; by++) {
                     int wby = ((by + nBlkY - 3) / (nBlkY - 2)) * 3;
+                    int wbx = 0;
                     int xx[3] = { 0 };
 
                     for (int bx = 0; bx < nBlkX; bx++) {
                         // select window
-                        int wbx = (bx + nBlkX - 3) / (nBlkX - 2);
-
+                        wbx = bx == nBlkX - 1 ? 2 : wbx; //(bx + nBlkX - 3) / (nBlkX - 2);
                         int16_t *winOver[3] = { overGetWindow(d->OverWins, wby + wbx) };
                         if (nSuperModeYUV & UVPLANES)
                             winOver[1] = winOver[2] = overGetWindow(d->OverWinsUV, wby + wbx);
@@ -305,6 +305,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
                             xx[plane] += (nBlkSizeX[plane] - nOverlapX[plane]) * bytesPerSample;
                         }
+                        wbx = 1;
                     }
 
                     for (int plane = 0; plane < num_planes; plane++) {

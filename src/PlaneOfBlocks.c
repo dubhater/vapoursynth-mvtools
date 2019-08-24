@@ -44,34 +44,40 @@ static inline const uint8_t *pobGetRefBlock(PlaneOfBlocks *pob, int nVx, int nVy
 
 
 static inline const uint8_t *pobGetRefBlockU(PlaneOfBlocks *pob, int nVx, int nVy) {
+    int xbias = (nVx < 0) * ((1 << pob->nLogxRatioUV) - 1);
+    int ybias = (nVy < 0) * ((1 << pob->nLogyRatioUV) - 1);
+
     if (pob->nPel == 2)
         return mvpGetAbsolutePointerPel2(pob->pRefFrame->planes[1],
-                pob->x[1] * 2 + nVx / pob->xRatioUV,
-                pob->y[1] * 2 + nVy / pob->yRatioUV);
+                pob->x[1] * 2 + ((nVx + xbias) >> pob->nLogxRatioUV),
+                pob->y[1] * 2 + ((nVy + ybias) >> pob->nLogyRatioUV));
     else if (pob->nPel == 1)
         return mvpGetAbsolutePointerPel1(pob->pRefFrame->planes[1],
-                pob->x[1] + nVx / pob->xRatioUV,
-                pob->y[1] + nVy / pob->yRatioUV);
+                pob->x[1] + ((nVx + xbias) >> pob->nLogxRatioUV),
+                pob->y[1] + ((nVy + ybias) >> pob->nLogyRatioUV));
     else
         return mvpGetAbsolutePointerPel4(pob->pRefFrame->planes[1],
-                pob->x[1] * 4 + nVx / pob->xRatioUV,
-                pob->y[1] * 4 + nVy / pob->yRatioUV);
+                pob->x[1] * 4 + ((nVx + xbias) >> pob->nLogxRatioUV),
+                pob->y[1] * 4 + ((nVy + ybias) >> pob->nLogyRatioUV));
 }
 
 
 static inline const uint8_t *pobGetRefBlockV(PlaneOfBlocks *pob, int nVx, int nVy) {
+    int xbias = nVx < 0 ? (1 << pob->nLogxRatioUV) - 1 : 0;
+    int ybias = nVy < 0 ? (1 << pob->nLogyRatioUV) - 1 : 0;
+
     if (pob->nPel == 2)
         return mvpGetAbsolutePointerPel2(pob->pRefFrame->planes[2],
-                pob->x[1] * 2 + nVx / pob->xRatioUV,
-                pob->y[1] * 2 + nVy / pob->yRatioUV);
+                pob->x[1] * 2 + ((nVx + xbias) >> pob->nLogxRatioUV),
+                pob->y[1] * 2 + ((nVy + ybias) >> pob->nLogyRatioUV));
     else if (pob->nPel == 1)
         return mvpGetAbsolutePointerPel1(pob->pRefFrame->planes[2],
-                pob->x[1] + nVx / pob->xRatioUV,
-                pob->y[1] + nVy / pob->yRatioUV);
+                pob->x[1] + ((nVx + xbias) >> pob->nLogxRatioUV),
+                pob->y[1] + ((nVy + ybias) >> pob->nLogyRatioUV));
     else
         return mvpGetAbsolutePointerPel4(pob->pRefFrame->planes[2],
-                pob->x[1] * 4 + nVx / pob->xRatioUV,
-                pob->y[1] * 4 + nVy / pob->yRatioUV);
+                pob->x[1] * 4 + ((nVx + xbias) >> pob->nLogxRatioUV),
+                pob->y[1] * 4 + ((nVy + ybias) >> pob->nLogyRatioUV));
 }
 
 
@@ -512,8 +518,8 @@ static void pobFetchPredictors(PlaneOfBlocks *pob) {
         // we really do not know SAD, here is more safe estimation especially for phaseshift method - v1.6.0
         pob->predictors[0].sad = VSMAX(pob->predictors[1].sad, VSMAX(pob->predictors[2].sad, pob->predictors[3].sad));
     } else {
-        //		predictors[0].x = (predictors[1].x + predictors[2].x + predictors[3].x);
-        //		predictors[0].y = (predictors[1].y + predictors[2].y + predictors[3].y);
+        //        predictors[0].x = (predictors[1].x + predictors[2].x + predictors[3].x);
+        //        predictors[0].y = (predictors[1].y + predictors[2].y + predictors[3].y);
         //      predictors[0].sad = (predictors[1].sad + predictors[2].sad + predictors[3].sad);
         // but for top line we have only left predictor[1] - v1.6.0
         pob->predictors[0] = pob->predictors[1];
@@ -522,7 +528,8 @@ static void pobFetchPredictors(PlaneOfBlocks *pob) {
     // if there are no other planes, predictor is the median
     if (pob->smallestPlane)
         pob->predictor = pob->predictors[0];
-    pob->nLambda = pob->nLambda * pob->LSAD / (pob->LSAD + (pob->predictor.sad >> 1)) * pob->LSAD / (pob->LSAD + (pob->predictor.sad >> 1));
+    double scale = pob->LSAD / (double)(pob->LSAD + (pob->predictor.sad >> 1));
+    pob->nLambda = pob->nLambda * scale * scale;
 }
 
 
@@ -1439,6 +1446,7 @@ void pobInterpolatePrediction(PlaneOfBlocks *pob, const PlaneOfBlocks *pob2) {
     int aoddy = (pob->nBlkSizeY * 3 - pob->nOverlapY * 2);
     int aeveny = (pob->nBlkSizeY * 3 - pob->nOverlapY * 4);
     // note: overlapping is still (v2.5.7) not processed properly
+    double scaleov = 1.0 / normov;
     for (int l = 0, index = 0; l < pob->nBlkY; l++) {
         for (int k = 0; k < pob->nBlkX; k++, index++) {
             VECTOR v1, v2, v3, v4;
@@ -1481,9 +1489,9 @@ void pobInterpolatePrediction(PlaneOfBlocks *pob, const PlaneOfBlocks *pob2) {
                 int ay2 = (pob->nBlkSizeY - pob->nOverlapY) * 4 - ay1;
                 // 64 bit so that the multiplications by the SADs don't overflow with 16 bit input.
                 int64_t a11 = ax1 * ay1, a12 = ax1 * ay2, a21 = ax2 * ay1, a22 = ax2 * ay2;
-                pob->vectors[index].x = (int)((a11 * v1.x + a21 * v2.x + a12 * v3.x + a22 * v4.x) / normov);
-                pob->vectors[index].y = (int)((a11 * v1.y + a21 * v2.y + a12 * v3.y + a22 * v4.y) / normov);
-                temp_sad = (a11 * v1.sad + a21 * v2.sad + a12 * v3.sad + a22 * v4.sad) / normov;
+                pob->vectors[index].x = (int)((a11 * v1.x + a21 * v2.x + a12 * v3.x + a22 * v4.x) * scaleov);
+                pob->vectors[index].y = (int)((a11 * v1.y + a21 * v2.y + a12 * v3.y + a22 * v4.y) * scaleov);
+                temp_sad = (a11 * v1.sad + a21 * v2.sad + a12 * v3.sad + a22 * v4.sad) * scaleov;
             } else { // large overlap. Weights are not quite correct but let it be
                 // Dead branch. The overlap is no longer allowed to be more than half the block size.
                 pob->vectors[index].x = (v1.x + v2.x + v3.x + v4.x) << 2;

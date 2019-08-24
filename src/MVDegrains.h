@@ -209,7 +209,7 @@ static inline int DegrainWeight(int64_t thSAD, int64_t blockSAD) {
     if (blockSAD >= thSAD)
         return 0;
 
-    return int((thSAD - blockSAD) * (thSAD + blockSAD) * 256 / (thSAD * thSAD + blockSAD * blockSAD));
+    return int((thSAD - blockSAD) * (thSAD + blockSAD) * 256 / (double)(thSAD * thSAD + blockSAD * blockSAD));
 }
 
 
@@ -238,8 +238,10 @@ static inline void normaliseWeights(int &WSrc, int *WRefs) {
     for (int r = 0; r < radius * 2; r++)
         WSum += WRefs[r];
 
+    double scale = 256.0 / WSum;
+
     for (int r = 0; r < radius * 2; r++) {
-        WRefs[r] = WRefs[r] * 256 / WSum;
+        WRefs[r] = WRefs[r] * scale;
         WSrc -= WRefs[r];
     }
 }
