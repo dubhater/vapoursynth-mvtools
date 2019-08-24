@@ -556,10 +556,11 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
 
                 for (int by = 0; by < nBlkY; by++) {
                     int wby = ((by + nBlkY - 3) / (nBlkY - 2)) * 3;
+                    int wbx = 0;
                     int xx[3] = { 0 };
                     for (int bx = 0; bx < nBlkX; bx++) {
                         // select window
-                        int wbx = (bx + nBlkX - 3) / (nBlkX - 2);
+                        wbx = bx == nBlkX - 1 ? 2 : wbx; //(bx + nBlkX - 3) / (nBlkX - 2);
                         int16_t *winOver[3] = { overGetWindow(d->OverWins, wby + wbx) };
                         if (planes > 1)
                             winOver[1] = winOver[2] = overGetWindow(d->OverWinsUV, wby + wbx);
@@ -591,6 +592,7 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
 
                             xx[plane] += nBlkSizeX[plane] - nOverlapX[plane];
                         }
+                        wbx = 1;
                     }
 
                     for (int plane = 0; plane < planes; plane++) {

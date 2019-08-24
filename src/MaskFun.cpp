@@ -136,7 +136,7 @@ void MakeVectorOcclusionMaskTime(const FakeGroupOfPlanes *fgop, int isBackward, 
 
 
 static unsigned char ByteNorm(int64_t sad, double dSADNormFactor, double fGamma) {
-    //	    double dSADNormFactor = 4 / (dMaskNormFactor*blkSizeX*blkSizeY);
+    //        double dSADNormFactor = 4 / (dMaskNormFactor*blkSizeX*blkSizeY);
     double l = 255 * pow(sad * dSADNormFactor, fGamma); // Fizick - now linear for gm=1
     return (unsigned char)((l > 255) ? 255 : l);
 }

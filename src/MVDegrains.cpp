@@ -286,10 +286,11 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
 
                 for (int by = 0; by < nBlkY; by++) {
                     int wby = ((by + nBlkY - 3) / (nBlkY - 2)) * 3;
+                    int wbx = 0;
                     int xx = 0;
                     for (int bx = 0; bx < nBlkX; bx++) {
                         // select window
-                        int wbx = (bx + nBlkX - 3) / (nBlkX - 2);
+                        wbx = bx == nBlkX - 1 ? 2 : wbx; //(bx + nBlkX - 3) / (nBlkX - 2);
                         int16_t *winOver = overGetWindow(OverWins[plane], wby + wbx);
 
                         int i = by * nBlkX + bx;
@@ -310,6 +311,7 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
                         d->OVERS[plane](pDstTemp + xx * 2, dstTempPitch, tmpBlock, tmpBlockPitch, winOver, nBlkSizeX[plane]);
 
                         xx += (nBlkSizeX[plane] - nOverlapX[plane]) * bytesPerSample;
+                        wbx = 1;
                     }
                     pSrcCur[plane] += (nBlkSizeY[plane] - nOverlapY[plane]) * nSrcPitches[plane];
                     pDstTemp += (nBlkSizeY[plane] - nOverlapY[plane]) * dstTempPitch;
