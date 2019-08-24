@@ -79,6 +79,7 @@ endif
 noinst_LTLIBRARIES = libavx2.la
 
 libavx2_la_SOURCES = src/MaskFun_AVX2.cpp \
+					 src/MVFrame_AVX2.cpp \
 					 src/SimpleResize_AVX2.cpp
 
 libavx2_la_CXXFLAGS = $(AM_CXXFLAGS) -mavx2
