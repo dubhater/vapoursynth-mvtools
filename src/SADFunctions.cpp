@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <stdexcept>
 #include <unordered_map>
 
 #include "CPU.h"

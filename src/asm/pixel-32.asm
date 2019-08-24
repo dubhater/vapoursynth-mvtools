@@ -347,7 +347,7 @@ cglobal intra_sa8d_x3_8x8, 2,3
     paddw    m2, m4 ; v
 
     SUM_MM_X3 m0, m1, m2, m3, m4, m5, m6, pavgw
-    mov      r2, r2m
+    mov      r2d, r2m
     pxor      m7, m7
     punpckldq m2, m1
     pavgw     m0, m7
@@ -368,13 +368,13 @@ cglobal intra_sa8d_x3_8x8, 2,3
 ;                             const uint8_t *pix2, intptr_t stride2, int sums[2][4] )
 ;-----------------------------------------------------------------------------
 cglobal pixel_ssim_4x4x2_core, 0,5
-    mov       r1, r1m
-    mov       r3, r3m
+    mov       r1d, r1m
+    mov       r3d, r3m
     mov       r4, 4
     pxor      m0, m0
 .loop:
-    mov       r0, r0m
-    mov       r2, r2m
+    mov       r0d, r0m
+    mov       r2d, r2m
     add       r0, r4
     add       r2, r4
     pxor      m1, m1

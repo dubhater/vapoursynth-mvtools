@@ -26,7 +26,7 @@
 #include "MaskFun.h"
 
 
-extern uint32_t g_cpuinfo;
+extern "C" uint32_t g_cpuinfo;
 
 
 #if defined(MVTOOLS_X86)
