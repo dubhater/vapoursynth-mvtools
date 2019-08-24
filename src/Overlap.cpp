@@ -18,6 +18,7 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <stdexcept>
 #include <unordered_map>
 
 #include "Overlap.h"

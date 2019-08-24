@@ -24,7 +24,7 @@ void simpleResize_int16_t_avx2(const SimpleResize *simple,
 #endif
 
 
-extern uint32_t g_cpuinfo;
+extern "C" uint32_t g_cpuinfo;
 
 
 static void InitTables(int *offsets, int *weights, int out, int in) {

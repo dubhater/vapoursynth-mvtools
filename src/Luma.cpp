@@ -1,5 +1,5 @@
-
 #include <cstdint>
+#include <stdexcept>
 #include <unordered_map>
 
 #include "Luma.h"
