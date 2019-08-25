@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,9 +11,6 @@
 #include "Fakery.h"
 #include "GroupOfPlanes.h"
 #include "MVAnalysisData.h"
-
-
-extern uint32_t g_cpuinfo;
 
 
 typedef struct MVRecalculateData {
@@ -331,7 +329,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
     d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.opt = 2;
+        d.opt = INT_MAX;
 
     d.meander = !!vsapi->propGetInt(in, "meander", 0, &err);
     if (err)

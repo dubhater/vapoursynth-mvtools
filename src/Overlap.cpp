@@ -24,8 +24,6 @@
 #include "CPU.h"
 #include "Overlap.h"
 
-extern "C" uint32_t g_cpuinfo;
-
 #ifndef M_PI
 #define M_PI       3.14159265358979323846f
 #endif
@@ -235,26 +233,19 @@ struct OverlapsWrapper<4, blockHeight> {
 #endif
 
 
-enum InstructionSets {
-    Scalar,
-    SSE2,
-    AVX2,
-};
-
-
 // opt can fit in four bits, if the width and height need more than eight bits each.
 #define KEY(width, height, bits, opt) (unsigned)(width) << 24 | (height) << 16 | (bits) << 8 | (opt)
 
 #if defined(MVTOOLS_X86)
 #define OVERS_SSE2(width, height) \
-    { KEY(width, height, 8, SSE2), OverlapsWrapper<width, height>::overlaps_sse2 },
+    { KEY(width, height, 8, MVOPT_SSE2), OverlapsWrapper<width, height>::overlaps_sse2 },
 #else
 #define OVERS_SSE2(width, height)
 #endif
 
 #define OVERS(width, height) \
-    { KEY(width, height, 8, Scalar), overlaps_c<width, height, uint16_t, uint8_t> }, \
-    { KEY(width, height, 16, Scalar), overlaps_c<width, height, uint32_t, uint16_t> },
+    { KEY(width, height, 8, MVOPT_SCALAR), overlaps_c<width, height, uint16_t, uint8_t> }, \
+    { KEY(width, height, 16, MVOPT_SCALAR), overlaps_c<width, height, uint32_t, uint16_t> },
 
 static const std::unordered_map<uint32_t, OverlapsFunction> overlaps_functions = {
     OVERS(2, 2)
@@ -312,16 +303,16 @@ static const std::unordered_map<uint32_t, OverlapsFunction> overlaps_functions =
 };
 
 OverlapsFunction selectOverlapsFunction(unsigned width, unsigned height, unsigned bits, int opt) {
-    OverlapsFunction overs = overlaps_functions.at(KEY(width, height, bits, Scalar));
+    OverlapsFunction overs = overlaps_functions.at(KEY(width, height, bits, MVOPT_SCALAR));
 
 #if defined(MVTOOLS_X86)
     if (opt) {
         try {
-            overs = overlaps_functions.at(KEY(width, height, bits, SSE2));
+            overs = overlaps_functions.at(KEY(width, height, bits, MVOPT_SSE2));
         } catch (std::out_of_range &) { }
     }
 
-    if (opt >= AVX2 && (g_cpuinfo & X264_CPU_AVX2)) {
+    if (opt >= MVOPT_AVX2 && (g_cpuinfo & X264_CPU_AVX2)) {
         OverlapsFunction tmp = selectOverlapsFunctionAVX2(width, height, bits);
         if (tmp)
             overs = tmp;

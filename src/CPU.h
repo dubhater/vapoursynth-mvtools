@@ -52,6 +52,16 @@ uint64_t mvtools_cpu_xgetbv(int xcr);
 
 uint32_t cpu_detect(void);
 
+enum {
+    MVOPT_SCALAR = 0,
+#ifdef MVTOOLS_X86
+    MVOPT_SSE2 = 1,
+    MVOPT_AVX2 = 2,
+#endif // MVTOOLS_X86
+};
+
+extern uint32_t g_cpuinfo;
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
