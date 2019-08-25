@@ -17,6 +17,7 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html .
 
+#include <limits.h>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -31,8 +32,6 @@
 #include "MVDegrains.h"
 #include "MVFrame.h"
 #include "Overlap.h"
-
-extern "C" uint32_t g_cpuinfo;
 
 struct MVDegrainData {
     VSNodeRef *node;
@@ -388,26 +387,19 @@ static void VS_CC mvdegrainFree(void *instanceData, VSCore *core, const VSAPI *v
 }
 
 
-enum InstructionSets {
-    Scalar,
-    SSE2,
-    AVX2,
-};
-
-
 // opt can fit in four bits, if the width and height need more than eight bits each.
 #define KEY(width, height, bits, opt) (unsigned)(width) << 24 | (height) << 16 | (bits) << 8 | (opt)
 
 #if defined(MVTOOLS_X86)
 #define DEGRAIN_SSE2(radius, width, height) \
-    { KEY(width, height, 8, SSE2), Degrain_sse2<radius, width, height> },
+    { KEY(width, height, 8, MVOPT_SSE2), Degrain_sse2<radius, width, height> },
 #else
 #define DEGRAIN_SSE2(radius, width, height)
 #endif
 
 #define DEGRAIN(radius, width, height) \
-    { KEY(width, height, 8, Scalar), Degrain_C<radius, width, height, uint8_t> }, \
-    { KEY(width, height, 16, Scalar), Degrain_C<radius, width, height, uint16_t> },
+    { KEY(width, height, 8, MVOPT_SCALAR), Degrain_C<radius, width, height, uint8_t> }, \
+    { KEY(width, height, 16, MVOPT_SCALAR), Degrain_C<radius, width, height, uint16_t> },
 
 static const std::unordered_map<uint32_t, DenoiseFunction> degrain_functions[3] = {
     {
@@ -584,16 +576,16 @@ static const std::unordered_map<uint32_t, DenoiseFunction> degrain_functions_sse
 };
 
 static DenoiseFunction selectDegrainFunction(unsigned radius, unsigned width, unsigned height, unsigned bits, int opt) {
-    DenoiseFunction degrain = degrain_functions[radius - 1].at(KEY(width, height, bits, Scalar));
+    DenoiseFunction degrain = degrain_functions[radius - 1].at(KEY(width, height, bits, MVOPT_SCALAR));
 
 #if defined(MVTOOLS_X86)
     if (opt) {
         try {
-            degrain = degrain_functions_sse2[radius - 1].at(KEY(width, height, bits, SSE2));
+            degrain = degrain_functions_sse2[radius - 1].at(KEY(width, height, bits, MVOPT_SSE2));
         } catch (std::out_of_range &) { }
     }
 
-    if (opt >= AVX2 && (g_cpuinfo & X264_CPU_AVX2)) {
+    if (opt >= MVOPT_AVX2 && (g_cpuinfo & X264_CPU_AVX2)) {
         DenoiseFunction tmp = selectDegrainFunctionAVX2(radius, width, height, bits);
         if (tmp)
             degrain = tmp;
@@ -675,7 +667,7 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
 
     d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.opt = AVX2;
+        d.opt = INT_MAX;
 
 
     if (plane < 0 || plane > 4) {

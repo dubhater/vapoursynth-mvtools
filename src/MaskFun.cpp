@@ -26,9 +26,6 @@
 #include "MaskFun.h"
 
 
-extern "C" uint32_t g_cpuinfo;
-
-
 #if defined(MVTOOLS_X86)
 void selectFlowInterFunctions_AVX2(FlowInterSimpleFunction *simple, FlowInterFunction *regular, FlowInterExtraFunction *extra, int bitsPerSample);
 #endif
@@ -570,7 +567,7 @@ void selectFlowInterFunctions(FlowInterSimpleFunction *simple, FlowInterFunction
     }
 
 #if defined(MVTOOLS_X86)
-    if (opt && (g_cpuinfo & X264_CPU_AVX2))
+    if (opt >= MVOPT_AVX2 && (g_cpuinfo & X264_CPU_AVX2))
         selectFlowInterFunctions_AVX2(simple, regular, extra, bitsPerSample);
 #endif
 }

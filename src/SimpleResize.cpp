@@ -24,9 +24,6 @@ void simpleResize_int16_t_avx2(const SimpleResize *simple,
 #endif
 
 
-extern "C" uint32_t g_cpuinfo;
-
-
 static void InitTables(int *offsets, int *weights, int out, int in) {
     // We don't do shifts.
     float leftmost = 0.5f;       // + shift
@@ -150,7 +147,7 @@ void simpleInit(SimpleResize *simple, int dst_width, int dst_height, int src_wid
 
     if (opt) {
 #if defined(MVTOOLS_X86)
-        if (g_cpuinfo & X264_CPU_AVX2) {
+        if (opt >= MVOPT_AVX2 && (g_cpuinfo & X264_CPU_AVX2)) {
             simple->simpleResize_uint8_t = simpleResize_uint8_t_avx2;
             simple->simpleResize_int16_t = simpleResize_int16_t_avx2;
 
