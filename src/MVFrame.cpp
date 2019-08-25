@@ -1402,7 +1402,7 @@ void mvpRefine(MVPlane *mvp, int sharp) {
                 refine[1] = VerticalBilinear_sse2;
                 refine[2] = DiagonalBilinear_sse2;
 
-                if (g_cpuinfo & X264_CPU_AVX2) {
+                if (mvp->opt >= 2 && (g_cpuinfo & X264_CPU_AVX2)) {
                     refine[0] = HorizontalBilinear_avx2;
                     refine[1] = VerticalBilinear_avx2;
                     refine[2] = DiagonalBilinear_avx2;
@@ -1440,7 +1440,7 @@ void mvpRefine(MVPlane *mvp, int sharp) {
                 refine[0] = refine[2] = HorizontalWiener_sse2;
                 refine[1] = VerticalWiener_sse2;
 
-                if (g_cpuinfo & X264_CPU_AVX2) {
+                if (mvp->opt >= 2 && (g_cpuinfo & X264_CPU_AVX2)) {
                     refine[0] = refine[2] = HorizontalWiener_avx2;
                     refine[1] = VerticalWiener_avx2;
                 }
@@ -1490,7 +1490,7 @@ void mvpRefine(MVPlane *mvp, int sharp) {
 #if defined(MVTOOLS_X86)
                 avg = Average2_sse2;
 
-                if (g_cpuinfo & X264_CPU_AVX2)
+                if (mvp->opt >= 2 && (g_cpuinfo & X264_CPU_AVX2))
                     avg = Average2_avx2;
 #endif
             }
