@@ -486,6 +486,12 @@ SADFunction selectSADFunction(unsigned width, unsigned height, unsigned bits, in
                 sad = sad_functions.at(KEY(width, height, bits, SSSE3_CACHE64));
             } catch (std::out_of_range &) { }
         }
+
+        if (cpu & X264_CPU_AVX2) {
+            SADFunction tmp = selectSADFunctionAVX2(width, height, bits);
+            if (tmp)
+                sad = tmp;
+        }
     }
 #endif
 
