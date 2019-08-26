@@ -441,7 +441,7 @@ void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nB
         pob->SADCHROMA = NULL;
 
 
-    pob->dctpitch = VSMAX(pob->nBlkSizeX, 16) * pob->bytesPerSample;
+    pob->dctpitch = /*VSMAX(pob->nBlkSizeX, 16)*/ pob->nBlkSizeX * pob->bytesPerSample;
 
     // 64 required for effective use of x264 sad on Core2
 #define ALIGN_PLANES 64

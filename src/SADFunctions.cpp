@@ -39,6 +39,7 @@ enum InstructionSets {
 // This version used for width >= 16.
 template <unsigned width, unsigned height>
 struct SADWrapperU8 {
+    static_assert(width >= 16, "");
 
     static unsigned int sad_u8_sse2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
         __m128i sum = zeroes;
@@ -53,7 +54,7 @@ struct SADWrapperU8 {
                 sum = _mm_add_epi64(sum, diff);
             }
 
-            pSrc += nSrcPitch;
+            pSrc += /*nSrcPitch*/ width;
             pRef += nRefPitch;
         }
 
@@ -79,7 +80,7 @@ struct SADWrapperU8<4, height> {
 
             sum = _mm_add_epi64(sum, diff);
 
-            pSrc += nSrcPitch;
+            pSrc += /*nSrcPitch*/ 4;
             pRef += nRefPitch;
         }
 
@@ -91,25 +92,31 @@ struct SADWrapperU8<4, height> {
 
 template <unsigned height>
 struct SADWrapperU8<8, height> {
+    static_assert(height == 1 || height % 2 == 0, "");
 
     static unsigned int sad_u8_sse2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
         __m128i sum = zeroes;
 
-        for (unsigned y = 0; y < height; y++) {
+        if (height == 1) {
             __m128i m2 = _mm_loadl_epi64((const __m128i *)pSrc);
             __m128i m3 = _mm_loadl_epi64((const __m128i *)pRef);
+            sum = _mm_sad_epu8(m2, m3);
+            return (unsigned)_mm_cvtsi128_si32(sum);
+        }
+
+        for (int y = 0; y < height; y += 2) {
+            __m128i m2 = _mm_loadu_si128((const __m128i *)(pSrc + y * 8));
+            __m128i m3 = _mm_loadl_epi64((const __m128i *)(pRef + y * nRefPitch));
+            m3 = _mm_castpd_si128(_mm_loadh_pd(_mm_castsi128_pd(m3), (const double *)(pRef + (y + 1) * nRefPitch)));
 
             __m128i diff = _mm_sad_epu8(m2, m3);
 
             sum = _mm_add_epi64(sum, diff);
-
-            pSrc += nSrcPitch;
-            pRef += nRefPitch;
         }
 
+        sum = _mm_add_epi64(sum, _mm_shuffle_epi32(sum, _MM_SHUFFLE(0, 0, 3, 2)));
         return (unsigned)_mm_cvtsi128_si32(sum);
     }
-
 };
 
 
@@ -394,11 +401,6 @@ static const std::unordered_map<uint32_t, SADFunction> sad_functions = {
     SAD(128, 128)
     SAD_X264_U8_MMX(4, 4)
     SAD_X264_U8_MMX(4, 8)
-    SAD_X264_U8_MMX(8, 4)
-    SAD_X264_U8_MMX(8, 8)
-    SAD_X264_U8_MMX_CACHE64(8, 4)
-    SAD_X264_U8_MMX_CACHE64(8, 8)
-    SAD_X264_U8_SSE2(8, 16)
     SAD_X264_U8_SSE2(16, 8)
     SAD_X264_U8_SSE2(16, 16)
     SAD_X264_U8_SSE3(16, 8)
@@ -408,6 +410,8 @@ static const std::unordered_map<uint32_t, SADFunction> sad_functions = {
     SAD_U8_SSE2(4, 2)
     SAD_U8_SSE2(8, 1)
     SAD_U8_SSE2(8, 2)
+    SAD_U8_SSE2(8, 4)
+    SAD_U8_SSE2(8, 8)
     SAD_U8_SSE2(16, 1)
     SAD_U8_SSE2(16, 2)
     SAD_U8_SSE2(16, 4)
