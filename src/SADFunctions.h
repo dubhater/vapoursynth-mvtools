@@ -36,6 +36,10 @@ SADFunction selectSADFunction(unsigned width, unsigned height, unsigned bits, in
 SADFunction selectSATDFunction(unsigned width, unsigned height, unsigned bits, int opt, unsigned cpu);
 
 
+#if defined(MVTOOLS_X86)
+SADFunction selectSADFunctionAVX2(unsigned width, unsigned height, unsigned bits);
+#endif
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
