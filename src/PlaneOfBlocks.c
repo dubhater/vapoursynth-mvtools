@@ -341,29 +341,19 @@ static inline FORCE_INLINE void pobCheckMVdir(PlaneOfBlocks *pob, int vx, int vy
 
 
 /* clip a vector to the horizontal boundaries */
-static inline int pobClipMVx(PlaneOfBlocks *pob, int vx) {
-    if (vx < pob->nDxMin)
-        return pob->nDxMin;
-    else if (vx >= pob->nDxMax)
-        return pob->nDxMax - 1;
-    else
-        return vx;
+static int pobClipMVx(PlaneOfBlocks *pob, int vx) {
+    return VSMIN(VSMAX(vx, pob->nDxMin), pob->nDxMax - 1);
 }
 
 
 /* clip a vector to the vertical boundaries */
-static inline int pobClipMVy(PlaneOfBlocks *pob, int vy) {
-    if (vy < pob->nDyMin)
-        return pob->nDyMin;
-    else if (vy >= pob->nDyMax)
-        return pob->nDyMax - 1;
-    else
-        return vy;
+static int pobClipMVy(PlaneOfBlocks *pob, int vy) {
+    return VSMIN(VSMAX(vy, pob->nDyMin), pob->nDyMax - 1);
 }
 
 
 /* clip a vector to the search boundaries */
-static inline VECTOR pobClipMV(PlaneOfBlocks *pob, VECTOR v) {
+static VECTOR pobClipMV(PlaneOfBlocks *pob, VECTOR v) {
     VECTOR v2;
     v2.x = pobClipMVx(pob, v.x);
     v2.y = pobClipMVy(pob, v.y);
@@ -373,22 +363,8 @@ static inline VECTOR pobClipMV(PlaneOfBlocks *pob, VECTOR v) {
 
 
 /* find the median between a, b and c */
-static inline int Median(int a, int b, int c) {
-    if (a < b) {
-        if (b < c)
-            return b;
-        else if (a < c)
-            return c;
-        else
-            return a;
-    } else {
-        if (a < c)
-            return a;
-        else if (b < c)
-            return c;
-        else
-            return b;
-    }
+static int Median(int a, int b, int c) {
+    return VSMAX(VSMIN(a, b), VSMIN(VSMAX(a, b), c));
 }
 
 
