@@ -180,7 +180,7 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
 
     d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.opt = 1;
+        d.opt = INT_MAX;
 
 
     if ((d.nPel != 1) && (d.nPel != 2) && (d.nPel != 4)) {
