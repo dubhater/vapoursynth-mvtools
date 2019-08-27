@@ -85,7 +85,7 @@ libavx2_la_SOURCES = src/MaskFun_AVX2.cpp \
 					 src/SADFunctions_AVX2.cpp \
 					 src/SimpleResize_AVX2.cpp
 
-libavx2_la_CXXFLAGS = $(AM_CXXFLAGS) -mavx2
+libavx2_la_CXXFLAGS = $(AM_CXXFLAGS) -mavx2 -mtune=haswell
 
 libmvtools_la_LIBADD += libavx2.la
 endif
