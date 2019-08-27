@@ -24,10 +24,15 @@
 #include "CPU.h"
 #include "PlaneOfBlocks.h"
 
+#ifdef _MSC_VER
+  #define FORCE_INLINE __forceinline
+#else
+  #define FORCE_INLINE __attribute__((always_inline))
+#endif
 
 
 /* fetch the block in the reference frame, which is pointed by the vector (vx, vy) */
-static inline const uint8_t *pobGetRefBlock(PlaneOfBlocks *pob, int nVx, int nVy) {
+static inline FORCE_INLINE const uint8_t *pobGetRefBlock(PlaneOfBlocks *pob, int nVx, int nVy) {
     if (pob->nPel == 2)
         return mvpGetAbsolutePointerPel2(pob->pRefFrame->planes[0],
                 pob->x[0] * 2 + nVx,
@@ -43,7 +48,7 @@ static inline const uint8_t *pobGetRefBlock(PlaneOfBlocks *pob, int nVx, int nVy
 }
 
 
-static inline const uint8_t *pobGetRefBlockU(PlaneOfBlocks *pob, int nVx, int nVy) {
+static inline FORCE_INLINE const uint8_t *pobGetRefBlockU(PlaneOfBlocks *pob, int nVx, int nVy) {
     int xbias = (nVx < 0) * ((1 << pob->nLogxRatioUV) - 1);
     int ybias = (nVy < 0) * ((1 << pob->nLogyRatioUV) - 1);
 
@@ -62,9 +67,9 @@ static inline const uint8_t *pobGetRefBlockU(PlaneOfBlocks *pob, int nVx, int nV
 }
 
 
-static inline const uint8_t *pobGetRefBlockV(PlaneOfBlocks *pob, int nVx, int nVy) {
-    int xbias = nVx < 0 ? (1 << pob->nLogxRatioUV) - 1 : 0;
-    int ybias = nVy < 0 ? (1 << pob->nLogyRatioUV) - 1 : 0;
+static inline FORCE_INLINE const uint8_t *pobGetRefBlockV(PlaneOfBlocks *pob, int nVx, int nVy) {
+    int xbias = (nVx < 0) * ((1 << pob->nLogxRatioUV) - 1);
+    int ybias = (nVy < 0) * ((1 << pob->nLogyRatioUV) - 1);
 
     if (pob->nPel == 2)
         return mvpGetAbsolutePointerPel2(pob->pRefFrame->planes[2],
@@ -82,19 +87,19 @@ static inline const uint8_t *pobGetRefBlockV(PlaneOfBlocks *pob, int nVx, int nV
 
 
 /* computes square distance between two vectors */
-static inline unsigned int SquareDifferenceNorm(const VECTOR *v1, const int v2x, const int v2y) {
+static unsigned int SquareDifferenceNorm(const VECTOR *v1, const int v2x, const int v2y) {
     return (v1->x - v2x) * (v1->x - v2x) + (v1->y - v2y) * (v1->y - v2y);
 }
 
 
 /* computes the cost of a vector (vx, vy) */
-static inline int pobMotionDistorsion(PlaneOfBlocks *pob, int vx, int vy) {
+static int pobMotionDistorsion(PlaneOfBlocks *pob, int vx, int vy) {
     int dist = SquareDifferenceNorm(&pob->predictor, vx, vy);
     return (int)((pob->nLambda * dist) >> 8);
 }
 
 
-static int64_t pobLumaSAD(PlaneOfBlocks *pob, const uint8_t *pRef0) {
+static inline FORCE_INLINE int64_t pobLumaSAD(PlaneOfBlocks *pob, const uint8_t *pRef0) {
     int64_t sad = 0;
 
     if (pob->dctmode == 0) {
@@ -183,7 +188,7 @@ static int64_t pobLumaSAD(PlaneOfBlocks *pob, const uint8_t *pRef0) {
 
 
 /* check if a vector is inside search boundaries */
-static inline int pobIsVectorOK(PlaneOfBlocks *pob, int vx, int vy) {
+static int pobIsVectorOK(PlaneOfBlocks *pob, int vx, int vy) {
     return ((vx >= pob->nDxMin) &&
             (vy >= pob->nDyMin) &&
             (vx < pob->nDxMax) &&
@@ -192,7 +197,7 @@ static inline int pobIsVectorOK(PlaneOfBlocks *pob, int vx, int vy) {
 
 
 /* check if the vector (vx, vy) is better than the best vector found so far without penalty new - renamed in v.2.11*/
-static inline void pobCheckMV0(PlaneOfBlocks *pob, int vx, int vy) { //here the chance for default values are high especially for zeroMVfieldShifted (on left/top border)
+static inline FORCE_INLINE void pobCheckMV0(PlaneOfBlocks *pob, int vx, int vy) { //here the chance for default values are high especially for zeroMVfieldShifted (on left/top border)
     if (
         #ifdef ONLY_CHECK_NONDEFAULT_MV
             ((vx != 0) || (vy != zeroMVfieldShifted.y)) &&
@@ -228,7 +233,7 @@ static inline void pobCheckMV0(PlaneOfBlocks *pob, int vx, int vy) { //here the 
 
 
 /* check if the vector (vx, vy) is better than the best vector found so far */
-static inline void pobCheckMV(PlaneOfBlocks *pob, int vx, int vy) { //here the chance for default values are high especially for zeroMVfieldShifted (on left/top border)
+static inline FORCE_INLINE void pobCheckMV(PlaneOfBlocks *pob, int vx, int vy) { //here the chance for default values are high especially for zeroMVfieldShifted (on left/top border)
     if (
         #ifdef ONLY_CHECK_NONDEFAULT_MV
             ((vx != 0) || (vy != zeroMVfieldShifted.y)) &&
@@ -264,7 +269,7 @@ static inline void pobCheckMV(PlaneOfBlocks *pob, int vx, int vy) { //here the c
 
 
 /* check if the vector (vx, vy) is better, and update dir accordingly */
-static inline void pobCheckMV2(PlaneOfBlocks *pob, int vx, int vy, int *dir, int val) {
+static inline FORCE_INLINE void pobCheckMV2(PlaneOfBlocks *pob, int vx, int vy, int *dir, int val) {
     if (
         #ifdef ONLY_CHECK_NONDEFAULT_MV
             ((vx != 0) || (vy != zeroMVfieldShifted.y)) &&
@@ -301,7 +306,7 @@ static inline void pobCheckMV2(PlaneOfBlocks *pob, int vx, int vy, int *dir, int
 
 
 /* check if the vector (vx, vy) is better, and update dir accordingly, but not bestMV.x, y */
-static inline void pobCheckMVdir(PlaneOfBlocks *pob, int vx, int vy, int *dir, int val) {
+static inline FORCE_INLINE void pobCheckMVdir(PlaneOfBlocks *pob, int vx, int vy, int *dir, int val) {
     if (
         #ifdef ONLY_CHECK_NONDEFAULT_MV
             ((vx != 0) || (vy != zeroMVfieldShifted.y)) &&
