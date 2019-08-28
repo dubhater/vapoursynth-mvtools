@@ -212,9 +212,12 @@ static int pobIsVectorOK(PlaneOfBlocks *pob, int vx, int vy) {
 }
 
 
-/* check if the vector (vx, vy) is better than the best vector found so far without penalty new - renamed in v.2.11*/
-template <int dctmode, int nLogPel>
-static inline FORCE_INLINE void pobCheckMV0(PlaneOfBlocks *pob, int vx, int vy) { //here the chance for default values are high especially for zeroMVfieldShifted (on left/top border)
+#define CHECKMV_PENALTYNEW (1 << 1)
+#define CHECKMV_UPDATEDIR (1 << 2)
+#define CHECKMV_UPDATEBESTMV (1 << 3)
+
+template <int dctmode, int nLogPel, int flags>
+static inline FORCE_INLINE void pobCheckMV_Template(PlaneOfBlocks *pob, int vx, int vy, int *dir, int val) {
     if (
         #ifdef ONLY_CHECK_NONDEFAULT_MV
             ((vx != 0) || (vy != zeroMVfieldShifted.y)) &&
@@ -228,7 +231,7 @@ static inline FORCE_INLINE void pobCheckMV0(PlaneOfBlocks *pob, int vx, int vy) 
 
         const uint8_t *blocks[] = { pobGetRefBlock<nLogPel>(pob, vx, vy), pobGetRefBlockU<nLogPel>(pob, vx, vy), pobGetRefBlockV<nLogPel>(pob, vx, vy) };
         int64_t sad = pobLumaSAD<dctmode>(pob, blocks[0]);
-        cost += sad;
+        cost += sad + ((flags & CHECKMV_PENALTYNEW) ? ((pob->penaltyNew * sad) >> 8) : 0);
         if (cost >= pob->nMinCost)
             return;
 
@@ -237,130 +240,48 @@ static inline FORCE_INLINE void pobCheckMV0(PlaneOfBlocks *pob, int vx, int vy) 
             saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], blocks[1], pob->nRefPitch[1]);
             saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], blocks[2], pob->nRefPitch[2]);
 
-            cost += saduv;
+            cost += saduv + ((flags & CHECKMV_PENALTYNEW) ? ((pob->penaltyNew * saduv) >> 8) : 0);
             if (cost >= pob->nMinCost)
                 return;
         }
 
-        pob->bestMV.x = vx;
-        pob->bestMV.y = vy;
+        if (flags & CHECKMV_UPDATEBESTMV) {
+            pob->bestMV.x = vx;
+            pob->bestMV.y = vy;
+        }
         pob->nMinCost = cost;
         pob->bestMV.sad = sad + saduv;
+        if (flags & CHECKMV_UPDATEDIR)
+            *dir = val;
     }
+}
+
+
+/* check if the vector (vx, vy) is better than the best vector found so far without penalty new - renamed in v.2.11*/
+template <int dctmode, int nLogPel>
+static inline FORCE_INLINE void pobCheckMV0(PlaneOfBlocks *pob, int vx, int vy) { //here the chance for default values are high especially for zeroMVfieldShifted (on left/top border)
+    pobCheckMV_Template<dctmode, nLogPel, CHECKMV_UPDATEBESTMV>(pob, vx, vy, 0, 0);
 }
 
 
 /* check if the vector (vx, vy) is better than the best vector found so far */
 template <int dctmode, int nLogPel>
 static inline FORCE_INLINE void pobCheckMV(PlaneOfBlocks *pob, int vx, int vy) { //here the chance for default values are high especially for zeroMVfieldShifted (on left/top border)
-    if (
-        #ifdef ONLY_CHECK_NONDEFAULT_MV
-            ((vx != 0) || (vy != zeroMVfieldShifted.y)) &&
-            ((vx != predictor.x) || (vy != predictor.y)) &&
-            ((vx != globalMVPredictor.x) || (vy != globalMVPredictor.y)) &&
-        #endif
-            pobIsVectorOK(pob, vx, vy)) {
-        int64_t cost = pobMotionDistorsion(pob, vx, vy);
-        if (cost >= pob->nMinCost)
-            return;
-
-        const uint8_t *blocks[] = { pobGetRefBlock<nLogPel>(pob, vx, vy), pobGetRefBlockU<nLogPel>(pob, vx, vy), pobGetRefBlockV<nLogPel>(pob, vx, vy) };
-        int64_t sad = pobLumaSAD<dctmode>(pob, blocks[0]);
-        cost += sad + ((pob->penaltyNew * sad) >> 8);
-        if (cost >= pob->nMinCost)
-            return;
-
-        int64_t saduv = 0;
-        if (pob->chroma) {
-            saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], blocks[1], pob->nRefPitch[1]);
-            saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], blocks[2], pob->nRefPitch[2]);
-
-            cost += saduv + ((pob->penaltyNew * saduv) >> 8);
-            if (cost >= pob->nMinCost)
-                return;
-        }
-
-        pob->bestMV.x = vx;
-        pob->bestMV.y = vy;
-        pob->nMinCost = cost;
-        pob->bestMV.sad = sad + saduv;
-    }
+    pobCheckMV_Template<dctmode, nLogPel, CHECKMV_PENALTYNEW | CHECKMV_UPDATEBESTMV>(pob, vx, vy, 0, 0);
 }
 
 
 /* check if the vector (vx, vy) is better, and update dir accordingly */
 template <int dctmode, int nLogPel>
 static inline FORCE_INLINE void pobCheckMV2(PlaneOfBlocks *pob, int vx, int vy, int *dir, int val) {
-    if (
-        #ifdef ONLY_CHECK_NONDEFAULT_MV
-            ((vx != 0) || (vy != zeroMVfieldShifted.y)) &&
-            ((vx != predictor.x) || (vy != predictor.y)) &&
-            ((vx != globalMVPredictor.x) || (vy != globalMVPredictor.y)) &&
-        #endif
-            pobIsVectorOK(pob, vx, vy)) {
-        int64_t cost = pobMotionDistorsion(pob, vx, vy);
-        if (cost >= pob->nMinCost)
-            return;
-
-        const uint8_t *blocks[] = { pobGetRefBlock<nLogPel>(pob, vx, vy), pobGetRefBlockU<nLogPel>(pob, vx, vy), pobGetRefBlockV<nLogPel>(pob, vx, vy) };
-        int64_t sad = pobLumaSAD<dctmode>(pob, blocks[0]);
-        cost += sad + ((pob->penaltyNew * sad) >> 8);
-        if (cost >= pob->nMinCost)
-            return;
-
-        int64_t saduv = 0;
-        if (pob->chroma) {
-            saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], blocks[1], pob->nRefPitch[1]);
-            saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], blocks[2], pob->nRefPitch[2]);
-
-            cost += saduv + ((pob->penaltyNew * saduv) >> 8);
-            if (cost >= pob->nMinCost)
-                return;
-        }
-
-        pob->bestMV.x = vx;
-        pob->bestMV.y = vy;
-        pob->nMinCost = cost;
-        pob->bestMV.sad = sad + saduv;
-        *dir = val;
-    }
+    pobCheckMV_Template<dctmode, nLogPel, CHECKMV_PENALTYNEW | CHECKMV_UPDATEDIR | CHECKMV_UPDATEBESTMV>(pob, vx, vy, dir, val);
 }
 
 
 /* check if the vector (vx, vy) is better, and update dir accordingly, but not bestMV.x, y */
 template <int dctmode, int nLogPel>
 static inline FORCE_INLINE void pobCheckMVdir(PlaneOfBlocks *pob, int vx, int vy, int *dir, int val) {
-    if (
-        #ifdef ONLY_CHECK_NONDEFAULT_MV
-            ((vx != 0) || (vy != zeroMVfieldShifted.y)) &&
-            ((vx != predictor.x) || (vy != predictor.y)) &&
-            ((vx != globalMVPredictor.x) || (vy != globalMVPredictor.y)) &&
-        #endif
-            pobIsVectorOK(pob, vx, vy)) {
-        int64_t cost = pobMotionDistorsion(pob, vx, vy);
-        if (cost >= pob->nMinCost)
-            return;
-
-        const uint8_t *blocks[] = { pobGetRefBlock<nLogPel>(pob, vx, vy), pobGetRefBlockU<nLogPel>(pob, vx, vy), pobGetRefBlockV<nLogPel>(pob, vx, vy) };
-        int64_t sad = pobLumaSAD<dctmode>(pob, blocks[0]);
-        cost += sad + ((pob->penaltyNew * sad) >> 8);
-        if (cost >= pob->nMinCost)
-            return;
-
-        int64_t saduv = 0;
-        if (pob->chroma) {
-            saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], blocks[1], pob->nRefPitch[1]);
-            saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], blocks[2], pob->nRefPitch[2]);
-
-            cost += saduv + ((pob->penaltyNew * saduv) >> 8);
-            if (cost >= pob->nMinCost)
-                return;
-        }
-
-        pob->nMinCost = cost;
-        pob->bestMV.sad = sad + saduv;
-        *dir = val;
-    }
+    pobCheckMV_Template<dctmode, nLogPel, CHECKMV_PENALTYNEW | CHECKMV_UPDATEDIR>(pob, vx, vy, dir, val);
 }
 
 
