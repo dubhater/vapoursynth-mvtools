@@ -85,16 +85,16 @@ static const uint8_t *pobGetRefBlockV(PlaneOfBlocks *pob, int nVx, int nVy) {
     switch (nLogPel) {
     case 0:
         return mvpGetAbsolutePointerPel1(pob->pRefFrame->planes[2],
-                pob->x[1] + ((nVx + xbias) >> pob->nLogxRatioUV),
-                pob->y[1] + ((nVy + ybias) >> pob->nLogyRatioUV));
+                pob->x[2] + ((nVx + xbias) >> pob->nLogxRatioUV),
+                pob->y[2] + ((nVy + ybias) >> pob->nLogyRatioUV));
     case 1:
         return mvpGetAbsolutePointerPel2(pob->pRefFrame->planes[2],
-                pob->x[1] * 2 + ((nVx + xbias) >> pob->nLogxRatioUV),
-                pob->y[1] * 2 + ((nVy + ybias) >> pob->nLogyRatioUV));
+                pob->x[2] * 2 + ((nVx + xbias) >> pob->nLogxRatioUV),
+                pob->y[2] * 2 + ((nVy + ybias) >> pob->nLogyRatioUV));
     case 2:
         return mvpGetAbsolutePointerPel4(pob->pRefFrame->planes[2],
-                pob->x[1] * 4 + ((nVx + xbias) >> pob->nLogxRatioUV),
-                pob->y[1] * 4 + ((nVy + ybias) >> pob->nLogyRatioUV));
+                pob->x[2] * 4 + ((nVx + xbias) >> pob->nLogxRatioUV),
+                pob->y[2] * 4 + ((nVy + ybias) >> pob->nLogyRatioUV));
     default:
         return 0;
     }
