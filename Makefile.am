@@ -55,7 +55,7 @@ libmvtools_la_SOURCES =	src/Bullshit.h \
 						src/MVSuper.c \
 						src/Overlap.cpp \
 						src/Overlap.h \
-						src/PlaneOfBlocks.c \
+						src/PlaneOfBlocks.cpp \
 						src/PlaneOfBlocks.h \
 						src/SADFunctions.cpp \
 						src/SADFunctions.h \

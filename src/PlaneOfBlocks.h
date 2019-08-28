@@ -28,6 +28,10 @@
 #include "Luma.h"
 #include "DCTFFTW.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_PREDICTOR 5 // right now 5 should be enough (TSchniede)
 
 //#define    ONLY_CHECK_NONDEFAULT_MV // make the check if it is no default reference (zero, global,...)
@@ -146,5 +150,9 @@ void pobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFram
 void pobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame, SearchType st, int stp, int lambda, int lsad, int pnew, int plevel, uint8_t *out, VECTOR *globalMVec, int fieldShift, DCTFFTW *DCT, int dctmode, int *pmeanLumaChange, int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int tryMany);
 
 MVArraySizeType pobWriteDefaultToArray(const PlaneOfBlocks *pob, uint8_t *array, int divideMode);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
