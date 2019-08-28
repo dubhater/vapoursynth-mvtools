@@ -226,15 +226,16 @@ static inline FORCE_INLINE void pobCheckMV0(PlaneOfBlocks *pob, int vx, int vy) 
         if (cost >= pob->nMinCost)
             return;
 
-        int64_t sad = pobLumaSAD<dctmode>(pob, pobGetRefBlock<nLogPel>(pob, vx, vy));
+        const uint8_t *blocks[] = { pobGetRefBlock<nLogPel>(pob, vx, vy), pobGetRefBlockU<nLogPel>(pob, vx, vy), pobGetRefBlockV<nLogPel>(pob, vx, vy) };
+        int64_t sad = pobLumaSAD<dctmode>(pob, blocks[0]);
         cost += sad;
         if (cost >= pob->nMinCost)
             return;
 
         int64_t saduv = 0;
         if (pob->chroma) {
-            saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU<nLogPel>(pob, vx, vy), pob->nRefPitch[1]);
-            saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV<nLogPel>(pob, vx, vy), pob->nRefPitch[2]);
+            saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], blocks[1], pob->nRefPitch[1]);
+            saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], blocks[2], pob->nRefPitch[2]);
 
             cost += saduv;
             if (cost >= pob->nMinCost)
@@ -263,15 +264,16 @@ static inline FORCE_INLINE void pobCheckMV(PlaneOfBlocks *pob, int vx, int vy) {
         if (cost >= pob->nMinCost)
             return;
 
-        int64_t sad = pobLumaSAD<dctmode>(pob, pobGetRefBlock<nLogPel>(pob, vx, vy));
+        const uint8_t *blocks[] = { pobGetRefBlock<nLogPel>(pob, vx, vy), pobGetRefBlockU<nLogPel>(pob, vx, vy), pobGetRefBlockV<nLogPel>(pob, vx, vy) };
+        int64_t sad = pobLumaSAD<dctmode>(pob, blocks[0]);
         cost += sad + ((pob->penaltyNew * sad) >> 8);
         if (cost >= pob->nMinCost)
             return;
 
         int64_t saduv = 0;
         if (pob->chroma) {
-            saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU<nLogPel>(pob, vx, vy), pob->nRefPitch[1]);
-            saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV<nLogPel>(pob, vx, vy), pob->nRefPitch[2]);
+            saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], blocks[1], pob->nRefPitch[1]);
+            saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], blocks[2], pob->nRefPitch[2]);
 
             cost += saduv + ((pob->penaltyNew * saduv) >> 8);
             if (cost >= pob->nMinCost)
@@ -300,15 +302,16 @@ static inline FORCE_INLINE void pobCheckMV2(PlaneOfBlocks *pob, int vx, int vy, 
         if (cost >= pob->nMinCost)
             return;
 
-        int64_t sad = pobLumaSAD<dctmode>(pob, pobGetRefBlock<nLogPel>(pob, vx, vy));
+        const uint8_t *blocks[] = { pobGetRefBlock<nLogPel>(pob, vx, vy), pobGetRefBlockU<nLogPel>(pob, vx, vy), pobGetRefBlockV<nLogPel>(pob, vx, vy) };
+        int64_t sad = pobLumaSAD<dctmode>(pob, blocks[0]);
         cost += sad + ((pob->penaltyNew * sad) >> 8);
         if (cost >= pob->nMinCost)
             return;
 
         int64_t saduv = 0;
         if (pob->chroma) {
-            saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU<nLogPel>(pob, vx, vy), pob->nRefPitch[1]);
-            saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV<nLogPel>(pob, vx, vy), pob->nRefPitch[2]);
+            saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], blocks[1], pob->nRefPitch[1]);
+            saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], blocks[2], pob->nRefPitch[2]);
 
             cost += saduv + ((pob->penaltyNew * saduv) >> 8);
             if (cost >= pob->nMinCost)
@@ -338,15 +341,16 @@ static inline FORCE_INLINE void pobCheckMVdir(PlaneOfBlocks *pob, int vx, int vy
         if (cost >= pob->nMinCost)
             return;
 
-        int64_t sad = pobLumaSAD<dctmode>(pob, pobGetRefBlock<nLogPel>(pob, vx, vy));
+        const uint8_t *blocks[] = { pobGetRefBlock<nLogPel>(pob, vx, vy), pobGetRefBlockU<nLogPel>(pob, vx, vy), pobGetRefBlockV<nLogPel>(pob, vx, vy) };
+        int64_t sad = pobLumaSAD<dctmode>(pob, blocks[0]);
         cost += sad + ((pob->penaltyNew * sad) >> 8);
         if (cost >= pob->nMinCost)
             return;
 
         int64_t saduv = 0;
         if (pob->chroma) {
-            saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU<nLogPel>(pob, vx, vy), pob->nRefPitch[1]);
-            saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV<nLogPel>(pob, vx, vy), pob->nRefPitch[2]);
+            saduv += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], blocks[1], pob->nRefPitch[1]);
+            saduv += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], blocks[2], pob->nRefPitch[2]);
 
             cost += saduv + ((pob->penaltyNew * saduv) >> 8);
             if (cost >= pob->nMinCost)
@@ -904,10 +908,11 @@ static void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
     // Do we bias zero with not taking into account distorsion ?
     pob->bestMV.x = pob->zeroMVfieldShifted.x;
     pob->bestMV.y = pob->zeroMVfieldShifted.y;
-    int64_t sad = pobLumaSAD<dctmode>(pob, pobGetRefBlock<nLogPel>(pob, 0, pob->zeroMVfieldShifted.y));
+    const uint8_t *zeroMVBlocks[3] = { pobGetRefBlock<nLogPel>(pob, 0, pob->zeroMVfieldShifted.y), pobGetRefBlockU<nLogPel>(pob, 0, 0), pobGetRefBlockV<nLogPel>(pob, 0, 0) };
+    int64_t sad = pobLumaSAD<dctmode>(pob, zeroMVBlocks[0]);
     if (pob->chroma) {
-        sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU<nLogPel>(pob, 0, 0), pob->nRefPitch[1]);
-        sad += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV<nLogPel>(pob, 0, 0), pob->nRefPitch[2]);
+        sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], zeroMVBlocks[1], pob->nRefPitch[1]);
+        sad += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], zeroMVBlocks[2], pob->nRefPitch[2]);
     }
     pob->bestMV.sad = sad;
     pob->nMinCost = sad + ((pob->penaltyZero * sad) >> 8); // v.1.11.0.2
@@ -924,10 +929,11 @@ static void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
 
     // Global MV predictor  - added by Fizick
     pob->globalMVPredictor = pobClipMV(pob, pob->globalMVPredictor);
-    sad = pobLumaSAD<dctmode>(pob, pobGetRefBlock<nLogPel>(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y));
+    const uint8_t *globalPredBlocks[3] = { pobGetRefBlock<nLogPel>(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y), pobGetRefBlockU<nLogPel>(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y), pobGetRefBlockV<nLogPel>(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y) };
+    sad = pobLumaSAD<dctmode>(pob, globalPredBlocks[0]);
     if (pob->chroma) {
-        sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU<nLogPel>(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y), pob->nRefPitch[1]);
-        sad += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV<nLogPel>(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y), pob->nRefPitch[2]);
+        sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], globalPredBlocks[1], pob->nRefPitch[1]);
+        sad += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], globalPredBlocks[2], pob->nRefPitch[2]);
     }
     int64_t cost = sad + ((pob->pglobal * sad) >> 8);
 
@@ -943,10 +949,11 @@ static void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
         bestMVMany[1] = pob->bestMV; // save bestMV
         nMinCostMany[1] = pob->nMinCost;
     }
-    sad = pobLumaSAD<dctmode>(pob, pobGetRefBlock<nLogPel>(pob, pob->predictor.x, pob->predictor.y));
+    const uint8_t *predBlocks[3] = { pobGetRefBlock<nLogPel>(pob, pob->predictor.x, pob->predictor.y), pobGetRefBlockU<nLogPel>(pob, pob->predictor.x, pob->predictor.y), pobGetRefBlockV<nLogPel>(pob, pob->predictor.x, pob->predictor.y) };
+    sad = pobLumaSAD<dctmode>(pob, predBlocks[0]);
     if (pob->chroma) {
-        sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU<nLogPel>(pob, pob->predictor.x, pob->predictor.y), pob->nRefPitch[1]);
-        sad += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV<nLogPel>(pob, pob->predictor.x, pob->predictor.y), pob->nRefPitch[2]);
+        sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], predBlocks[1], pob->nRefPitch[1]);
+        sad += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], predBlocks[2], pob->nRefPitch[2]);
     }
     cost = sad;
 
@@ -1393,10 +1400,11 @@ void doPobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFr
             if (dctmode >= 3) // most use it and it should be fast anyway //if (dctmode == 3 || dctmode == 4) // check it
                 pob->srcLuma = pob->LUMA(pob->pSrc[0], pob->nSrcPitch[0]);
 
-            int64_t sad = pobLumaSAD<dctmode>(pob, pobGetRefBlock<nLogPel>(pob, pob->predictor.x, pob->predictor.y));
+            const uint8_t *blocks[3] = { pobGetRefBlock<nLogPel>(pob, pob->predictor.x, pob->predictor.y), pobGetRefBlockU<nLogPel>(pob, pob->predictor.x, pob->predictor.y), pobGetRefBlockV<nLogPel>(pob, pob->predictor.x, pob->predictor.y) };
+            int64_t sad = pobLumaSAD<dctmode>(pob, blocks[0]);
             if (pob->chroma) {
-                sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], pobGetRefBlockU<nLogPel>(pob, pob->predictor.x, pob->predictor.y), pob->nRefPitch[1]);
-                sad += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], pobGetRefBlockV<nLogPel>(pob, pob->predictor.x, pob->predictor.y), pob->nRefPitch[2]);
+                sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], blocks[1], pob->nRefPitch[1]);
+                sad += pob->SADCHROMA(pob->pSrc[2], pob->nSrcPitch[2], blocks[2], pob->nRefPitch[2]);
             }
             pob->bestMV.sad = sad;
             pob->nMinCost = sad;
