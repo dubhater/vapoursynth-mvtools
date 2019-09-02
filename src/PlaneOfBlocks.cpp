@@ -229,7 +229,11 @@ static inline FORCE_INLINE void pobCheckMV_Template(PlaneOfBlocks *pob, int vx, 
         if (cost >= pob->nMinCost)
             return;
 
-        const uint8_t *blocks[] = { pobGetRefBlock<nLogPel>(pob, vx, vy), pobGetRefBlockU<nLogPel>(pob, vx, vy), pobGetRefBlockV<nLogPel>(pob, vx, vy) };
+        const uint8_t *blocks[] = {
+            pobGetRefBlock<nLogPel>(pob, vx, vy),
+            pob->chroma ? pobGetRefBlockU<nLogPel>(pob, vx, vy) : nullptr,
+            pob->chroma ? pobGetRefBlockV<nLogPel>(pob, vx, vy) : nullptr,
+        };
         int64_t sad = pobLumaSAD<dctmode>(pob, blocks[0]);
         cost += sad + ((flags & CHECKMV_PENALTYNEW) ? ((pob->penaltyNew * sad) >> 8) : 0);
         if (cost >= pob->nMinCost)
@@ -829,7 +833,10 @@ static void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
     // Do we bias zero with not taking into account distorsion ?
     pob->bestMV.x = pob->zeroMVfieldShifted.x;
     pob->bestMV.y = pob->zeroMVfieldShifted.y;
-    const uint8_t *zeroMVBlocks[3] = { pobGetRefBlock<nLogPel>(pob, 0, pob->zeroMVfieldShifted.y), pobGetRefBlockU<nLogPel>(pob, 0, 0), pobGetRefBlockV<nLogPel>(pob, 0, 0) };
+    const uint8_t *zeroMVBlocks[3] = {
+        pobGetRefBlock<nLogPel>(pob, 0, pob->zeroMVfieldShifted.y),
+        pob->chroma ? pobGetRefBlockU<nLogPel>(pob, 0, 0) : nullptr,
+        pob->chroma ? pobGetRefBlockV<nLogPel>(pob, 0, 0) : nullptr, };
     int64_t sad = pobLumaSAD<dctmode>(pob, zeroMVBlocks[0]);
     if (pob->chroma) {
         sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], zeroMVBlocks[1], pob->nRefPitch[1]);
@@ -850,7 +857,11 @@ static void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
 
     // Global MV predictor  - added by Fizick
     pob->globalMVPredictor = pobClipMV(pob, pob->globalMVPredictor);
-    const uint8_t *globalPredBlocks[3] = { pobGetRefBlock<nLogPel>(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y), pobGetRefBlockU<nLogPel>(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y), pobGetRefBlockV<nLogPel>(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y) };
+    const uint8_t *globalPredBlocks[3] = {
+        pobGetRefBlock<nLogPel>(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y),
+        pob->chroma ? pobGetRefBlockU<nLogPel>(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y) : nullptr,
+        pob->chroma ? pobGetRefBlockV<nLogPel>(pob, pob->globalMVPredictor.x, pob->globalMVPredictor.y) : nullptr,
+    };
     sad = pobLumaSAD<dctmode>(pob, globalPredBlocks[0]);
     if (pob->chroma) {
         sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], globalPredBlocks[1], pob->nRefPitch[1]);
@@ -870,7 +881,11 @@ static void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
         bestMVMany[1] = pob->bestMV; // save bestMV
         nMinCostMany[1] = pob->nMinCost;
     }
-    const uint8_t *predBlocks[3] = { pobGetRefBlock<nLogPel>(pob, pob->predictor.x, pob->predictor.y), pobGetRefBlockU<nLogPel>(pob, pob->predictor.x, pob->predictor.y), pobGetRefBlockV<nLogPel>(pob, pob->predictor.x, pob->predictor.y) };
+    const uint8_t *predBlocks[3] = {
+        pobGetRefBlock<nLogPel>(pob, pob->predictor.x, pob->predictor.y),
+        pob->chroma ? pobGetRefBlockU<nLogPel>(pob, pob->predictor.x, pob->predictor.y) : 0,
+        pob->chroma ? pobGetRefBlockV<nLogPel>(pob, pob->predictor.x, pob->predictor.y) : 0,
+    };
     sad = pobLumaSAD<dctmode>(pob, predBlocks[0]);
     if (pob->chroma) {
         sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], predBlocks[1], pob->nRefPitch[1]);
@@ -1321,7 +1336,10 @@ void doPobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFr
             if (dctmode >= 3) // most use it and it should be fast anyway //if (dctmode == 3 || dctmode == 4) // check it
                 pob->srcLuma = pob->LUMA(pob->pSrc[0], pob->nSrcPitch[0]);
 
-            const uint8_t *blocks[3] = { pobGetRefBlock<nLogPel>(pob, pob->predictor.x, pob->predictor.y), pobGetRefBlockU<nLogPel>(pob, pob->predictor.x, pob->predictor.y), pobGetRefBlockV<nLogPel>(pob, pob->predictor.x, pob->predictor.y) };
+            const uint8_t *blocks[3] = {
+                pobGetRefBlock<nLogPel>(pob, pob->predictor.x, pob->predictor.y),
+                pob->chroma ? pobGetRefBlockU<nLogPel>(pob, pob->predictor.x, pob->predictor.y) : nullptr,
+                pob->chroma ? pobGetRefBlockV<nLogPel>(pob, pob->predictor.x, pob->predictor.y) : nullptr, };
             int64_t sad = pobLumaSAD<dctmode>(pob, blocks[0]);
             if (pob->chroma) {
                 sad += pob->SADCHROMA(pob->pSrc[1], pob->nSrcPitch[1], blocks[1], pob->nRefPitch[1]);
