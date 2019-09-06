@@ -60,7 +60,7 @@ sources = [
   'src/MVSCDetection.c',
   'src/MVSuper.c',
   'src/Overlap.cpp',
-  'src/PlaneOfBlocks.c',
+  'src/PlaneOfBlocks.cpp',
   'src/SADFunctions.cpp',
   'src/SimpleResize.cpp',
 ]
