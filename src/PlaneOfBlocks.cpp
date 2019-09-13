@@ -974,6 +974,8 @@ void doPobSearchMVs(PlaneOfBlocks *pob, MVFrame *pSrcFrame, MVFrame *pRefFrame,
                     int plevel, uint8_t *out, VECTOR *globalMVec,
                     int fieldShift, DCTFFTW *DCT, int dctmode_unused, int *pmeanLumaChange,
                     int pzero, int pglobal, int64_t badSAD, int badrange, int meander, int tryMany) {
+    (void)dctmode_unused;
+
     pob->DCT = DCT;
     pob->dctmode = dctmode;
     pob->dctweight16 = VSMIN(16, abs(*pmeanLumaChange) / (pob->nBlkSizeX * pob->nBlkSizeY)); //equal dct and spatial weights for meanLumaChange=8 (empirical)
@@ -1157,6 +1159,8 @@ template <int dctmode, int nLogPel>
 void doPobRecalculateMVs(PlaneOfBlocks *pob, const FakeGroupOfPlanes *fgop, MVFrame *pSrcFrame, MVFrame *pRefFrame,
                          SearchType st, int stp, int lambda, int pnew, uint8_t *out,
                          int fieldShift, int64_t thSAD, DCTFFTW *DCT, int dctmode_unused, int smooth, int meander) {
+    (void)dctmode_unused;
+
     pob->DCT = DCT;
     pob->dctmode = dctmode;
     pob->dctweight16 = 8; //min(16,abs(*pmeanLumaChange)/(nBlkSizeX*nBlkSizeY)); //equal dct and spatial weights for meanLumaChange=8 (empirical)

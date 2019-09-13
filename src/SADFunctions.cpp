@@ -42,6 +42,8 @@ struct SADWrapperU8 {
     static_assert(width >= 16, "");
 
     static unsigned int sad_u8_sse2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
+        (void)nSrcPitch;
+
         __m128i sum = zeroes;
 
         for (unsigned y = 0; y < height; y++) {
@@ -70,6 +72,8 @@ template <unsigned height>
 struct SADWrapperU8<4, height> {
 
     static unsigned int sad_u8_sse2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
+        (void)nSrcPitch;
+
         __m128i sum = zeroes;
 
         for (unsigned y = 0; y < height; y++) {
@@ -95,6 +99,8 @@ struct SADWrapperU8<8, height> {
     static_assert(height == 1 || height % 2 == 0, "");
 
     static unsigned int sad_u8_sse2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
+        (void)nSrcPitch;
+
         __m128i sum = zeroes;
 
         if (height == 1) {
@@ -104,7 +110,7 @@ struct SADWrapperU8<8, height> {
             return (unsigned)_mm_cvtsi128_si32(sum);
         }
 
-        for (int y = 0; y < height; y += 2) {
+        for (int y = 0; (unsigned)y < height; y += 2) {
             __m128i m2 = _mm_loadu_si128((const __m128i *)(pSrc + y * 8));
             __m128i m3 = _mm_loadl_epi64((const __m128i *)(pRef + y * nRefPitch));
             m3 = _mm_castpd_si128(_mm_loadh_pd(_mm_castsi128_pd(m3), (const double *)(pRef + (y + 1) * nRefPitch)));
