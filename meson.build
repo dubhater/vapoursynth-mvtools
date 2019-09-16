@@ -146,13 +146,17 @@ if host_cpu_family.startswith('x86')
 
   libavx2_sources = [
     'src/MaskFun_AVX2.cpp',
+    'src/MVDegrains_AVX2.cpp',
+    'src/MVFrame_AVX2.cpp',
+    'src/Overlap_AVX2.cpp',
+    'src/SADFunctions_AVX2.cpp',
     'src/SimpleResize_AVX2.cpp',
   ]
 
   helper_libs += static_library('avx2',
                                 libavx2_sources,
                                 dependencies: vapoursynth_dep,
-                                cpp_args: [cflags, '-mavx2'],
+                                cpp_args: [cflags, '-mavx2', '-mtune=haswell'],
                                 install: false)
 endif
 
