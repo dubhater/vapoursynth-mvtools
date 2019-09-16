@@ -15,6 +15,8 @@ struct SADWrapperU8_AVX2 {
     static_assert(width >= 32, "");
 
     static unsigned int sad_u8_avx2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
+        (void)nSrcPitch;
+
         __m256i sum = zeroes;
 
         for (unsigned y = 0; y < height; y++) {
@@ -43,9 +45,11 @@ struct SADWrapperU8_AVX2<16, height> {
     static_assert(height >= 2, "");
 
     static unsigned int sad_u8_avx2(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
+        (void)nSrcPitch;
+
         __m256i sum = zeroes;
 
-        for (int y = 0; y < height; y += 2) {
+        for (int y = 0; (unsigned)y < height; y += 2) {
             __m256i m2 = _mm256_loadu_si256((const __m256i *)(pSrc + y * 16));
             __m256i m3 = _mm256_castsi128_si256(_mm_loadu_si128((const __m128i *)(pRef + y * nRefPitch)));
             m3 = _mm256_insertf128_si256(m3, _mm_loadu_si128((const __m128i *)(pRef + (y + 1) * nRefPitch)), 1);

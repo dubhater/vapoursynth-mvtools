@@ -28,7 +28,7 @@ enum InstructionSets {
 // used after this function is done with them.
 template <int radius, int blockWidth, int blockHeight>
 static void Degrain_avx2(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int nSrcPitch, const uint8_t **pRefs, const int *nRefPitches, int WSrc, const int *WRefs) {
-    static_assert(blockWidth >= 16 || blockWidth == 8 && blockHeight >= 2, "");
+    static_assert(blockWidth >= 16 || (blockWidth == 8 && blockHeight >= 2), "");
 
     __m256i zero = _mm256_setzero_si256();
     __m256i wsrc = _mm256_set1_epi16(WSrc);

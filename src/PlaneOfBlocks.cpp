@@ -846,7 +846,7 @@ static void pobPseudoEPZSearch(PlaneOfBlocks *pob) {
     pob->nMinCost = sad + ((pob->penaltyZero * sad) >> 8); // v.1.11.0.2
 
     VECTOR bestMVMany[8];
-    int64_t nMinCostMany[8];
+    int64_t nMinCostMany[8] = { 0 };
 
     if (pob->tryMany) {
         //  refine around zero
