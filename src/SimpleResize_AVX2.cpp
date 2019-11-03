@@ -121,12 +121,14 @@ static FORCE_INLINE void simpleResize_int16_t_horizontal_8px_avx2(const SimpleRe
     pixels = _mm256_madd_epi16(pixels, dwords_weights_h);
     pixels = _mm256_add_epi32(pixels, _mm256_set1_epi32(simple_resize_weight_half));
     pixels = _mm256_srai_epi32(pixels, simple_resize_weight_shift);
+
+    pixels = _mm256_max_epi32(minimum,
+                              _mm256_min_epi32(pixels, maximum));
+
     pixels = _mm256_packs_epi32(pixels, pixels);
 
-    pixels = _mm256_max_epi16(minimum,
-                              _mm256_min_epi16(pixels, maximum));
-    minimum = _mm256_sub_epi16(minimum, horizontal_step);
-    maximum = _mm256_sub_epi16(maximum, horizontal_step);
+    minimum = _mm256_sub_epi32(minimum, horizontal_step);
+    maximum = _mm256_sub_epi32(maximum, horizontal_step);
 
     _mm_storeu_si128((__m128i *)&dstp[x], _mm256_castsi256_si128(_mm256_permute4x64_epi64(pixels, 0xe8))); // 0b11101000
 }
@@ -143,19 +145,11 @@ void simpleResize_int16_t_avx2(const SimpleResize *simple,
 
     int pel = simple->pel;
     __m256i minimum = _mm256_setzero_si256();
-    __m256i maximum = _mm256_set1_epi16(simple->limit_height * pel - 1);
-    __m256i horizontal_step = _mm256_set1_epi16(horizontal_vectors ? pel * pixels_per_iteration : 0);
-    __m256i vertical_step = _mm256_set1_epi16(horizontal_vectors ? 0 : pel);
+    __m256i maximum = _mm256_set1_epi32(simple->limit_height * pel - 1);
+    __m256i horizontal_step = _mm256_set1_epi32(horizontal_vectors ? pel * pixels_per_iteration : 0);
+    __m256i vertical_step = _mm256_set1_epi32(horizontal_vectors ? 0 : pel);
 
-    __m256i initial_horizontal_minimum = _mm256_set_epi16(-15 * pel,
-                                                          -14 * pel,
-                                                          -13 * pel,
-                                                          -12 * pel,
-                                                          -11 * pel,
-                                                          -10 * pel,
-                                                          -9 * pel,
-                                                          -8 * pel,
-                                                          -7 * pel,
+    __m256i initial_horizontal_minimum = _mm256_set_epi32(-7 * pel,
                                                           -6 * pel,
                                                           -5 * pel,
                                                           -4 * pel,
@@ -163,15 +157,7 @@ void simpleResize_int16_t_avx2(const SimpleResize *simple,
                                                           -2 * pel,
                                                           -1 * pel,
                                                           0 * pel);
-    __m256i initial_horizontal_maximum = _mm256_set_epi16((simple->limit_width - 15) * pel - 1,
-                                                          (simple->limit_width - 14) * pel - 1,
-                                                          (simple->limit_width - 13) * pel - 1,
-                                                          (simple->limit_width - 12) * pel - 1,
-                                                          (simple->limit_width - 11) * pel - 1,
-                                                          (simple->limit_width - 10) * pel - 1,
-                                                          (simple->limit_width - 9) * pel - 1,
-                                                          (simple->limit_width - 8) * pel - 1,
-                                                          (simple->limit_width - 7) * pel - 1,
+    __m256i initial_horizontal_maximum = _mm256_set_epi32((simple->limit_width - 7) * pel - 1,
                                                           (simple->limit_width - 6) * pel - 1,
                                                           (simple->limit_width - 5) * pel - 1,
                                                           (simple->limit_width - 4) * pel - 1,
@@ -212,16 +198,16 @@ void simpleResize_int16_t_avx2(const SimpleResize *simple,
             simpleResize_int16_t_horizontal_8px_avx2(simple, dstp, workp, x, minimum, maximum, horizontal_step);
 
         if (dst_width_avx2 < simple->dst_width) {
-            __m256i step_back = _mm256_set1_epi16((pixels_per_iteration - (simple->dst_width - dst_width_avx2)) * pel);
-            minimum = _mm256_add_epi16(minimum, step_back);
-            maximum = _mm256_add_epi16(maximum, step_back);
+            __m256i step_back = _mm256_set1_epi32((pixels_per_iteration - (simple->dst_width - dst_width_avx2)) * pel);
+            minimum = _mm256_add_epi32(minimum, step_back);
+            maximum = _mm256_add_epi32(maximum, step_back);
             simpleResize_int16_t_horizontal_8px_avx2(simple, dstp, workp, simple->dst_width - pixels_per_iteration, minimum, maximum, horizontal_step);
         }
 
         dstp += dst_stride;
 
-        minimum = _mm256_sub_epi16(minimum, vertical_step);
-        maximum = _mm256_sub_epi16(maximum, vertical_step);
+        minimum = _mm256_sub_epi32(minimum, vertical_step);
+        maximum = _mm256_sub_epi32(maximum, vertical_step);
     }
 
     free(workp);
