@@ -376,7 +376,7 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
 
     d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.opt = INT_MAX;
+        d.opt = 1;
 
 
     if (d.blur < 0.0f || d.blur > 200.0f) {

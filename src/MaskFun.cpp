@@ -567,7 +567,7 @@ void selectFlowInterFunctions(FlowInterSimpleFunction *simple, FlowInterFunction
     }
 
 #if defined(MVTOOLS_X86)
-    if (opt >= MVOPT_AVX2 && (g_cpuinfo & X264_CPU_AVX2))
+    if (opt && (g_cpuinfo & X264_CPU_AVX2))
         selectFlowInterFunctions_AVX2(simple, regular, extra, bitsPerSample);
 #endif
 }

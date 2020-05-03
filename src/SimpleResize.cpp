@@ -147,7 +147,7 @@ void simpleInit(SimpleResize *simple, int dst_width, int dst_height, int src_wid
 
     if (opt) {
 #if defined(MVTOOLS_X86)
-        if (opt >= MVOPT_AVX2 && (g_cpuinfo & X264_CPU_AVX2)) {
+        if (g_cpuinfo & X264_CPU_AVX2) {
             simple->simpleResize_uint8_t = simpleResize_uint8_t_avx2;
             simple->simpleResize_int16_t = simpleResize_int16_t_avx2;
 

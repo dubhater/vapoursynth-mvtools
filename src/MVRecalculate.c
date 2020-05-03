@@ -243,7 +243,6 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
         free(vectors);
 
 #if defined(MVTOOLS_X86)
-        // FIXME: Get rid of all mmx shit.
         mvtools_cpu_emms();
 #endif
 
@@ -329,7 +328,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
     d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.opt = INT_MAX;
+        d.opt = 1;
 
     d.meander = !!vsapi->propGetInt(in, "meander", 0, &err);
     if (err)

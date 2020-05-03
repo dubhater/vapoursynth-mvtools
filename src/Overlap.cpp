@@ -310,12 +310,12 @@ OverlapsFunction selectOverlapsFunction(unsigned width, unsigned height, unsigne
         try {
             overs = overlaps_functions.at(KEY(width, height, bits, MVOPT_SSE2));
         } catch (std::out_of_range &) { }
-    }
 
-    if (opt >= MVOPT_AVX2 && (g_cpuinfo & X264_CPU_AVX2)) {
-        OverlapsFunction tmp = selectOverlapsFunctionAVX2(width, height, bits);
-        if (tmp)
-            overs = tmp;
+        if (g_cpuinfo & X264_CPU_AVX2) {
+            OverlapsFunction tmp = selectOverlapsFunctionAVX2(width, height, bits);
+            if (tmp)
+                overs = tmp;
+        }
     }
 #endif
 

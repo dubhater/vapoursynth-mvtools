@@ -583,12 +583,12 @@ static DenoiseFunction selectDegrainFunction(unsigned radius, unsigned width, un
         try {
             degrain = degrain_functions_sse2[radius - 1].at(KEY(width, height, bits, MVOPT_SSE2));
         } catch (std::out_of_range &) { }
-    }
 
-    if (opt >= MVOPT_AVX2 && (g_cpuinfo & X264_CPU_AVX2)) {
-        DenoiseFunction tmp = selectDegrainFunctionAVX2(radius, width, height, bits);
-        if (tmp)
-            degrain = tmp;
+        if (g_cpuinfo & X264_CPU_AVX2) {
+            DenoiseFunction tmp = selectDegrainFunctionAVX2(radius, width, height, bits);
+            if (tmp)
+                degrain = tmp;
+        }
     }
 #endif
 
@@ -667,7 +667,7 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
 
     d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
     if (err)
-        d.opt = INT_MAX;
+        d.opt = 1;
 
 
     if (plane < 0 || plane > 4) {
