@@ -92,7 +92,7 @@ Usage
 =====
 ::
 
-    mv.Super(clip clip[, int hpad=8, int vpad=8, int pel=2, int levels=0, bint chroma=True, int sharp=2, int rfilter=2, clip pelclip=None, bint opt=True])
+    mv.Super(clip clip[, int hpad=16, int vpad=16, int pel=2, int levels=0, bint chroma=True, int sharp=2, int rfilter=2, clip pelclip=None, bint opt=True])
 
     mv.Analyse(clip super[, int blksize=8, int blksizev=blksize, int levels=0, int search=4, int searchparam=2, int pelsearch=0, bint isb=False, int lambda, bint chroma=True, int delta=1, bint truemotion=True, int lsad, int plevel, int global, int pnew, int pzero=pnew, int pglobal=0, int overlap=0, int overlapv=overlap, bint divide=False, int badsad=10000, int badrange=24, bint opt=True, bint meander=True, bint trymany=False, bint fields=False, bint tff, int search_coarse=3, int dct=0])
 
