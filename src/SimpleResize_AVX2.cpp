@@ -198,9 +198,12 @@ void simpleResize_int16_t_avx2(const SimpleResize *simple,
             simpleResize_int16_t_horizontal_8px_avx2(simple, dstp, workp, x, minimum, maximum, horizontal_step);
 
         if (dst_width_avx2 < simple->dst_width) {
-            __m256i step_back = _mm256_set1_epi32((pixels_per_iteration - (simple->dst_width - dst_width_avx2)) * pel);
-            minimum = _mm256_add_epi32(minimum, step_back);
-            maximum = _mm256_add_epi32(maximum, step_back);
+            if (horizontal_vectors) {
+                __m256i step_back = _mm256_set1_epi32((pixels_per_iteration - (simple->dst_width - dst_width_avx2)) * pel);
+                minimum = _mm256_add_epi32(minimum, step_back);
+                maximum = _mm256_add_epi32(maximum, step_back);
+            }
+
             simpleResize_int16_t_horizontal_8px_avx2(simple, dstp, workp, simple->dst_width - pixels_per_iteration, minimum, maximum, horizontal_step);
         }
 
