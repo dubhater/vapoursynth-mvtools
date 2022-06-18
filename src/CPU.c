@@ -191,7 +191,13 @@ uint32_t cpu_detect(void) {
     return cpu;
 }
 
-#else // not MVTOOLS_X86
+#elif defined(MVTOOLS_ARM)
+
+uint32_t cpu_detect(void) {
+    return ~0; // we just assume NEON is available, as there is no instruction to check
+}
+
+#else // not MVTOOLS_X86 or MVTOOLS_ARM
 
 uint32_t cpu_detect(void) {
     return 0;

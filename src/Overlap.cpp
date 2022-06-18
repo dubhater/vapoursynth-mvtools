@@ -158,10 +158,13 @@ void overlaps_c(uint8_t *pDst8, intptr_t nDstPitch, const uint8_t *pSrc8, intptr
 }
 
 
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
 
+#if defined(MVTOOLS_ARM)
+#include "sse2neon.h"
+#else
 #include <emmintrin.h>
-
+#endif
 
 #define zeroes _mm_setzero_si128()
 
@@ -236,7 +239,7 @@ struct OverlapsWrapper<4, blockHeight> {
 // opt can fit in four bits, if the width and height need more than eight bits each.
 #define KEY(width, height, bits, opt) (unsigned)(width) << 24 | (height) << 16 | (bits) << 8 | (opt)
 
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
 #define OVERS_SSE2(width, height) \
     { KEY(width, height, 8, MVOPT_SSE2), OverlapsWrapper<width, height>::overlaps_sse2 },
 #else
@@ -305,17 +308,18 @@ static const std::unordered_map<uint32_t, OverlapsFunction> overlaps_functions =
 OverlapsFunction selectOverlapsFunction(unsigned width, unsigned height, unsigned bits, int opt) {
     OverlapsFunction overs = overlaps_functions.at(KEY(width, height, bits, MVOPT_SCALAR));
 
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
     if (opt) {
         try {
             overs = overlaps_functions.at(KEY(width, height, bits, MVOPT_SSE2));
         } catch (std::out_of_range &) { }
-
+#if defined(MVTOOLS_X86)
         if (g_cpuinfo & X264_CPU_AVX2) {
             OverlapsFunction tmp = selectOverlapsFunctionAVX2(width, height, bits);
             if (tmp)
                 overs = tmp;
         }
+#endif
     }
 #endif
 

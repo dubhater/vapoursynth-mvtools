@@ -578,17 +578,18 @@ static const std::unordered_map<uint32_t, DenoiseFunction> degrain_functions_sse
 static DenoiseFunction selectDegrainFunction(unsigned radius, unsigned width, unsigned height, unsigned bits, int opt) {
     DenoiseFunction degrain = degrain_functions[radius - 1].at(KEY(width, height, bits, MVOPT_SCALAR));
 
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
     if (opt) {
         try {
             degrain = degrain_functions_sse2[radius - 1].at(KEY(width, height, bits, MVOPT_SSE2));
         } catch (std::out_of_range &) { }
-
+#if defined(MVTOOLS_X86)
         if (g_cpuinfo & X264_CPU_AVX2) {
             DenoiseFunction tmp = selectDegrainFunctionAVX2(radius, width, height, bits);
             if (tmp)
                 degrain = tmp;
         }
+#endif
     }
 #endif
 
@@ -615,7 +616,7 @@ static void selectFunctions(MVDegrainData *d) {
         d->ToPixels = ToPixels_uint16_t_uint8_t;
 
         if (d->opt) {
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
             d->LimitChanges = LimitChanges_sse2;
 #endif
         }

@@ -10,7 +10,6 @@ LT_INIT([disable-static win32-dll])
 
 AC_PROG_CC
 AC_PROG_CXX
-
 AC_CANONICAL_HOST
 
 
@@ -110,7 +109,10 @@ AS_IF(
 
 AS_IF(
       [test "x$ARM" = "xtrue"],
-      [AC_DEFINE([MVTOOLS_ARM])]
+      [
+       AC_DEFINE([MVTOOLS_ARM])
+       AM_PROG_AS
+      ]
 )
 
 

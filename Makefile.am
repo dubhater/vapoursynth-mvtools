@@ -66,6 +66,10 @@ libmvtools_la_LDFLAGS = -no-undefined -avoid-version $(PLUGINLDFLAGS)
 
 libmvtools_la_LIBADD = $(FFTW3F_LIBS)
 
+if MVTOOLS_ARM
+libmvtools_la_SOURCES += src/asm/aarch64-pixel-a.S
+endif
+
 if MVTOOLS_X86
 libmvtools_la_SOURCES += src/asm/const-a.asm \
 						 src/asm/cpu-a.asm \
