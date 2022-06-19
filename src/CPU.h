@@ -54,7 +54,7 @@ uint32_t cpu_detect(void);
 
 enum {
     MVOPT_SCALAR = 0,
-#ifdef MVTOOLS_X86
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
     MVOPT_SSE2 = 1,
     MVOPT_AVX2 = 2,
 #endif // MVTOOLS_X86
