@@ -38,7 +38,7 @@ struct MVDegrainData {
     const VSVideoInfo *vi;
 
     VSNodeRef *super;
-    VSNodeRef *vectors[6];
+    VSNodeRef *vectors[12];
 
     int64_t thSAD[3];
     int YUVplanes;
@@ -47,7 +47,7 @@ struct MVDegrainData {
     int nSCD2;
     int opt;
 
-    MVAnalysisData vectors_data[6];
+    MVAnalysisData vectors_data[12];
 
     int nSuperHPad;
     int nSuperVPad;
@@ -96,6 +96,13 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
     MVDegrainData *d = (MVDegrainData *)*instanceData;
 
     if (activationReason == arInitial) {
+        //TODO: Clean this up to just use a loop.
+        if (radius > 5)
+            vsapi->requestFrameFilter(n, d->vectors[Forward6], frameCtx);
+        if (radius > 4)
+            vsapi->requestFrameFilter(n, d->vectors[Forward5], frameCtx);
+        if (radius > 3)
+            vsapi->requestFrameFilter(n, d->vectors[Forward4], frameCtx);
         if (radius > 2)
             vsapi->requestFrameFilter(n, d->vectors[Forward3], frameCtx);
         if (radius > 1)
@@ -106,6 +113,30 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
             vsapi->requestFrameFilter(n, d->vectors[Backward2], frameCtx);
         if (radius > 2)
             vsapi->requestFrameFilter(n, d->vectors[Backward3], frameCtx);
+        if (radius > 3)
+            vsapi->requestFrameFilter(n, d->vectors[Backward4], frameCtx);
+        if (radius > 4)
+            vsapi->requestFrameFilter(n, d->vectors[Backward5], frameCtx);
+        if (radius > 5)
+            vsapi->requestFrameFilter(n, d->vectors[Backward6], frameCtx);
+
+        if (radius > 5) {
+            int offF6 = -1 * d->vectors_data[Forward6].nDeltaFrame;
+            if (n + offF6 >= 0)
+                vsapi->requestFrameFilter(n + offF6, d->super, frameCtx);
+        }
+
+        if (radius > 4) {
+            int offF5 = -1 * d->vectors_data[Forward5].nDeltaFrame;
+            if (n + offF5 >= 0)
+                vsapi->requestFrameFilter(n + offF5, d->super, frameCtx);
+        }
+
+        if (radius > 3) {
+            int offF4 = -1 * d->vectors_data[Forward4].nDeltaFrame;
+            if (n + offF4 >= 0)
+                vsapi->requestFrameFilter(n + offF4, d->super, frameCtx);
+        }
 
         if (radius > 2) {
             int offF3 = -1 * d->vectors_data[Forward3].nDeltaFrame;
@@ -137,6 +168,24 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
             int offB3 = d->vectors_data[Backward3].nDeltaFrame;
             if (n + offB3 < d->vi->numFrames)
                 vsapi->requestFrameFilter(n + offB3, d->super, frameCtx);
+        }
+
+        if (radius > 3) {
+            int offB4 = d->vectors_data[Backward4].nDeltaFrame;
+            if (n + offB4 < d->vi->numFrames)
+                vsapi->requestFrameFilter(n + offB4, d->super, frameCtx);
+        }
+
+        if (radius > 4) {
+            int offB5 = d->vectors_data[Backward5].nDeltaFrame;
+            if (n + offB5 < d->vi->numFrames)
+                vsapi->requestFrameFilter(n + offB5, d->super, frameCtx);
+        }
+
+        if (radius > 5) {
+            int offB6 = d->vectors_data[Backward6].nDeltaFrame;
+            if (n + offB6 < d->vi->numFrames)
+                vsapi->requestFrameFilter(n + offB6, d->super, frameCtx);
         }
 
         vsapi->requestFrameFilter(n, d->node, frameCtx);
@@ -393,186 +442,91 @@ static void VS_CC mvdegrainFree(void *instanceData, VSCore *core, const VSAPI *v
 #if defined(MVTOOLS_X86)
 #define DEGRAIN_SSE2(radius, width, height) \
     { KEY(width, height, 8, MVOPT_SSE2), Degrain_sse2<radius, width, height> },
+
+#define DEGRAIN_LEVEL_SSE2(radius)\
+    {\
+        DEGRAIN_SSE2(radius, 4, 2)\
+        DEGRAIN_SSE2(radius, 4, 4)\
+        DEGRAIN_SSE2(radius, 4, 8)\
+        DEGRAIN_SSE2(radius, 8, 1)\
+        DEGRAIN_SSE2(radius, 8, 2)\
+        DEGRAIN_SSE2(radius, 8, 4)\
+        DEGRAIN_SSE2(radius, 8, 8)\
+        DEGRAIN_SSE2(radius, 8, 16)\
+        DEGRAIN_SSE2(radius, 16, 1)\
+        DEGRAIN_SSE2(radius, 16, 2)\
+        DEGRAIN_SSE2(radius, 16, 4)\
+        DEGRAIN_SSE2(radius, 16, 8)\
+        DEGRAIN_SSE2(radius, 16, 16)\
+        DEGRAIN_SSE2(radius, 16, 32)\
+        DEGRAIN_SSE2(radius, 32, 8)\
+        DEGRAIN_SSE2(radius, 32, 16)\
+        DEGRAIN_SSE2(radius, 32, 32)\
+        DEGRAIN_SSE2(radius, 32, 64)\
+        DEGRAIN_SSE2(radius, 64, 16)\
+        DEGRAIN_SSE2(radius, 64, 32)\
+        DEGRAIN_SSE2(radius, 64, 64)\
+        DEGRAIN_SSE2(radius, 64, 128)\
+        DEGRAIN_SSE2(radius, 128, 32)\
+        DEGRAIN_SSE2(radius, 128, 64)\
+        DEGRAIN_SSE2(radius, 128, 128)\
+    }
 #else
 #define DEGRAIN_SSE2(radius, width, height)
+#define DEGRAIN_LEVEL_SSE2(radius)
 #endif
 
 #define DEGRAIN(radius, width, height) \
     { KEY(width, height, 8, MVOPT_SCALAR), Degrain_C<radius, width, height, uint8_t> }, \
     { KEY(width, height, 16, MVOPT_SCALAR), Degrain_C<radius, width, height, uint16_t> },
 
-static const std::unordered_map<uint32_t, DenoiseFunction> degrain_functions[3] = {
-    {
-        DEGRAIN(1, 2, 2)
-        DEGRAIN(1, 2, 4)
-        DEGRAIN(1, 4, 2)
-        DEGRAIN(1, 4, 4)
-        DEGRAIN(1, 4, 8)
-        DEGRAIN(1, 8, 1)
-        DEGRAIN(1, 8, 2)
-        DEGRAIN(1, 8, 4)
-        DEGRAIN(1, 8, 8)
-        DEGRAIN(1, 8, 16)
-        DEGRAIN(1, 16, 1)
-        DEGRAIN(1, 16, 2)
-        DEGRAIN(1, 16, 4)
-        DEGRAIN(1, 16, 8)
-        DEGRAIN(1, 16, 16)
-        DEGRAIN(1, 16, 32)
-        DEGRAIN(1, 32, 8)
-        DEGRAIN(1, 32, 16)
-        DEGRAIN(1, 32, 32)
-        DEGRAIN(1, 32, 64)
-        DEGRAIN(1, 64, 16)
-        DEGRAIN(1, 64, 32)
-        DEGRAIN(1, 64, 64)
-        DEGRAIN(1, 64, 128)
-        DEGRAIN(1, 128, 32)
-        DEGRAIN(1, 128, 64)
-        DEGRAIN(1, 128, 128)
-    },
-    {
-        DEGRAIN(2, 2, 2)
-        DEGRAIN(2, 2, 4)
-        DEGRAIN(2, 4, 2)
-        DEGRAIN(2, 4, 4)
-        DEGRAIN(2, 4, 8)
-        DEGRAIN(2, 8, 1)
-        DEGRAIN(2, 8, 2)
-        DEGRAIN(2, 8, 4)
-        DEGRAIN(2, 8, 8)
-        DEGRAIN(2, 8, 16)
-        DEGRAIN(2, 16, 1)
-        DEGRAIN(2, 16, 2)
-        DEGRAIN(2, 16, 4)
-        DEGRAIN(2, 16, 8)
-        DEGRAIN(2, 16, 16)
-        DEGRAIN(2, 16, 32)
-        DEGRAIN(2, 32, 8)
-        DEGRAIN(2, 32, 16)
-        DEGRAIN(2, 32, 32)
-        DEGRAIN(2, 32, 64)
-        DEGRAIN(2, 64, 16)
-        DEGRAIN(2, 64, 32)
-        DEGRAIN(2, 64, 64)
-        DEGRAIN(2, 64, 128)
-        DEGRAIN(2, 128, 32)
-        DEGRAIN(2, 128, 64)
-        DEGRAIN(2, 128, 128)
-    },
-    {
-        DEGRAIN(3, 2, 2)
-        DEGRAIN(3, 2, 4)
-        DEGRAIN(3, 4, 2)
-        DEGRAIN(3, 4, 4)
-        DEGRAIN(3, 4, 8)
-        DEGRAIN(3, 8, 1)
-        DEGRAIN(3, 8, 2)
-        DEGRAIN(3, 8, 4)
-        DEGRAIN(3, 8, 8)
-        DEGRAIN(3, 8, 16)
-        DEGRAIN(3, 16, 1)
-        DEGRAIN(3, 16, 2)
-        DEGRAIN(3, 16, 4)
-        DEGRAIN(3, 16, 8)
-        DEGRAIN(3, 16, 16)
-        DEGRAIN(3, 16, 32)
-        DEGRAIN(3, 32, 8)
-        DEGRAIN(3, 32, 16)
-        DEGRAIN(3, 32, 32)
-        DEGRAIN(3, 32, 64)
-        DEGRAIN(3, 64, 16)
-        DEGRAIN(3, 64, 32)
-        DEGRAIN(3, 64, 64)
-        DEGRAIN(3, 64, 128)
-        DEGRAIN(3, 128, 32)
-        DEGRAIN(3, 128, 64)
-        DEGRAIN(3, 128, 128)
+#define DEGRAIN_LEVEL(radius)\
+    {\
+        DEGRAIN(radius, 2, 2)\
+        DEGRAIN(radius, 2, 4)\
+        DEGRAIN(radius, 4, 2)\
+        DEGRAIN(radius, 4, 4)\
+        DEGRAIN(radius, 4, 8)\
+        DEGRAIN(radius, 8, 1)\
+        DEGRAIN(radius, 8, 2)\
+        DEGRAIN(radius, 8, 4)\
+        DEGRAIN(radius, 8, 8)\
+        DEGRAIN(radius, 8, 16)\
+        DEGRAIN(radius, 16, 1)\
+        DEGRAIN(radius, 16, 2)\
+        DEGRAIN(radius, 16, 4)\
+        DEGRAIN(radius, 16, 8)\
+        DEGRAIN(radius, 16, 16)\
+        DEGRAIN(radius, 16, 32)\
+        DEGRAIN(radius, 32, 8)\
+        DEGRAIN(radius, 32, 16)\
+        DEGRAIN(radius, 32, 32)\
+        DEGRAIN(radius, 32, 64)\
+        DEGRAIN(radius, 64, 16)\
+        DEGRAIN(radius, 64, 32)\
+        DEGRAIN(radius, 64, 64)\
+        DEGRAIN(radius, 64, 128)\
+        DEGRAIN(radius, 128, 32)\
+        DEGRAIN(radius, 128, 64)\
+        DEGRAIN(radius, 128, 128)\
     }
+
+static const std::unordered_map<uint32_t, DenoiseFunction> degrain_functions[6] = {
+    DEGRAIN_LEVEL(1),
+    DEGRAIN_LEVEL(2),
+    DEGRAIN_LEVEL(3),
+    DEGRAIN_LEVEL(4),
+    DEGRAIN_LEVEL(5),
+    DEGRAIN_LEVEL(6),
 };
 
-static const std::unordered_map<uint32_t, DenoiseFunction> degrain_functions_sse2[3] = {
-    {
-        DEGRAIN_SSE2(1, 4, 2)
-        DEGRAIN_SSE2(1, 4, 4)
-        DEGRAIN_SSE2(1, 4, 8)
-        DEGRAIN_SSE2(1, 8, 1)
-        DEGRAIN_SSE2(1, 8, 2)
-        DEGRAIN_SSE2(1, 8, 4)
-        DEGRAIN_SSE2(1, 8, 8)
-        DEGRAIN_SSE2(1, 8, 16)
-        DEGRAIN_SSE2(1, 16, 1)
-        DEGRAIN_SSE2(1, 16, 2)
-        DEGRAIN_SSE2(1, 16, 4)
-        DEGRAIN_SSE2(1, 16, 8)
-        DEGRAIN_SSE2(1, 16, 16)
-        DEGRAIN_SSE2(1, 16, 32)
-        DEGRAIN_SSE2(1, 32, 8)
-        DEGRAIN_SSE2(1, 32, 16)
-        DEGRAIN_SSE2(1, 32, 32)
-        DEGRAIN_SSE2(1, 32, 64)
-        DEGRAIN_SSE2(1, 64, 16)
-        DEGRAIN_SSE2(1, 64, 32)
-        DEGRAIN_SSE2(1, 64, 64)
-        DEGRAIN_SSE2(1, 64, 128)
-        DEGRAIN_SSE2(1, 128, 32)
-        DEGRAIN_SSE2(1, 128, 64)
-        DEGRAIN_SSE2(1, 128, 128)
-    },
-    {
-        DEGRAIN_SSE2(2, 4, 2)
-        DEGRAIN_SSE2(2, 4, 4)
-        DEGRAIN_SSE2(2, 4, 8)
-        DEGRAIN_SSE2(2, 8, 1)
-        DEGRAIN_SSE2(2, 8, 2)
-        DEGRAIN_SSE2(2, 8, 4)
-        DEGRAIN_SSE2(2, 8, 8)
-        DEGRAIN_SSE2(2, 8, 16)
-        DEGRAIN_SSE2(2, 16, 1)
-        DEGRAIN_SSE2(2, 16, 2)
-        DEGRAIN_SSE2(2, 16, 4)
-        DEGRAIN_SSE2(2, 16, 8)
-        DEGRAIN_SSE2(2, 16, 16)
-        DEGRAIN_SSE2(2, 16, 32)
-        DEGRAIN_SSE2(2, 32, 8)
-        DEGRAIN_SSE2(2, 32, 16)
-        DEGRAIN_SSE2(2, 32, 32)
-        DEGRAIN_SSE2(2, 32, 64)
-        DEGRAIN_SSE2(2, 64, 16)
-        DEGRAIN_SSE2(2, 64, 32)
-        DEGRAIN_SSE2(2, 64, 64)
-        DEGRAIN_SSE2(2, 64, 128)
-        DEGRAIN_SSE2(2, 128, 32)
-        DEGRAIN_SSE2(2, 128, 64)
-        DEGRAIN_SSE2(2, 128, 128)
-    },
-    {
-        DEGRAIN_SSE2(3, 4, 2)
-        DEGRAIN_SSE2(3, 4, 4)
-        DEGRAIN_SSE2(3, 4, 8)
-        DEGRAIN_SSE2(3, 8, 1)
-        DEGRAIN_SSE2(3, 8, 2)
-        DEGRAIN_SSE2(3, 8, 4)
-        DEGRAIN_SSE2(3, 8, 8)
-        DEGRAIN_SSE2(3, 8, 16)
-        DEGRAIN_SSE2(3, 16, 1)
-        DEGRAIN_SSE2(3, 16, 2)
-        DEGRAIN_SSE2(3, 16, 4)
-        DEGRAIN_SSE2(3, 16, 8)
-        DEGRAIN_SSE2(3, 16, 16)
-        DEGRAIN_SSE2(3, 16, 32)
-        DEGRAIN_SSE2(3, 32, 8)
-        DEGRAIN_SSE2(3, 32, 16)
-        DEGRAIN_SSE2(3, 32, 32)
-        DEGRAIN_SSE2(3, 32, 64)
-        DEGRAIN_SSE2(3, 64, 16)
-        DEGRAIN_SSE2(3, 64, 32)
-        DEGRAIN_SSE2(3, 64, 64)
-        DEGRAIN_SSE2(3, 64, 128)
-        DEGRAIN_SSE2(3, 128, 32)
-        DEGRAIN_SSE2(3, 128, 64)
-        DEGRAIN_SSE2(3, 128, 128)
-    }
+static const std::unordered_map<uint32_t, DenoiseFunction> degrain_functions_sse2[6] = {
+    DEGRAIN_LEVEL_SSE2(1),
+    DEGRAIN_LEVEL_SSE2(2),
+    DEGRAIN_LEVEL_SSE2(3),
+    DEGRAIN_LEVEL_SSE2(4),
+    DEGRAIN_LEVEL_SSE2(5),
+    DEGRAIN_LEVEL_SSE2(6),
 };
 
 static DenoiseFunction selectDegrainFunction(unsigned radius, unsigned width, unsigned height, unsigned bits, int opt) {
@@ -597,6 +551,8 @@ static DenoiseFunction selectDegrainFunction(unsigned radius, unsigned width, un
 
 #undef DEGRAIN
 #undef DEGRAIN_SSE2
+#undef DEGRAIN_LEVEL
+#undef DEGRAIN_LEVEL_SSE2
 
 #undef KEY
 
@@ -614,11 +570,11 @@ static void selectFunctions(MVDegrainData *d) {
 
         d->ToPixels = ToPixels_uint16_t_uint8_t;
 
-        if (d->opt) {
 #if defined(MVTOOLS_X86)
+        if (d->opt) {
             d->LimitChanges = LimitChanges_sse2;
-#endif
         }
+#endif
     } else {
         d->LimitChanges = LimitChanges_C<uint16_t>;
 
@@ -710,7 +666,7 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
 
     char error[ERROR_SIZE + 1] = { 0 };
 
-    const char *vector_names[] = { "mvbw", "mvfw", "mvbw2", "mvfw2", "mvbw3", "mvfw3" };
+    const char *vector_names[] = { "mvbw", "mvfw", "mvbw2", "mvfw2", "mvbw3", "mvfw3", "mvbw4", "mvfw4", "mvbw5", "mvfw5", "mvbw6", "mvfw6"};
 
     for (int r = 0; r < radius * 2; r++) {
         d.vectors[r] = vsapi->propGetNode(in, vector_names[r], 0, NULL);
@@ -742,34 +698,31 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
         if (d.vectors_data[r].nDeltaFrame <= 0)
             snprintf(error, ERROR_SIZE, "%s", "cannot use motion vectors with absolute frame references.");
 
+#define CHECK_VECTORS(rThreshold, backwardN, forwardN, backwardP, forwardP, mvbwN, mvfwN, mvbwP, mvfwP)\
+    if (radius > rThreshold) {\
+        if (!d.vectors_data[backwardN].isBackward)\
+            snprintf(error, ERROR_SIZE, "%s", "mvbw must be generated with isb=True.");\
+        if (d.vectors_data[forwardN].isBackward)\
+            snprintf(error, ERROR_SIZE, "%s", "mvfw must be generated with isb=False.");\
+        if (d.vectors_data[backwardN].nDeltaFrame <= d.vectors_data[backwardP].nDeltaFrame)\
+            snprintf(error, ERROR_SIZE, "%s", "mvbwN must have greater delta than mvbwP.");\
+        if (d.vectors_data[forwardN].nDeltaFrame <= d.vectors_data[forwardP].nDeltaFrame)\
+            snprintf(error, ERROR_SIZE, "%s", "mvfwN must have greater delta than mvfwP.");\
+    }
+
     // Make sure the motion vector clips are correct.
     if (!d.vectors_data[Backward1].isBackward)
         snprintf(error, ERROR_SIZE, "%s", "mvbw must be generated with isb=True.");
     if (d.vectors_data[Forward1].isBackward)
         snprintf(error, ERROR_SIZE, "%s", "mvfw must be generated with isb=False.");
-    if (radius > 1) {
-        if (!d.vectors_data[Backward2].isBackward)
-            snprintf(error, ERROR_SIZE, "%s", "mvbw2 must be generated with isb=True.");
-        if (d.vectors_data[Forward2].isBackward)
-            snprintf(error, ERROR_SIZE, "%s", "mvfw2 must be generated with isb=False.");
 
-        if (d.vectors_data[Backward2].nDeltaFrame <= d.vectors_data[Backward1].nDeltaFrame)
-            snprintf(error, ERROR_SIZE, "%s", "mvbw2 must have greater delta than mvbw.");
-        if (d.vectors_data[Forward2].nDeltaFrame <= d.vectors_data[Forward1].nDeltaFrame)
-            snprintf(error, ERROR_SIZE, "%s", "mvfw2 must have greater delta than mvfw.");
-    }
-    if (radius > 2) {
-        if (!d.vectors_data[Backward3].isBackward)
-            snprintf(error, ERROR_SIZE, "%s", "mvbw3 must be generated with isb=True.");
-        if (d.vectors_data[Forward3].isBackward)
-            snprintf(error, ERROR_SIZE, "%s", "mvfw3 must be generated with isb=False.");
+    CHECK_VECTORS(1, Backward2, Forward2, Backward1, Forward1, mvbw2, mvfw2, mvbw, mvfw)
+    CHECK_VECTORS(2, Backward3, Forward3, Backward2, Forward2, mvbw3, mvfw3, mvbw2, mvfw2)
+    CHECK_VECTORS(3, Backward4, Forward4, Backward3, Forward3, mvbw4, mvfw4, mvbw3, mvfw3)
+    CHECK_VECTORS(4, Backward5, Forward5, Backward4, Forward4, mvbw5, mvfw5, mvbw4, mvfw4)
+    CHECK_VECTORS(5, Backward6, Forward6, Backward5, Forward5, mvbw6, mvfw6, mvbw5, mvfw5)
 
-        if (d.vectors_data[Backward3].nDeltaFrame <= d.vectors_data[Backward2].nDeltaFrame)
-            snprintf(error, ERROR_SIZE, "%s", "mvbw3 must have greater delta than mvbw2.");
-        if (d.vectors_data[Forward3].nDeltaFrame <= d.vectors_data[Forward2].nDeltaFrame)
-            snprintf(error, ERROR_SIZE, "%s", "mvfw3 must have greater delta than mvfw2.");
-    }
-
+#undef CHECK_VECTORS
 #undef ERROR_SIZE
 
     if (error[0]) {
@@ -968,4 +921,70 @@ extern "C" void mvdegrainsRegister(VSRegisterFunction registerFunc, VSPlugin *pl
                  "thscd2:int:opt;"
                  "opt:int:opt;",
                  mvdegrainCreate<3>, 0, plugin);
+    registerFunc("Degrain4",
+                 "clip:clip;"
+                 "super:clip;"
+                 "mvbw:clip;"
+                 "mvfw:clip;"
+                 "mvbw2:clip;"
+                 "mvfw2:clip;"
+                 "mvbw3:clip;"
+                 "mvfw3:clip;"
+                 "mvbw4:clip;"
+                 "mvfw4:clip;"
+                 "thsad:int:opt;"
+                 "thsadc:int:opt;"
+                 "plane:int:opt;"
+                 "limit:int:opt;"
+                 "limitc:int:opt;"
+                 "thscd1:int:opt;"
+                 "thscd2:int:opt;"
+                 "opt:int:opt;",
+                 mvdegrainCreate<4>, 0, plugin);
+    registerFunc("Degrain5",
+                 "clip:clip;"
+                 "super:clip;"
+                 "mvbw:clip;"
+                 "mvfw:clip;"
+                 "mvbw2:clip;"
+                 "mvfw2:clip;"
+                 "mvbw3:clip;"
+                 "mvfw3:clip;"
+                 "mvbw4:clip;"
+                 "mvfw4:clip;"
+                 "mvbw5:clip;"
+                 "mvfw5:clip;"
+                 "thsad:int:opt;"
+                 "thsadc:int:opt;"
+                 "plane:int:opt;"
+                 "limit:int:opt;"
+                 "limitc:int:opt;"
+                 "thscd1:int:opt;"
+                 "thscd2:int:opt;"
+                 "opt:int:opt;",
+                 mvdegrainCreate<5>, 0, plugin);
+    registerFunc("Degrain6",
+                 "clip:clip;"
+                 "super:clip;"
+                 "mvbw:clip;"
+                 "mvfw:clip;"
+                 "mvbw2:clip;"
+                 "mvfw2:clip;"
+                 "mvbw3:clip;"
+                 "mvfw3:clip;"
+                 "mvbw4:clip;"
+                 "mvfw4:clip;"
+                 "mvbw5:clip;"
+                 "mvfw5:clip;"
+                 "mvbw6:clip;"
+                 "mvfw6:clip;"
+                 "thsad:int:opt;"
+                 "thsadc:int:opt;"
+                 "plane:int:opt;"
+                 "limit:int:opt;"
+                 "limitc:int:opt;"
+                 "thscd1:int:opt;"
+                 "thscd2:int:opt;"
+                 "opt:int:opt;",
+                 mvdegrainCreate<6>, 0, plugin);
 }
