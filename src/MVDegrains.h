@@ -74,7 +74,7 @@ static void Degrain_sse2(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int 
         wrefs[i + 1] = _mm_set1_epi16(WRefs[i + 1]);
     }
 
-    __m128i src, accum, refs[12];
+    __m128i src, accum, refs[radius * 2];
 
     for (int y = 0; y < blockHeight; y++) {
         for (int x = 0; x < blockWidth; x += 8) {
