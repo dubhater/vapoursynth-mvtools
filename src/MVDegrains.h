@@ -67,12 +67,14 @@ static void Degrain_sse2(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int 
     __m128i wsrc = _mm_set1_epi16(WSrc);
     __m128i wrefs[radius * 2];
 
+    // We intentionally jump by 2 (here and below), as it delineates groups of
+    // backward/forward and ALSO produces testably faster code.
     for(int i = 0; i < radius * 2; i += 2) {
         wrefs[i] = _mm_set1_epi16(WRefs[i]);
         wrefs[i + 1] = _mm_set1_epi16(WRefs[i + 1]);
     }
 
-    __m128i src, refs[12];
+    __m128i src, accum, refs[12];
 
     for (int y = 0; y < blockHeight; y++) {
         for (int x = 0; x < blockWidth; x += 8) {
@@ -96,20 +98,19 @@ static void Degrain_sse2(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int 
             }
 
             src = _mm_unpacklo_epi8(src, zero);
+            src = _mm_mullo_epi16(src, wsrc);
+
             for(int i = 0; i < radius * 2; i += 2) {
                 refs[i] = _mm_unpacklo_epi8(refs[i], zero);
                 refs[i + 1] = _mm_unpacklo_epi8(refs[i + 1], zero);
-            }
 
-            src = _mm_mullo_epi16(src, wsrc);
-            for(int i = 0; i < radius * 2; i += 2) {
                 refs[i] = _mm_mullo_epi16(refs[i], wrefs[i]);
                 refs[i + 1] = _mm_mullo_epi16(refs[i + 1], wrefs[i + 1]);
             }
 
-            __m128i accum = _mm_set1_epi16(128);
-
+            accum = _mm_set1_epi16(128);
             accum = _mm_add_epi16(accum, src);
+
             for(int i = 0; i < radius * 2; i += 2) {
                 accum = _mm_add_epi16(accum, refs[i]);
                 accum = _mm_add_epi16(accum, refs[i + 1]);
