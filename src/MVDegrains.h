@@ -65,29 +65,11 @@ static void Degrain_sse2(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int 
 
     __m128i zero = _mm_setzero_si128();
     __m128i wsrc = _mm_set1_epi16(WSrc);
-    __m128i wrefs[12];
-    wrefs[0] = _mm_set1_epi16(WRefs[0]);
-    wrefs[1] = _mm_set1_epi16(WRefs[1]);
-    //TODO: Test sticking this in a loop. If performance is the same, a loop will massively reduce the amount of code required.
-    if (radius > 1) {
-        wrefs[2] = _mm_set1_epi16(WRefs[2]);
-        wrefs[3] = _mm_set1_epi16(WRefs[3]);
-    }
-    if (radius > 2) {
-        wrefs[4] = _mm_set1_epi16(WRefs[4]);
-        wrefs[5] = _mm_set1_epi16(WRefs[5]);
-    }
-    if (radius > 3) {
-        wrefs[6] = _mm_set1_epi16(WRefs[6]);
-        wrefs[7] = _mm_set1_epi16(WRefs[7]);
-    }
-    if (radius > 4) {
-        wrefs[8] = _mm_set1_epi16(WRefs[8]);
-        wrefs[9] = _mm_set1_epi16(WRefs[9]);
-    }
-    if (radius > 5) {
-        wrefs[10] = _mm_set1_epi16(WRefs[10]);
-        wrefs[11] = _mm_set1_epi16(WRefs[11]);
+    __m128i wrefs[radius * 2];
+
+    for(int i = 0; i < radius * 2; i += 2) {
+        wrefs[i] = _mm_set1_epi16(WRefs[i]);
+        wrefs[i + 1] = _mm_set1_epi16(WRefs[i + 1]);
     }
 
     __m128i src, refs[12];
@@ -101,126 +83,36 @@ static void Degrain_sse2(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int 
 
             if (blockWidth == 4) {
                 src = _mm_cvtsi32_si128(*(const int *)pSrc);
-                refs[0] = _mm_cvtsi32_si128(*(const int *)pRefs[0]);
-                refs[1] = _mm_cvtsi32_si128(*(const int *)pRefs[1]);
-                if (radius > 1) {
-                    refs[2] = _mm_cvtsi32_si128(*(const int *)pRefs[2]);
-                    refs[3] = _mm_cvtsi32_si128(*(const int *)pRefs[3]);
-                }
-                if (radius > 2) {
-                    refs[4] = _mm_cvtsi32_si128(*(const int *)pRefs[4]);
-                    refs[5] = _mm_cvtsi32_si128(*(const int *)pRefs[5]);
-                }
-                if (radius > 3) {
-                    refs[6] = _mm_cvtsi32_si128(*(const int *)pRefs[6]);
-                    refs[7] = _mm_cvtsi32_si128(*(const int *)pRefs[7]);
-                }
-                if (radius > 4) {
-                    refs[8] = _mm_cvtsi32_si128(*(const int *)pRefs[8]);
-                    refs[9] = _mm_cvtsi32_si128(*(const int *)pRefs[9]);
-                }
-                if (radius > 5) {
-                    refs[10] = _mm_cvtsi32_si128(*(const int *)pRefs[10]);
-                    refs[11] = _mm_cvtsi32_si128(*(const int *)pRefs[11]);
+                for(int i = 0; i < radius * 2; i += 2) {
+                    refs[i] = _mm_cvtsi32_si128(*(const int *)pRefs[i]);
+                    refs[i + 1] = _mm_cvtsi32_si128(*(const int *)pRefs[i + 1]);
                 }
             } else {
                 src = _mm_loadl_epi64((const __m128i *)(pSrc + x));
-                refs[0] = _mm_loadl_epi64((const __m128i *)(pRefs[0] + x));
-                refs[1] = _mm_loadl_epi64((const __m128i *)(pRefs[1] + x));
-                if (radius > 1) {
-                    refs[2] = _mm_loadl_epi64((const __m128i *)(pRefs[2] + x));
-                    refs[3] = _mm_loadl_epi64((const __m128i *)(pRefs[3] + x));
-                }
-                if (radius > 2) {
-                    refs[4] = _mm_loadl_epi64((const __m128i *)(pRefs[4] + x));
-                    refs[5] = _mm_loadl_epi64((const __m128i *)(pRefs[5] + x));
-                }
-                if (radius > 3) {
-                    refs[6] = _mm_loadl_epi64((const __m128i *)(pRefs[6] + x));
-                    refs[7] = _mm_loadl_epi64((const __m128i *)(pRefs[7] + x));
-                }
-                if (radius > 4) {
-                    refs[8] = _mm_loadl_epi64((const __m128i *)(pRefs[8] + x));
-                    refs[9] = _mm_loadl_epi64((const __m128i *)(pRefs[9] + x));
-                }
-                if (radius > 5) {
-                    refs[10] = _mm_loadl_epi64((const __m128i *)(pRefs[10] + x));
-                    refs[11] = _mm_loadl_epi64((const __m128i *)(pRefs[11] + x));
+                for(int i = 0; i < radius * 2; i += 2) {
+                    refs[i] = _mm_loadl_epi64((const __m128i *)(pRefs[i] + x));
+                    refs[i + 1] = _mm_loadl_epi64((const __m128i *)(pRefs[i + 1] + x));
                 }
             }
 
             src = _mm_unpacklo_epi8(src, zero);
-            refs[0] = _mm_unpacklo_epi8(refs[0], zero);
-            refs[1] = _mm_unpacklo_epi8(refs[1], zero);
-            if (radius > 1) {
-                refs[2] = _mm_unpacklo_epi8(refs[2], zero);
-                refs[3] = _mm_unpacklo_epi8(refs[3], zero);
-            }
-            if (radius > 2) {
-                refs[4] = _mm_unpacklo_epi8(refs[4], zero);
-                refs[5] = _mm_unpacklo_epi8(refs[5], zero);
-            }
-            if (radius > 3) {
-                refs[6] = _mm_unpacklo_epi8(refs[6], zero);
-                refs[7] = _mm_unpacklo_epi8(refs[7], zero);
-            }
-            if (radius > 4) {
-                refs[8] = _mm_unpacklo_epi8(refs[8], zero);
-                refs[9] = _mm_unpacklo_epi8(refs[9], zero);
-            }
-            if (radius > 5) {
-                refs[10] = _mm_unpacklo_epi8(refs[10], zero);
-                refs[11] = _mm_unpacklo_epi8(refs[11], zero);
+            for(int i = 0; i < radius * 2; i += 2) {
+                refs[i] = _mm_unpacklo_epi8(refs[i], zero);
+                refs[i + 1] = _mm_unpacklo_epi8(refs[i + 1], zero);
             }
 
             src = _mm_mullo_epi16(src, wsrc);
-            refs[0] = _mm_mullo_epi16(refs[0], wrefs[0]);
-            refs[1] = _mm_mullo_epi16(refs[1], wrefs[1]);
-            if (radius > 1) {
-                refs[2] = _mm_mullo_epi16(refs[2], wrefs[2]);
-                refs[3] = _mm_mullo_epi16(refs[3], wrefs[3]);
-            }
-            if (radius > 2) {
-                refs[4] = _mm_mullo_epi16(refs[4], wrefs[4]);
-                refs[5] = _mm_mullo_epi16(refs[5], wrefs[5]);
-            }
-            if (radius > 3) {
-                refs[6] = _mm_mullo_epi16(refs[6], wrefs[6]);
-                refs[7] = _mm_mullo_epi16(refs[7], wrefs[7]);
-            }
-            if (radius > 4) {
-                refs[8] = _mm_mullo_epi16(refs[8], wrefs[8]);
-                refs[9] = _mm_mullo_epi16(refs[9], wrefs[9]);
-            }
-            if (radius > 5) {
-                refs[10] = _mm_mullo_epi16(refs[10], wrefs[10]);
-                refs[11] = _mm_mullo_epi16(refs[11], wrefs[11]);
+            for(int i = 0; i < radius * 2; i += 2) {
+                refs[i] = _mm_mullo_epi16(refs[i], wrefs[i]);
+                refs[i + 1] = _mm_mullo_epi16(refs[i + 1], wrefs[i + 1]);
             }
 
             __m128i accum = _mm_set1_epi16(128);
 
             accum = _mm_add_epi16(accum, src);
-            accum = _mm_add_epi16(accum, refs[0]);
-            accum = _mm_add_epi16(accum, refs[1]);
-            if (radius > 1) {
-                accum = _mm_add_epi16(accum, refs[2]);
-                accum = _mm_add_epi16(accum, refs[3]);
-            }
-            if (radius > 2) {
-                accum = _mm_add_epi16(accum, refs[4]);
-                accum = _mm_add_epi16(accum, refs[5]);
-            }
-            if (radius > 3) {
-                accum = _mm_add_epi16(accum, refs[6]);
-                accum = _mm_add_epi16(accum, refs[7]);
-            }
-            if (radius > 4) {
-                accum = _mm_add_epi16(accum, refs[8]);
-                accum = _mm_add_epi16(accum, refs[9]);
-            }
-            if (radius > 5) {
-                accum = _mm_add_epi16(accum, refs[10]);
-                accum = _mm_add_epi16(accum, refs[11]);
+            for(int i = 0; i < radius * 2; i += 2) {
+                accum = _mm_add_epi16(accum, refs[i]);
+                accum = _mm_add_epi16(accum, refs[i + 1]);
             }
 
             accum = _mm_srli_epi16(accum, 8);
@@ -233,27 +125,9 @@ static void Degrain_sse2(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int 
         }
         pDst += nDstPitch;
         pSrc += nSrcPitch;
-        pRefs[0] += nRefPitches[0];
-        pRefs[1] += nRefPitches[1];
-        if (radius > 1) {
-            pRefs[2] += nRefPitches[2];
-            pRefs[3] += nRefPitches[3];
-        }
-        if (radius > 2) {
-            pRefs[4] += nRefPitches[4];
-            pRefs[5] += nRefPitches[5];
-        }
-        if (radius > 3) {
-            pRefs[6] += nRefPitches[6];
-            pRefs[7] += nRefPitches[7];
-        }
-        if (radius > 4) {
-            pRefs[8] += nRefPitches[8];
-            pRefs[9] += nRefPitches[9];
-        }
-        if (radius > 5) {
-            pRefs[10] += nRefPitches[10];
-            pRefs[11] += nRefPitches[11];
+        for(int i = 0; i < radius * 2; i += 2) {
+            pRefs[i] += nRefPitches[i];
+            pRefs[i + 1] += nRefPitches[i + 1];
         }
     }
 }
