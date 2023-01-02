@@ -96,96 +96,22 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
     MVDegrainData *d = (MVDegrainData *)*instanceData;
 
     if (activationReason == arInitial) {
-        //TODO: Clean this up to just use a loop.
-        if (radius > 5)
-            vsapi->requestFrameFilter(n, d->vectors[Forward6], frameCtx);
-        if (radius > 4)
-            vsapi->requestFrameFilter(n, d->vectors[Forward5], frameCtx);
-        if (radius > 3)
-            vsapi->requestFrameFilter(n, d->vectors[Forward4], frameCtx);
-        if (radius > 2)
-            vsapi->requestFrameFilter(n, d->vectors[Forward3], frameCtx);
-        if (radius > 1)
-            vsapi->requestFrameFilter(n, d->vectors[Forward2], frameCtx);
-        vsapi->requestFrameFilter(n, d->vectors[Forward1], frameCtx);
-        vsapi->requestFrameFilter(n, d->vectors[Backward1], frameCtx);
-        if (radius > 1)
-            vsapi->requestFrameFilter(n, d->vectors[Backward2], frameCtx);
-        if (radius > 2)
-            vsapi->requestFrameFilter(n, d->vectors[Backward3], frameCtx);
-        if (radius > 3)
-            vsapi->requestFrameFilter(n, d->vectors[Backward4], frameCtx);
-        if (radius > 4)
-            vsapi->requestFrameFilter(n, d->vectors[Backward5], frameCtx);
-        if (radius > 5)
-            vsapi->requestFrameFilter(n, d->vectors[Backward6], frameCtx);
 
-        if (radius > 5) {
-            int offF6 = -1 * d->vectors_data[Forward6].nDeltaFrame;
-            if (n + offF6 >= 0)
-                vsapi->requestFrameFilter(n + offF6, d->super, frameCtx);
-        }
+        for (int r = 0; r < radius * 2; r += 2) {
+            //Backward
+            vsapi->requestFrameFilter(n, d->vectors[r], frameCtx);
+            //Forward
+            vsapi->requestFrameFilter(n, d->vectors[r + 1], frameCtx);
 
-        if (radius > 4) {
-            int offF5 = -1 * d->vectors_data[Forward5].nDeltaFrame;
-            if (n + offF5 >= 0)
-                vsapi->requestFrameFilter(n + offF5, d->super, frameCtx);
-        }
+            // Backward
+            int offB = d->vectors_data[r].nDeltaFrame;
+            if (n + offB < d->vi->numFrames)
+                vsapi->requestFrameFilter(n + offB, d->super, frameCtx);
 
-        if (radius > 3) {
-            int offF4 = -1 * d->vectors_data[Forward4].nDeltaFrame;
-            if (n + offF4 >= 0)
-                vsapi->requestFrameFilter(n + offF4, d->super, frameCtx);
-        }
-
-        if (radius > 2) {
-            int offF3 = -1 * d->vectors_data[Forward3].nDeltaFrame;
-            if (n + offF3 >= 0)
-                vsapi->requestFrameFilter(n + offF3, d->super, frameCtx);
-        }
-
-        if (radius > 1) {
-            int offF2 = -1 * d->vectors_data[Forward2].nDeltaFrame;
-            if (n + offF2 >= 0)
-                vsapi->requestFrameFilter(n + offF2, d->super, frameCtx);
-        }
-
-        int offF = -1 * d->vectors_data[Forward1].nDeltaFrame;
-        if (n + offF >= 0)
-            vsapi->requestFrameFilter(n + offF, d->super, frameCtx);
-
-        int offB = d->vectors_data[Backward1].nDeltaFrame;
-        if (n + offB < d->vi->numFrames)
-            vsapi->requestFrameFilter(n + offB, d->super, frameCtx);
-
-        if (radius > 1) {
-            int offB2 = d->vectors_data[Backward2].nDeltaFrame;
-            if (n + offB2 < d->vi->numFrames)
-                vsapi->requestFrameFilter(n + offB2, d->super, frameCtx);
-        }
-
-        if (radius > 2) {
-            int offB3 = d->vectors_data[Backward3].nDeltaFrame;
-            if (n + offB3 < d->vi->numFrames)
-                vsapi->requestFrameFilter(n + offB3, d->super, frameCtx);
-        }
-
-        if (radius > 3) {
-            int offB4 = d->vectors_data[Backward4].nDeltaFrame;
-            if (n + offB4 < d->vi->numFrames)
-                vsapi->requestFrameFilter(n + offB4, d->super, frameCtx);
-        }
-
-        if (radius > 4) {
-            int offB5 = d->vectors_data[Backward5].nDeltaFrame;
-            if (n + offB5 < d->vi->numFrames)
-                vsapi->requestFrameFilter(n + offB5, d->super, frameCtx);
-        }
-
-        if (radius > 5) {
-            int offB6 = d->vectors_data[Backward6].nDeltaFrame;
-            if (n + offB6 < d->vi->numFrames)
-                vsapi->requestFrameFilter(n + offB6, d->super, frameCtx);
+            // Forward
+            int offF = -1 * d->vectors_data[r + 1].nDeltaFrame;
+            if (n + offF >= 0)
+                vsapi->requestFrameFilter(n + offF, d->super, frameCtx);
         }
 
         vsapi->requestFrameFilter(n, d->node, frameCtx);
