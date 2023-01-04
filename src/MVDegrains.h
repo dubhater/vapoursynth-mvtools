@@ -65,7 +65,7 @@ static void Degrain_sse2(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int 
 
     __m128i zero = _mm_setzero_si128();
     __m128i wsrc = _mm_set1_epi16(WSrc);
-    __m128i wrefs[radius * 2];
+    __m128i wrefs[12];
 
     // We intentionally jump by 2 (here and below), as it delineates groups of
     // backward/forward and ALSO produces testably faster code.
@@ -74,7 +74,7 @@ static void Degrain_sse2(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int 
         wrefs[i + 1] = _mm_set1_epi16(WRefs[i + 1]);
     }
 
-    __m128i src, accum, refs[radius * 2];
+    __m128i src, accum, refs[12];
 
     for (int y = 0; y < blockHeight; y++) {
         for (int x = 0; x < blockWidth; x += 8) {
