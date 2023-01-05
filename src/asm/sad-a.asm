@@ -1,7 +1,7 @@
 ;*****************************************************************************
 ;* sad-a.asm: x86 sad functions
 ;*****************************************************************************
-;* Copyright (C) 2003-2018 x264 project
+;* Copyright (C) 2003-2022 x264 project
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
 ;*          Fiona Glaser <fiona@x264.com>
@@ -1920,7 +1920,7 @@ cglobal pixel_sad_16x%2_cache64_%1
     shl     r4d, 4  ; code size = 80
 %endif
 %define sad_w16_addr (sad_w16_align1_%1 + (sad_w16_align1_%1 - sad_w16_align2_%1))
-%ifdef PIC
+%if ARCH_X86_64
     lea     r5, [sad_w16_addr]
     add     r5, r4
 %else
