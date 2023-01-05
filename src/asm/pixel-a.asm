@@ -1,7 +1,7 @@
 ;*****************************************************************************
 ;* pixel.asm: x86 pixel metrics
 ;*****************************************************************************
-;* Copyright (C) 2003-2018 x264 project
+;* Copyright (C) 2003-2022 x264 project
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
 ;*          Holger Lubitz <holger@lubitz.org>
@@ -131,6 +131,7 @@ transd_shuf2: SHUFFLE_MASK_W 1, 9, 3, 11, 5, 13, 7, 15
 
 sw_f0:     dq 0xfff0, 0
 pd_f0:     times 4 dd 0xffff0000
+pd_2:      times 4 dd 2
 
 pw_76543210: dw 0, 1, 2, 3, 4, 5, 6, 7
 
@@ -2223,7 +2224,7 @@ cglobal pixel_sa8d_satd_16x16, 4,8-(mmsize/32),16,SIZEOF_PIXEL*mmsize
 ;-----------------------------------------------------------------------------
 ; void intra_sa8d_x3_8x8( uint8_t *fenc, uint8_t edge[36], int *res )
 ;-----------------------------------------------------------------------------
-cglobal intra_sa8d_x3_8x8, 3,3,14
+cglobal intra_sa8d_x3_8x8, 3,3,13
     ; 8x8 hadamard
     pxor        m8, m8
     movq        m0, [r0+0*FENC_STRIDE]
@@ -2245,77 +2246,80 @@ cglobal intra_sa8d_x3_8x8, 3,3,14
 
     HADAMARD8_2D 0, 1, 2, 3, 4, 5, 6, 7, 8
 
-    ABSW2       m8,  m9,  m2, m3, m2, m3
-    ABSW2       m10, m11, m4, m5, m4, m5
-    paddusw     m8,  m10
-    paddusw     m9,  m11
-    ABSW2       m10, m11, m6, m7, m6, m7
-    ABSW        m13, m1,  m1
-    paddusw     m10, m11
-    paddusw     m8,  m9
-    paddusw     m13, m10
-    paddusw     m13, m8
+    ABSW2       m8, m9, m2, m3, m2, m3
+    ABSW2      m10, m11, m4, m5, m4, m5
+    paddw       m8, m10
+    paddw       m9, m11
+    ABSW2      m10, m11, m6, m7, m6, m7
+    ABSW       m12, m1, m1
+    paddw      m10, m11
+    paddw       m8, m9
+    paddw      m12, m10
+    paddw      m12, m8
 
     ; 1D hadamard of edges
-    movq        m8,  [r1+7]
-    movq        m9,  [r1+16]
-    pxor        m10, m10
-    punpcklbw   m8,  m10
-    punpcklbw   m9,  m10
+    movq        m8, [r1+7]
+    movq        m9, [r1+16]
+    pxor       m10, m10
+    punpcklbw   m8, m10
+    punpcklbw   m9, m10
     HSUMSUB2 pmullw, m8, m9, m10, m11, m11, q1032, [pw_ppppmmmm]
     HSUMSUB2 pmullw, m8, m9, m10, m11, m11, q2301, [pw_ppmmppmm]
-    pshuflw     m10, m8,  q2301
-    pshuflw     m11, m9,  q2301
-    pshufhw     m10, m10, q2301
-    pshufhw     m11, m11, q2301
-    pmullw      m8,  [pw_pmpmpmpm]
-    pmullw      m11, [pw_pmpmpmpm]
-    paddw       m8,  m10
-    paddw       m9,  m11
+    pshuflw    m10, m8, q2301
+    pshuflw    m11, m9, q2301
+    pshufhw    m10, m10, q2301
+    pshufhw    m11, m11, q2301
+    pmullw      m8, [pw_pmpmpmpm]
+    pmullw     m11, [pw_pmpmpmpm]
+    paddw       m8, m10
+    paddw       m9, m11
 
     ; differences
-    paddw       m10, m8, m9
-    paddw       m10, [pw_8]
-    pand        m10, [sw_f0]
-    psllw       m10, 2 ; dc
-
-    psllw       m8,  3 ; left edge
-    psubw       m8,  m0
-    psubw       m10, m0
-    ABSW2       m8, m10, m8, m10, m11, m12 ; 1x8 sum
-    paddusw     m8,  m13
-    paddusw     m13, m10
-    punpcklwd   m0,  m1
-    punpcklwd   m2,  m3
-    punpcklwd   m4,  m5
-    punpcklwd   m6,  m7
-    punpckldq   m0,  m2
-    punpckldq   m4,  m6
-    punpcklqdq  m0,  m4 ; transpose
-    psllw       m9,  3 ; top edge
-    psrldq      m2,  m13, 2 ; 8x7 sum
-    psubw       m0,  m9  ; 8x1 sum
-    ABSW        m0,  m0,  m9
-    paddusw     m2,  m0
+    paddw      m10, m8, m9
+    paddw      m10, [pw_8]
+    pand       m10, [sw_f0]
+    psllw       m8, 3 ; left edge
+    psllw      m10, 2 ; dc
+    psubw       m8, m0
+    psubw      m10, m0
+    punpcklwd   m0, m1
+    punpcklwd   m2, m3
+    punpcklwd   m4, m5
+    punpcklwd   m6, m7
+    ABSW       m10, m10, m1
+    paddw      m10, m12
+    punpckldq   m0, m2
+    punpckldq   m4, m6
+    punpcklqdq  m0, m4 ; transpose
+    psllw       m9, 3 ; top edge
+    psrldq      m2, m10, 2 ; 8x7 sum
+    psubw       m0, m9  ; 8x1 sum
+    ABSW2       m8, m0, m8, m0, m1, m3 ; 1x8 sum
+    paddw       m8, m12
+    paddusw     m2, m0
 
     ; 3x HADDW
-    movdqa      m7,  [pw_1]
-    pmaddwd     m2,  m7
-    pmaddwd     m8,  m7
-    pmaddwd     m13, m7
-    punpckhdq   m3,  m2, m8
-    punpckldq   m2,  m8
-    pshufd      m5,  m13, q3311
-    paddd       m2,  m3
-    paddd       m5,  m13
-    punpckhqdq  m0,  m2, m5
-    punpcklqdq  m2,  m5
-    pavgw       m0,  m2
-    pxor        m1,  m1
-    pavgw       m0,  m1
-    movq      [r2], m0 ; i8x8_v, i8x8_h
-    psrldq      m0, 8
-    movd    [r2+8], m0 ; i8x8_dc
+    mova        m7, [pd_f0]
+    pandn       m0, m7, m10
+    psrld      m10, 16
+    pandn       m1, m7, m8
+    psrld       m8, 16
+    pandn       m7, m2
+    psrld       m2, 16
+    paddd       m0, m10
+    paddd       m1, m8
+    paddd       m2, m7
+    pshufd      m3, m0, q2301
+    punpckhdq   m4, m2, m1
+    punpckldq   m2, m1
+    paddd       m3, m0
+    paddd       m2, m4
+    punpckhqdq  m0, m2, m3
+    punpcklqdq  m2, m3
+    paddd       m0, [pd_2]
+    paddd       m0, m2
+    psrld       m0, 2
+    mova      [r2], m0
     RET
 %endif ; ARCH_X86_64
 %endmacro ; INTRA_SA8D_SSE2
@@ -2862,7 +2866,7 @@ cglobal intra_satd_x3_8x8c, 0,6
     ; output the predicted samples
     mov       r3d, eax
     shr       r3d, 16
-%ifdef PIC
+%if ARCH_X86_64
     lea        r2, [%2_lut]
     movzx     r2d, byte [r2+r3]
 %else
@@ -4744,7 +4748,7 @@ cglobal intra_sad_x9_8x8, 5,7,8
 %endmacro
 
 %macro SATD_AVX512_END 0-1 0 ; sa8d
-    paddw          m0 {k1}{z}, m1 ; zero-extend to dwords
+    vpaddw         m0 {k1}{z}, m1 ; zero-extend to dwords
 %if ARCH_X86_64
 %if mmsize == 64
     vextracti32x8 ym1, m0, 1
@@ -5099,7 +5103,7 @@ cglobal pixel_ssim_end4, 2,3
     je .skip ; faster only if this is the common case; remove branch if we use ssim on a macroblock level
     neg       r2
 
-%ifdef PIC
+%if ARCH_X86_64
     lea       r3, [mask_ff + 16]
     %xdefine %%mask r3
 %else
@@ -5216,13 +5220,13 @@ ASD8
     shl     r2d,  1
 %endmacro
 
-%macro ADS_END 1 ; unroll_size
-    add     r1, 8*%1
-    add     r3, 8*%1
-    add     r6, 4*%1
-    sub    r0d, 4*%1
-    jg .loop
-    WIN64_RESTORE_XMM
+%macro ADS_END 1-2 .loop ; unroll_size, loop_label
+    add     r1, 2*%1
+    add     r3, 2*%1
+    add     r6, %1
+    sub    r0d, %1
+    jg %2
+    WIN64_RESTORE_XMM_INTERNAL
 %if mmsize==32
     vzeroupper
 %endif
@@ -5239,105 +5243,220 @@ ASD8
 ; int pixel_ads4( int enc_dc[4], uint16_t *sums, int delta,
 ;                 uint16_t *cost_mvx, int16_t *mvs, int width, int thresh )
 ;-----------------------------------------------------------------------------
-INIT_MMX mmx2
-cglobal pixel_ads4, 5,7
-    mova    m6, [r0]
-    mova    m4, [r0+8]
-    pshufw  m7, m6, 0
-    pshufw  m6, m6, q2222
-    pshufw  m5, m4, 0
-    pshufw  m4, m4, q2222
-    ADS_START
-.loop:
-    movu      m0, [r1]
-    movu      m1, [r1+16]
-    psubw     m0, m7
-    psubw     m1, m6
-    ABSW      m0, m0, m2
-    ABSW      m1, m1, m3
-    movu      m2, [r1+r2]
-    movu      m3, [r1+r2+16]
-    psubw     m2, m5
-    psubw     m3, m4
-    paddw     m0, m1
-    ABSW      m2, m2, m1
-    ABSW      m3, m3, m1
-    paddw     m0, m2
-    paddw     m0, m3
-    pshufw    m1, r6m, 0
-    paddusw   m0, [r3]
-    psubusw   m1, m0
-    packsswb  m1, m1
-    movd    [r6], m1
-    ADS_END 1
-
-cglobal pixel_ads2, 5,7
-    mova      m6, [r0]
-    pshufw    m5, r6m, 0
-    pshufw    m7, m6, 0
-    pshufw    m6, m6, q2222
-    ADS_START
-.loop:
-    movu      m0, [r1]
-    movu      m1, [r1+r2]
-    psubw     m0, m7
-    psubw     m1, m6
-    ABSW      m0, m0, m2
-    ABSW      m1, m1, m3
-    paddw     m0, m1
-    paddusw   m0, [r3]
-    mova      m4, m5
-    psubusw   m4, m0
-    packsswb  m4, m4
-    movd    [r6], m4
-    ADS_END 1
-
-cglobal pixel_ads1, 5,7
-    pshufw    m7, [r0], 0
-    pshufw    m6, r6m, 0
-    ADS_START
-.loop:
-    movu      m0, [r1]
-    movu      m1, [r1+8]
-    psubw     m0, m7
-    psubw     m1, m7
-    ABSW      m0, m0, m2
-    ABSW      m1, m1, m3
-    paddusw   m0, [r3]
-    paddusw   m1, [r3+8]
-    mova      m4, m6
-    mova      m5, m6
-    psubusw   m4, m0
-    psubusw   m5, m1
-    packsswb  m4, m5
-    mova    [r6], m4
-    ADS_END 2
+%if HIGH_BIT_DEPTH
 
 %macro ADS_XMM 0
-%if mmsize==32
+%if ARCH_X86_64
+cglobal pixel_ads4, 5,7,9
+%else
 cglobal pixel_ads4, 5,7,8
+%endif
+%if mmsize >= 32
+    vpbroadcastd m7, [r0+ 0]
+    vpbroadcastd m6, [r0+ 4]
+    vpbroadcastd m5, [r0+ 8]
+    vpbroadcastd m4, [r0+12]
+%else
+    mova      m4, [r0]
+    pshufd    m7, m4, 0
+    pshufd    m6, m4, q1111
+    pshufd    m5, m4, q2222
+    pshufd    m4, m4, q3333
+%endif
+%if ARCH_X86_64
+    SPLATD    m8, r6m
+%endif
+    ADS_START
+.loop:
+%if cpuflag(avx)
+    pmovzxwd  m0, [r1]
+    pmovzxwd  m1, [r1+16]
+%else
+    movh      m0, [r1]
+    movh      m1, [r1+16]
+    pxor      m3, m3
+    punpcklwd m0, m3
+    punpcklwd m1, m3
+%endif
+    psubd     m0, m7
+    psubd     m1, m6
+    ABSD      m0, m0, m2
+    ABSD      m1, m1, m3
+%if cpuflag(avx)
+    pmovzxwd  m2, [r1+r2]
+    pmovzxwd  m3, [r1+r2+16]
+    paddd     m0, m1
+%else
+    movh      m2, [r1+r2]
+    movh      m3, [r1+r2+16]
+    paddd     m0, m1
+    pxor      m1, m1
+    punpcklwd m2, m1
+    punpcklwd m3, m1
+%endif
+    psubd     m2, m5
+    psubd     m3, m4
+    ABSD      m2, m2, m1
+    ABSD      m3, m3, m1
+    paddd     m0, m2
+    paddd     m0, m3
+%if cpuflag(avx)
+    pmovzxwd  m1, [r3]
+%else
+    movh      m1, [r3]
+    pxor      m3, m3
+    punpcklwd m1, m3
+%endif
+    paddd     m0, m1
+%if ARCH_X86_64
+    psubd     m1, m8, m0
+%else
+    SPLATD    m1, r6m
+    psubd     m1, m0
+%endif
+    packssdw  m1, m1
+%if mmsize == 32
+    vpermq    m1, m1, q3120
+    packuswb  m1, m1
+    movq    [r6], xm1
+%else
+    packuswb  m1, m1
+    movd    [r6], m1
+%endif
+    ADS_END mmsize/4
+
+cglobal pixel_ads2, 5,7,8
+%if mmsize >= 32
+    vpbroadcastd m7, [r0+0]
+    vpbroadcastd m6, [r0+4]
+    vpbroadcastd m5, r6m
+%else
+    movq      m6, [r0]
+    movd      m5, r6m
+    pshufd    m7, m6, 0
+    pshufd    m6, m6, q1111
+    pshufd    m5, m5, 0
+%endif
+    pxor      m4, m4
+    ADS_START
+.loop:
+%if cpuflag(avx)
+    pmovzxwd  m0, [r1]
+    pmovzxwd  m1, [r1+r2]
+    pmovzxwd  m2, [r3]
+%else
+    movh      m0, [r1]
+    movh      m1, [r1+r2]
+    movh      m2, [r3]
+    punpcklwd m0, m4
+    punpcklwd m1, m4
+    punpcklwd m2, m4
+%endif
+    psubd     m0, m7
+    psubd     m1, m6
+    ABSD      m0, m0, m3
+    ABSD      m1, m1, m3
+    paddd     m0, m1
+    paddd     m0, m2
+    psubd     m1, m5, m0
+    packssdw  m1, m1
+%if mmsize == 32
+    vpermq    m1, m1, q3120
+    packuswb  m1, m1
+    movq    [r6], xm1
+%else
+    packuswb  m1, m1
+    movd    [r6], m1
+%endif
+    ADS_END mmsize/4
+
+cglobal pixel_ads1, 5,7,8
+%if mmsize >= 32
+    vpbroadcastd m7, [r0]
+    vpbroadcastd m6, r6m
+%else
+    movd      m7, [r0]
+    movd      m6, r6m
+    pshufd    m7, m7, 0
+    pshufd    m6, m6, 0
+%endif
+    pxor      m5, m5
+    ADS_START
+.loop:
+    movu      m1, [r1]
+    movu      m3, [r3]
+    punpcklwd m0, m1, m5
+    punpckhwd m1, m5
+    punpcklwd m2, m3, m5
+    punpckhwd m3, m5
+    psubd     m0, m7
+    psubd     m1, m7
+    ABSD      m0, m0, m4
+    ABSD      m1, m1, m4
+    paddd     m0, m2
+    paddd     m1, m3
+    psubd     m2, m6, m0
+    psubd     m3, m6, m1
+    packssdw  m2, m3
+    packuswb  m2, m2
+%if mmsize == 32
+    vpermq    m2, m2, q3120
+    mova    [r6], xm2
+%else
+    movq    [r6], m2
+%endif
+    ADS_END mmsize/2
+%endmacro
+
+INIT_XMM sse2
+ADS_XMM
+INIT_XMM ssse3
+ADS_XMM
+INIT_XMM avx
+ADS_XMM
+INIT_YMM avx2
+ADS_XMM
+
+%else ; !HIGH_BIT_DEPTH
+
+%macro ADS_XMM 0
+%if ARCH_X86_64 && mmsize == 16
+cglobal pixel_ads4, 5,7,12
+%elif ARCH_X86_64 && mmsize != 8
+cglobal pixel_ads4, 5,7,9
+%else
+cglobal pixel_ads4, 5,7,8
+%endif
+    test dword r6m, 0xffff0000
+%if mmsize >= 32
     vpbroadcastw m7, [r0+ 0]
     vpbroadcastw m6, [r0+ 4]
     vpbroadcastw m5, [r0+ 8]
     vpbroadcastw m4, [r0+12]
-%else
-cglobal pixel_ads4, 5,7,12
-    mova      m4, [r0]
-    pshuflw   m7, m4, q0000
-    pshuflw   m6, m4, q2222
-    pshufhw   m5, m4, q0000
-    pshufhw   m4, m4, q2222
+%elif mmsize == 16
+    mova       m4, [r0]
+    pshuflw    m7, m4, 0
+    pshuflw    m6, m4, q2222
+    pshufhw    m5, m4, 0
+    pshufhw    m4, m4, q2222
     punpcklqdq m7, m7
     punpcklqdq m6, m6
     punpckhqdq m5, m5
     punpckhqdq m4, m4
+%else
+    mova      m6, [r0]
+    mova      m4, [r0+8]
+    pshufw    m7, m6, 0
+    pshufw    m6, m6, q2222
+    pshufw    m5, m4, 0
+    pshufw    m4, m4, q2222
 %endif
-%if ARCH_X86_64 && mmsize == 16
-    movd      m8, r6m
-    SPLATW    m8, m8
+    jnz .nz
     ADS_START
+%if ARCH_X86_64 && mmsize == 16
     movu     m10, [r1]
     movu     m11, [r1+r2]
+    SPLATW    m8, r6m
 .loop:
     psubw     m0, m10, m7
     movu     m10, [r1+16]
@@ -5356,7 +5475,9 @@ cglobal pixel_ads4, 5,7,12
     paddusw   m0, m9
     psubusw   m1, m8, m0
 %else
-    ADS_START
+%if ARCH_X86_64 && mmsize != 8
+    SPLATW    m8, r6m
+%endif
 .loop:
     movu      m0, [r1]
     movu      m1, [r1+16]
@@ -5374,81 +5495,196 @@ cglobal pixel_ads4, 5,7,12
     paddw     m0, m2
     paddw     m0, m3
     movu      m2, [r3]
-%if mmsize==32
-    vpbroadcastw m1, r6m
+%if ARCH_X86_64 && mmsize != 8
+    mova      m1, m8
 %else
-    movd      m1, r6m
-    pshuflw   m1, m1, 0
-    punpcklqdq m1, m1
+    SPLATW    m1, r6m
 %endif
     paddusw   m0, m2
     psubusw   m1, m0
 %endif ; ARCH
     packsswb  m1, m1
-%if mmsize==32
+%if mmsize == 32
     vpermq    m1, m1, q3120
     mova    [r6], xm1
 %else
     movh    [r6], m1
 %endif
-    ADS_END mmsize/8
+    ADS_END mmsize/2
+.nz:
+    ADS_START
+%if ARCH_X86_64 && mmsize == 16
+    movu     m10, [r1]
+    movu     m11, [r1+r2]
+    SPLATD    m8, r6m
+.loop_nz:
+    psubw     m0, m10, m7
+    movu     m10, [r1+16]
+    psubw     m1, m10, m6
+    ABSW      m0, m0, m2
+    ABSW      m1, m1, m3
+    psubw     m2, m11, m5
+    movu     m11, [r1+r2+16]
+    paddw     m0, m1
+    psubw     m3, m11, m4
+    movu      m9, [r3]
+    ABSW      m2, m2, m1
+    ABSW      m3, m3, m1
+    paddw     m0, m2
+    paddw     m0, m3
+    pxor      m3, m3
+    mova      m2, m0
+    mova      m1, m9
+    punpcklwd m0, m3
+    punpcklwd m9, m3
+    punpckhwd m2, m3
+    punpckhwd m1, m3
+    paddd     m0, m9
+    paddd     m2, m1
+    psubd     m1, m8, m0
+    psubd     m3, m8, m2
+    packssdw  m1, m3
+    packuswb  m1, m1
+%else
+%if ARCH_X86_64 && mmsize != 8
+    SPLATD    m8, r6m
+%endif
+.loop_nz:
+    movu      m0, [r1]
+    movu      m1, [r1+16]
+    psubw     m0, m7
+    psubw     m1, m6
+    ABSW      m0, m0, m2
+    ABSW      m1, m1, m3
+    movu      m2, [r1+r2]
+    movu      m3, [r1+r2+16]
+    psubw     m2, m5
+    psubw     m3, m4
+    paddw     m0, m1
+    ABSW      m2, m2, m1
+    ABSW      m3, m3, m1
+    paddw     m0, m2
+    paddw     m0, m3
+%if mmsize == 32
+    movu      m1, [r3]
+%else
+    movh      m1, [r3]
+%endif
+    pxor      m3, m3
+    mova      m2, m0
+    punpcklwd m0, m3
+    punpcklwd m1, m3
+    punpckhwd m2, m3
+    paddd     m0, m1
+%if mmsize == 32
+    movu      m1, [r3]
+    punpckhwd m1, m3
+%else
+    movh      m1, [r3+mmsize/2]
+    punpcklwd m1, m3
+%endif
+    paddd     m2, m1
+%if ARCH_X86_64 && mmsize != 8
+    mova      m1, m8
+%else
+    SPLATD    m1, r6m
+%endif
+    mova      m3, m1
+    psubd     m1, m0
+    psubd     m3, m2
+    packssdw  m1, m3
+    packuswb  m1, m1
+%endif ; ARCH
+%if mmsize == 32
+    vpermq    m1, m1, q3120
+    mova    [r6], xm1
+%else
+    movh    [r6], m1
+%endif
+    ADS_END mmsize/2, .loop_nz
 
 cglobal pixel_ads2, 5,7,8
-%if mmsize==32
+    test dword r6m, 0xffff0000
+%if mmsize >= 32
     vpbroadcastw m7, [r0+0]
     vpbroadcastw m6, [r0+4]
-    vpbroadcastw m5, r6m
-%else
-    movq      m6, [r0]
-    movd      m5, r6m
-    pshuflw   m7, m6, 0
-    pshuflw   m6, m6, q2222
-    pshuflw   m5, m5, 0
+%elif mmsize == 16
+    movq       m6, [r0]
+    pshuflw    m7, m6, 0
+    pshuflw    m6, m6, q2222
     punpcklqdq m7, m7
     punpcklqdq m6, m6
-    punpcklqdq m5, m5
+%else
+    mova      m6, [r0]
+    pshufw    m7, m6, 0
+    pshufw    m6, m6, q2222
 %endif
+    jnz .nz
     ADS_START
+    SPLATW    m5, r6m
 .loop:
     movu      m0, [r1]
     movu      m1, [r1+r2]
+    movu      m2, [r3]
     psubw     m0, m7
     psubw     m1, m6
-    movu      m4, [r3]
-    ABSW      m0, m0, m2
-    ABSW      m1, m1, m3
+    ABSW      m0, m0, m3
+    ABSW      m1, m1, m4
     paddw     m0, m1
-    paddusw   m0, m4
+    paddusw   m0, m2
     psubusw   m1, m5, m0
     packsswb  m1, m1
-%if mmsize==32
+%if mmsize == 32
     vpermq    m1, m1, q3120
     mova    [r6], xm1
 %else
     movh    [r6], m1
 %endif
-    ADS_END mmsize/8
+    ADS_END mmsize/2
+.nz:
+    ADS_START
+    SPLATD    m5, r6m
+    pxor      m4, m4
+.loop_nz:
+    movu      m0, [r1]
+    movu      m1, [r1+r2]
+    movu      m2, [r3]
+    psubw     m0, m7
+    psubw     m1, m6
+    ABSW      m0, m0, m3
+    ABSW      m1, m1, m3
+    paddw     m0, m1
+    punpckhwd m3, m2, m4
+    punpckhwd m1, m0, m4
+    punpcklwd m2, m4
+    punpcklwd m0, m4
+    paddd     m1, m3
+    paddd     m0, m2
+    psubd     m3, m5, m1
+    psubd     m2, m5, m0
+    packssdw  m2, m3
+    packuswb  m2, m2
+%if mmsize == 32
+    vpermq    m2, m2, q3120
+    mova    [r6], xm2
+%else
+    movh    [r6], m2
+%endif
+    ADS_END mmsize/2, .loop_nz
 
 cglobal pixel_ads1, 5,7,8
-%if mmsize==32
-    vpbroadcastw m7, [r0]
-    vpbroadcastw m6, r6m
-%else
-    movd      m7, [r0]
-    movd      m6, r6m
-    pshuflw   m7, m7, 0
-    pshuflw   m6, m6, 0
-    punpcklqdq m7, m7
-    punpcklqdq m6, m6
-%endif
+    test dword r6m, 0xffff0000
+    SPLATW    m7, [r0]
+    jnz .nz
     ADS_START
+    SPLATW    m6, r6m
 .loop:
     movu      m0, [r1]
     movu      m1, [r1+mmsize]
-    psubw     m0, m7
-    psubw     m1, m7
     movu      m2, [r3]
     movu      m3, [r3+mmsize]
+    psubw     m0, m7
+    psubw     m1, m7
     ABSW      m0, m0, m4
     ABSW      m1, m1, m5
     paddusw   m0, m2
@@ -5456,13 +5692,52 @@ cglobal pixel_ads1, 5,7,8
     psubusw   m4, m6, m0
     psubusw   m5, m6, m1
     packsswb  m4, m5
-%if mmsize==32
+%if mmsize == 32
     vpermq    m4, m4, q3120
 %endif
     mova    [r6], m4
-    ADS_END mmsize/4
+    ADS_END mmsize
+.nz:
+    ADS_START
+    SPLATD    m6, r6m
+    pxor      m5, m5
+.loop_nz:
+    movu      m0, [r1]
+    movu      m1, [r1+mmsize]
+    movu      m2, [r3]
+    psubw     m0, m7
+    psubw     m1, m7
+    ABSW      m0, m0, m3
+    ABSW      m1, m1, m4
+    punpckhwd m3, m2, m5
+    punpckhwd m4, m0, m5
+    punpcklwd m2, m5
+    punpcklwd m0, m5
+    paddd     m4, m3
+    paddd     m0, m2
+    psubd     m3, m6, m4
+    movu      m4, [r3+mmsize]
+    psubd     m2, m6, m0
+    packssdw  m2, m3
+    punpckhwd m0, m1, m5
+    punpckhwd m3, m4, m5
+    punpcklwd m1, m5
+    punpcklwd m4, m5
+    paddd     m0, m3
+    paddd     m1, m4
+    psubd     m3, m6, m0
+    psubd     m4, m6, m1
+    packssdw  m4, m3
+    packuswb  m2, m4
+%if mmsize == 32
+    vpermq    m2, m2, q3120
+%endif
+    mova    [r6], m2
+    ADS_END mmsize, .loop_nz
 %endmacro
 
+INIT_MMX mmx2
+ADS_XMM
 INIT_XMM sse2
 ADS_XMM
 INIT_XMM ssse3
@@ -5471,6 +5746,8 @@ INIT_XMM avx
 ADS_XMM
 INIT_YMM avx2
 ADS_XMM
+
+%endif ; HIGH_BIT_DEPTH
 
 ; int pixel_ads_mvs( int16_t *mvs, uint8_t *masks, int width )
 ; {
@@ -5517,7 +5794,7 @@ ALIGN 16
     test    r2,  r2
 %else
     mov     r3,  r2
-    add    r3d, [r6+r1+4]
+    or     r3d, [r6+r1+4]
 %endif
     jz .loopi0
     xor     r3d, r3d
@@ -5549,7 +5826,7 @@ ads_mvs_ssse3:
     add       r5, r6
     xor      r0d, r0d ; nmv
     mov     [r5], r0d
-%ifdef PIC
+%if ARCH_X86_64
     lea       r1, [$$]
     %define GLOBAL +r1-$$
 %else
