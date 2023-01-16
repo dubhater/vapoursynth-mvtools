@@ -29,16 +29,16 @@ typedef void (*DenoiseFunction)(uint8_t *pDst, int nDstPitch, const uint8_t *pSr
 // XXX Moves the pointers passed in pRefs. This is okay because they are not
 // used after this function is done with them.
 template <int radius, int blockWidth, int blockHeight, typename PixelType>
-static void Degrain_C(uint8_t *pDst8, int nDstPitch, const uint8_t *pSrc8, int nSrcPitch, const uint8_t **pRefs8, const int *nRefPitches, int WSrc, const int *WRefs) {
+static void Degrain_C(uint8_t * __restrict pDst8, int nDstPitch, const uint8_t * __restrict pSrc8, int nSrcPitch, const uint8_t ** __restrict pRefs8, const int * __restrict nRefPitches, int WSrc, const int * __restrict WRefs) {
     for (int y = 0; y < blockHeight; y++) {
         for (int x = 0; x < blockWidth; x++) {
-            const PixelType *pSrc = (const PixelType *)pSrc8;
-            PixelType *pDst = (PixelType *)pDst8;
+            const PixelType *pSrc = (const PixelType * __restrict)pSrc8;
+            PixelType *pDst = (PixelType * __restrict)pDst8;
 
             int sum = 128 + pSrc[x] * WSrc;
 
             for (int r = 0; r < radius * 2; r++) {
-                const PixelType *pRef = (const PixelType *)pRefs8[r];
+                const PixelType *pRef = (const PixelType * __restrict)pRefs8[r];
                 sum += pRef[x] * WRefs[r];
             }
 
