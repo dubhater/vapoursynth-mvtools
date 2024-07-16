@@ -733,7 +733,7 @@ static void pobCrossSearch(PlaneOfBlocks *pob, int start, int x_max, int y_max, 
     }
 
     for (int j = start; j < y_max; j += 2) {
-        pobCheckMV<dctmode, nLogPel>(pob, mvx, mvy + j);
+        pobCheckMV<dctmode, nLogPel>(pob, mvx, mvy - j);
         pobCheckMV<dctmode, nLogPel>(pob, mvx, mvy + j);
     }
 }
