@@ -22,8 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <VapourSynth.h>
-#include <VSHelper.h>
+#include <VapourSynth4.h>
+#include <VSHelper4.h>
 
 #include "Bullshit.h"
 #include "CommonFunctions.h"
@@ -34,13 +34,13 @@
 
 
 typedef struct MVFlowBlurData {
-    VSNodeRef *node;
+    VSNode *node;
     const VSVideoInfo *vi;
 
-    VSNodeRef *finest;
-    VSNodeRef *super;
-    VSNodeRef *mvbw;
-    VSNodeRef *mvfw;
+    VSNode *finest;
+    VSNode *super;
+    VSNode *mvbw;
+    VSNode *mvfw;
 
     float blur;
     int prec;
@@ -65,15 +65,6 @@ typedef struct MVFlowBlurData {
     SimpleResize upsizer;
     SimpleResize upsizerUV;
 } MVFlowBlurData;
-
-
-static void VS_CC mvflowblurInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    (void)in;
-    (void)out;
-    (void)core;
-    MVFlowBlurData *d = (MVFlowBlurData *)*instanceData;
-    vsapi->setVideoInfo(d->vi, 1, node);
-}
 
 
 #define RealFlowBlur(PixelType) \
@@ -147,10 +138,10 @@ static void FlowBlur(uint8_t *pdst, int dst_pitch, const uint8_t *pref, int ref_
 }
 
 
-static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+static const VSFrame *VS_CC mvflowblurGetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
     (void)frameData;
 
-    MVFlowBlurData *d = (MVFlowBlurData *)*instanceData;
+    MVFlowBlurData *d = (MVFlowBlurData *)instanceData;
 
     if (activationReason == arInitial) {
         int off = d->mvbw_data.nDeltaFrame; // integer offset of reference frame
@@ -179,25 +170,25 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
         int off = d->mvbw_data.nDeltaFrame; // integer offset of reference frame
 
         if (n - off >= 0 && n + off < d->vi->numFrames) {
-            const VSFrameRef *mvF = vsapi->getFrameFilter(n + off, d->mvfw, frameCtx);
-            const VSMap *mvprops = vsapi->getFramePropsRO(mvF);
-            fgopUpdate(&fgopF, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+            const VSFrame *mvF = vsapi->getFrameFilter(n + off, d->mvfw, frameCtx);
+            const VSMap *mvprops = vsapi->getFramePropertiesRO(mvF);
+            fgopUpdate(&fgopF, (const uint8_t *)vsapi->mapGetData(mvprops, prop_MVTools_vectors, 0, NULL));
             isUsableF = fgopIsUsable(&fgopF, d->thscd1, d->thscd2);
             vsapi->freeFrame(mvF);
 
-            const VSFrameRef *mvB = vsapi->getFrameFilter(n - off, d->mvbw, frameCtx);
-            mvprops = vsapi->getFramePropsRO(mvB);
-            fgopUpdate(&fgopB, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+            const VSFrame *mvB = vsapi->getFrameFilter(n - off, d->mvbw, frameCtx);
+            mvprops = vsapi->getFramePropertiesRO(mvB);
+            fgopUpdate(&fgopB, (const uint8_t *)vsapi->mapGetData(mvprops, prop_MVTools_vectors, 0, NULL));
             isUsableB = fgopIsUsable(&fgopB, d->thscd1, d->thscd2);
             vsapi->freeFrame(mvB);
         }
 
 
         if (isUsableB && isUsableF) {
-            const VSFrameRef *ref = vsapi->getFrameFilter(n, d->finest, frameCtx); //  ref for  compensation
-            VSFrameRef *dst = vsapi->newVideoFrame(d->vi->format, d->vi->width, d->vi->height, ref, core);
+            const VSFrame *ref = vsapi->getFrameFilter(n, d->finest, frameCtx); //  ref for  compensation
+            VSFrame *dst = vsapi->newVideoFrame(&d->vi->format, d->vi->width, d->vi->height, ref, core);
 
-            for (int i = 0; i < d->vi->format->numPlanes; i++) {
+            for (int i = 0; i < d->vi->format.numPlanes; i++) {
                 pDst[i] = vsapi->getWritePtr(dst, i);
                 pRef[i] = vsapi->getReadPtr(ref, i);
                 nDstPitches[i] = vsapi->getStride(dst, i);
@@ -222,8 +213,8 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
             const int VPitchY = d->VPitchY;
             const int VPitchUV = d->VPitchUV;
 
-            int bitsPerSample = d->vi->format->bitsPerSample;
-            int bytesPerSample = d->vi->format->bytesPerSample;
+            int bitsPerSample = d->vi->format.bitsPerSample;
+            int bytesPerSample = d->vi->format.bytesPerSample;
 
             int nOffsetY = nRefPitches[0] * nVPadding * nPel + nHPadding * bytesPerSample * nPel;
             int nOffsetUV = nRefPitches[1] * nVPaddingUV * nPel + nHPaddingUV * bytesPerSample * nPel;
@@ -259,7 +250,7 @@ static const VSFrameRef *VS_CC mvflowblurGetFrame(int n, int activationReason, v
                      VXFullYB, VXFullYF, VYFullYB, VYFullYF, VPitchY,
                      nWidth, nHeight, blur256, prec, nPel, bitsPerSample);
 
-            if (d->vi->format->colorFamily != cmGray) {
+            if (d->vi->format.colorFamily != cfGray) {
                 size_t full_size_uv = nHeightUV * VPitchUV * sizeof(int16_t);
                 size_t small_size_uv = nBlkY * nBlkX * sizeof(int16_t);
 
@@ -338,7 +329,7 @@ static void VS_CC mvflowblurFree(void *instanceData, VSCore *core, const VSAPI *
     MVFlowBlurData *d = (MVFlowBlurData *)instanceData;
 
     simpleDeinit(&d->upsizer);
-    if (d->vi->format->colorFamily != cmGray)
+    if (d->vi->format.colorFamily != cfGray)
         simpleDeinit(&d->upsizerUV);
 
     vsapi->freeNode(d->finest);
@@ -358,69 +349,69 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
 
     int err;
 
-    d.blur = (float)vsapi->propGetFloat(in, "blur", 0, &err);
+    d.blur = (float)vsapi->mapGetFloat(in, "blur", 0, &err);
     if (err)
         d.blur = 50.0f;
 
-    d.prec = int64ToIntS(vsapi->propGetInt(in, "prec", 0, &err));
+    d.prec = vsapi->mapGetIntSaturated(in, "prec", 0, &err);
     if (err)
         d.prec = 1;
 
-    d.thscd1 = vsapi->propGetInt(in, "thscd1", 0, &err);
+    d.thscd1 = vsapi->mapGetInt(in, "thscd1", 0, &err);
     if (err)
         d.thscd1 = MV_DEFAULT_SCD1;
 
-    d.thscd2 = int64ToIntS(vsapi->propGetInt(in, "thscd2", 0, &err));
+    d.thscd2 = vsapi->mapGetIntSaturated(in, "thscd2", 0, &err);
     if (err)
         d.thscd2 = MV_DEFAULT_SCD2;
 
-    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
+    d.opt = !!vsapi->mapGetInt(in, "opt", 0, &err);
     if (err)
         d.opt = 1;
 
 
     if (d.blur < 0.0f || d.blur > 200.0f) {
-        vsapi->setError(out, "FlowBlur: blur must be between 0 and 200 % (inclusive).");
+        vsapi->mapSetError(out, "FlowBlur: blur must be between 0 and 200 % (inclusive).");
         return;
     }
 
     if (d.prec < 1) {
-        vsapi->setError(out, "FlowBlur: prec must be at least 1.");
+        vsapi->mapSetError(out, "FlowBlur: prec must be at least 1.");
         return;
     }
 
     d.blur256 = (int)(d.blur * 256.0f / 200.0f);
 
 
-    d.super = vsapi->propGetNode(in, "super", 0, NULL);
+    d.super = vsapi->mapGetNode(in, "super", 0, NULL);
 
 #define ERROR_SIZE 1024
     char errorMsg[ERROR_SIZE] = "FlowBlur: failed to retrieve first frame from super clip. Error message: ";
     size_t errorLen = strlen(errorMsg);
-    const VSFrameRef *evil = vsapi->getFrame(0, d.super, errorMsg + errorLen, ERROR_SIZE - errorLen);
+    const VSFrame *evil = vsapi->getFrame(0, d.super, errorMsg + errorLen, ERROR_SIZE - errorLen);
 #undef ERROR_SIZE
     if (!evil) {
-        vsapi->setError(out, errorMsg);
+        vsapi->mapSetError(out, errorMsg);
         vsapi->freeNode(d.super);
         return;
     }
-    const VSMap *props = vsapi->getFramePropsRO(evil);
+    const VSMap *props = vsapi->getFramePropertiesRO(evil);
     int evil_err[3];
-    int nHeightS = int64ToIntS(vsapi->propGetInt(props, "Super_height", 0, &evil_err[0]));
-    d.nSuperHPad = int64ToIntS(vsapi->propGetInt(props, "Super_hpad", 0, &evil_err[1]));
-    int nSuperPel = int64ToIntS(vsapi->propGetInt(props, "Super_pel", 0, &evil_err[2]));
+    int nHeightS = vsapi->mapGetIntSaturated(props, "Super_height", 0, &evil_err[0]);
+    d.nSuperHPad = vsapi->mapGetIntSaturated(props, "Super_hpad", 0, &evil_err[1]);
+    int nSuperPel = vsapi->mapGetIntSaturated(props, "Super_pel", 0, &evil_err[2]);
     vsapi->freeFrame(evil);
 
     for (int i = 0; i < 2; i++)
         if (evil_err[i]) {
-            vsapi->setError(out, "FlowBlur: required properties not found in first frame of super clip. Maybe clip didn't come from mv.Super? Was the first frame trimmed away?");
+            vsapi->mapSetError(out, "FlowBlur: required properties not found in first frame of super clip. Maybe clip didn't come from mv.Super? Was the first frame trimmed away?");
             vsapi->freeNode(d.super);
             return;
         }
 
 
-    d.mvbw = vsapi->propGetNode(in, "mvbw", 0, NULL);
-    d.mvfw = vsapi->propGetNode(in, "mvfw", 0, NULL);
+    d.mvbw = vsapi->mapGetNode(in, "mvbw", 0, NULL);
+    d.mvfw = vsapi->mapGetNode(in, "mvfw", 0, NULL);
 
 #define ERROR_SIZE 512
     char error[ERROR_SIZE + 1] = { 0 };
@@ -435,7 +426,7 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
 #undef ERROR_SIZE
 
     if (error[0]) {
-        vsapi->setError(out, error);
+        vsapi->mapSetError(out, error);
 
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
@@ -445,7 +436,7 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
 
 
     if (d.mvbw_data.nDeltaFrame <= 0 || d.mvfw_data.nDeltaFrame <= 0) {
-        vsapi->setError(out, "FlowBlur: cannot use motion vectors with absolute frame references.");
+        vsapi->mapSetError(out, "FlowBlur: cannot use motion vectors with absolute frame references.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -454,7 +445,7 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
 
     // XXX Alternatively, use both clips' delta as offsets in GetFrame.
     if (d.mvfw_data.nDeltaFrame != d.mvbw_data.nDeltaFrame) {
-        vsapi->setError(out, "FlowBlur: mvbw and mvfw must be generated with the same delta.");
+        vsapi->mapSetError(out, "FlowBlur: mvbw and mvfw must be generated with the same delta.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -464,9 +455,9 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
     // Make sure the motion vector clips are correct.
     if (!d.mvbw_data.isBackward || d.mvfw_data.isBackward) {
         if (!d.mvbw_data.isBackward)
-            vsapi->setError(out, "FlowBlur: mvbw must be generated with isb=True.");
+            vsapi->mapSetError(out, "FlowBlur: mvbw must be generated with isb=True.");
         else
-            vsapi->setError(out, "FlowBlur: mvfw must be generated with isb=False.");
+            vsapi->mapSetError(out, "FlowBlur: mvfw must be generated with isb=False.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -475,21 +466,20 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
 
 
     if (d.mvbw_data.nPel == 1)
-        d.finest = vsapi->cloneNodeRef(d.super); // v2.0.9.1
+        d.finest = vsapi->addNodeRef(d.super); // v2.0.9.1
     else {
-        VSPlugin *mvtoolsPlugin = vsapi->getPluginById("com.nodame.mvtools", core);
-        VSPlugin *stdPlugin = vsapi->getPluginById("com.vapoursynth.std", core);
+        VSPlugin *mvtoolsPlugin = vsapi->getPluginByID("com.nodame.mvtools", core);
 
         VSMap *args = vsapi->createMap();
-        vsapi->propSetNode(args, "super", d.super, paReplace);
-        vsapi->propSetInt(args, "opt", d.opt, paReplace);
+        vsapi->mapSetNode(args, "super", d.super, maReplace);
+        vsapi->mapSetInt(args, "opt", d.opt, maReplace);
         VSMap *ret = vsapi->invoke(mvtoolsPlugin, "Finest", args);
-        if (vsapi->getError(ret)) {
+        if (vsapi->mapGetError(ret)) {
 #define ERROR_SIZE 512
             char error_msg[ERROR_SIZE + 1] = { 0 };
-            snprintf(error_msg, ERROR_SIZE, "FlowBlur: %s", vsapi->getError(ret));
+            snprintf(error_msg, ERROR_SIZE, "FlowBlur: %s", vsapi->mapGetError(ret));
 #undef ERROR_SIZE
-            vsapi->setError(out, error_msg);
+            vsapi->mapSetError(out, error_msg);
 
             vsapi->freeNode(d.super);
             vsapi->freeNode(d.mvfw);
@@ -498,39 +488,19 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
             vsapi->freeMap(ret);
             return;
         }
-        d.finest = vsapi->propGetNode(ret, "clip", 0, NULL);
-        vsapi->freeMap(ret);
-
-        vsapi->clearMap(args);
-        vsapi->propSetNode(args, "clip", d.finest, paReplace);
-        vsapi->freeNode(d.finest);
-        ret = vsapi->invoke(stdPlugin, "Cache", args);
+        d.finest = vsapi->mapGetNode(ret, "clip", 0, NULL);
         vsapi->freeMap(args);
-        if (vsapi->getError(ret)) {
-#define ERROR_SIZE 512
-            char error_msg[ERROR_SIZE + 1] = { 0 };
-            snprintf(error_msg, ERROR_SIZE, "FlowBlur: %s", vsapi->getError(ret));
-#undef ERROR_SIZE
-            vsapi->setError(out, error_msg);
-
-            vsapi->freeNode(d.super);
-            vsapi->freeNode(d.mvfw);
-            vsapi->freeNode(d.mvbw);
-            vsapi->freeMap(ret);
-            return;
-        }
-        d.finest = vsapi->propGetNode(ret, "clip", 0, NULL);
         vsapi->freeMap(ret);
     }
 
-    d.node = vsapi->propGetNode(in, "clip", 0, 0);
+    d.node = vsapi->mapGetNode(in, "clip", 0, 0);
     d.vi = vsapi->getVideoInfo(d.node);
 
     const VSVideoInfo *supervi = vsapi->getVideoInfo(d.super);
     int nSuperWidth = supervi->width;
 
     if (d.mvbw_data.nHeight != nHeightS || d.mvbw_data.nWidth != nSuperWidth - d.nSuperHPad * 2 || d.mvbw_data.nPel != nSuperPel) {
-        vsapi->setError(out, "FlowBlur: wrong source or super clip frame size.");
+        vsapi->mapSetError(out, "FlowBlur: wrong source or super clip frame size.");
         vsapi->freeNode(d.finest);
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
@@ -539,8 +509,8 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
         return;
     }
 
-    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 16 || d.vi->format->sampleType != stInteger || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || (d.vi->format->colorFamily != cmYUV && d.vi->format->colorFamily != cmGray)) {
-        vsapi->setError(out, "FlowBlur: input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.");
+    if (!vsh_isConstantVideoFormat(d.vi) || d.vi->format.bitsPerSample > 16 || d.vi->format.sampleType != stInteger || d.vi->format.subSamplingW > 1 || d.vi->format.subSamplingH > 1 || (d.vi->format.colorFamily != cfYUV && d.vi->format.colorFamily != cfGray)) {
+        vsapi->mapSetError(out, "FlowBlur: input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.finest);
         vsapi->freeNode(d.mvfw);
@@ -560,27 +530,36 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
     d.VPitchUV = d.nWidthUV;
 
     simpleInit(&d.upsizer, d.mvbw_data.nWidth, d.mvbw_data.nHeight, d.mvbw_data.nBlkX, d.mvbw_data.nBlkY, d.mvbw_data.nWidth, d.mvbw_data.nHeight, d.mvbw_data.nPel, d.opt);
-    if (d.vi->format->colorFamily != cmGray)
+    if (d.vi->format.colorFamily != cfGray)
         simpleInit(&d.upsizerUV, d.nWidthUV, d.nHeightUV, d.mvbw_data.nBlkX, d.mvbw_data.nBlkY, d.nWidthUV, d.nHeightUV, d.mvbw_data.nPel, d.opt);
 
 
     data = (MVFlowBlurData *)malloc(sizeof(d));
     *data = d;
 
-    vsapi->createFilter(in, out, "FlowBlur", mvflowblurInit, mvflowblurGetFrame, mvflowblurFree, fmParallel, 0, data, core);
+    VSFilterDependency deps[4] = { 
+        {data->node, rpStrictSpatial}, 
+        // {data->super, rpStrictSpatial}, //MVFlowBlur doesn't actually request any frames from the super.
+        {data->finest, rpStrictSpatial}, 
+        {data->mvbw, rpGeneral}, 
+        {data->mvfw, rpGeneral}, 
+    };
+
+    vsapi->createVideoFilter(out, "FlowBlur", data->vi, mvflowblurGetFrame, mvflowblurFree, fmParallel, deps, 4, data, core);
 }
 
 
-void mvflowblurRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
-    registerFunc("FlowBlur",
-                 "clip:clip;"
-                 "super:clip;"
-                 "mvbw:clip;"
-                 "mvfw:clip;"
+void mvflowblurRegister(VSPlugin *plugin, const VSPLUGINAPI *vspapi) {
+    vspapi->registerFunction("FlowBlur",
+                 "clip:vnode;"
+                 "super:vnode;"
+                 "mvbw:vnode;"
+                 "mvfw:vnode;"
                  "blur:float:opt;"
                  "prec:int:opt;"
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
                  "opt:int:opt;",
+                 "clip:vnode;",
                  mvflowblurCreate, 0, plugin);
 }

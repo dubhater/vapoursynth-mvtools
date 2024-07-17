@@ -21,8 +21,8 @@
 #include <limits.h>
 #include <math.h>
 
-#include <VapourSynth.h>
-#include <VSHelper.h>
+#include <VapourSynth4.h>
+#include <VSHelper4.h>
 
 #include "MaskFun.h"
 #include "MVAnalysisData.h"
@@ -30,10 +30,10 @@
 
 
 typedef struct MVMaskData {
-    VSNodeRef *node;
+    VSNode *node;
     VSVideoInfo vi;
 
-    VSNodeRef *vectors;
+    VSNode *vectors;
     float ml;
     float fGamma;
     int kind;
@@ -61,15 +61,6 @@ typedef struct MVMaskData {
 } MVMaskData;
 
 
-static void VS_CC mvmaskInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    (void)in;
-    (void)out;
-    (void)core;
-    MVMaskData *d = (MVMaskData *)*instanceData;
-    vsapi->setVideoInfo(&d->vi, 1, node);
-}
-
-
 static inline uint8_t mvmaskLength(VECTOR v, uint8_t pel, float fMaskNormFactor2, float fHalfGamma) {
     double norme = (double)(v.x * v.x + v.y * v.y) / (pel * pel);
 
@@ -79,17 +70,17 @@ static inline uint8_t mvmaskLength(VECTOR v, uint8_t pel, float fMaskNormFactor2
 }
 
 
-static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+static const VSFrame *VS_CC mvmaskGetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
     (void)frameData;
 
-    MVMaskData *d = (MVMaskData *)*instanceData;
+    MVMaskData *d = (MVMaskData *)instanceData;
 
     if (activationReason == arInitial) {
         vsapi->requestFrameFilter(n, d->vectors, frameCtx);
         vsapi->requestFrameFilter(n, d->node, frameCtx);
     } else if (activationReason == arAllFramesReady) {
-        const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx);
-        VSFrameRef *dst = vsapi->newVideoFrame(d->vi.format, d->vi.width, d->vi.height, src, core);
+        const VSFrame *src = vsapi->getFrameFilter(n, d->node, frameCtx);
+        VSFrame *dst = vsapi->newVideoFrame(&d->vi.format, d->vi.width, d->vi.height, src, core);
 
         const uint8_t *pSrc[3];
         uint8_t *pDst[3];
@@ -105,10 +96,10 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
         }
 
         FakeGroupOfPlanes fgop;
-        const VSFrameRef *mvn = vsapi->getFrameFilter(n, d->vectors, frameCtx);
+        const VSFrame *mvn = vsapi->getFrameFilter(n, d->vectors, frameCtx);
         fgopInit(&fgop, &d->vectors_data);
-        const VSMap *mvprops = vsapi->getFramePropsRO(mvn);
-        fgopUpdate(&fgop, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+        const VSMap *mvprops = vsapi->getFramePropertiesRO(mvn);
+        fgopUpdate(&fgop, (const uint8_t *)vsapi->mapGetData(mvprops, prop_MVTools_vectors, 0, NULL));
         vsapi->freeFrame(mvn);
 
         const int kind = d->kind;
@@ -138,7 +129,7 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
             SimpleResize *upsizer = &d->upsizer;
             SimpleResize *upsizerUV = &d->upsizerUV;
             const int time256 = d->time256;
-            const int bitsPerSample = vsapi->getFrameFormat(src)->bitsPerSample;
+            const int bitsPerSample = vsapi->getVideoFrameFormat(src)->bitsPerSample;
 
             uint8_t *smallMask = (uint8_t *)malloc(nBlkX * nBlkY);
             uint8_t *smallMaskV = (uint8_t *)malloc(nBlkX * nBlkY);
@@ -173,7 +164,7 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
                         for (int w = nWidthB; w < nWidth; w++)
                             *(pDst[0] + h * nDstPitches[0] + w) = *(pDst[0] + h * nDstPitches[0] + nWidthB - 1);
                 if (nHeight > nHeightB)
-                    vs_bitblt(pDst[0] + nHeightB * nDstPitches[0], nDstPitches[0], pDst[0] + (nHeightB - 1) * nDstPitches[0], nDstPitches[0], nWidth, nHeight - nHeightB);
+                    vsh_bitblt(pDst[0] + nHeightB * nDstPitches[0], nDstPitches[0], pDst[0] + (nHeightB - 1) * nDstPitches[0], nDstPitches[0], nWidth, nHeight - nHeightB);
             }
 
             // chroma
@@ -191,8 +182,8 @@ static const VSFrameRef *VS_CC mvmaskGetFrame(int n, int activationReason, void 
                         *(pDst[2] + h * nDstPitches[2] + w) = *(pDst[2] + h * nDstPitches[2] + nWidthBUV - 1);
                     }
             if (nHeightUV > nHeightBUV) {
-                vs_bitblt(pDst[1] + nHeightBUV * nDstPitches[1], nDstPitches[1], pDst[1] + (nHeightBUV - 1) * nDstPitches[1], nDstPitches[1], nWidthUV, nHeightUV - nHeightBUV);
-                vs_bitblt(pDst[2] + nHeightBUV * nDstPitches[2], nDstPitches[2], pDst[2] + (nHeightBUV - 1) * nDstPitches[2], nDstPitches[2], nWidthUV, nHeightUV - nHeightBUV);
+                vsh_bitblt(pDst[1] + nHeightBUV * nDstPitches[1], nDstPitches[1], pDst[1] + (nHeightBUV - 1) * nDstPitches[1], nDstPitches[1], nWidthUV, nHeightUV - nHeightBUV);
+                vsh_bitblt(pDst[2] + nHeightBUV * nDstPitches[2], nDstPitches[2], pDst[2] + (nHeightBUV - 1) * nDstPitches[2], nDstPitches[2], nWidthUV, nHeightUV - nHeightBUV);
             }
 
             free(smallMask);
@@ -239,57 +230,57 @@ static void VS_CC mvmaskCreate(const VSMap *in, VSMap *out, void *userData, VSCo
 
     int err;
 
-    d.ml = (float)vsapi->propGetFloat(in, "ml", 0, &err);
+    d.ml = (float)vsapi->mapGetFloat(in, "ml", 0, &err);
     if (err)
         d.ml = 100.0f;
 
-    d.fGamma = (float)vsapi->propGetFloat(in, "gamma", 0, &err);
+    d.fGamma = (float)vsapi->mapGetFloat(in, "gamma", 0, &err);
     if (err)
         d.fGamma = 1.0f;
 
-    d.kind = int64ToIntS(vsapi->propGetInt(in, "kind", 0, &err));
+    d.kind = vsapi->mapGetIntSaturated(in, "kind", 0, &err);
 
-    double time = vsapi->propGetFloat(in, "time", 0, &err);
+    double time = vsapi->mapGetFloat(in, "time", 0, &err);
     if (err)
         time = 100.0;
 
-    d.nSceneChangeValue = int64ToIntS(vsapi->propGetInt(in, "ysc", 0, &err));
+    d.nSceneChangeValue = vsapi->mapGetIntSaturated(in, "ysc", 0, &err);
 
-    d.thscd1 = vsapi->propGetInt(in, "thscd1", 0, &err);
+    d.thscd1 = vsapi->mapGetInt(in, "thscd1", 0, &err);
     if (err)
         d.thscd1 = MV_DEFAULT_SCD1;
 
-    d.thscd2 = int64ToIntS(vsapi->propGetInt(in, "thscd2", 0, &err));
+    d.thscd2 = vsapi->mapGetIntSaturated(in, "thscd2", 0, &err);
     if (err)
         d.thscd2 = MV_DEFAULT_SCD2;
 
-    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
+    d.opt = !!vsapi->mapGetInt(in, "opt", 0, &err);
     if (err)
         d.opt = 1;
 
 
     if (d.fGamma < 0.0f) {
-        vsapi->setError(out, "Mask: gamma must not be negative.");
+        vsapi->mapSetError(out, "Mask: gamma must not be negative.");
         return;
     }
 
     if (d.kind < 0 || d.kind > 5) {
-        vsapi->setError(out, "Mask: kind must 0, 1, 2, 3, 4, or 5.");
+        vsapi->mapSetError(out, "Mask: kind must 0, 1, 2, 3, 4, or 5.");
         return;
     }
 
     if (time < 0.0 || time > 100.0) {
-        vsapi->setError(out, "Mask: time must be between 0.0 and 100.0 (inclusive).");
+        vsapi->mapSetError(out, "Mask: time must be between 0.0 and 100.0 (inclusive).");
         return;
     }
 
     if (d.nSceneChangeValue < 0 || d.nSceneChangeValue > 255) {
-        vsapi->setError(out, "Mask: ysc must be between 0 and 255 (inclusive).");
+        vsapi->mapSetError(out, "Mask: ysc must be between 0 and 255 (inclusive).");
         return;
     }
 
 
-    d.vectors = vsapi->propGetNode(in, "vectors", 0, NULL);
+    d.vectors = vsapi->mapGetNode(in, "vectors", 0, NULL);
 
 #define ERROR_SIZE 512
     char error[ERROR_SIZE + 1] = { 0 };
@@ -301,7 +292,7 @@ static void VS_CC mvmaskCreate(const VSMap *in, VSMap *out, void *userData, VSCo
 #undef ERROR_SIZE
 
     if (error[0]) {
-        vsapi->setError(out, error);
+        vsapi->mapSetError(out, error);
 
         vsapi->freeNode(d.vectors);
         return;
@@ -322,18 +313,18 @@ static void VS_CC mvmaskCreate(const VSMap *in, VSMap *out, void *userData, VSCo
     d.nWidthBUV = d.nWidthB / d.vectors_data.xRatioUV;
 
 
-    d.node = vsapi->propGetNode(in, "clip", 0, NULL);
+    d.node = vsapi->mapGetNode(in, "clip", 0, NULL);
     d.vi = *vsapi->getVideoInfo(d.node);
 
-    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 8 || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || (d.vi.format->colorFamily != cmYUV && d.vi.format->colorFamily != cmGray)) {
-        vsapi->setError(out, "Mask: input clip must be GRAY8, YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
+    if (!vsh_isConstantVideoFormat(&d.vi) || d.vi.format.bitsPerSample > 8 || d.vi.format.subSamplingW > 1 || d.vi.format.subSamplingH > 1 || (d.vi.format.colorFamily != cfYUV && d.vi.format.colorFamily != cfGray)) {
+        vsapi->mapSetError(out, "Mask: input clip must be GRAY8, YUV420P8, YUV422P8, YUV440P8, or YUV444P8, with constant dimensions.");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.vectors);
         return;
     }
 
-    if (d.vi.format->colorFamily == cmGray)
-        d.vi.format = vsapi->getFormatPreset(pfYUV444P8, core);
+    if (d.vi.format.colorFamily == cfGray)
+        vsapi->getVideoFormatByID(&d.vi.format, pfYUV444P8, core);
 
     simpleInit(&d.upsizer, d.nWidthB, d.nHeightB, d.vectors_data.nBlkX, d.vectors_data.nBlkY, d.vectors_data.nWidth, d.vectors_data.nHeight, d.vectors_data.nPel, d.opt);
     simpleInit(&d.upsizerUV, d.nWidthBUV, d.nHeightBUV, d.vectors_data.nBlkX, d.vectors_data.nBlkY, d.nWidthUV, d.nHeightUV, d.vectors_data.nPel, d.opt);
@@ -344,14 +335,19 @@ static void VS_CC mvmaskCreate(const VSMap *in, VSMap *out, void *userData, VSCo
     data = (MVMaskData *)malloc(sizeof(d));
     *data = d;
 
-    vsapi->createFilter(in, out, "Mask", mvmaskInit, mvmaskGetFrame, mvmaskFree, fmParallel, 0, data, core);
+    VSFilterDependency deps[2] = { 
+        {data->node, rpStrictSpatial}, 
+        {data->vectors, rpStrictSpatial},
+    };
+
+    vsapi->createVideoFilter(out, "Mask", &data->vi, mvmaskGetFrame, mvmaskFree, fmParallel, deps, 2, data, core);
 }
 
 
-void mvmaskRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
-    registerFunc("Mask",
-                 "clip:clip;"
-                 "vectors:clip;"
+void mvmaskRegister(VSPlugin *plugin, const VSPLUGINAPI *vspapi) {
+    vspapi->registerFunction("Mask",
+                 "clip:vnode;"
+                 "vectors:vnode;"
                  "ml:float:opt;"
                  "gamma:float:opt;"
                  "kind:int:opt;"
@@ -359,6 +355,7 @@ void mvmaskRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "ysc:int:opt;"
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
-                 "opt:int:opt;"
-                 , mvmaskCreate, 0, plugin);
+                 "opt:int:opt;",
+                 "clip:vnode;",
+                 mvmaskCreate, 0, plugin);
 }
