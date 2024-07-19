@@ -32,11 +32,7 @@
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-#if defined(MVTOOLS_X86)
-
-#include <emmintrin.h>
-
-#define zeroes _mm_setzero_si128()
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
 
 /* TODO: port these
    extern "C" void  VerticalBicubic_iSSE(uint8_t *pDst, const uint8_t *pSrc, intptr_t nDstPitch,
@@ -49,6 +45,12 @@
    extern "C" void  RB2FilteredHorizontalInplaceLine_SSE(uint8_t *pSrc, intptr_t nWidthMMX);
    */
 
+#if defined(MVTOOLS_ARM)
+#include "sse2neon.h"
+#else
+
+#include <emmintrin.h>
+
 void Average2_avx2(uint8_t *pDst, const uint8_t *pSrc1, const uint8_t *pSrc2, intptr_t nPitch, intptr_t nWidth, intptr_t nHeight);
 void VerticalBilinear_avx2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
                            intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample);
@@ -60,6 +62,12 @@ void VerticalWiener_avx2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
                          intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample);
 void HorizontalWiener_avx2(uint8_t *pDst, const uint8_t *pSrc, intptr_t nPitch,
                            intptr_t nWidth, intptr_t nHeight, intptr_t bitsPerSample) ;
+
+#endif
+
+
+
+#define zeroes _mm_setzero_si128()
 
 static void Average2_sse2(uint8_t *pDst, const uint8_t *pSrc1, const uint8_t *pSrc2, intptr_t nPitch, intptr_t nWidth, intptr_t nHeight) {
     for (int y = 0; y < nHeight; y++) {
@@ -707,7 +715,7 @@ static void RB2BilinearFilteredVertical(uint8_t *pDst8, const uint8_t *pSrc8, in
         int xstart = 0;
 
         if (sizeof(PixelType) == 1 && opt && nWidthMMX >= 8) {
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
             RB2BilinearFilteredVerticalLine_sse2((uint8_t *)pDst, (const uint8_t *)pSrc, nSrcPitch, nWidthMMX);
             xstart = nWidthMMX;
 #endif
@@ -745,7 +753,7 @@ static void RB2BilinearFilteredHorizontalInplace(uint8_t *pSrc8, int nSrcPitch, 
         int xstart = 1;
 
         if (sizeof(PixelType) == 1 && opt) {
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
             RB2BilinearFilteredHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX); /* very first is skipped */
             xstart = nWidthMMX;
 #endif
@@ -797,7 +805,7 @@ static void RB2QuadraticVertical(uint8_t *pDst8, const uint8_t *pSrc8, int nDstP
         int xstart = 0;
 
         if (sizeof(PixelType) == 1 && opt && nWidthMMX >= 8) {
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
             RB2QuadraticVerticalLine_sse2((uint8_t *)pDst, (const uint8_t *)pSrc, nSrcPitch, nWidthMMX);
             xstart = nWidthMMX;
 #endif
@@ -848,7 +856,7 @@ static void RB2QuadraticHorizontalInplace(uint8_t *pSrc8, int nSrcPitch, int nWi
         int xstart = 1;
 
         if (sizeof(PixelType) == 1 && opt) {
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
             RB2QuadraticHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX);
             xstart = nWidthMMX;
 #endif
@@ -913,7 +921,7 @@ static void RB2CubicVertical(uint8_t *pDst8, const uint8_t *pSrc8, int nDstPitch
         int xstart = 0;
 
         if (sizeof(PixelType) == 1 && opt && nWidthMMX >= 8) {
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
             RB2CubicVerticalLine_sse2((uint8_t *)pDst, (const uint8_t *)pSrc, nSrcPitch, nWidthMMX);
             xstart = nWidthMMX;
 #endif
@@ -964,7 +972,7 @@ static void RB2CubicHorizontalInplace(uint8_t *pSrc8, int nSrcPitch, int nWidth,
         int xstart = 1;
 
         if (sizeof(PixelType) == 1 && opt) {
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
             RB2CubicHorizontalInplaceLine_sse2((uint8_t *)pSrc, nWidthMMX);
             xstart = nWidthMMX;
 #endif
@@ -1395,16 +1403,17 @@ void mvpRefine(MVPlane *mvp, int sharp) {
             refine[2] = DiagonalBilinear<uint8_t>;
 
             if (mvp->opt) {
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
                 refine[0] = HorizontalBilinear_sse2;
                 refine[1] = VerticalBilinear_sse2;
                 refine[2] = DiagonalBilinear_sse2;
-
+#if defined(MVTOOLS_X86)
                 if (g_cpuinfo & X264_CPU_AVX2) {
                     refine[0] = HorizontalBilinear_avx2;
                     refine[1] = VerticalBilinear_avx2;
                     refine[2] = DiagonalBilinear_avx2;
                 }
+#endif
 #endif
             }
         } else {
@@ -1434,14 +1443,15 @@ void mvpRefine(MVPlane *mvp, int sharp) {
             refine[1] = VerticalWiener<uint8_t>;
 
             if (mvp->opt) {
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
                 refine[0] = refine[2] = HorizontalWiener_sse2;
                 refine[1] = VerticalWiener_sse2;
-
+#if defined(MVTOOLS_X86)
                 if (g_cpuinfo & X264_CPU_AVX2) {
                     refine[0] = refine[2] = HorizontalWiener_avx2;
                     refine[1] = VerticalWiener_avx2;
                 }
+#endif
 #endif
             }
         } else {
@@ -1485,11 +1495,12 @@ void mvpRefine(MVPlane *mvp, int sharp) {
             avg = Average2<uint8_t>;
 
             if (mvp->opt) {
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
                 avg = Average2_sse2;
-
+#if defined(MVTOOLS_X86)
                 if (g_cpuinfo & X264_CPU_AVX2)
                     avg = Average2_avx2;
+#endif
 #endif
             }
         } else {

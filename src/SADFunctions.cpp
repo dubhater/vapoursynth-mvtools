@@ -18,6 +18,7 @@ enum InstructionSets {
     AVX,
     XOP,
     AVX2,
+    NEON,
 };
 
 
@@ -28,10 +29,13 @@ enum InstructionSets {
 #endif
 
 
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
 
+#if defined(MVTOOLS_ARM)
+#include "sse2neon.h"
+#else
 #include <emmintrin.h>
-
+#endif
 
 #define zeroes _mm_setzero_si128()
 
@@ -252,7 +256,10 @@ struct SADWrapperU16<4, height> {
 
 
 #undef zeroes
+#endif
 
+
+#if defined(MVTOOLS_X86)
 
 #define MK_CFUNC(functionname) extern "C" unsigned int functionname(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch)
 
@@ -319,7 +326,29 @@ MK_CFUNC(mvtools_pixel_satd_16x16_avx2);
 
 #undef MK_CFUNC
 
-#endif // MVTOOLS_X86
+#elif defined(MVTOOLS_ARM)
+
+#define MK_CFUNC(functionname) extern "C" unsigned int functionname(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch)
+
+// also stolen from x264
+
+MK_CFUNC(mvtools_pixel_sad_4x4_neon);
+MK_CFUNC(mvtools_pixel_sad_4x8_neon);
+MK_CFUNC(mvtools_pixel_sad_8x4_neon);
+MK_CFUNC(mvtools_pixel_sad_8x8_neon);
+MK_CFUNC(mvtools_pixel_sad_8x16_neon);
+MK_CFUNC(mvtools_pixel_sad_16x8_neon);
+MK_CFUNC(mvtools_pixel_sad_16x16_neon);
+
+MK_CFUNC(mvtools_pixel_satd_4x4_neon);
+MK_CFUNC(mvtools_pixel_satd_4x8_neon);
+MK_CFUNC(mvtools_pixel_satd_8x4_neon);
+MK_CFUNC(mvtools_pixel_satd_8x8_neon);
+MK_CFUNC(mvtools_pixel_satd_8x16_neon);
+MK_CFUNC(mvtools_pixel_satd_16x8_neon);
+MK_CFUNC(mvtools_pixel_satd_16x16_neon);
+
+#endif // MVTOOLS_X86 / ARM
 
 
 template <unsigned width, unsigned height, typename PixelType>
@@ -363,6 +392,18 @@ unsigned int sad_c(const uint8_t *pSrc8, intptr_t nSrcPitch, const uint8_t *pRef
 
 #define SAD_U16_SSE2(width, height) \
     { KEY(width, height, 16, SSE2), SADWrapperU16<width, height>::sad_u16_sse2 },
+
+#elif defined(MVTOOLS_ARM)
+
+#define SAD_X264_U8_NEON(width, height) \
+    { KEY(width, height, 8, NEON), mvtools_pixel_sad_##width##x##height##_neon },
+
+#define SAD_U8_SSE2(width, height) \
+    { KEY(width, height, 8, SSE2), SADWrapperU8<width, height>::sad_u8_sse2 },
+
+#define SAD_U16_SSE2(width, height) \
+    { KEY(width, height, 16, SSE2), SADWrapperU16<width, height>::sad_u16_sse2 },
+
 #else
 #define SAD_X264_U8_MMX(width, height)
 #define SAD_X264_U8_MMX_CACHE64(width, height)
@@ -405,6 +446,7 @@ static const std::unordered_map<uint32_t, SADFunction> sad_functions = {
     SAD(128, 32)
     SAD(128, 64)
     SAD(128, 128)
+#if defined(MVTOOLS_X86)
     SAD_X264_U8_MMX(4, 4)
     SAD_X264_U8_MMX(4, 8)
     SAD_X264_U8_SSE2(16, 8)
@@ -413,6 +455,15 @@ static const std::unordered_map<uint32_t, SADFunction> sad_functions = {
     SAD_X264_U8_SSE3(16, 16)
     SAD_X264_U8_SSSE3_CACHE64(16, 8)
     SAD_X264_U8_SSSE3_CACHE64(16, 16)
+#elif defined(MVTOOLS_ARM)
+    SAD_X264_U8_NEON(4, 4)
+    SAD_X264_U8_NEON(4, 8)
+    SAD_X264_U8_NEON(8, 4)
+    SAD_X264_U8_NEON(8, 8)
+    SAD_X264_U8_NEON(8, 16)
+    SAD_X264_U8_NEON(16, 8)
+    SAD_X264_U8_NEON(16, 16)
+#endif
     SAD_U8_SSE2(4, 2)
     SAD_U8_SSE2(8, 1)
     SAD_U8_SSE2(8, 2)
@@ -465,8 +516,9 @@ static const std::unordered_map<uint32_t, SADFunction> sad_functions = {
 SADFunction selectSADFunction(unsigned width, unsigned height, unsigned bits, int opt, unsigned cpu) {
     SADFunction sad = sad_functions.at(KEY(width, height, bits, Scalar));
 
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
     if (opt) {
+#if defined(MVTOOLS_X86)
         try {
             sad = sad_functions.at(KEY(width, height, bits, MMX));
         } catch (std::out_of_range &) { }
@@ -498,6 +550,16 @@ SADFunction selectSADFunction(unsigned width, unsigned height, unsigned bits, in
             if (tmp)
                 sad = tmp;
         }
+#elif defined(MVTOOLS_ARM)
+        try {
+            sad = sad_functions.at(KEY(width, height, bits, SSE2));
+        } catch (std::out_of_range &) { }
+
+        try {
+            sad = sad_functions.at(KEY(width, height, bits, NEON));
+        } catch (std::out_of_range &) { }
+
+#endif
     }
 #endif
 
@@ -509,6 +571,7 @@ SADFunction selectSADFunction(unsigned width, unsigned height, unsigned bits, in
 #undef SAD_X264_U8_SSE2
 #undef SAD_X264_U8_SSE3
 #undef SAD_X264_U8_SSSE3_CACHE64
+#undef SAD_X264_U8_NEON
 #undef SAD_U8_SSE2
 #undef SAD_U16_SSE2
 #undef SAD
@@ -646,7 +709,7 @@ static unsigned int Satd_C(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_
     }
 }
 
-
+#if defined(MVTOOLS_X86)
 template <unsigned nBlkWidth, unsigned nBlkHeight, InstructionSets opt>
 static unsigned int Satd_SIMD(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
     const unsigned partition_width = 16;
@@ -676,7 +739,26 @@ static unsigned int Satd_SIMD(const uint8_t *pSrc, intptr_t nSrcPitch, const uin
 
     return sum;
 }
+#elif defined(MVTOOLS_ARM)
+template <unsigned nBlkWidth, unsigned nBlkHeight, InstructionSets opt>
+static unsigned int Satd_SIMD(const uint8_t *pSrc, intptr_t nSrcPitch, const uint8_t *pRef, intptr_t nRefPitch) {
+    const unsigned partition_width = 16;
+    const unsigned partition_height = 16;
 
+    unsigned sum = 0;
+
+    for (unsigned y = 0; y < nBlkHeight; y += partition_height) {
+        for (unsigned x = 0; x < nBlkWidth; x += partition_width) {
+			sum += mvtools_pixel_satd_16x16_neon(pSrc + x, nSrcPitch, pRef + x, nRefPitch);
+        }
+
+        pSrc += nSrcPitch * partition_height;
+        pRef += nRefPitch * partition_height;
+    }
+
+    return sum;
+}
+#endif
 
 #if defined(MVTOOLS_X86)
 #define SATD_X264_U8_MMX(width, height) \
@@ -700,6 +782,10 @@ static unsigned int Satd_SIMD(const uint8_t *pSrc, intptr_t nSrcPitch, const uin
 #define SATD_X264_U8_AVX2(width, height) \
     { KEY(width, height, 8, AVX2), mvtools_pixel_satd_##width##x##height##_avx2 },
 
+#elif defined(MVTOOLS_ARM)
+#define SATD_X264_U8_NEON(width, height) \
+    { KEY(width, height, 8, NEON), mvtools_pixel_satd_##width##x##height##_neon },
+
 #else
 #define SATD_X264_U8_MMX(width, height)
 #define SATD_X264_U8_SSE2(width, height)
@@ -708,12 +794,15 @@ static unsigned int Satd_SIMD(const uint8_t *pSrc, intptr_t nSrcPitch, const uin
 #define SATD_X264_U8_AVX(width, height)
 #define SATD_X264_U8_XOP(width, height)
 #define SATD_X264_U8_AVX2(width, height)
+#define SATD_X264_U8_NEON(width, height)
 #endif
 
 #define SATD(width, height) \
     { KEY(width, height, 8, Scalar), Satd_C<width, height, uint8_t> }, \
     { KEY(width, height, 16, Scalar), Satd_C<width, height, uint16_t> },
 
+
+#if defined(MVTOOLS_X86)
 #define SATD_X264_U8(width, height) \
     SATD_X264_U8_SSSE3(width, height) \
     SATD_X264_U8_SSE4(width, height) \
@@ -727,6 +816,13 @@ static unsigned int Satd_SIMD(const uint8_t *pSrc, intptr_t nSrcPitch, const uin
     { KEY(width, height, 8, AVX), Satd_SIMD<width, height, AVX> }, \
     { KEY(width, height, 8, XOP), Satd_SIMD<width, height, XOP> }, \
     { KEY(width, height, 8, AVX2), Satd_SIMD<width, height, AVX2> },
+
+#elif defined(MVTOOLS_ARM)
+#define SATD_X264_U8(width, height) \
+    SATD_X264_U8_NEON(width, height)
+#define SATD_U8_SIMD(width, height) \
+    { KEY(width, height, 8, NEON), Satd_SIMD<width, height, NEON> },
+#endif
 
 static const std::unordered_map<uint32_t, SADFunction> satd_functions = {
     SATD(4, 4)
@@ -745,6 +841,7 @@ static const std::unordered_map<uint32_t, SADFunction> satd_functions = {
     SATD_X264_U8(8, 8)
     SATD_X264_U8(16, 8)
     SATD_X264_U8(16, 16)
+#if defined(MVTOOLS_X86)
     SATD_X264_U8_MMX(4, 4)
     SATD_X264_U8_SSE2(8, 4)
     SATD_X264_U8_SSE2(8, 8)
@@ -753,19 +850,23 @@ static const std::unordered_map<uint32_t, SADFunction> satd_functions = {
     SATD_X264_U8_AVX2(8, 8)
     SATD_X264_U8_AVX2(16, 8)
     SATD_X264_U8_AVX2(16, 16)
+#endif
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
     SATD_U8_SIMD(32, 16)
     SATD_U8_SIMD(32, 32)
     SATD_U8_SIMD(64, 32)
     SATD_U8_SIMD(64, 64)
     SATD_U8_SIMD(128, 64)
     SATD_U8_SIMD(128, 128)
+#endif
 };
 
 SADFunction selectSATDFunction(unsigned width, unsigned height, unsigned bits, int opt, unsigned cpu) {
     SADFunction satd = satd_functions.at(KEY(width, height, bits, Scalar));
 
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
     if (opt) {
+#if defined(MVTOOLS_X86)
         try {
             satd = satd_functions.at(KEY(width, height, bits, MMX));
         } catch (std::out_of_range &) { }
@@ -803,6 +904,15 @@ SADFunction selectSATDFunction(unsigned width, unsigned height, unsigned bits, i
                 satd = satd_functions.at(KEY(width, height, bits, AVX2));
             } catch (std::out_of_range &) { }
         }
+#elif defined(MVTOOLS_ARM)
+        try {
+            satd = satd_functions.at(KEY(width, height, bits, SSE2));
+        } catch (std::out_of_range &) { }
+
+        try {
+            satd = satd_functions.at(KEY(width, height, bits, NEON));
+        } catch (std::out_of_range &) { }
+#endif
     }
 #endif
 
@@ -816,6 +926,7 @@ SADFunction selectSATDFunction(unsigned width, unsigned height, unsigned bits, i
 #undef SATD_X264_U8_AVX
 #undef SATD_X264_U8_XOP
 #undef SATD_X264_U8_AVX2
+#undef SATD_X264_U8_NEON
 #undef SATD
 
 #undef KEY

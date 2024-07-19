@@ -54,9 +54,13 @@ static void Float2Pixels_C(const DCTFFTW *dct, uint8_t *dstp8, int dst_pitch, fl
 }
 
 
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
 
+#if defined(MVTOOLS_ARM)
+#include "sse2neon.h"
+#else
 #include <emmintrin.h>
+#endif
 
 template <typename PixelType>
 static void Float2Pixels_SSE2(const DCTFFTW *dct, uint8_t *dstp8, int dst_pitch, float *realdata) {
@@ -153,7 +157,7 @@ void dctInit(DCTFFTW *dct, int sizex, int sizey, int bitsPerSample, int opt) {
         dct->Float2Pixels = Float2Pixels_C<uint16_t>;
 
     if (opt) {
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
         if (bitsPerSample == 8)
             dct->Float2Pixels = Float2Pixels_SSE2<uint8_t>;
         else
