@@ -57,6 +57,9 @@ enum {
 #ifdef MVTOOLS_X86
     MVOPT_SSE2 = 1,
     MVOPT_AVX2 = 2,
+#elif MVTOOLS_ARM
+    MVOPT_NEON = 1,
+    MVOPT_SSE2 = 1, // SSE2 is converted to Neon
 #endif // MVTOOLS_X86
 };
 

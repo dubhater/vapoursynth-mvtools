@@ -53,9 +53,15 @@ static void Degrain_C(uint8_t * __restrict pDst8, int nDstPitch, const uint8_t *
 }
 
 
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
 
+#if defined(MVTOOLS_ARM)
+#include "sse2neon.h"
+#else
 #include <emmintrin.h>
+
+DenoiseFunction selectDegrainFunctionAVX2(unsigned radius, unsigned width, unsigned height, unsigned bits);
+#endif
 
 // XXX Moves the pointers passed in pRefs. This is okay because they are not
 // used after this function is done with them.
@@ -132,8 +138,6 @@ static void Degrain_sse2(uint8_t *pDst, int nDstPitch, const uint8_t *pSrc, int 
         }
     }
 }
-
-DenoiseFunction selectDegrainFunctionAVX2(unsigned radius, unsigned width, unsigned height, unsigned bits);
 
 static void LimitChanges_sse2(uint8_t *pDst, intptr_t nDstPitch, const uint8_t *pSrc, intptr_t nSrcPitch, intptr_t nWidth, intptr_t nHeight, intptr_t nLimit) {
     __m128i bytes_limit = _mm_set1_epi8(nLimit);

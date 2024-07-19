@@ -25,9 +25,13 @@ unsigned int luma_c(const uint8_t *pSrc8, intptr_t nSrcPitch) {
 }
 
 
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
 
+#if defined(MVTOOLS_ARM)
+#include "sse2neon.h"
+#else
 #include <emmintrin.h>
+#endif
 
 
 #define zeroes _mm_setzero_si128()
@@ -69,7 +73,7 @@ unsigned int luma_sse2(const uint8_t *pSrc, intptr_t nSrcPitch) {
 // opt can fit in four bits, if the width and height need more than eight bits each.
 #define KEY(width, height, bits, opt) (unsigned)(width) << 24 | (height) << 16 | (bits) << 8 | (opt)
 
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
 #define LUMA_SSE2(width, height) \
     { KEY(width, height, 8, SSE2), luma_sse2<width, height> },
 #else
@@ -110,7 +114,7 @@ static const std::unordered_map<uint32_t, LUMAFunction> luma_functions = {
 LUMAFunction selectLumaFunction(unsigned width, unsigned height, unsigned bits, int opt) {
     LUMAFunction luma = luma_functions.at(KEY(width, height, bits, Scalar));
 
-#if defined(MVTOOLS_X86)
+#if defined(MVTOOLS_X86) || defined(MVTOOLS_ARM)
     if (opt) {
         try {
             luma = luma_functions.at(KEY(width, height, bits, SSE2));

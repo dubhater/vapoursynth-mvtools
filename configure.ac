@@ -10,6 +10,7 @@ LT_INIT([disable-static win32-dll])
 
 AC_PROG_CC
 AC_PROG_CXX
+AM_PROG_AS
 
 AC_CANONICAL_HOST
 
@@ -54,7 +55,7 @@ AS_CASE(
   [i?86],         [BITS="32" NASMFLAGS="$NASMFLAGS -DARCH_X86_64=0" X86="true"],
   [x86_64|amd64], [BITS="64" NASMFLAGS="$NASMFLAGS -DARCH_X86_64=1 -DPIC" X86="true"],
   [powerpc*],     [PPC="true"],
-  [arm*],         [ARM="true"],
+  [arm*|aarch*],  [ARM="true"],
   [AC_MSG_ERROR([Unknown host CPU: $host_cpu.])]
 )
 
@@ -63,6 +64,7 @@ AS_CASE(
    [darwin*],
    [
       NASMFLAGS="$NASMFLAGS -f macho$BITS -DPREFIX"
+      CPPFLAGS="$CPPFLAGS -DPREFIX"
    ],
    [*linux*|gnu*|dragonfly*|*bsd*],
    [
