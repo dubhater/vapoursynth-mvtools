@@ -72,9 +72,13 @@ debug_build = get_option('buildtype').startswith('debug')
 host_cpu_family = host_machine.cpu_family()
 
 if host_cpu_family == 'x86'
-  host_x86_bits = 32
+  host_bits = 32
 elif host_cpu_family == 'x86_64'
-  host_x86_bits = 64
+  host_bits = 64
+elif host_cpu_family == 'arm'
+  host_bits = 32
+elif host_cpu_family == 'aarch64'
+  host_bits = 64
 endif
 
 
@@ -87,19 +91,20 @@ if host_system == 'windows' or host_system == 'cygwin'
     nasm_flags += '-DPREFIX'
   endif
 
-  nasm_flags += ['-f', 'win@0@'.format(host_x86_bits)]
+  nasm_flags += ['-f', 'win@0@'.format(host_bits)]
 elif host_system == 'linux' or host_system == 'bsd' # The BSDs are close enough, right?
   if debug_build
     nasm_flags += '-gdwarf'
   endif
 
-  nasm_flags += ['-f', 'elf@0@'.format(host_x86_bits)]
+  nasm_flags += ['-f', 'elf@0@'.format(host_bits)]
 elif host_system == 'darwin'
   if debug_build
     nasm_flags += '-gdwarf'
   endif
 
-  nasm_flags += ['-DPREFIX', '-f', 'macho@0@'.format(host_x86_bits)]
+  nasm_flags += ['-DPREFIX', '-f', 'macho@0@'.format(host_bits)]
+  cflags += ['-DPREFIX']
 else
   error('Unknown host system "@0@".'.format(host_system))
 endif
@@ -158,6 +163,18 @@ if host_cpu_family.startswith('x86')
                                 dependencies: vapoursynth_dep,
                                 cpp_args: [cflags, '-mavx2', '-mtune=haswell'],
                                 install: false)
+endif
+
+if host_cpu_family.startswith('arm') or host_cpu_family.startswith('aarch64')
+  cflags += ['-DMVTOOLS_ARM=1']
+
+  if host_cpu_family.startswith('aarch64')
+    asm_sources = [
+      'src/asm/aarch64-pixel-a.S',
+    ]
+
+    sources += asm_sources
+  endif 
 endif
 
 
