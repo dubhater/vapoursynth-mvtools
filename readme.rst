@@ -143,9 +143,8 @@ FFTW3 configured for 32 bit floats is required ("fftw3f").
 
 ::
 
-   mkdir build; cd build
-   meson ../
-   ninja
+   meson setup build
+   ninja -C build
 
 Or
 
