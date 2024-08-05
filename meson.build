@@ -1,5 +1,5 @@
 project('MVTools', 'c', 'cpp',
-        version: '23',
+        version: '24',
         default_options: ['c_std=c99', 'cpp_std=c++11', 'buildtype=release', 'b_lto=true'],
         meson_version: '>=0.46')
 
