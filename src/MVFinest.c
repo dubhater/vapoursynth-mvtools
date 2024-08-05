@@ -18,14 +18,14 @@
 // http://www.gnu.org/copyleft/gpl.html .
 
 #include <limits.h>
-#include <VapourSynth.h>
-#include <VSHelper.h>
+#include <VapourSynth4.h>
+#include <VSHelper4.h>
 
 #include "MaskFun.h"
 
 
 typedef struct MVFinestData {
-    VSNodeRef *super;
+    VSNode *super;
     VSVideoInfo vi;
 
     int opt;
@@ -43,43 +43,34 @@ typedef struct MVFinestData {
 } MVFinestData;
 
 
-static void VS_CC mvfinestInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    (void)in;
-    (void)out;
-    (void)core;
-    MVFinestData *d = (MVFinestData *)*instanceData;
-    vsapi->setVideoInfo(&d->vi, 1, node);
-}
-
-
-static const VSFrameRef *VS_CC mvfinestGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+static const VSFrame *VS_CC mvfinestGetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
     (void)frameData;
 
-    MVFinestData *d = (MVFinestData *)*instanceData;
+    MVFinestData *d = (MVFinestData *)instanceData;
 
     if (activationReason == arInitial) {
         vsapi->requestFrameFilter(n, d->super, frameCtx);
     } else if (activationReason == arAllFramesReady) {
-        const VSFrameRef *ref = vsapi->getFrameFilter(n, d->super, frameCtx);
-        VSFrameRef *dst = vsapi->newVideoFrame(d->vi.format, d->vi.width, d->vi.height, ref, core);
+        const VSFrame *ref = vsapi->getFrameFilter(n, d->super, frameCtx);
+        VSFrame *dst = vsapi->newVideoFrame(&d->vi.format, d->vi.width, d->vi.height, ref, core);
 
         uint8_t *pDst[3];
         const uint8_t *pRef[3];
         int nDstPitches[3], nRefPitches[3];
 
-        for (int i = 0; i < d->vi.format->numPlanes; i++) {
+        for (int i = 0; i < d->vi.format.numPlanes; i++) {
             pDst[i] = vsapi->getWritePtr(dst, i);
             pRef[i] = vsapi->getReadPtr(ref, i);
             nDstPitches[i] = vsapi->getStride(dst, i);
             nRefPitches[i] = vsapi->getStride(ref, i);
         }
 
-        int bitsPerSample = d->vi.format->bitsPerSample;
-        int bytesPerSample = d->vi.format->bytesPerSample;
+        int bitsPerSample = d->vi.format.bitsPerSample;
+        int bytesPerSample = d->vi.format.bytesPerSample;
 
         if (d->nPel == 1) { // simply copy top lines
-            for (int i = 0; i < d->vi.format->numPlanes; i++)
-                vs_bitblt(pDst[i], nDstPitches[i], pRef[i], nRefPitches[i], d->vi.width * bytesPerSample, d->vi.height);
+            for (int i = 0; i < d->vi.format.numPlanes; i++)
+                vsh_bitblt(pDst[i], nDstPitches[i], pRef[i], nRefPitches[i], d->vi.width * bytesPerSample, d->vi.height);
         } else {
             MVGroupOfFrames pRefGOF = { 0 };
             mvgofInit(&pRefGOF, d->nSuperLevels, d->nWidth, d->nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->opt, d->xRatioUV, d->yRatioUV, bitsPerSample);
@@ -154,16 +145,16 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
 
     int err;
 
-    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
+    d.opt = !!vsapi->mapGetInt(in, "opt", 0, &err);
     if (err)
         d.opt = 1;
 
 
-    d.super = vsapi->propGetNode(in, "super", 0, 0);
+    d.super = vsapi->mapGetNode(in, "super", 0, 0);
     d.vi = *vsapi->getVideoInfo(d.super);
 
-    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 16 || d.vi.format->sampleType != stInteger || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || (d.vi.format->colorFamily != cmYUV && d.vi.format->colorFamily != cmGray)) {
-        vsapi->setError(out, "Finest: input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.");
+    if (!vsh_isConstantVideoFormat(&d.vi) || d.vi.format.bitsPerSample > 16 || d.vi.format.sampleType != stInteger || d.vi.format.subSamplingW > 1 || d.vi.format.subSamplingH > 1 || (d.vi.format.colorFamily != cfYUV && d.vi.format.colorFamily != cfGray)) {
+        vsapi->mapSetError(out, "Finest: input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.");
         vsapi->freeNode(d.super);
         return;
     }
@@ -171,26 +162,26 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
 #define ERROR_SIZE 1024
     char errorMsg[ERROR_SIZE] = "Finest: failed to retrieve first frame from super clip. Error message: ";
     size_t errorLen = strlen(errorMsg);
-    const VSFrameRef *evil = vsapi->getFrame(0, d.super, errorMsg + errorLen, ERROR_SIZE - errorLen);
+    const VSFrame *evil = vsapi->getFrame(0, d.super, errorMsg + errorLen, ERROR_SIZE - errorLen);
 #undef ERROR_SIZE
     if (!evil) {
-        vsapi->setError(out, errorMsg);
+        vsapi->mapSetError(out, errorMsg);
         vsapi->freeNode(d.super);
         return;
     }
-    const VSMap *props = vsapi->getFramePropsRO(evil);
+    const VSMap *props = vsapi->getFramePropertiesRO(evil);
     int evil_err[6];
-    d.nHeight = int64ToIntS(vsapi->propGetInt(props, "Super_height", 0, &evil_err[0]));
-    d.nSuperHPad = int64ToIntS(vsapi->propGetInt(props, "Super_hpad", 0, &evil_err[1]));
-    d.nSuperVPad = int64ToIntS(vsapi->propGetInt(props, "Super_vpad", 0, &evil_err[2]));
-    d.nSuperPel = int64ToIntS(vsapi->propGetInt(props, "Super_pel", 0, &evil_err[3]));
-    d.nSuperModeYUV = int64ToIntS(vsapi->propGetInt(props, "Super_modeyuv", 0, &evil_err[4]));
-    d.nSuperLevels = int64ToIntS(vsapi->propGetInt(props, "Super_levels", 0, &evil_err[5]));
+    d.nHeight = vsapi->mapGetIntSaturated(props, "Super_height", 0, &evil_err[0]);
+    d.nSuperHPad = vsapi->mapGetIntSaturated(props, "Super_hpad", 0, &evil_err[1]);
+    d.nSuperVPad = vsapi->mapGetIntSaturated(props, "Super_vpad", 0, &evil_err[2]);
+    d.nSuperPel = vsapi->mapGetIntSaturated(props, "Super_pel", 0, &evil_err[3]);
+    d.nSuperModeYUV = vsapi->mapGetIntSaturated(props, "Super_modeyuv", 0, &evil_err[4]);
+    d.nSuperLevels = vsapi->mapGetIntSaturated(props, "Super_levels", 0, &evil_err[5]);
     vsapi->freeFrame(evil);
 
     for (int i = 0; i < 6; i++)
         if (evil_err[i]) {
-            vsapi->setError(out, "Finest: required properties not found in first frame of super clip. Maybe clip didn't come from mv.Super? Was the first frame trimmed away?");
+            vsapi->mapSetError(out, "Finest: required properties not found in first frame of super clip. Maybe clip didn't come from mv.Super? Was the first frame trimmed away?");
             vsapi->freeNode(d.super);
             return;
         }
@@ -199,8 +190,8 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
     int nSuperWidth = d.vi.width;
     d.nWidth = nSuperWidth - 2 * d.nSuperHPad;
 
-    d.xRatioUV = 1 << d.vi.format->subSamplingW;
-    d.yRatioUV = 1 << d.vi.format->subSamplingH;
+    d.xRatioUV = 1 << d.vi.format.subSamplingW;
+    d.yRatioUV = 1 << d.vi.format.subSamplingH;
 
     d.vi.width = (d.nWidth + 2 * d.nSuperHPad) * d.nSuperPel;
     d.vi.height = (d.nHeight + 2 * d.nSuperVPad) * d.nSuperPel;
@@ -209,13 +200,18 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
     data = (MVFinestData *)malloc(sizeof(d));
     *data = d;
 
-    vsapi->createFilter(in, out, "Finest", mvfinestInit, mvfinestGetFrame, mvfinestFree, fmParallel, 0, data, core);
+    VSFilterDependency deps[1] = { 
+        {data->super, rpStrictSpatial}, 
+    };
+
+    vsapi->createVideoFilter(out, "Finest", &data->vi, mvfinestGetFrame, mvfinestFree, fmParallel, deps, 1, data, core);
 }
 
 
-void mvfinestRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
-    registerFunc("Finest",
-                 "super:clip;"
+void mvfinestRegister(VSPlugin *plugin, const VSPLUGINAPI *vspapi) {
+    vspapi->registerFunction("Finest",
+                 "super:vnode;"
                  "opt:int:opt;",
+                 "clip:vnode;",
                  mvfinestCreate, 0, plugin);
 }

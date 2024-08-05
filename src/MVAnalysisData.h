@@ -30,7 +30,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdio.h>
 
-#include <VapourSynth.h>
+#include <VapourSynth4.h>
 
 
 static const char prop_MVTools_MVAnalysisData[] = "MVTools_MVAnalysisData";
@@ -136,7 +136,7 @@ typedef struct MVAnalysisData {
 
 void scaleThSCD(int64_t *thscd1, int *thscd2, const MVAnalysisData *ad, const char *filter_name, char *error, size_t error_size);
 
-void adataFromVectorClip(struct MVAnalysisData *ad, VSNodeRef *clip, const char *filter_name, const char *vector_name, const VSAPI *vsapi, char *error, size_t error_size);
+void adataFromVectorClip(struct MVAnalysisData *ad, VSNode *clip, const char *filter_name, const char *vector_name, const VSAPI *vsapi, char *error, size_t error_size);
 
 void adataCheckSimilarity(const MVAnalysisData *ad1, const MVAnalysisData *ad2, const char *filter_name1, const char *filter_name2, const char *vector_name, char *error, size_t error_size);
 

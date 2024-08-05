@@ -19,8 +19,8 @@
 // http://www.gnu.org/copyleft/gpl.html .
 
 #include <limits.h>
-#include <VapourSynth.h>
-#include <VSHelper.h>
+#include <VapourSynth4.h>
+#include <VSHelper4.h>
 
 #include "CopyCode.h"
 #include "Fakery.h"
@@ -30,12 +30,12 @@
 
 
 typedef struct MVCompensateData {
-    VSNodeRef *node;
+    VSNode *node;
     const VSVideoInfo *vi;
     const VSVideoInfo *supervi;
 
-    VSNodeRef *super;
-    VSNodeRef *vectors;
+    VSNode *super;
+    VSNode *vectors;
 
     int scBehavior;
     int64_t thSAD;
@@ -67,19 +67,11 @@ typedef struct MVCompensateData {
 } MVCompensateData;
 
 
-static void VS_CC mvcompensateInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    (void)in;
-    (void)out;
-    (void)core;
-    MVCompensateData *d = (MVCompensateData *)*instanceData;
-    vsapi->setVideoInfo(d->vi, 1, node);
-}
 
-
-static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+static const VSFrame *VS_CC mvcompensateGetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
     (void)frameData;
 
-    MVCompensateData *d = (MVCompensateData *)*instanceData;
+    MVCompensateData *d = (MVCompensateData *)instanceData;
 
     if (activationReason == arInitial) {
         // XXX off could be calculated during initialisation
@@ -102,8 +94,8 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
         if (nref >= n && nref < d->vi->numFrames)
             vsapi->requestFrameFilter(nref, d->super, frameCtx);
     } else if (activationReason == arAllFramesReady) {
-        const VSFrameRef *src = vsapi->getFrameFilter(n, d->super, frameCtx);
-        VSFrameRef *dst = vsapi->newVideoFrame(d->vi->format, d->vi->width, d->vi->height, src, core);
+        const VSFrame *src = vsapi->getFrameFilter(n, d->super, frameCtx);
+        VSFrame *dst = vsapi->newVideoFrame(&d->vi->format, d->vi->width, d->vi->height, src, core);
 
 
         uint8_t *pDst[3] = { NULL };
@@ -114,11 +106,11 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
         const uint8_t *pSrc[3] = { NULL };
         int nSrcPitches[3] = { 0 };
 
-        const VSFrameRef *mvn = vsapi->getFrameFilter(n, d->vectors, frameCtx);
+        const VSFrame *mvn = vsapi->getFrameFilter(n, d->vectors, frameCtx);
         FakeGroupOfPlanes fgop;
         fgopInit(&fgop, &d->vectors_data);
-        const VSMap *mvprops = vsapi->getFramePropsRO(mvn);
-        fgopUpdate(&fgop, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+        const VSMap *mvprops = vsapi->getFramePropertiesRO(mvn);
+        fgopUpdate(&fgop, (const uint8_t *)vsapi->mapGetData(mvprops, prop_MVTools_vectors, 0, NULL));
         vsapi->freeFrame(mvn);
 
         int off, nref;
@@ -154,8 +146,8 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
         const int fields = d->fields;
         const int time256 = d->time256;
 
-        int bitsPerSample = d->supervi->format->bitsPerSample;
-        int bytesPerSample = d->supervi->format->bytesPerSample;
+        int bitsPerSample = d->supervi->format.bitsPerSample;
+        int bytesPerSample = d->supervi->format.bytesPerSample;
 
 
         int nWidth_B[3] = { nBlkX * (nBlkSizeX[0] - nOverlapX[0]) + nOverlapX[0], nWidth_B[0] >> xSubUV, nWidth_B[1] };
@@ -168,8 +160,8 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
         if (fgopIsUsable(&fgop, d->nSCD1, d->nSCD2)) {
             // No need to check nref because nref is always in range when fgop is usable.
-            const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->super, frameCtx);
-            for (int i = 0; i < d->supervi->format->numPlanes; i++) {
+            const VSFrame *ref = vsapi->getFrameFilter(nref, d->super, frameCtx);
+            for (int i = 0; i < d->supervi->format.numPlanes; i++) {
                 pDstCur[i] = pDst[i] = vsapi->getWritePtr(dst, i);
                 nDstPitches[i] = vsapi->getStride(dst, i);
                 pSrc[i] = vsapi->getReadPtr(src, i);
@@ -194,8 +186,8 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
             int fieldShift = 0;
             if (fields && nPel > 1 && ((nref - n) % 2 != 0)) {
                 int err;
-                const VSMap *props = vsapi->getFramePropsRO(src);
-                int src_top_field = !!vsapi->propGetInt(props, "_Field", 0, &err);
+                const VSMap *props = vsapi->getFramePropertiesRO(src);
+                int src_top_field = !!vsapi->mapGetInt(props, "_Field", 0, &err);
                 if (err && !d->tff_exists) {
                     vsapi->setFilterError("Compensate: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
                     fgopDeinit(&fgop);
@@ -210,8 +202,8 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
                 if (d->tff_exists)
                     src_top_field = d->tff ^ (n % 2);
 
-                props = vsapi->getFramePropsRO(ref);
-                int ref_top_field = !!vsapi->propGetInt(props, "_Field", 0, &err);
+                props = vsapi->getFramePropertiesRO(ref);
+                int ref_top_field = !!vsapi->mapGetInt(props, "_Field", 0, &err);
                 if (err && !d->tff_exists) {
                     vsapi->setFilterError("Compensate: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
                     fgopDeinit(&fgop);
@@ -335,13 +327,13 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
             for (int plane = 0; plane < num_planes; plane++) {
                 if (nWidth_B[0] < nWidth[0]) { // padding of right non-covered region
-                    vs_bitblt(pDst[plane] + nWidth_B[plane] * bytesPerSample, nDstPitches[plane],
+                    vsh_bitblt(pDst[plane] + nWidth_B[plane] * bytesPerSample, nDstPitches[plane],
                               scSrc[plane] + (nWidth_B[plane] + nHPadding[plane]) * bytesPerSample + nVPadding[plane] * scPitches[plane], scPitches[plane],
                               (nWidth[plane] - nWidth_B[plane]) * bytesPerSample, nHeight_B[plane]);
                 }
 
                 if (nHeight_B[0] < nHeight[0]) { // padding of bottom non-covered region
-                    vs_bitblt(pDst[plane] + nHeight_B[plane] * nDstPitches[plane], nDstPitches[plane],
+                    vsh_bitblt(pDst[plane] + nHeight_B[plane] * nDstPitches[plane], nDstPitches[plane],
                               scSrc[plane] + nHPadding[plane] * bytesPerSample + (nHeight_B[plane] + nVPadding[plane]) * scPitches[plane], scPitches[plane],
                               nWidth[plane] * bytesPerSample, nHeight[plane] - nHeight_B[plane]);
                 }
@@ -365,7 +357,7 @@ static const VSFrameRef *VS_CC mvcompensateGetFrame(int n, int activationReason,
 
                 int nOffset = nHPadding[plane] * bytesPerSample + nVPadding[plane] * nSrcPitches[plane];
 
-                vs_bitblt(pDst[plane], nDstPitches[plane], pSrc[plane] + nOffset, nSrcPitches[plane], nWidth[plane] * bytesPerSample, nHeight[plane]);
+                vsh_bitblt(pDst[plane], nDstPitches[plane], pSrc[plane] + nOffset, nSrcPitches[plane], nWidth[plane] * bytesPerSample, nHeight[plane]);
             }
         }
 
@@ -406,9 +398,9 @@ static void selectFunctions(MVCompensateData *d) {
     const unsigned yRatioUV = d->vectors_data.yRatioUV;
     const unsigned nBlkSizeX = d->vectors_data.nBlkSizeX;
     const unsigned nBlkSizeY = d->vectors_data.nBlkSizeY;
-    const unsigned bits = d->vi->format->bytesPerSample * 8;
+    const unsigned bits = d->vi->format.bytesPerSample * 8;
 
-    if (d->vi->format->bitsPerSample == 8) {
+    if (d->vi->format.bitsPerSample == 8) {
         d->ToPixels = ToPixels_uint16_t_uint8_t;
     } else {
         d->ToPixels = ToPixels_uint32_t_uint16_t;
@@ -430,73 +422,73 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
 
     int err;
 
-    d.scBehavior = !!vsapi->propGetInt(in, "scbehavior", 0, &err);
+    d.scBehavior = !!vsapi->mapGetInt(in, "scbehavior", 0, &err);
     if (err)
         d.scBehavior = 1;
 
-    d.thSAD = vsapi->propGetInt(in, "thsad", 0, &err);
+    d.thSAD = vsapi->mapGetInt(in, "thsad", 0, &err);
     if (err)
         d.thSAD = 10000;
 
-    d.fields = !!vsapi->propGetInt(in, "fields", 0, &err);
+    d.fields = !!vsapi->mapGetInt(in, "fields", 0, &err);
 
-    double time = vsapi->propGetFloat(in, "time", 0, &err);
+    double time = vsapi->mapGetFloat(in, "time", 0, &err);
     if (err)
         time = 100.0;
 
-    d.nSCD1 = vsapi->propGetInt(in, "thscd1", 0, &err);
+    d.nSCD1 = vsapi->mapGetInt(in, "thscd1", 0, &err);
     if (err)
         d.nSCD1 = MV_DEFAULT_SCD1;
 
-    d.nSCD2 = int64ToIntS(vsapi->propGetInt(in, "thscd2", 0, &err));
+    d.nSCD2 = vsapi->mapGetIntSaturated(in, "thscd2", 0, &err);
     if (err)
         d.nSCD2 = MV_DEFAULT_SCD2;
 
-    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
+    d.opt = !!vsapi->mapGetInt(in, "opt", 0, &err);
     if (err)
         d.opt = 1;
 
-    d.tff = !!vsapi->propGetInt(in, "tff", 0, &err);
+    d.tff = !!vsapi->mapGetInt(in, "tff", 0, &err);
     d.tff_exists = !err;
 
 
     if (time < 0.0 || time > 100.0) {
-        vsapi->setError(out, "Compensate: time must be between 0.0 and 100.0 (inclusive).");
+        vsapi->mapSetError(out, "Compensate: time must be between 0.0 and 100.0 (inclusive).");
         return;
     }
 
 
-    d.super = vsapi->propGetNode(in, "super", 0, NULL);
+    d.super = vsapi->mapGetNode(in, "super", 0, NULL);
 
 #define ERROR_SIZE 1024
     char errorMsg[ERROR_SIZE] = "Compensate: failed to retrieve first frame from super clip. Error message: ";
     size_t errorLen = strlen(errorMsg);
-    const VSFrameRef *evil = vsapi->getFrame(0, d.super, errorMsg + errorLen, ERROR_SIZE - errorLen);
+    const VSFrame *evil = vsapi->getFrame(0, d.super, errorMsg + errorLen, ERROR_SIZE - errorLen);
 #undef ERROR_SIZE
     if (!evil) {
-        vsapi->setError(out, errorMsg);
+        vsapi->mapSetError(out, errorMsg);
         vsapi->freeNode(d.super);
         return;
     }
-    const VSMap *props = vsapi->getFramePropsRO(evil);
+    const VSMap *props = vsapi->getFramePropertiesRO(evil);
     int evil_err[6];
-    int nHeightS = int64ToIntS(vsapi->propGetInt(props, "Super_height", 0, &evil_err[0]));
-    d.nSuperHPad = int64ToIntS(vsapi->propGetInt(props, "Super_hpad", 0, &evil_err[1]));
-    d.nSuperVPad = int64ToIntS(vsapi->propGetInt(props, "Super_vpad", 0, &evil_err[2]));
-    d.nSuperPel = int64ToIntS(vsapi->propGetInt(props, "Super_pel", 0, &evil_err[3]));
-    d.nSuperModeYUV = int64ToIntS(vsapi->propGetInt(props, "Super_modeyuv", 0, &evil_err[4]));
-    d.nSuperLevels = int64ToIntS(vsapi->propGetInt(props, "Super_levels", 0, &evil_err[5]));
+    int nHeightS = vsapi->mapGetIntSaturated(props, "Super_height", 0, &evil_err[0]);
+    d.nSuperHPad = vsapi->mapGetIntSaturated(props, "Super_hpad", 0, &evil_err[1]);
+    d.nSuperVPad = vsapi->mapGetIntSaturated(props, "Super_vpad", 0, &evil_err[2]);
+    d.nSuperPel = vsapi->mapGetIntSaturated(props, "Super_pel", 0, &evil_err[3]);
+    d.nSuperModeYUV = vsapi->mapGetIntSaturated(props, "Super_modeyuv", 0, &evil_err[4]);
+    d.nSuperLevels = vsapi->mapGetIntSaturated(props, "Super_levels", 0, &evil_err[5]);
     vsapi->freeFrame(evil);
 
     for (int i = 0; i < 6; i++)
         if (evil_err[i]) {
-            vsapi->setError(out, "Compensate: required properties not found in first frame of super clip. Maybe clip didn't come from mv.Super? Was the first frame trimmed away?");
+            vsapi->mapSetError(out, "Compensate: required properties not found in first frame of super clip. Maybe clip didn't come from mv.Super? Was the first frame trimmed away?");
             vsapi->freeNode(d.super);
             return;
         }
 
 
-    d.vectors = vsapi->propGetNode(in, "vectors", 0, NULL);
+    d.vectors = vsapi->mapGetNode(in, "vectors", 0, NULL);
 
 #define ERROR_SIZE 512
     char error[ERROR_SIZE + 1] = { 0 };
@@ -509,7 +501,7 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
 #undef ERROR_SIZE
 
     if (error[0]) {
-        vsapi->setError(out, error);
+        vsapi->mapSetError(out, error);
 
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.vectors);
@@ -518,7 +510,7 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
 
 
     if (d.fields && d.vectors_data.nPel < 2) {
-        vsapi->setError(out, "Compensate: fields option requires pel > 1.");
+        vsapi->mapSetError(out, "Compensate: fields option requires pel > 1.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.vectors);
         return;
@@ -527,27 +519,27 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
     d.thSAD = d.thSAD * d.nSCD1 / nSCD1_old; // normalize to block SAD
 
 
-    d.node = vsapi->propGetNode(in, "clip", 0, 0);
+    d.node = vsapi->mapGetNode(in, "clip", 0, 0);
     d.vi = vsapi->getVideoInfo(d.node);
 
 
-    d.dstTempPitch = ((d.vectors_data.nWidth + 15) / 16) * 16 * d.vi->format->bytesPerSample * 2;
-    d.dstTempPitchUV = (((d.vectors_data.nWidth / d.vectors_data.xRatioUV) + 15) / 16) * 16 * d.vi->format->bytesPerSample * 2;
+    d.dstTempPitch = ((d.vectors_data.nWidth + 15) / 16) * 16 * d.vi->format.bytesPerSample * 2;
+    d.dstTempPitchUV = (((d.vectors_data.nWidth / d.vectors_data.xRatioUV) + 15) / 16) * 16 * d.vi->format.bytesPerSample * 2;
 
 
     d.supervi = vsapi->getVideoInfo(d.super);
     int nSuperWidth = d.supervi->width;
 
     if (d.vectors_data.nHeight != nHeightS || d.vectors_data.nHeight != d.vi->height || d.vectors_data.nWidth != nSuperWidth - d.nSuperHPad * 2 || d.vectors_data.nWidth != d.vi->width || d.vectors_data.nPel != d.nSuperPel) {
-        vsapi->setError(out, "Compensate: wrong source or super clip frame size.");
+        vsapi->mapSetError(out, "Compensate: wrong source or super clip frame size.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.vectors);
         vsapi->freeNode(d.node);
         return;
     }
 
-    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 16 || d.vi->format->sampleType != stInteger || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || (d.vi->format->colorFamily != cmYUV && d.vi->format->colorFamily != cmGray)) {
-        vsapi->setError(out, "Compensate: input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.");
+    if (!vsh_isConstantVideoFormat(d.vi) || d.vi->format.bitsPerSample > 16 || d.vi->format.sampleType != stInteger || d.vi->format.subSamplingW > 1 || d.vi->format.subSamplingH > 1 || (d.vi->format.colorFamily != cfYUV && d.vi->format.colorFamily != cfGray)) {
+        vsapi->mapSetError(out, "Compensate: input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.vectors);
         vsapi->freeNode(d.node);
@@ -571,15 +563,21 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
     data = (MVCompensateData *)malloc(sizeof(d));
     *data = d;
 
-    vsapi->createFilter(in, out, "Compensate", mvcompensateInit, mvcompensateGetFrame, mvcompensateFree, fmParallel, 0, data, core);
+    VSFilterDependency deps[2] = { 
+        // {data->node, rpGeneral}, //compensate doesn't actually request frames from the input clip.
+        {data->super, rpGeneral},
+        {data->vectors, rpGeneral},
+    };
+
+    vsapi->createVideoFilter(out, "Compensate", data->vi,  mvcompensateGetFrame, mvcompensateFree, fmParallel, deps,  3, data, core);
 }
 
 
-void mvcompensateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
-    registerFunc("Compensate",
-                 "clip:clip;"
-                 "super:clip;"
-                 "vectors:clip;"
+void mvcompensateRegister(VSPlugin *plugin, const VSPLUGINAPI *vspapi) {
+    vspapi->registerFunction("Compensate",
+                 "clip:vnode;"
+                 "super:vnode;"
+                 "vectors:vnode;"
                  "scbehavior:int:opt;"
                  "thsad:int:opt;"
                  "fields:int:opt;"
@@ -588,5 +586,6 @@ void mvcompensateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "thscd2:int:opt;"
                  "opt:int:opt;"
                  "tff:int:opt;",
+                 "clip:vnode;",
                  mvcompensateCreate, 0, plugin);
 }

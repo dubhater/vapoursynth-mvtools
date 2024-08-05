@@ -17,8 +17,8 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html .
 
-#include <VapourSynth.h>
-#include <VSHelper.h>
+#include <VapourSynth4.h>
+#include <VSHelper4.h>
 
 #include "Fakery.h"
 #include "MVAnalysisData.h"
@@ -26,10 +26,10 @@
 
 
 typedef struct MVSCDetectionData {
-    VSNodeRef *node;
+    VSNode *node;
     const VSVideoInfo *vi;
 
-    VSNodeRef *vectors;
+    VSNode *vectors;
 
     int64_t thscd1;
     int thscd2;
@@ -38,38 +38,29 @@ typedef struct MVSCDetectionData {
 } MVSCDetectionData;
 
 
-static void VS_CC mvscdetectionInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    (void)in;
-    (void)out;
-    (void)core;
-    MVSCDetectionData *d = (MVSCDetectionData *)*instanceData;
-    vsapi->setVideoInfo(d->vi, 1, node);
-}
-
-
-static const VSFrameRef *VS_CC mvscdetectionGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+static const VSFrame *VS_CC mvscdetectionGetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
     (void)frameData;
 
-    MVSCDetectionData *d = (MVSCDetectionData *)*instanceData;
+    MVSCDetectionData *d = (MVSCDetectionData *)instanceData;
 
     if (activationReason == arInitial) {
         vsapi->requestFrameFilter(n, d->vectors, frameCtx);
         vsapi->requestFrameFilter(n, d->node, frameCtx);
     } else if (activationReason == arAllFramesReady) {
-        const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx);
-        VSFrameRef *dst = vsapi->copyFrame(src, core);
+        const VSFrame *src = vsapi->getFrameFilter(n, d->node, frameCtx);
+        VSFrame *dst = vsapi->copyFrame(src, core);
         vsapi->freeFrame(src);
 
-        const VSFrameRef *mvn = vsapi->getFrameFilter(n, d->vectors, frameCtx);
+        const VSFrame *mvn = vsapi->getFrameFilter(n, d->vectors, frameCtx);
         FakeGroupOfPlanes fgop;
         fgopInit(&fgop, &d->vectors_data);
-        const VSMap *mvprops = vsapi->getFramePropsRO(mvn);
-        fgopUpdate(&fgop, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+        const VSMap *mvprops = vsapi->getFramePropertiesRO(mvn);
+        fgopUpdate(&fgop, (const uint8_t *)vsapi->mapGetData(mvprops, prop_MVTools_vectors, 0, NULL));
         vsapi->freeFrame(mvn);
 
         const char *propNames[2] = { "_SceneChangePrev", "_SceneChangeNext" };
-        VSMap *props = vsapi->getFramePropsRW(dst);
-        vsapi->propSetInt(props, propNames[!!d->vectors_data.isBackward], !fgopIsUsable(&fgop, d->thscd1, d->thscd2), paReplace);
+        VSMap *props = vsapi->getFramePropertiesRW(dst);
+        vsapi->mapSetInt(props, propNames[!!d->vectors_data.isBackward], !fgopIsUsable(&fgop, d->thscd1, d->thscd2), maReplace);
 
         fgopDeinit(&fgop);
 
@@ -99,16 +90,16 @@ static void VS_CC mvscdetectionCreate(const VSMap *in, VSMap *out, void *userDat
 
     int err;
 
-    d.thscd1 = vsapi->propGetInt(in, "thscd1", 0, &err);
+    d.thscd1 = vsapi->mapGetInt(in, "thscd1", 0, &err);
     if (err)
         d.thscd1 = MV_DEFAULT_SCD1;
 
-    d.thscd2 = int64ToIntS(vsapi->propGetInt(in, "thscd2", 0, &err));
+    d.thscd2 = vsapi->mapGetIntSaturated(in, "thscd2", 0, &err);
     if (err)
         d.thscd2 = MV_DEFAULT_SCD2;
 
 
-    d.vectors = vsapi->propGetNode(in, "vectors", 0, NULL);
+    d.vectors = vsapi->mapGetNode(in, "vectors", 0, NULL);
 
 
 #define ERROR_SIZE 512
@@ -121,29 +112,34 @@ static void VS_CC mvscdetectionCreate(const VSMap *in, VSMap *out, void *userDat
 #undef ERROR_SIZE
 
     if (error[0]) {
-        vsapi->setError(out, error);
+        vsapi->mapSetError(out, error);
 
         vsapi->freeNode(d.vectors);
         return;
     }
 
 
-    d.node = vsapi->propGetNode(in, "clip", 0, NULL);
+    d.node = vsapi->mapGetNode(in, "clip", 0, NULL);
     d.vi = vsapi->getVideoInfo(d.node);
 
 
     data = (MVSCDetectionData *)malloc(sizeof(d));
     *data = d;
 
-    vsapi->createFilter(in, out, "SCDetection", mvscdetectionInit, mvscdetectionGetFrame, mvscdetectionFree, fmParallel, 0, data, core);
+    VSFilterDependency deps[2] = { 
+        {data->node, rpStrictSpatial},
+        {data->vectors, rpStrictSpatial},
+    };
+    vsapi->createVideoFilter(out, "SCDetection", data->vi, mvscdetectionGetFrame, mvscdetectionFree, fmParallel, deps, 2, data, core);
 }
 
 
-void mvscdetectionRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
-    registerFunc("SCDetection",
-                 "clip:clip;"
-                 "vectors:clip;"
+void mvscdetectionRegister(VSPlugin *plugin, const VSPLUGINAPI *vspapi) {
+    vspapi->registerFunction("SCDetection",
+                 "clip:vnode;"
+                 "vectors:vnode;"
                  "thscd1:int:opt;"
                  "thscd2:int:opt;",
+                 "clip:vnode;",
                  mvscdetectionCreate, 0, plugin);
 }

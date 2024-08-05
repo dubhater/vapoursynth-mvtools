@@ -22,8 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <VapourSynth.h>
-#include <VSHelper.h>
+#include <VapourSynth4.h>
+#include <VSHelper4.h>
 
 #include "Bullshit.h"
 #include "CopyCode.h"
@@ -35,14 +35,14 @@
 
 
 typedef struct MVBlockFPSData {
-    VSNodeRef *node;
+    VSNode *node;
     VSVideoInfo vi;
     const VSVideoInfo *oldvi;
     const VSVideoInfo *supervi;
 
-    VSNodeRef *super;
-    VSNodeRef *mvbw;
-    VSNodeRef *mvfw;
+    VSNode *super;
+    VSNode *mvbw;
+    VSNode *mvfw;
 
     int64_t num, den;
     int mode;
@@ -87,16 +87,6 @@ typedef struct MVBlockFPSData {
     OverlapsFunction OVERS[3];
     ToPixelsFunction ToPixels;
 } MVBlockFPSData;
-
-
-static void VS_CC mvblockfpsInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    (void)in;
-    (void)out;
-    (void)core;
-    MVBlockFPSData *d = (MVBlockFPSData *)*instanceData;
-    vsapi->setVideoInfo(&d->vi, 1, node);
-}
-
 
 static void MultMasks(uint8_t *smallmaskF, uint8_t *smallmaskB, uint8_t *smallmaskO, int nBlkX, int nBlkY) {
     for (int j = 0; j < nBlkY; j++) {
@@ -246,10 +236,10 @@ static void ResultBlock(uint8_t *pDst, int dst_pitch, const uint8_t *pMCB, int M
 }
 
 
-static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+static const VSFrame *VS_CC mvblockfpsGetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
     (void)frameData;
 
-    MVBlockFPSData *d = (MVBlockFPSData *)*instanceData;
+    MVBlockFPSData *d = (MVBlockFPSData *)instanceData;
 
     if (activationReason == arInitial) {
         int off = d->mvbw_data.nDeltaFrame; // integer offset of reference frame
@@ -309,16 +299,16 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
 
         if (nleft < d->oldvi->numFrames && nright < d->oldvi->numFrames) {
             // forward from current to next
-            const VSFrameRef *mvF = vsapi->getFrameFilter(nright, d->mvfw, frameCtx);
-            const VSMap *mvprops = vsapi->getFramePropsRO(mvF);
-            fgopUpdate(&fgopF, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+            const VSFrame *mvF = vsapi->getFrameFilter(nright, d->mvfw, frameCtx);
+            const VSMap *mvprops = vsapi->getFramePropertiesRO(mvF);
+            fgopUpdate(&fgopF, (const uint8_t *)vsapi->mapGetData(mvprops, prop_MVTools_vectors, 0, NULL));
             isUsableF = fgopIsUsable(&fgopF, d->thscd1, d->thscd2);
             vsapi->freeFrame(mvF);
 
             // backward from next to current
-            const VSFrameRef *mvB = vsapi->getFrameFilter(nleft, d->mvbw, frameCtx);
-            mvprops = vsapi->getFramePropsRO(mvB);
-            fgopUpdate(&fgopB, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+            const VSFrame *mvB = vsapi->getFrameFilter(nleft, d->mvbw, frameCtx);
+            mvprops = vsapi->getFramePropertiesRO(mvB);
+            fgopUpdate(&fgopB, (const uint8_t *)vsapi->mapGetData(mvprops, prop_MVTools_vectors, 0, NULL));
             isUsableB = fgopIsUsable(&fgopB, d->thscd1, d->thscd2);
             vsapi->freeFrame(mvB);
         }
@@ -354,8 +344,8 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
         const int nSuperLevels = d->nSuperLevels;
         const int nSuperPel = d->nSuperPel;
 
-        const int bitsPerSample = d->supervi->format->bitsPerSample;
-        const int bytesPerSample = d->supervi->format->bytesPerSample;
+        const int bitsPerSample = d->supervi->format.bitsPerSample;
+        const int bytesPerSample = d->supervi->format.bytesPerSample;
 
         int planes = 1;
         if (nSuperModeYUV & UVPLANES)
@@ -371,11 +361,11 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
             int nSrcPitches[3] = { 0 };
 
             // If both are usable, that means both nleft and nright are less than oldvi->numFrames. Thus there is no need to check nleft and nright here.
-            const VSFrameRef *src = vsapi->getFrameFilter(nleft, d->super, frameCtx);
-            const VSFrameRef *ref = vsapi->getFrameFilter(nright, d->super, frameCtx); //  right frame for  compensation
-            VSFrameRef *dst = vsapi->newVideoFrame(d->vi.format, d->vi.width, d->vi.height, src, core);
+            const VSFrame *src = vsapi->getFrameFilter(nleft, d->super, frameCtx);
+            const VSFrame *ref = vsapi->getFrameFilter(nright, d->super, frameCtx); //  right frame for  compensation
+            VSFrame *dst = vsapi->newVideoFrame(&d->vi.format, d->vi.width, d->vi.height, src, core);
 
-            for (int i = 0; i < d->supervi->format->numPlanes; i++) {
+            for (int i = 0; i < d->supervi->format.numPlanes; i++) {
                 pDst[i] = vsapi->getWritePtr(dst, i);
                 pRef[i] = vsapi->getReadPtr(ref, i);
                 pSrc[i] = vsapi->getReadPtr(src, i);
@@ -386,8 +376,8 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
 
             MVGroupOfFrames pRefBGOF, pRefFGOF;
 
-            mvgofInit(&pRefBGOF, nSuperLevels, nWidth[0], nHeight[0], nSuperPel, nSuperHPad, nSuperVPad, nSuperModeYUV, opt, xRatioUV, yRatioUV, d->supervi->format->bitsPerSample);
-            mvgofInit(&pRefFGOF, nSuperLevels, nWidth[0], nHeight[0], nSuperPel, nSuperHPad, nSuperVPad, nSuperModeYUV, opt, xRatioUV, yRatioUV, d->supervi->format->bitsPerSample);
+            mvgofInit(&pRefBGOF, nSuperLevels, nWidth[0], nHeight[0], nSuperPel, nSuperHPad, nSuperVPad, nSuperModeYUV, opt, xRatioUV, yRatioUV, d->supervi->format.bitsPerSample);
+            mvgofInit(&pRefFGOF, nSuperLevels, nWidth[0], nHeight[0], nSuperPel, nSuperHPad, nSuperVPad, nSuperModeYUV, opt, xRatioUV, yRatioUV, d->supervi->format.bitsPerSample);
 
             mvgofUpdate(&pRefBGOF, (uint8_t **)pRef, nRefPitches);
             mvgofUpdate(&pRefFGOF, (uint8_t **)pSrc, nSrcPitches);
@@ -646,16 +636,16 @@ static const VSFrameRef *VS_CC mvblockfpsGetFrame(int n, int activationReason, v
             fgopDeinit(&fgopF);
             fgopDeinit(&fgopB);
 
-            const VSFrameRef *src = vsapi->getFrameFilter(VSMIN(nleft, d->oldvi->numFrames - 1), d->node, frameCtx);
+            const VSFrame *src = vsapi->getFrameFilter(VSMIN(nleft, d->oldvi->numFrames - 1), d->node, frameCtx);
 
             if (blend) { //let's blend src with ref frames like ConvertFPS
                 uint8_t *pDst[3];
                 const uint8_t *pRef[3], *pSrc[3];
                 int nDstPitches[3], nRefPitches[3], nSrcPitches[3];
 
-                const VSFrameRef *ref = vsapi->getFrameFilter(VSMIN(nright, d->oldvi->numFrames - 1), d->node, frameCtx);
+                const VSFrame *ref = vsapi->getFrameFilter(VSMIN(nright, d->oldvi->numFrames - 1), d->node, frameCtx);
 
-                VSFrameRef *dst = vsapi->newVideoFrame(d->vi.format, d->vi.width, d->vi.height, src, core);
+                VSFrame *dst = vsapi->newVideoFrame(&d->vi.format, d->vi.width, d->vi.height, src, core);
 
                 for (int plane = 0; plane < planes; plane++) {
                     pDst[plane] = vsapi->getWritePtr(dst, plane);
@@ -731,9 +721,9 @@ static void selectFunctions(MVBlockFPSData *d) {
     const unsigned yRatioUV = d->mvbw_data.yRatioUV;
     const unsigned nBlkSizeX = d->mvbw_data.nBlkSizeX;
     const unsigned nBlkSizeY = d->mvbw_data.nBlkSizeY;
-    const unsigned bits = d->vi.format->bytesPerSample * 8;
+    const unsigned bits = d->vi.format.bytesPerSample * 8;
 
-    if (d->vi.format->bitsPerSample == 8) {
+    if (d->vi.format.bitsPerSample == 8) {
         d->ToPixels = ToPixels_uint16_t_uint8_t;
     } else {
         d->ToPixels = ToPixels_uint32_t_uint16_t;
@@ -752,77 +742,77 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
 
     int err;
 
-    d.num = vsapi->propGetInt(in, "num", 0, &err);
+    d.num = vsapi->mapGetInt(in, "num", 0, &err);
     if (err)
         d.num = 25;
 
-    d.den = vsapi->propGetInt(in, "den", 0, &err);
+    d.den = vsapi->mapGetInt(in, "den", 0, &err);
     if (err)
         d.den = 1;
 
-    d.mode = int64ToIntS(vsapi->propGetInt(in, "mode", 0, &err));
+    d.mode = vsapi->mapGetIntSaturated(in, "mode", 0, &err);
     if (err)
         d.mode = 3;
 
-    d.ml = vsapi->propGetFloat(in, "ml", 0, &err);
+    d.ml = vsapi->mapGetFloat(in, "ml", 0, &err);
     if (err)
         d.ml = 100.0;
 
-    d.blend = !!vsapi->propGetInt(in, "blend", 0, &err);
+    d.blend = !!vsapi->mapGetInt(in, "blend", 0, &err);
     if (err)
         d.blend = 1;
 
-    d.thscd1 = vsapi->propGetInt(in, "thscd1", 0, &err);
+    d.thscd1 = vsapi->mapGetInt(in, "thscd1", 0, &err);
     if (err)
         d.thscd1 = MV_DEFAULT_SCD1;
 
-    d.thscd2 = int64ToIntS(vsapi->propGetInt(in, "thscd2", 0, &err));
+    d.thscd2 = vsapi->mapGetIntSaturated(in, "thscd2", 0, &err);
     if (err)
         d.thscd2 = MV_DEFAULT_SCD2;
 
-    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
+    d.opt = !!vsapi->mapGetInt(in, "opt", 0, &err);
     if (err)
         d.opt = 1;
 
 
     if (d.mode < 0 || d.mode > 8) {
-        vsapi->setError(out, "BlockFPS: mode must be between 0 and 8 (inclusive).");
+        vsapi->mapSetError(out, "BlockFPS: mode must be between 0 and 8 (inclusive).");
         return;
     }
 
 
-    d.super = vsapi->propGetNode(in, "super", 0, NULL);
+    d.super = vsapi->mapGetNode(in, "super", 0, NULL);
 
 #define ERROR_SIZE 1024
     char errorMsg[ERROR_SIZE] = "BlockFPS: failed to retrieve first frame from super clip. Error message: ";
     size_t errorLen = strlen(errorMsg);
-    const VSFrameRef *evil = vsapi->getFrame(0, d.super, errorMsg + errorLen, ERROR_SIZE - errorLen);
+    const VSFrame *evil = vsapi->getFrame(0, d.super, errorMsg + errorLen, ERROR_SIZE - errorLen);
 #undef ERROR_SIZE
     if (!evil) {
-        vsapi->setError(out, errorMsg);
+        vsapi->mapSetError(out, errorMsg);
         vsapi->freeNode(d.super);
         return;
     }
-    const VSMap *props = vsapi->getFramePropsRO(evil);
+    const VSMap *props = vsapi->getFramePropertiesRO(evil);
     int evil_err[6];
-    int nHeightS = int64ToIntS(vsapi->propGetInt(props, "Super_height", 0, &evil_err[0]));
-    d.nSuperHPad = int64ToIntS(vsapi->propGetInt(props, "Super_hpad", 0, &evil_err[1]));
-    d.nSuperVPad = int64ToIntS(vsapi->propGetInt(props, "Super_vpad", 0, &evil_err[2]));
-    d.nSuperPel = int64ToIntS(vsapi->propGetInt(props, "Super_pel", 0, &evil_err[3]));
-    d.nSuperModeYUV = int64ToIntS(vsapi->propGetInt(props, "Super_modeyuv", 0, &evil_err[4]));
-    d.nSuperLevels = int64ToIntS(vsapi->propGetInt(props, "Super_levels", 0, &evil_err[5]));
+    int nHeightS = vsapi->mapGetIntSaturated(props, "Super_height", 0, &evil_err[0]);
+    d.nSuperHPad = vsapi->mapGetIntSaturated(props, "Super_hpad", 0, &evil_err[1]);
+    d.nSuperVPad = vsapi->mapGetIntSaturated(props, "Super_vpad", 0, &evil_err[2]);
+    d.nSuperPel = vsapi->mapGetIntSaturated(props, "Super_pel", 0, &evil_err[3]);
+    d.nSuperModeYUV = vsapi->mapGetIntSaturated(props, "Super_modeyuv", 0, &evil_err[4]);
+    d.nSuperLevels = vsapi->mapGetIntSaturated(props, "Super_levels", 0, &evil_err[5]);
     vsapi->freeFrame(evil);
 
     for (int i = 0; i < 6; i++)
         if (evil_err[i]) {
-            vsapi->setError(out, "BlockFPS: required properties not found in first frame of super clip. Maybe clip didn't come from mv.Super? Was the first frame trimmed away?");
+            vsapi->mapSetError(out, "BlockFPS: required properties not found in first frame of super clip. Maybe clip didn't come from mv.Super? Was the first frame trimmed away?");
             vsapi->freeNode(d.super);
             return;
         }
 
 
-    d.mvbw = vsapi->propGetNode(in, "mvbw", 0, NULL);
-    d.mvfw = vsapi->propGetNode(in, "mvfw", 0, NULL);
+    d.mvbw = vsapi->mapGetNode(in, "mvbw", 0, NULL);
+    d.mvfw = vsapi->mapGetNode(in, "mvfw", 0, NULL);
 
     // There is another variable called "error" a bit lower.
     {
@@ -839,7 +829,7 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
 #undef ERROR_SIZE
 
         if (error[0]) {
-            vsapi->setError(out, error);
+            vsapi->mapSetError(out, error);
 
             vsapi->freeNode(d.super);
             vsapi->freeNode(d.mvfw);
@@ -850,7 +840,7 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
 
 
     if (d.mvbw_data.nDeltaFrame <= 0 || d.mvfw_data.nDeltaFrame <= 0) {
-        vsapi->setError(out, "BlockFPS: cannot use motion vectors with absolute frame references.");
+        vsapi->mapSetError(out, "BlockFPS: cannot use motion vectors with absolute frame references.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -859,7 +849,7 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
 
     // XXX Alternatively, use both clips' delta as offsets in GetFrame.
     if (d.mvbw_data.nDeltaFrame != d.mvfw_data.nDeltaFrame) {
-        vsapi->setError(out, "BlockFPS: mvbw and mvfw must be generated with the same delta.");
+        vsapi->mapSetError(out, "BlockFPS: mvbw and mvfw must be generated with the same delta.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -869,9 +859,9 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     // Make sure the motion vector clips are correct.
     if (!d.mvbw_data.isBackward || d.mvfw_data.isBackward) {
         if (!d.mvbw_data.isBackward)
-            vsapi->setError(out, "BlockFPS: mvbw must be generated with isb=True.");
+            vsapi->mapSetError(out, "BlockFPS: mvbw must be generated with isb=True.");
         else
-            vsapi->setError(out, "BlockFPS: mvfw must be generated with isb=False.");
+            vsapi->mapSetError(out, "BlockFPS: mvfw must be generated with isb=False.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -879,13 +869,13 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     }
 
 
-    d.node = vsapi->propGetNode(in, "clip", 0, 0);
+    d.node = vsapi->mapGetNode(in, "clip", 0, 0);
     d.oldvi = vsapi->getVideoInfo(d.node);
     d.vi = *d.oldvi;
 
 
     if (d.vi.fpsNum == 0 || d.vi.fpsDen == 0) {
-        vsapi->setError(out, "BlockFPS: The input clip must have a frame rate. Invoke AssumeFPS if necessary.");
+        vsapi->mapSetError(out, "BlockFPS: The input clip must have a frame rate. Invoke AssumeFPS if necessary.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -925,7 +915,7 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
         d.mvbw_data.nWidth != d.vi.width ||
         d.mvbw_data.nHeight != d.vi.height ||
         d.mvbw_data.nPel != d.nSuperPel) {
-        vsapi->setError(out, "BlockFPS: wrong source or super clip frame size.");
+        vsapi->mapSetError(out, "BlockFPS: wrong source or super clip frame size.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -933,8 +923,8 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
         return;
     }
 
-    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 16 || d.vi.format->sampleType != stInteger || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || (d.vi.format->colorFamily != cmYUV && d.vi.format->colorFamily != cmGray)) {
-        vsapi->setError(out, "BlockFPS: input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.");
+    if (!vsh_isConstantVideoFormat(&d.vi) || d.vi.format.bitsPerSample > 16 || d.vi.format.sampleType != stInteger || d.vi.format.subSamplingW > 1 || d.vi.format.subSamplingH > 1 || (d.vi.format.colorFamily != cfYUV && d.vi.format.colorFamily != cfGray)) {
+        vsapi->mapSetError(out, "BlockFPS: input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -975,9 +965,9 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
         }
     }
 
-    d.dstTempPitch = ((d.mvbw_data.nWidth + 15) / 16) * 16 * d.vi.format->bytesPerSample * 2;
-    d.dstTempPitchUV = (((d.mvbw_data.nWidth / d.mvbw_data.xRatioUV) + 15) / 16) * 16 * d.vi.format->bytesPerSample * 2;
-    d.nBlkPitch = ((d.mvbw_data.nBlkSizeX + 15) & (~15)) * d.vi.format->bytesPerSample;
+    d.dstTempPitch = ((d.mvbw_data.nWidth + 15) / 16) * 16 * d.vi.format.bytesPerSample * 2;
+    d.dstTempPitchUV = (((d.mvbw_data.nWidth / d.mvbw_data.xRatioUV) + 15) / 16) * 16 * d.vi.format.bytesPerSample * 2;
+    d.nBlkPitch = ((d.mvbw_data.nBlkSizeX + 15) & (~15)) * d.vi.format.bytesPerSample;
 
 
     selectFunctions(&d);
@@ -986,58 +976,49 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
     data = (MVBlockFPSData *)malloc(sizeof(d));
     *data = d;
 
-    vsapi->createFilter(in, out, "BlockFPS", mvblockfpsInit, mvblockfpsGetFrame, mvblockfpsFree, fmParallel, 0, data, core);
+    VSFilterDependency deps[4] = { 
+        {data->node, rpGeneral},
+        {data->super, rpGeneral}, 
+        {data->mvbw, rpGeneral},
+        {data->mvfw, rpGeneral},
+    };
+    vsapi->createVideoFilter(out, "BlockFPS", &data->vi, mvblockfpsGetFrame, mvblockfpsFree, fmParallel, deps, 4, data, core);
 
     // AssumeFPS sets the _DurationNum and _DurationDen properties.
-    VSNodeRef *node = vsapi->propGetNode(out, "clip", 0, NULL);
+    VSNode *node = vsapi->mapGetNode(out, "clip", 0, NULL);
     VSMap *args = vsapi->createMap();
-    vsapi->propSetNode(args, "clip", node, paReplace);
+    vsapi->mapSetNode(args, "clip", node, maReplace);
     vsapi->freeNode(node);
-    vsapi->propSetInt(args, "fpsnum", d.vi.fpsNum, paReplace);
-    vsapi->propSetInt(args, "fpsden", d.vi.fpsDen, paReplace);
-    VSPlugin *stdPlugin = vsapi->getPluginById("com.vapoursynth.std", core);
+    vsapi->mapSetInt(args, "fpsnum", d.vi.fpsNum, maReplace);
+    vsapi->mapSetInt(args, "fpsden", d.vi.fpsDen, maReplace);
+    VSPlugin *stdPlugin = vsapi->getPluginByID("com.vapoursynth.std", core);
     VSMap *ret = vsapi->invoke(stdPlugin, "AssumeFPS", args);
-    if (vsapi->getError(ret)) {
+    if (vsapi->mapGetError(ret)) {
 #define ERROR_SIZE 512
         char error_msg[ERROR_SIZE + 1] = { 0 };
-        snprintf(error_msg, ERROR_SIZE, "BlockFPS: Failed to invoke AssumeFPS. Error message: %s", vsapi->getError(ret));
+        snprintf(error_msg, ERROR_SIZE, "BlockFPS: Failed to invoke AssumeFPS. Error message: %s", vsapi->mapGetError(ret));
 #undef ERROR_SIZE
-        vsapi->setError(out, error_msg);
+        vsapi->mapSetError(out, error_msg);
 
         vsapi->freeMap(args);
         vsapi->freeMap(ret);
         return;
     }
-    node = vsapi->propGetNode(ret, "clip", 0, NULL);
-    vsapi->freeMap(ret);
-    vsapi->clearMap(args);
-    vsapi->propSetNode(args, "clip", node, paReplace);
-    vsapi->freeNode(node);
-    ret = vsapi->invoke(stdPlugin, "Cache", args);
     vsapi->freeMap(args);
-    if (vsapi->getError(ret)) {
-#define ERROR_SIZE 512
-        char error_msg[ERROR_SIZE + 1] = { 0 };
-        snprintf(error_msg, ERROR_SIZE, "BlockFPS: Failed to invoke Cache. Error message: %s", vsapi->getError(ret));
-#undef ERROR_SIZE
-        vsapi->setError(out, error_msg);
-
-        vsapi->freeMap(ret);
-        return;
-    }
-    node = vsapi->propGetNode(ret, "clip", 0, NULL);
+    node = vsapi->mapGetNode(ret, "clip", 0, NULL);
     vsapi->freeMap(ret);
-    vsapi->propSetNode(out, "clip", node, paReplace);
+
+    vsapi->mapSetNode(out, "clip", node, maReplace);
     vsapi->freeNode(node);
 }
 
 
-void mvblockfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
-    registerFunc("BlockFPS",
-                 "clip:clip;"
-                 "super:clip;"
-                 "mvbw:clip;"
-                 "mvfw:clip;"
+void mvblockfpsRegister(VSPlugin *plugin, const VSPLUGINAPI *vspapi) {
+    vspapi->registerFunction("BlockFPS",
+                 "clip:vnode;"
+                 "super:vnode;"
+                 "mvbw:vnode;"
+                 "mvfw:vnode;"
                  "num:int:opt;"
                  "den:int:opt;"
                  "mode:int:opt;"
@@ -1046,5 +1027,6 @@ void mvblockfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
                  "opt:int:opt;",
+                 "clip:vnode;",
                  mvblockfpsCreate, 0, plugin);
 }

@@ -1,6 +1,6 @@
 
-#include <VapourSynth.h>
-#include <VSHelper.h>
+#include <VapourSynth4.h>
+#include <VSHelper4.h>
 
 #include "MaskFun.h"
 #include "SimpleResize.h"
@@ -8,39 +8,30 @@
 #include "MVFlowFPSHelper.h"
 
 
-void VS_CC mvflowfpshelperInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    (void)in;
-    (void)out;
-    (void)core;
-    MVFlowFPSHelperData *d = (MVFlowFPSHelperData *)*instanceData;
-    vsapi->setVideoInfo(d->vi, 1, node);
-}
-
-
-const VSFrameRef *VS_CC mvflowfpshelperGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+const VSFrame *VS_CC mvflowfpshelperGetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
     (void)frameData;
 
-    MVFlowFPSHelperData *d = (MVFlowFPSHelperData *)*instanceData;
+    MVFlowFPSHelperData *d = (MVFlowFPSHelperData *)instanceData;
 
     if (activationReason == arInitial) {
         vsapi->requestFrameFilter(n, d->vectors, frameCtx);
     } else if (activationReason == arAllFramesReady) {
-        const VSFrameRef *src = vsapi->getFrameFilter(n, d->vectors, frameCtx);
+        const VSFrame *src = vsapi->getFrameFilter(n, d->vectors, frameCtx);
 
         FakeGroupOfPlanes fgop;
 
         fgopInit(&fgop, &d->vectors_data);
 
-        const VSMap *mvprops = vsapi->getFramePropsRO(src);
-        fgopUpdate(&fgop, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+        const VSMap *mvprops = vsapi->getFramePropertiesRO(src);
+        fgopUpdate(&fgop, (const uint8_t *)vsapi->mapGetData(mvprops, prop_MVTools_vectors, 0, NULL));
 
         int isUsable = fgopIsUsable(&fgop, d->thscd1, d->thscd2);
 
         if (isUsable) {
-            VSFrameRef *dst = vsapi->copyFrame(src, core);
+            VSFrame *dst = vsapi->copyFrame(src, core);
             vsapi->freeFrame(src);
 
-            VSMap *props = vsapi->getFramePropsRW(dst);
+            VSMap *props = vsapi->getFramePropertiesRW(dst);
 
             const int xRatioUV = d->vectors_data.xRatioUV;
             const int yRatioUV = d->vectors_data.yRatioUV;
@@ -71,13 +62,13 @@ const VSFrameRef *VS_CC mvflowfpshelperGetFrame(int n, int activationReason, voi
             upsizer->simpleResize_int16_t(upsizer, VXFullY, VPitchY, VXSmallY, nBlkXP, 1);
             upsizer->simpleResize_int16_t(upsizer, VYFullY, VPitchY, VYSmallY, nBlkXP, 0);
 
-            vsapi->propSetData(props, prop_VXFullY, (const char *)VXFullY, full_size_y, paReplace);
-            vsapi->propSetData(props, prop_VYFullY, (const char *)VYFullY, full_size_y, paReplace);
+            vsapi->mapSetData(props, prop_VXFullY, (const char *)VXFullY, full_size_y, dtBinary, maReplace);
+            vsapi->mapSetData(props, prop_VYFullY, (const char *)VYFullY, full_size_y, dtBinary, maReplace);
 
             free(VXFullY);
             free(VYFullY);
 
-            if (d->supervi->format->colorFamily != cmGray) {
+            if (d->supervi->format.colorFamily != cfGray) {
                 int full_size_uv = nHeightPUV * VPitchUV * sizeof(int16_t);
 
                 int16_t *VXFullUV = (int16_t *)malloc(full_size_uv);
@@ -94,8 +85,8 @@ const VSFrameRef *VS_CC mvflowfpshelperGetFrame(int n, int activationReason, voi
                 free(VXSmallUV);
                 free(VYSmallUV);
 
-                vsapi->propSetData(props, prop_VXFullUV, (const char *)VXFullUV, full_size_uv, paReplace);
-                vsapi->propSetData(props, prop_VYFullUV, (const char *)VYFullUV, full_size_uv, paReplace);
+                vsapi->mapSetData(props, prop_VXFullUV, (const char *)VXFullUV, full_size_uv, dtBinary, maReplace);
+                vsapi->mapSetData(props, prop_VYFullUV, (const char *)VYFullUV, full_size_uv, dtBinary, maReplace);
 
                 free(VXFullUV);
                 free(VYFullUV);

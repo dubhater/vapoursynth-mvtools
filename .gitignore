@@ -26,3 +26,4 @@ missing
 .deps/
 .dirstamp
 .cache/
+.venv/

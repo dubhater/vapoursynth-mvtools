@@ -31,7 +31,7 @@ void scaleThSCD(int64_t *thscd1, int *thscd2, const MVAnalysisData *ad, const ch
 }
 
 
-void adataFromVectorClip(struct MVAnalysisData *ad, VSNodeRef *clip, const char *filter_name, const char *vector_name, const VSAPI *vsapi, char *error, size_t error_size) {
+void adataFromVectorClip(struct MVAnalysisData *ad, VSNode *clip, const char *filter_name, const char *vector_name, const VSAPI *vsapi, char *error, size_t error_size) {
     if (error_size) {
         if (error[0])
             return;
@@ -39,21 +39,21 @@ void adataFromVectorClip(struct MVAnalysisData *ad, VSNodeRef *clip, const char 
     }
 
     char errorMsg[1024];
-    const VSFrameRef *evil = vsapi->getFrame(0, clip, errorMsg, 1024);
+    const VSFrame *evil = vsapi->getFrame(0, clip, errorMsg, 1024);
     if (!evil) {
         snprintf(error, error_size, "%s: Failed to retrieve first frame from %s. Error message: %s", filter_name, vector_name, errorMsg);
         return;
     }
 
-    const VSMap *props = vsapi->getFramePropsRO(evil);
+    const VSMap *props = vsapi->getFramePropertiesRO(evil);
     int err;
-    const char *data = vsapi->propGetData(props, prop_MVTools_MVAnalysisData, 0, &err);
+    const char *data = vsapi->mapGetData(props, prop_MVTools_MVAnalysisData, 0, &err);
     if (err) {
         snprintf(error, error_size, "%s: Property '%s' not found in first frame of %s.", filter_name, prop_MVTools_MVAnalysisData, vector_name);
         return;
     }
 
-    int data_size = vsapi->propGetDataSize(props, prop_MVTools_MVAnalysisData, 0, NULL);
+    int data_size = vsapi->mapGetDataSize(props, prop_MVTools_MVAnalysisData, 0, NULL);
     if (data_size != sizeof(MVAnalysisData)) {
         snprintf(error, error_size, "%s: Property '%s' in first frame of %s has wrong size (%d instead of %d).", filter_name, prop_MVTools_MVAnalysisData, vector_name, data_size, (int)sizeof(MVAnalysisData));
         return;

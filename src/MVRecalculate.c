@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <VapourSynth.h>
-#include <VSHelper.h>
+#include <VapourSynth4.h>
+#include <VSHelper4.h>
 
 #include "CPU.h"
 #include "DCTFFTW.h"
@@ -14,7 +14,7 @@
 
 
 typedef struct MVRecalculateData {
-    VSNodeRef *node;
+    VSNode *node;
     const VSVideoInfo *vi;
 
     MVAnalysisData vectors_data;
@@ -55,7 +55,7 @@ typedef struct MVRecalculateData {
     int truemotion;
     int smooth;
     int64_t thSAD;
-    VSNodeRef *vectors;
+    VSNode *vectors;
 
     int fields;
     int tff;
@@ -63,19 +63,10 @@ typedef struct MVRecalculateData {
 } MVRecalculateData;
 
 
-static void VS_CC mvrecalculateInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    (void)in;
-    (void)out;
-    (void)core;
-    MVRecalculateData *d = (MVRecalculateData *)*instanceData;
-    vsapi->setVideoInfo(d->vi, 1, node);
-}
-
-
-static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+static const VSFrame *VS_CC mvrecalculateGetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
     (void)frameData;
 
-    MVRecalculateData *d = (MVRecalculateData *)*instanceData;
+    MVRecalculateData *d = (MVRecalculateData *)instanceData;
 
     if (activationReason == arInitial) {
         vsapi->requestFrameFilter(n, d->vectors, frameCtx);
@@ -104,7 +95,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
 
         GroupOfPlanes vectorFields;
 
-        gopInit(&vectorFields, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nMotionFlags, d->analysisData.nCPUFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra, d->vi->format->bitsPerSample);
+        gopInit(&vectorFields, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->analysisData.nLvCount, d->analysisData.nPel, d->analysisData.nMotionFlags, d->analysisData.nCPUFlags, d->analysisData.nOverlapX, d->analysisData.nOverlapY, d->analysisData.nBlkX, d->analysisData.nBlkY, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->divideExtra, d->vi->format.bitsPerSample);
 
 
         const uint8_t *pSrc[3] = { NULL };
@@ -121,11 +112,11 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             nref = -offset;
         }
 
-        const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx);
-        const VSMap *srcprops = vsapi->getFramePropsRO(src);
+        const VSFrame *src = vsapi->getFrameFilter(n, d->node, frameCtx);
+        const VSMap *srcprops = vsapi->getFramePropertiesRO(src);
         int err;
 
-        int src_top_field = !!vsapi->propGetInt(srcprops, "_Field", 0, &err);
+        int src_top_field = !!vsapi->mapGetInt(srcprops, "_Field", 0, &err);
         if (err && d->fields && !d->tff_exists) {
             vsapi->setFilterError("Recalculate: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
             gopDeinit(&vectorFields);
@@ -138,7 +129,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             src_top_field = d->tff ^ (n % 2);
 
 
-        for (int plane = 0; plane < d->vi->format->numPlanes; plane++) {
+        for (int plane = 0; plane < d->vi->format.numPlanes; plane++) {
             pSrc[plane] = vsapi->getReadPtr(src, plane);
             nSrcPitch[plane] = vsapi->getStride(src, plane);
         }
@@ -147,20 +138,20 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
         FakeGroupOfPlanes fgop;
         fgopInit(&fgop, &d->vectors_data);
 
-        const VSFrameRef *mvn = vsapi->getFrameFilter(n, d->vectors, frameCtx);
-        const VSMap *mvprops = vsapi->getFramePropsRO(mvn);
+        const VSFrame *mvn = vsapi->getFrameFilter(n, d->vectors, frameCtx);
+        const VSMap *mvprops = vsapi->getFramePropertiesRO(mvn);
 
-        fgopUpdate(&fgop, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+        fgopUpdate(&fgop, (const uint8_t *)vsapi->mapGetData(mvprops, prop_MVTools_vectors, 0, NULL));
         vsapi->freeFrame(mvn);
 
         MVArraySizeType vectors_size = gopGetArraySize(&vectorFields);
         uint8_t *vectors = (uint8_t *)malloc(vectors_size);
 
         if (fgopIsValid(&fgop) && nref >= 0 && nref < d->vi->numFrames) {
-            const VSFrameRef *ref = vsapi->getFrameFilter(nref, d->node, frameCtx);
-            const VSMap *refprops = vsapi->getFramePropsRO(ref);
+            const VSFrame *ref = vsapi->getFrameFilter(nref, d->node, frameCtx);
+            const VSMap *refprops = vsapi->getFramePropertiesRO(ref);
 
-            int ref_top_field = !!vsapi->propGetInt(refprops, "_Field", 0, &err);
+            int ref_top_field = !!vsapi->mapGetInt(refprops, "_Field", 0, &err);
             if (err && d->fields && !d->tff_exists) {
                 vsapi->setFilterError("Recalculate: _Field property not found in input frame. Therefore, you must pass tff argument.", frameCtx);
                 gopDeinit(&vectorFields);
@@ -182,7 +173,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             }
 
 
-            for (int plane = 0; plane < d->vi->format->numPlanes; plane++) {
+            for (int plane = 0; plane < d->vi->format.numPlanes; plane++) {
                 pRef[plane] = vsapi->getReadPtr(ref, plane);
                 nRefPitch[plane] = vsapi->getStride(ref, plane);
             }
@@ -190,8 +181,8 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
 
             MVGroupOfFrames pSrcGOF, pRefGOF;
 
-            mvgofInit(&pSrcGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->opt, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->vi->format->bitsPerSample);
-            mvgofInit(&pRefGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->opt, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->vi->format->bitsPerSample);
+            mvgofInit(&pSrcGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->opt, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->vi->format.bitsPerSample);
+            mvgofInit(&pRefGOF, d->nSuperLevels, d->analysisData.nWidth, d->analysisData.nHeight, d->nSuperPel, d->nSuperHPad, d->nSuperVPad, d->nSuperModeYUV, d->opt, d->analysisData.xRatioUV, d->analysisData.yRatioUV, d->vi->format.bitsPerSample);
 
             // cast away the const, because why not.
             mvgofUpdate(&pSrcGOF, (uint8_t **)pSrc, nSrcPitch);
@@ -201,7 +192,7 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             DCTFFTW *DCTc = NULL;
             if (d->dctmode >= 1 && d->dctmode <= 4) {
                 DCTc = (DCTFFTW *)malloc(sizeof(DCTFFTW));
-                dctInit(DCTc, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->vi->format->bitsPerSample, d->opt);
+                dctInit(DCTc, d->analysisData.nBlkSizeX, d->analysisData.nBlkSizeY, d->vi->format.bitsPerSample, d->opt);
             }
 
 
@@ -225,20 +216,22 @@ static const VSFrameRef *VS_CC mvrecalculateGetFrame(int n, int activationReason
             gopDeinit(&vectorFields);
         }
 
-        VSFrameRef *dst = vsapi->copyFrame(src, core);
-        VSMap *dstprops = vsapi->getFramePropsRW(dst);
+        VSFrame *dst = vsapi->copyFrame(src, core);
+        VSMap *dstprops = vsapi->getFramePropertiesRW(dst);
 
-        vsapi->propSetData(dstprops,
+        vsapi->mapSetData(dstprops,
                            prop_MVTools_MVAnalysisData,
                            (const char *)(d->divideExtra ? &d->analysisDataDivided : &d->analysisData),
                            sizeof(MVAnalysisData),
-                           paReplace);
+                           dtBinary,
+                           maReplace);
 
-        vsapi->propSetData(dstprops,
+        vsapi->mapSetData(dstprops,
                            prop_MVTools_vectors,
                            (const char *)vectors,
                            vectors_size,
-                           paReplace);
+                           dtBinary,
+                           maReplace);
 
         free(vectors);
 
@@ -276,87 +269,87 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
     int err;
 
-    d.thSAD = vsapi->propGetInt(in, "thsad", 0, &err);
+    d.thSAD = vsapi->mapGetInt(in, "thsad", 0, &err);
     if (err)
         d.thSAD = 200;
 
-    d.smooth = int64ToIntS(vsapi->propGetInt(in, "smooth", 0, &err));
+    d.smooth = vsapi->mapGetIntSaturated(in, "smooth", 0, &err);
     if (err)
         d.smooth = 1;
 
-    d.analysisData.nBlkSizeX = int64ToIntS(vsapi->propGetInt(in, "blksize", 0, &err));
+    d.analysisData.nBlkSizeX = vsapi->mapGetIntSaturated(in, "blksize", 0, &err);
     if (err)
         d.analysisData.nBlkSizeX = 8;
 
-    d.analysisData.nBlkSizeY = int64ToIntS(vsapi->propGetInt(in, "blksizev", 0, &err));
+    d.analysisData.nBlkSizeY = vsapi->mapGetIntSaturated(in, "blksizev", 0, &err);
     if (err)
         d.analysisData.nBlkSizeY = d.analysisData.nBlkSizeX;
 
-    d.searchType = (SearchType)int64ToIntS(vsapi->propGetInt(in, "search", 0, &err));
+    d.searchType = (SearchType)vsapi->mapGetIntSaturated(in, "search", 0, &err);
     if (err)
         d.searchType = SearchHex2;
 
-    d.searchparam = int64ToIntS(vsapi->propGetInt(in, "searchparam", 0, &err));
+    d.searchparam = vsapi->mapGetIntSaturated(in, "searchparam", 0, &err);
     if (err)
         d.searchparam = 2;
 
-    d.chroma = !!vsapi->propGetInt(in, "chroma", 0, &err);
+    d.chroma = !!vsapi->mapGetInt(in, "chroma", 0, &err);
     if (err)
         d.chroma = 1;
 
-    d.truemotion = !!vsapi->propGetInt(in, "truemotion", 0, &err);
+    d.truemotion = !!vsapi->mapGetInt(in, "truemotion", 0, &err);
     if (err)
         d.truemotion = 1;
 
-    d.nLambda = int64ToIntS(vsapi->propGetInt(in, "lambda", 0, &err));
+    d.nLambda = vsapi->mapGetIntSaturated(in, "lambda", 0, &err);
     if (err)
         d.nLambda = d.truemotion ? (1000 * d.analysisData.nBlkSizeX * d.analysisData.nBlkSizeY / 64) : 0;
 
-    d.pnew = int64ToIntS(vsapi->propGetInt(in, "pnew", 0, &err));
+    d.pnew = vsapi->mapGetIntSaturated(in, "pnew", 0, &err);
     if (err)
         d.pnew = d.truemotion ? 50 : 0; // relative to 256
 
-    d.analysisData.nOverlapX = int64ToIntS(vsapi->propGetInt(in, "overlap", 0, &err));
+    d.analysisData.nOverlapX = vsapi->mapGetIntSaturated(in, "overlap", 0, &err);
 
-    d.analysisData.nOverlapY = int64ToIntS(vsapi->propGetInt(in, "overlapv", 0, &err));
+    d.analysisData.nOverlapY = vsapi->mapGetIntSaturated(in, "overlapv", 0, &err);
     if (err)
         d.analysisData.nOverlapY = d.analysisData.nOverlapX;
 
-    d.dctmode = int64ToIntS(vsapi->propGetInt(in, "dct", 0, &err));
+    d.dctmode = vsapi->mapGetIntSaturated(in, "dct", 0, &err);
 
-    d.divideExtra = int64ToIntS(vsapi->propGetInt(in, "divide", 0, &err));
+    d.divideExtra = vsapi->mapGetIntSaturated(in, "divide", 0, &err);
 
-    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
+    d.opt = !!vsapi->mapGetInt(in, "opt", 0, &err);
     if (err)
         d.opt = 1;
 
-    d.meander = !!vsapi->propGetInt(in, "meander", 0, &err);
+    d.meander = !!vsapi->mapGetInt(in, "meander", 0, &err);
     if (err)
         d.meander = 1;
 
-    d.fields = !!vsapi->propGetInt(in, "fields", 0, &err);
+    d.fields = !!vsapi->mapGetInt(in, "fields", 0, &err);
 
-    d.tff = !!vsapi->propGetInt(in, "tff", 0, &err);
+    d.tff = !!vsapi->mapGetInt(in, "tff", 0, &err);
     d.tff_exists = !err;
 
 
     if (d.searchType < 0 || d.searchType > 7) {
-        vsapi->setError(out, "Recalculate: search must be between 0 and 7 (inclusive).");
+        vsapi->mapSetError(out, "Recalculate: search must be between 0 and 7 (inclusive).");
         return;
     }
 
     if (d.dctmode < 0 || d.dctmode > 10) {
-        vsapi->setError(out, "Recalculate: dct must be between 0 and 10 (inclusive).");
+        vsapi->mapSetError(out, "Recalculate: dct must be between 0 and 10 (inclusive).");
         return;
     }
 
     if (d.dctmode >= 5 && d.analysisData.nBlkSizeX == 16 && d.analysisData.nBlkSizeY == 2) {
-        vsapi->setError(out, "Recalculate: dct 5..10 cannot work with 16x2 blocks.");
+        vsapi->mapSetError(out, "Recalculate: dct 5..10 cannot work with 16x2 blocks.");
         return;
     }
 
     if (d.divideExtra < 0 || d.divideExtra > 2) {
-        vsapi->setError(out, "Recalculate: divide must be between 0 and 2 (inclusive).");
+        vsapi->mapSetError(out, "Recalculate: divide must be between 0 and 2 (inclusive).");
         return;
     }
 
@@ -374,25 +367,25 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
         (d.analysisData.nBlkSizeX != 128 || d.analysisData.nBlkSizeY != 64) &&
         (d.analysisData.nBlkSizeX != 128 || d.analysisData.nBlkSizeY != 128)) {
 
-        vsapi->setError(out, "Recalculate: the block size must be 4x4, 8x4, 8x8, 16x2, 16x8, 16x16, 32x16, 32x32, 64x32, 64x64, 128x64, or 128x128.");
+        vsapi->mapSetError(out, "Recalculate: the block size must be 4x4, 8x4, 8x8, 16x2, 16x8, 16x16, 32x16, 32x32, 64x32, 64x64, 128x64, or 128x128.");
         return;
     }
 
 
     if (d.pnew < 0 || d.pnew > 256) {
-        vsapi->setError(out, "Recalculate: pnew must be between 0 and 256 (inclusive).");
+        vsapi->mapSetError(out, "Recalculate: pnew must be between 0 and 256 (inclusive).");
         return;
     }
 
 
     if (d.analysisData.nOverlapX < 0 || d.analysisData.nOverlapX > d.analysisData.nBlkSizeX / 2 ||
         d.analysisData.nOverlapY < 0 || d.analysisData.nOverlapY > d.analysisData.nBlkSizeY / 2) {
-        vsapi->setError(out, "Recalculate: overlap must be at most half of blksize, overlapv must be at most half of blksizev, and they both need to be at least 0.");
+        vsapi->mapSetError(out, "Recalculate: overlap must be at most half of blksize, overlapv must be at most half of blksizev, and they both need to be at least 0.");
         return;
     }
 
     if (d.divideExtra && (d.analysisData.nBlkSizeX < 8 || d.analysisData.nBlkSizeY < 8)) {
-        vsapi->setError(out, "Recalculate: blksize and blksizev must be at least 8 when divide=True.");
+        vsapi->mapSetError(out, "Recalculate: blksize and blksizev must be at least 8 when divide=True.");
         return;
     }
 
@@ -403,19 +396,19 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
         d.nSearchParam = (d.searchparam < 1) ? 1 : d.searchparam;
 
 
-    d.node = vsapi->propGetNode(in, "super", 0, 0);
+    d.node = vsapi->mapGetNode(in, "super", 0, 0);
     d.vi = vsapi->getVideoInfo(d.node);
 
-    if (d.analysisData.nOverlapX % (1 << d.vi->format->subSamplingW) ||
-        d.analysisData.nOverlapY % (1 << d.vi->format->subSamplingH)) {
-        vsapi->setError(out, "Recalculate: The requested overlap is incompatible with the super clip's subsampling.");
+    if (d.analysisData.nOverlapX % (1 << d.vi->format.subSamplingW) ||
+        d.analysisData.nOverlapY % (1 << d.vi->format.subSamplingH)) {
+        vsapi->mapSetError(out, "Recalculate: The requested overlap is incompatible with the super clip's subsampling.");
         vsapi->freeNode(d.node);
         return;
     }
 
-    if (d.divideExtra && (d.analysisData.nOverlapX % (2 << d.vi->format->subSamplingW) ||
-                          d.analysisData.nOverlapY % (2 << d.vi->format->subSamplingH))) { // subsampling times 2
-        vsapi->setError(out, "Recalculate: overlap and overlapv must be multiples of 2 or 4 when divide=True, depending on the super clip's subsampling.");
+    if (d.divideExtra && (d.analysisData.nOverlapX % (2 << d.vi->format.subSamplingW) ||
+                          d.analysisData.nOverlapY % (2 << d.vi->format.subSamplingH))) { // subsampling times 2
+        vsapi->mapSetError(out, "Recalculate: overlap and overlapv must be multiples of 2 or 4 when divide=True, depending on the super clip's subsampling.");
         vsapi->freeNode(d.node);
         return;
     }
@@ -424,43 +417,43 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 #define ERROR_SIZE 1024
     char errorMsg[ERROR_SIZE] = "Recalculate: failed to retrieve first frame from super clip. Error message: ";
     size_t errorLen = strlen(errorMsg);
-    const VSFrameRef *evil = vsapi->getFrame(0, d.node, errorMsg + errorLen, ERROR_SIZE - errorLen);
+    const VSFrame *evil = vsapi->getFrame(0, d.node, errorMsg + errorLen, ERROR_SIZE - errorLen);
 #undef ERROR_SIZE
     if (!evil) {
-        vsapi->setError(out, errorMsg);
+        vsapi->mapSetError(out, errorMsg);
         vsapi->freeNode(d.node);
         return;
     }
-    const VSMap *props = vsapi->getFramePropsRO(evil);
+    const VSMap *props = vsapi->getFramePropertiesRO(evil);
     int evil_err[6];
-    int nHeight = int64ToIntS(vsapi->propGetInt(props, "Super_height", 0, &evil_err[0]));
-    d.nSuperHPad = int64ToIntS(vsapi->propGetInt(props, "Super_hpad", 0, &evil_err[1]));
-    d.nSuperVPad = int64ToIntS(vsapi->propGetInt(props, "Super_vpad", 0, &evil_err[2]));
-    d.nSuperPel = int64ToIntS(vsapi->propGetInt(props, "Super_pel", 0, &evil_err[3]));
-    d.nSuperModeYUV = int64ToIntS(vsapi->propGetInt(props, "Super_modeyuv", 0, &evil_err[4]));
-    d.nSuperLevels = int64ToIntS(vsapi->propGetInt(props, "Super_levels", 0, &evil_err[5]));
+    int nHeight = vsapi->mapGetIntSaturated(props, "Super_height", 0, &evil_err[0]);
+    d.nSuperHPad = vsapi->mapGetIntSaturated(props, "Super_hpad", 0, &evil_err[1]);
+    d.nSuperVPad = vsapi->mapGetIntSaturated(props, "Super_vpad", 0, &evil_err[2]);
+    d.nSuperPel = vsapi->mapGetIntSaturated(props, "Super_pel", 0, &evil_err[3]);
+    d.nSuperModeYUV = vsapi->mapGetIntSaturated(props, "Super_modeyuv", 0, &evil_err[4]);
+    d.nSuperLevels = vsapi->mapGetIntSaturated(props, "Super_levels", 0, &evil_err[5]);
     vsapi->freeFrame(evil);
 
     for (int i = 0; i < 6; i++)
         if (evil_err[i]) {
-            vsapi->setError(out, "Recalculate: required properties not found in first frame of super clip. Maybe clip didn't come from mv.Super? Was the first frame trimmed away?");
+            vsapi->mapSetError(out, "Recalculate: required properties not found in first frame of super clip. Maybe clip didn't come from mv.Super? Was the first frame trimmed away?");
             vsapi->freeNode(d.node);
             return;
         }
 
 
-    if (d.vi->format->colorFamily == cmGray)
+    if (d.vi->format.colorFamily == cfGray)
         d.chroma = 0;
 
     d.nModeYUV = d.chroma ? YUVPLANES : YPLANE;
 
     if ((d.nModeYUV & d.nSuperModeYUV) != d.nModeYUV) { //x
-        vsapi->setError(out, "Recalculate: super clip does not contain needed colour data.");
+        vsapi->mapSetError(out, "Recalculate: super clip does not contain needed colour data.");
         vsapi->freeNode(d.node);
         return;
     }
 
-    d.vectors = vsapi->propGetNode(in, "vectors", 0, NULL);
+    d.vectors = vsapi->mapGetNode(in, "vectors", 0, NULL);
 
 #define ERROR_SIZE 512
     char error[ERROR_SIZE + 1] = { 0 };
@@ -470,7 +463,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 #undef ERROR_SIZE
 
     if (error[0]) {
-        vsapi->setError(out, error);
+        vsapi->mapSetError(out, error);
 
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.vectors);
@@ -488,9 +481,9 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     d.analysisData.isBackward = d.vectors_data.isBackward;
 
 
-    d.analysisData.bitsPerSample = d.vi->format->bitsPerSample;
+    d.analysisData.bitsPerSample = d.vi->format.bitsPerSample;
 
-    int pixelMax = (1 << d.vi->format->bitsPerSample) - 1;
+    int pixelMax = (1 << d.vi->format.bitsPerSample) - 1;
     d.thSAD = (int64_t)((double)d.thSAD * pixelMax / 255.0 + 0.5);
     d.nLambda = (int)((double)d.nLambda * pixelMax / 255.0 + 0.5);
 
@@ -515,7 +508,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
 
     int nSuperWidth = d.vi->width;
     if (nHeight != d.analysisData.nHeight || nSuperWidth - 2 * d.nSuperHPad != d.analysisData.nWidth) {
-        vsapi->setError(out, "Recalculate: wrong frame size.");
+        vsapi->mapSetError(out, "Recalculate: wrong frame size.");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.vectors);
         return;
@@ -549,14 +542,19 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
     data = (MVRecalculateData *)malloc(sizeof(d));
     *data = d;
 
-    vsapi->createFilter(in, out, "Recalculate", mvrecalculateInit, mvrecalculateGetFrame, mvrecalculateFree, fmParallel, 0, data, core);
+    VSFilterDependency deps[2] = { 
+        {data->node, rpGeneral}, // super
+        {data->vectors, rpStrictSpatial},
+    };
+
+    vsapi->createVideoFilter(out, "Recalculate", data->vi, mvrecalculateGetFrame, mvrecalculateFree, fmParallel, deps, 2, data, core);
 }
 
 
-void mvrecalculateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
-    registerFunc("Recalculate",
-                 "super:clip;"
-                 "vectors:clip;"
+void mvrecalculateRegister(VSPlugin *plugin, const VSPLUGINAPI *vspapi) {
+    vspapi->registerFunction("Recalculate",
+                 "super:vnode;"
+                 "vectors:vnode;"
                  "thsad:int:opt;"
                  "smooth:int:opt;"
                  "blksize:int:opt;"
@@ -575,5 +573,6 @@ void mvrecalculateRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "fields:int:opt;"
                  "tff:int:opt;"
                  "dct:int:opt;",
+                 "clip:vnode;",
                  mvrecalculateCreate, 0, plugin);
 }

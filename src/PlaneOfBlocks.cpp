@@ -19,7 +19,7 @@
 
 // For posix_memalign.
 #define _POSIX_C_SOURCE 200112L
-#include <VSHelper.h>
+#include <VSHelper4.h>
 
 #include "CPU.h"
 #include "PlaneOfBlocks.h"
@@ -376,17 +376,17 @@ void pobInit(PlaneOfBlocks *pob, int _nBlkX, int _nBlkY, int _nBlkSizeX, int _nB
     // 64 required for effective use of x264 sad on Core2
 #define ALIGN_PLANES 64
 
-    VS_ALIGNED_MALLOC((void **)&pob->dctSrc, pob->nBlkSizeY * pob->dctpitch, ALIGN_PLANES);
-    VS_ALIGNED_MALLOC((void **)&pob->dctRef, pob->nBlkSizeY * pob->dctpitch, ALIGN_PLANES);
+    VSH_ALIGNED_MALLOC((void **)&pob->dctSrc, pob->nBlkSizeY * pob->dctpitch, ALIGN_PLANES);
+    VSH_ALIGNED_MALLOC((void **)&pob->dctRef, pob->nBlkSizeY * pob->dctpitch, ALIGN_PLANES);
 
     pob->nSrcPitch_temp[0] = pob->nBlkSizeX * pob->bytesPerSample;
     pob->nSrcPitch_temp[1] = pob->nBlkSizeX / pob->xRatioUV * pob->bytesPerSample;
     pob->nSrcPitch_temp[2] = pob->nSrcPitch_temp[1];
 
     // Four extra bytes because pixel_sad_4x4_mmx2 reads four bytes more than it should (but doesn't use them in any way).
-    VS_ALIGNED_MALLOC((void **)&pob->pSrc_temp[0], pob->nBlkSizeY * pob->nSrcPitch_temp[0] + 4, ALIGN_PLANES);
-    VS_ALIGNED_MALLOC((void **)&pob->pSrc_temp[1], pob->nBlkSizeY / pob->yRatioUV * pob->nSrcPitch_temp[1] + 4, ALIGN_PLANES);
-    VS_ALIGNED_MALLOC((void **)&pob->pSrc_temp[2], pob->nBlkSizeY / pob->yRatioUV * pob->nSrcPitch_temp[2] + 4, ALIGN_PLANES);
+    VSH_ALIGNED_MALLOC((void **)&pob->pSrc_temp[0], pob->nBlkSizeY * pob->nSrcPitch_temp[0] + 4, ALIGN_PLANES);
+    VSH_ALIGNED_MALLOC((void **)&pob->pSrc_temp[1], pob->nBlkSizeY / pob->yRatioUV * pob->nSrcPitch_temp[1] + 4, ALIGN_PLANES);
+    VSH_ALIGNED_MALLOC((void **)&pob->pSrc_temp[2], pob->nBlkSizeY / pob->yRatioUV * pob->nSrcPitch_temp[2] + 4, ALIGN_PLANES);
 
 #undef ALIGN_PLANES
 
@@ -401,12 +401,12 @@ void pobDeinit(PlaneOfBlocks *pob) {
     free(pob->vectors);
     free(pob->freqArray);
 
-    VS_ALIGNED_FREE(pob->dctSrc);
-    VS_ALIGNED_FREE(pob->dctRef);
+    VSH_ALIGNED_FREE(pob->dctSrc);
+    VSH_ALIGNED_FREE(pob->dctRef);
 
-    VS_ALIGNED_FREE(pob->pSrc_temp[0]);
-    VS_ALIGNED_FREE(pob->pSrc_temp[1]);
-    VS_ALIGNED_FREE(pob->pSrc_temp[2]);
+    VSH_ALIGNED_FREE(pob->pSrc_temp[0]);
+    VSH_ALIGNED_FREE(pob->pSrc_temp[1]);
+    VSH_ALIGNED_FREE(pob->pSrc_temp[2]);
 }
 
 

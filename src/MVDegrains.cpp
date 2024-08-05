@@ -22,8 +22,8 @@
 #include <string>
 #include <unordered_map>
 
-#include <VapourSynth.h>
-#include <VSHelper.h>
+#include <VapourSynth4.h>
+#include <VSHelper4.h>
 
 #include "Bullshit.h"
 #include "CPU.h"
@@ -34,11 +34,11 @@
 #include "Overlap.h"
 
 struct MVDegrainData {
-    VSNodeRef *node;
+    VSNode *node;
     const VSVideoInfo *vi;
 
-    VSNodeRef *super;
-    VSNodeRef *vectors[12];
+    VSNode *super;
+    VSNode *vectors[12];
 
     int64_t thSAD[3];
     int YUVplanes;
@@ -79,21 +79,11 @@ struct MVDegrainData {
     OverlapWindows *OverWins[3];
 };
 
-
-static void VS_CC mvdegrainInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    (void)in;
-    (void)out;
-    (void)core;
-    MVDegrainData *d = (MVDegrainData *)*instanceData;
-    vsapi->setVideoInfo(d->vi, 1, node);
-}
-
-
 template <int radius>
-static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+static const VSFrame *VS_CC mvdegrainGetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
     (void)frameData;
 
-    MVDegrainData *d = (MVDegrainData *)*instanceData;
+    MVDegrainData *d = (MVDegrainData *)instanceData;
 
     if (activationReason == arInitial) {
 
@@ -116,11 +106,11 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
 
         vsapi->requestFrameFilter(n, d->node, frameCtx);
     } else if (activationReason == arAllFramesReady) {
-        const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx);
-        VSFrameRef *dst = vsapi->newVideoFrame(d->vi->format, d->vi->width, d->vi->height, src, core);
+        const VSFrame *src = vsapi->getFrameFilter(n, d->node, frameCtx);
+        VSFrame *dst = vsapi->newVideoFrame(&d->vi->format, d->vi->width, d->vi->height, src, core);
 
-        int bitsPerSample = d->vi->format->bitsPerSample;
-        int bytesPerSample = d->vi->format->bytesPerSample;
+        int bitsPerSample = d->vi->format.bitsPerSample;
+        int bytesPerSample = d->vi->format.bytesPerSample;
 
         uint8_t *pDst[3] = { 0 };
         uint8_t *pDstCur[3] = { 0 };
@@ -134,13 +124,13 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
         int nLogPel = (d->vectors_data[0].nPel == 4) ? 2 : (d->vectors_data[0].nPel == 2) ? 1 : 0;
 
         FakeGroupOfPlanes fgops[radius * 2];
-        const VSFrameRef *refFrames[radius * 2] = { 0 };
+        const VSFrame *refFrames[radius * 2] = { 0 };
 
         for (int r = 0; r < radius * 2; r++) {
-            const VSFrameRef *frame = vsapi->getFrameFilter(n, d->vectors[r], frameCtx);
+            const VSFrame *frame = vsapi->getFrameFilter(n, d->vectors[r], frameCtx);
             fgopInit(&fgops[r], &d->vectors_data[r]);
-            const VSMap *mvprops = vsapi->getFramePropsRO(frame);
-            fgopUpdate(&fgops[r], (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+            const VSMap *mvprops = vsapi->getFramePropertiesRO(frame);
+            fgopUpdate(&fgops[r], (const uint8_t *)vsapi->mapGetData(mvprops, prop_MVTools_vectors, 0, NULL));
             isUsable[r] = fgopIsUsable(&fgops[r], d->nSCD1, d->nSCD2);
             vsapi->freeFrame(frame);
 
@@ -151,7 +141,7 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
         }
 
 
-        for (int i = 0; i < d->vi->format->numPlanes; i++) {
+        for (int i = 0; i < d->vi->format.numPlanes; i++) {
             pDst[i] = vsapi->getWritePtr(dst, i);
             nDstPitches[i] = vsapi->getStride(dst, i);
             pSrc[i] = vsapi->getReadPtr(src, i);
@@ -215,7 +205,7 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
         pSrcCur[2] = pSrc[2];
         // -----------------------------------------------------------------------------
 
-        for (int plane = 0; plane < d->vi->format->numPlanes; plane++) {
+        for (int plane = 0; plane < d->vi->format.numPlanes; plane++) {
             if (!d->process[plane]) {
                 memcpy(pDstCur[plane], pSrcCur[plane], nSrcPitches[plane] * nHeight[plane]);
                 continue;
@@ -244,7 +234,7 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
                         xx += nBlkSizeX[plane] * bytesPerSample;
 
                         if (bx == nBlkX - 1 && nWidth_B[0] < nWidth[0]) // right non-covered region
-                            vs_bitblt(pDstCur[plane] + nWidth_B[plane] * bytesPerSample, nDstPitches[plane],
+                            vsh::bitblt(pDstCur[plane] + nWidth_B[plane] * bytesPerSample, nDstPitches[plane],
                                       pSrcCur[plane] + nWidth_B[plane] * bytesPerSample, nSrcPitches[plane],
                                       (nWidth[plane] - nWidth_B[plane]) * bytesPerSample, nBlkSizeY[plane]);
                     }
@@ -252,7 +242,7 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
                     pSrcCur[plane] += nBlkSizeY[plane] * (nSrcPitches[plane]);
 
                     if (by == nBlkY - 1 && nHeight_B[0] < nHeight[0]) // bottom uncovered region
-                        vs_bitblt(pDstCur[plane], nDstPitches[plane],
+                        vsh::bitblt(pDstCur[plane], nDstPitches[plane],
                                   pSrcCur[plane], nSrcPitches[plane],
                                   nWidth[plane] * bytesPerSample, nHeight[plane] - nHeight_B[plane]);
                 }
@@ -296,12 +286,12 @@ static const VSFrameRef *VS_CC mvdegrainGetFrame(int n, int activationReason, vo
                 d->ToPixels(pDst[plane], nDstPitches[plane], DstTemp, dstTempPitch, nWidth_B[plane], nHeight_B[plane], bitsPerSample);
 
                 if (nWidth_B[0] < nWidth[0])
-                    vs_bitblt(pDst[plane] + nWidth_B[plane] * bytesPerSample, nDstPitches[plane],
+                    vsh::bitblt(pDst[plane] + nWidth_B[plane] * bytesPerSample, nDstPitches[plane],
                               pSrc[plane] + nWidth_B[plane] * bytesPerSample, nSrcPitches[plane],
                               (nWidth[plane] - nWidth_B[plane]) * bytesPerSample, nHeight_B[plane]);
 
                 if (nHeight_B[0] < nHeight[0]) // bottom noncovered region
-                    vs_bitblt(pDst[plane] + nDstPitches[plane] * nHeight_B[plane], nDstPitches[plane],
+                    vsh::bitblt(pDst[plane] + nDstPitches[plane] * nHeight_B[plane], nDstPitches[plane],
                               pSrc[plane] + nSrcPitches[plane] * nHeight_B[plane], nSrcPitches[plane],
                               nWidth[plane] * bytesPerSample, nHeight[plane] - nHeight_B[plane]);
             }
@@ -347,7 +337,7 @@ static void VS_CC mvdegrainFree(void *instanceData, VSCore *core, const VSAPI *v
     if (d->nOverlapX[0] || d->nOverlapY[0]) {
         overDeinit(d->OverWins[0]);
         free(d->OverWins[0]);
-        if (d->vi->format->colorFamily != cmGray) {
+        if (d->vi->format.colorFamily != cfGray) {
             overDeinit(d->OverWins[1]);
             free(d->OverWins[1]);
         }
@@ -490,9 +480,9 @@ static void selectFunctions(MVDegrainData *d) {
     const unsigned yRatioUV = d->vectors_data[0].yRatioUV;
     const unsigned nBlkSizeX = d->vectors_data[0].nBlkSizeX;
     const unsigned nBlkSizeY = d->vectors_data[0].nBlkSizeY;
-    const unsigned bits = d->vi->format->bytesPerSample * 8;
+    const unsigned bits = d->vi->format.bytesPerSample * 8;
 
-    if (d->vi->format->bitsPerSample == 8) {
+    if (d->vi->format.bitsPerSample == 8) {
         d->LimitChanges = LimitChanges_C<uint8_t>;
 
         d->ToPixels = ToPixels_uint16_t_uint8_t;
@@ -528,33 +518,33 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
 
     int err;
 
-    d.thSAD[0] = vsapi->propGetInt(in, "thsad", 0, &err);
+    d.thSAD[0] = vsapi->mapGetInt(in, "thsad", 0, &err);
     if (err)
         d.thSAD[0] = 400;
 
-    d.thSAD[1] = d.thSAD[2] = vsapi->propGetInt(in, "thsadc", 0, &err);
+    d.thSAD[1] = d.thSAD[2] = vsapi->mapGetInt(in, "thsadc", 0, &err);
     if (err)
         d.thSAD[1] = d.thSAD[2] = d.thSAD[0];
 
-    int plane = int64ToIntS(vsapi->propGetInt(in, "plane", 0, &err));
+    int plane = vsapi->mapGetIntSaturated(in, "plane", 0, &err);
     if (err)
         plane = 4;
 
-    d.nSCD1 = vsapi->propGetInt(in, "thscd1", 0, &err);
+    d.nSCD1 = vsapi->mapGetInt(in, "thscd1", 0, &err);
     if (err)
         d.nSCD1 = MV_DEFAULT_SCD1;
 
-    d.nSCD2 = int64ToIntS(vsapi->propGetInt(in, "thscd2", 0, &err));
+    d.nSCD2 = vsapi->mapGetIntSaturated(in, "thscd2", 0, &err);
     if (err)
         d.nSCD2 = MV_DEFAULT_SCD2;
 
-    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
+    d.opt = !!vsapi->mapGetInt(in, "opt", 0, &err);
     if (err)
         d.opt = 1;
 
 
     if (plane < 0 || plane > 4) {
-        vsapi->setError(out, (filter + ": plane must be between 0 and 4 (inclusive).").c_str());
+        vsapi->mapSetError(out, (filter + ": plane must be between 0 and 4 (inclusive).").c_str());
         return;
     }
 
@@ -562,28 +552,28 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
     d.YUVplanes = planes[plane];
 
 
-    d.super = vsapi->propGetNode(in, "super", 0, NULL);
+    d.super = vsapi->mapGetNode(in, "super", 0, NULL);
 
     char errorMsg[1024];
-    const VSFrameRef *evil = vsapi->getFrame(0, d.super, errorMsg, 1024);
+    const VSFrame *evil = vsapi->getFrame(0, d.super, errorMsg, 1024);
     if (!evil) {
-        vsapi->setError(out, (filter + ": failed to retrieve first frame from super clip. Error message: " + errorMsg).c_str());
+        vsapi->mapSetError(out, (filter + ": failed to retrieve first frame from super clip. Error message: " + errorMsg).c_str());
         vsapi->freeNode(d.super);
         return;
     }
-    const VSMap *props = vsapi->getFramePropsRO(evil);
+    const VSMap *props = vsapi->getFramePropertiesRO(evil);
     int evil_err[6];
-    int nHeightS = int64ToIntS(vsapi->propGetInt(props, "Super_height", 0, &evil_err[0]));
-    d.nSuperHPad = int64ToIntS(vsapi->propGetInt(props, "Super_hpad", 0, &evil_err[1]));
-    d.nSuperVPad = int64ToIntS(vsapi->propGetInt(props, "Super_vpad", 0, &evil_err[2]));
-    d.nSuperPel = int64ToIntS(vsapi->propGetInt(props, "Super_pel", 0, &evil_err[3]));
-    d.nSuperModeYUV = int64ToIntS(vsapi->propGetInt(props, "Super_modeyuv", 0, &evil_err[4]));
-    d.nSuperLevels = int64ToIntS(vsapi->propGetInt(props, "Super_levels", 0, &evil_err[5]));
+    int nHeightS = vsapi->mapGetIntSaturated(props, "Super_height", 0, &evil_err[0]);
+    d.nSuperHPad = vsapi->mapGetIntSaturated(props, "Super_hpad", 0, &evil_err[1]);
+    d.nSuperVPad = vsapi->mapGetIntSaturated(props, "Super_vpad", 0, &evil_err[2]);
+    d.nSuperPel = vsapi->mapGetIntSaturated(props, "Super_pel", 0, &evil_err[3]);
+    d.nSuperModeYUV = vsapi->mapGetIntSaturated(props, "Super_modeyuv", 0, &evil_err[4]);
+    d.nSuperLevels = vsapi->mapGetIntSaturated(props, "Super_levels", 0, &evil_err[5]);
     vsapi->freeFrame(evil);
 
     for (int i = 0; i < 6; i++)
         if (evil_err[i]) {
-            vsapi->setError(out, (filter + ": required properties not found in first frame of super clip. Maybe clip didn't come from mv.Super? Was the first frame trimmed away?").c_str());
+            vsapi->mapSetError(out, (filter + ": required properties not found in first frame of super clip. Maybe clip didn't come from mv.Super? Was the first frame trimmed away?").c_str());
             vsapi->freeNode(d.super);
             return;
         }
@@ -596,7 +586,7 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
     const char *vector_names[] = { "mvbw", "mvfw", "mvbw2", "mvfw2", "mvbw3", "mvfw3", "mvbw4", "mvfw4", "mvbw5", "mvfw5", "mvbw6", "mvfw6"};
 
     for (int r = 0; r < radius * 2; r++) {
-        d.vectors[r] = vsapi->propGetNode(in, vector_names[r], 0, NULL);
+        d.vectors[r] = vsapi->mapGetNode(in, vector_names[r], 0, NULL);
 
         adataFromVectorClip(&d.vectors_data[r], d.vectors[r], filter.c_str(), vector_names[r], vsapi, error, ERROR_SIZE);
     }
@@ -608,7 +598,7 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
         adataCheckSimilarity(&d.vectors_data[0], &d.vectors_data[r], filter.c_str(), vector_names[0], vector_names[r], error, ERROR_SIZE);
 
     if (error[0]) {
-        vsapi->setError(out, error);
+        vsapi->mapSetError(out, error);
 
         vsapi->freeNode(d.super);
         for (int r = 0; r < radius * 2; r++)
@@ -653,7 +643,7 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
 #undef ERROR_SIZE
 
     if (error[0]) {
-        vsapi->setError(out, (filter + ": " + error).c_str());
+        vsapi->mapSetError(out, (filter + ": " + error).c_str());
         vsapi->freeNode(d.super);
 
         for (int r = 0; r < radius * 2; r++)
@@ -671,7 +661,7 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
 
         bool c = d.thSAD[0] < INT_MAX;
 
-        vsapi->setError(out, (filter + ": with this block size and video format, thsad" + (c ? "c" : "") + " must not exceed " + std::to_string(maximum) + " or some calculations would overflow.").c_str());
+        vsapi->mapSetError(out, (filter + ": with this block size and video format, thsad" + (c ? "c" : "") + " must not exceed " + std::to_string(maximum) + " or some calculations would overflow.").c_str());
         vsapi->freeNode(d.super);
 
         for (int r = 0; r < radius * 2; r++)
@@ -681,14 +671,14 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
     }
 
 
-    d.node = vsapi->propGetNode(in, "clip", 0, 0);
+    d.node = vsapi->mapGetNode(in, "clip", 0, 0);
     d.vi = vsapi->getVideoInfo(d.node);
 
     const VSVideoInfo *supervi = vsapi->getVideoInfo(d.super);
     int nSuperWidth = supervi->width;
 
     if (d.vectors_data[0].nHeight != nHeightS || d.vectors_data[0].nHeight != d.vi->height || d.vectors_data[0].nWidth != nSuperWidth - d.nSuperHPad * 2 || d.vectors_data[0].nWidth != d.vi->width || d.vectors_data[0].nPel != d.nSuperPel) {
-        vsapi->setError(out, (filter + ": wrong source or super clip frame size.").c_str());
+        vsapi->mapSetError(out, (filter + ": wrong source or super clip frame size.").c_str());
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.node);
 
@@ -698,8 +688,8 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
         return;
     }
 
-    if (!isConstantFormat(d.vi) || d.vi->format->bitsPerSample > 16 || d.vi->format->sampleType != stInteger || d.vi->format->subSamplingW > 1 || d.vi->format->subSamplingH > 1 || (d.vi->format->colorFamily != cmYUV && d.vi->format->colorFamily != cmGray)) {
-        vsapi->setError(out, (filter + ": input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.").c_str());
+    if (!vsh::isConstantVideoFormat(d.vi) || d.vi->format.bitsPerSample > 16 || d.vi->format.sampleType != stInteger || d.vi->format.subSamplingW > 1 || d.vi->format.subSamplingH > 1 || (d.vi->format.colorFamily != cfYUV && d.vi->format.colorFamily != cfGray)) {
+        vsapi->mapSetError(out, (filter + ": input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.").c_str());
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.node);
 
@@ -709,18 +699,18 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
         return;
     }
 
-    int pixelMax = (1 << d.vi->format->bitsPerSample) - 1;
+    int pixelMax = (1 << d.vi->format.bitsPerSample) - 1;
 
-    d.nLimit[0] = int64ToIntS(vsapi->propGetInt(in, "limit", 0, &err));
+    d.nLimit[0] = vsapi->mapGetIntSaturated(in, "limit", 0, &err);
     if (err)
         d.nLimit[0] = pixelMax;
 
-    d.nLimit[1] = d.nLimit[2] = int64ToIntS(vsapi->propGetInt(in, "limitc", 0, &err));
+    d.nLimit[1] = d.nLimit[2] = vsapi->mapGetIntSaturated(in, "limitc", 0, &err);
     if (err)
         d.nLimit[1] = d.nLimit[2] = d.nLimit[0];
 
     if (d.nLimit[0] < 0 || d.nLimit[0] > pixelMax) {
-        vsapi->setError(out, (filter + ": limit must be between 0 and " + std::to_string(pixelMax) + " (inclusive).").c_str());
+        vsapi->mapSetError(out, (filter + ": limit must be between 0 and " + std::to_string(pixelMax) + " (inclusive).").c_str());
 
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.node);
@@ -732,7 +722,7 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
     }
 
     if (d.nLimit[1] < 0 || d.nLimit[1] > pixelMax) {
-        vsapi->setError(out, (filter + ": limitc must be between 0 and " + std::to_string(pixelMax) + " (inclusive).").c_str());
+        vsapi->mapSetError(out, (filter + ": limitc must be between 0 and " + std::to_string(pixelMax) + " (inclusive).").c_str());
 
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.node);
@@ -744,14 +734,14 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
     }
 
 
-    d.dstTempPitch = ((d.vectors_data[0].nWidth + 15) / 16) * 16 * d.vi->format->bytesPerSample * 2;
+    d.dstTempPitch = ((d.vectors_data[0].nWidth + 15) / 16) * 16 * d.vi->format.bytesPerSample * 2;
 
     d.process[0] = !!(d.YUVplanes & YPLANE);
     d.process[1] = !!(d.YUVplanes & UPLANE & d.nSuperModeYUV);
     d.process[2] = !!(d.YUVplanes & VPLANE & d.nSuperModeYUV);
 
-    d.xSubUV = d.vi->format->subSamplingW;
-    d.ySubUV = d.vi->format->subSamplingH;
+    d.xSubUV = d.vi->format.subSamplingW;
+    d.ySubUV = d.vi->format.subSamplingH;
 
     d.nWidth[0] = d.vectors_data[0].nWidth;
     d.nWidth[1] = d.nWidth[2] = d.nWidth[0] >> d.xSubUV;
@@ -781,7 +771,7 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
         d.OverWins[0] = (OverlapWindows *)malloc(sizeof(OverlapWindows));
         overInit(d.OverWins[0], d.nBlkSizeX[0], d.nBlkSizeY[0], d.nOverlapX[0], d.nOverlapY[0]);
 
-        if (d.vi->format->colorFamily != cmGray) {
+        if (d.vi->format.colorFamily != cfGray) {
             d.OverWins[1] = (OverlapWindows *)malloc(sizeof(OverlapWindows));
             overInit(d.OverWins[1], d.nBlkSizeX[1], d.nBlkSizeY[1], d.nOverlapX[1], d.nOverlapY[1]);
 
@@ -795,16 +785,34 @@ static void VS_CC mvdegrainCreate(const VSMap *in, VSMap *out, void *userData, V
     data = (MVDegrainData *)malloc(sizeof(d));
     *data = d;
 
-    vsapi->createFilter(in, out, filter.c_str(), mvdegrainInit, mvdegrainGetFrame<radius>, mvdegrainFree<radius>, fmParallel, 0, data, core);
+    const int numDeps = 2 + radius; // input clip, super, and corresponding backward and forward vectors.
+    VSFilterDependency deps[14] = { 
+        {data->node, rpStrictSpatial},
+        {data->super, rpGeneral},
+        {data->vectors[0], rpStrictSpatial},
+        {data->vectors[1], rpStrictSpatial},
+        {data->vectors[2], rpStrictSpatial},
+        {data->vectors[3], rpStrictSpatial},
+        {data->vectors[4], rpStrictSpatial},
+        {data->vectors[5], rpStrictSpatial},
+        {data->vectors[6], rpStrictSpatial},
+        {data->vectors[7], rpStrictSpatial},
+        {data->vectors[8], rpStrictSpatial},
+        {data->vectors[9], rpStrictSpatial},
+        {data->vectors[10], rpStrictSpatial},
+        {data->vectors[11], rpStrictSpatial},
+    };
+
+    vsapi->createVideoFilter(out, filter.c_str(), data->vi, mvdegrainGetFrame<radius>, mvdegrainFree<radius>, fmParallel, deps, numDeps, data, core);
 }
 
 
-extern "C" void mvdegrainsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
-    registerFunc("Degrain1",
-                 "clip:clip;"
-                 "super:clip;"
-                 "mvbw:clip;"
-                 "mvfw:clip;"
+extern "C" void mvdegrainsRegister(VSPlugin *plugin, const VSPLUGINAPI *vspapi) {
+    vspapi->registerFunction("Degrain1",
+                 "clip:vnode;"
+                 "super:vnode;"
+                 "mvbw:vnode;"
+                 "mvfw:vnode;"
                  "thsad:int:opt;"
                  "thsadc:int:opt;"
                  "plane:int:opt;"
@@ -813,14 +821,15 @@ extern "C" void mvdegrainsRegister(VSRegisterFunction registerFunc, VSPlugin *pl
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
                  "opt:int:opt;",
+                "clip:vnode;",
                  mvdegrainCreate<1>, 0, plugin);
-    registerFunc("Degrain2",
-                 "clip:clip;"
-                 "super:clip;"
-                 "mvbw:clip;"
-                 "mvfw:clip;"
-                 "mvbw2:clip;"
-                 "mvfw2:clip;"
+    vspapi->registerFunction("Degrain2",
+                 "clip:vnode;"
+                 "super:vnode;"
+                 "mvbw:vnode;"
+                 "mvfw:vnode;"
+                 "mvbw2:vnode;"
+                 "mvfw2:vnode;"
                  "thsad:int:opt;"
                  "thsadc:int:opt;"
                  "plane:int:opt;"
@@ -829,16 +838,17 @@ extern "C" void mvdegrainsRegister(VSRegisterFunction registerFunc, VSPlugin *pl
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
                  "opt:int:opt;",
+                "clip:vnode;",
                  mvdegrainCreate<2>, 0, plugin);
-    registerFunc("Degrain3",
-                 "clip:clip;"
-                 "super:clip;"
-                 "mvbw:clip;"
-                 "mvfw:clip;"
-                 "mvbw2:clip;"
-                 "mvfw2:clip;"
-                 "mvbw3:clip;"
-                 "mvfw3:clip;"
+    vspapi->registerFunction("Degrain3",
+                 "clip:vnode;"
+                 "super:vnode;"
+                 "mvbw:vnode;"
+                 "mvfw:vnode;"
+                 "mvbw2:vnode;"
+                 "mvfw2:vnode;"
+                 "mvbw3:vnode;"
+                 "mvfw3:vnode;"
                  "thsad:int:opt;"
                  "thsadc:int:opt;"
                  "plane:int:opt;"
@@ -847,18 +857,19 @@ extern "C" void mvdegrainsRegister(VSRegisterFunction registerFunc, VSPlugin *pl
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
                  "opt:int:opt;",
+                "clip:vnode;",
                  mvdegrainCreate<3>, 0, plugin);
-    registerFunc("Degrain4",
-                 "clip:clip;"
-                 "super:clip;"
-                 "mvbw:clip;"
-                 "mvfw:clip;"
-                 "mvbw2:clip;"
-                 "mvfw2:clip;"
-                 "mvbw3:clip;"
-                 "mvfw3:clip;"
-                 "mvbw4:clip;"
-                 "mvfw4:clip;"
+    vspapi->registerFunction("Degrain4",
+                 "clip:vnode;"
+                 "super:vnode;"
+                 "mvbw:vnode;"
+                 "mvfw:vnode;"
+                 "mvbw2:vnode;"
+                 "mvfw2:vnode;"
+                 "mvbw3:vnode;"
+                 "mvfw3:vnode;"
+                 "mvbw4:vnode;"
+                 "mvfw4:vnode;"
                  "thsad:int:opt;"
                  "thsadc:int:opt;"
                  "plane:int:opt;"
@@ -867,20 +878,21 @@ extern "C" void mvdegrainsRegister(VSRegisterFunction registerFunc, VSPlugin *pl
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
                  "opt:int:opt;",
+                "clip:vnode;",
                  mvdegrainCreate<4>, 0, plugin);
-    registerFunc("Degrain5",
-                 "clip:clip;"
-                 "super:clip;"
-                 "mvbw:clip;"
-                 "mvfw:clip;"
-                 "mvbw2:clip;"
-                 "mvfw2:clip;"
-                 "mvbw3:clip;"
-                 "mvfw3:clip;"
-                 "mvbw4:clip;"
-                 "mvfw4:clip;"
-                 "mvbw5:clip;"
-                 "mvfw5:clip;"
+    vspapi->registerFunction("Degrain5",
+                 "clip:vnode;"
+                 "super:vnode;"
+                 "mvbw:vnode;"
+                 "mvfw:vnode;"
+                 "mvbw2:vnode;"
+                 "mvfw2:vnode;"
+                 "mvbw3:vnode;"
+                 "mvfw3:vnode;"
+                 "mvbw4:vnode;"
+                 "mvfw4:vnode;"
+                 "mvbw5:vnode;"
+                 "mvfw5:vnode;"
                  "thsad:int:opt;"
                  "thsadc:int:opt;"
                  "plane:int:opt;"
@@ -889,22 +901,23 @@ extern "C" void mvdegrainsRegister(VSRegisterFunction registerFunc, VSPlugin *pl
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
                  "opt:int:opt;",
+                "clip:vnode;",
                  mvdegrainCreate<5>, 0, plugin);
-    registerFunc("Degrain6",
-                 "clip:clip;"
-                 "super:clip;"
-                 "mvbw:clip;"
-                 "mvfw:clip;"
-                 "mvbw2:clip;"
-                 "mvfw2:clip;"
-                 "mvbw3:clip;"
-                 "mvfw3:clip;"
-                 "mvbw4:clip;"
-                 "mvfw4:clip;"
-                 "mvbw5:clip;"
-                 "mvfw5:clip;"
-                 "mvbw6:clip;"
-                 "mvfw6:clip;"
+    vspapi->registerFunction("Degrain6",
+                 "clip:vnode;"
+                 "super:vnode;"
+                 "mvbw:vnode;"
+                 "mvfw:vnode;"
+                 "mvbw2:vnode;"
+                 "mvfw2:vnode;"
+                 "mvbw3:vnode;"
+                 "mvfw3:vnode;"
+                 "mvbw4:vnode;"
+                 "mvfw4:vnode;"
+                 "mvbw5:vnode;"
+                 "mvfw5:vnode;"
+                 "mvbw6:vnode;"
+                 "mvfw6:vnode;"
                  "thsad:int:opt;"
                  "thsadc:int:opt;"
                  "plane:int:opt;"
@@ -913,5 +926,6 @@ extern "C" void mvdegrainsRegister(VSRegisterFunction registerFunc, VSPlugin *pl
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
                  "opt:int:opt;",
+                "clip:vnode;",
                  mvdegrainCreate<6>, 0, plugin);
 }

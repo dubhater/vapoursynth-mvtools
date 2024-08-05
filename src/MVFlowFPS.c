@@ -22,8 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <VapourSynth.h>
-#include <VSHelper.h>
+#include <VapourSynth4.h>
+#include <VSHelper4.h>
 
 #include "Bullshit.h"
 #include "MVAnalysisData.h"
@@ -35,14 +35,14 @@
 
 
 typedef struct MVFlowFPSData {
-    VSNodeRef *node;
+    VSNode *node;
     VSVideoInfo vi;
     const VSVideoInfo *oldvi;
 
-    VSNodeRef *finest;
-    VSNodeRef *super;
-    VSNodeRef *mvbw;
-    VSNodeRef *mvfw;
+    VSNode *finest;
+    VSNode *super;
+    VSNode *mvbw;
+    VSNode *mvfw;
 
     int64_t num, den;
     int maskmode;
@@ -81,19 +81,10 @@ typedef struct MVFlowFPSData {
 } MVFlowFPSData;
 
 
-static void VS_CC mvflowfpsInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
-    (void)in;
-    (void)out;
-    (void)core;
-    MVFlowFPSData *d = (MVFlowFPSData *)*instanceData;
-    vsapi->setVideoInfo(&d->vi, 1, node);
-}
-
-
-static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+static const VSFrame *VS_CC mvflowfpsGetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
     (void)frameData;
 
-    const MVFlowFPSData *d = (const MVFlowFPSData *)*instanceData;
+    const MVFlowFPSData *d = (const MVFlowFPSData *)instanceData;
 
     if (activationReason == arInitial) {
         int off = d->mvbw_data.nDeltaFrame; // integer offset of reference frame
@@ -156,19 +147,19 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
         int isUsableF = 0;
         int isUsableB = 0;
 
-        const VSFrameRef *mvF = NULL, *mvB = NULL;
+        const VSFrame *mvF = NULL, *mvB = NULL;
 
         if (nleft < d->oldvi->numFrames && nright < d->oldvi->numFrames) {
             // forward from current to next
             mvF = vsapi->getFrameFilter(nright, d->mvfw, frameCtx);
-            const VSMap *mvprops = vsapi->getFramePropsRO(mvF);
-            fgopUpdate(&fgopF, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+            const VSMap *mvprops = vsapi->getFramePropertiesRO(mvF);
+            fgopUpdate(&fgopF, (const uint8_t *)vsapi->mapGetData(mvprops, prop_MVTools_vectors, 0, NULL));
             isUsableF = fgopIsUsable(&fgopF, d->thscd1, d->thscd2);
 
             // backward from next to current
             mvB = vsapi->getFrameFilter(nleft, d->mvbw, frameCtx);
-            mvprops = vsapi->getFramePropsRO(mvB);
-            fgopUpdate(&fgopB, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+            mvprops = vsapi->getFramePropertiesRO(mvB);
+            fgopUpdate(&fgopB, (const uint8_t *)vsapi->mapGetData(mvprops, prop_MVTools_vectors, 0, NULL));
             isUsableB = fgopIsUsable(&fgopB, d->thscd1, d->thscd2);
         }
 
@@ -201,8 +192,8 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
         const SimpleResize *upsizer = &d->upsizer;
         const SimpleResize *upsizerUV = &d->upsizerUV;
 
-        int bitsPerSample = d->vi.format->bitsPerSample;
-        int bytesPerSample = d->vi.format->bytesPerSample;
+        int bitsPerSample = d->vi.format.bitsPerSample;
+        int bytesPerSample = d->vi.format.bytesPerSample;
 
         if (isUsableB && isUsableF) {
             uint8_t *pDst[3] = { NULL };
@@ -212,25 +203,25 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
             int nRefPitches[3] = { 0 };
 
             // Put this before any allocations so we don't have to free much in case of error.
-            const VSMap *props = vsapi->getFramePropsRO(mvB);
+            const VSMap *props = vsapi->getFramePropertiesRO(mvB);
             int err[8] = { 0 };
-            const int16_t *VXFullYB = (const int16_t *)vsapi->propGetData(props, prop_VXFullY, 0, &err[0]);
-            const int16_t *VYFullYB = (const int16_t *)vsapi->propGetData(props, prop_VYFullY, 0, &err[1]);
+            const int16_t *VXFullYB = (const int16_t *)vsapi->mapGetData(props, prop_VXFullY, 0, &err[0]);
+            const int16_t *VYFullYB = (const int16_t *)vsapi->mapGetData(props, prop_VYFullY, 0, &err[1]);
             const int16_t *VXFullUVB = NULL;
             const int16_t *VYFullUVB = NULL;
-            if (d->vi.format->colorFamily != cmGray) {
-                VXFullUVB = (const int16_t *)vsapi->propGetData(props, prop_VXFullUV, 0, &err[2]);
-                VYFullUVB = (const int16_t *)vsapi->propGetData(props, prop_VYFullUV, 0, &err[3]);
+            if (d->vi.format.colorFamily != cfGray) {
+                VXFullUVB = (const int16_t *)vsapi->mapGetData(props, prop_VXFullUV, 0, &err[2]);
+                VYFullUVB = (const int16_t *)vsapi->mapGetData(props, prop_VYFullUV, 0, &err[3]);
             }
 
-            props = vsapi->getFramePropsRO(mvF);
-            const int16_t *VXFullYF = (const int16_t *)vsapi->propGetData(props, prop_VXFullY, 0, &err[4]);
-            const int16_t *VYFullYF = (const int16_t *)vsapi->propGetData(props, prop_VYFullY, 0, &err[5]);
+            props = vsapi->getFramePropertiesRO(mvF);
+            const int16_t *VXFullYF = (const int16_t *)vsapi->mapGetData(props, prop_VXFullY, 0, &err[4]);
+            const int16_t *VYFullYF = (const int16_t *)vsapi->mapGetData(props, prop_VYFullY, 0, &err[5]);
             const int16_t *VXFullUVF = NULL;
             const int16_t *VYFullUVF = NULL;
-            if (d->vi.format->colorFamily != cmGray) {
-                VXFullUVF = (const int16_t *)vsapi->propGetData(props, prop_VXFullUV, 0, &err[6]);
-                VYFullUVF = (const int16_t *)vsapi->propGetData(props, prop_VYFullUV, 0, &err[7]);
+            if (d->vi.format.colorFamily != cfGray) {
+                VXFullUVF = (const int16_t *)vsapi->mapGetData(props, prop_VXFullUV, 0, &err[6]);
+                VYFullUVF = (const int16_t *)vsapi->mapGetData(props, prop_VYFullUV, 0, &err[7]);
             }
             for (int i = 0; i < 8; i++) {
                 if (err[i]) {
@@ -247,11 +238,11 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
             }
 
             // If both are usable, that means both nleft and nright are less than oldvi->numFrames. Thus there is no need to check nleft and nright here.
-            const VSFrameRef *src = vsapi->getFrameFilter(nleft, d->finest, frameCtx);
-            const VSFrameRef *ref = vsapi->getFrameFilter(nright, d->finest, frameCtx); //  right frame for  compensation
-            VSFrameRef *dst = vsapi->newVideoFrame(d->vi.format, d->vi.width, d->vi.height, src, core);
+            const VSFrame *src = vsapi->getFrameFilter(nleft, d->finest, frameCtx);
+            const VSFrame *ref = vsapi->getFrameFilter(nright, d->finest, frameCtx); //  right frame for  compensation
+            VSFrame *dst = vsapi->newVideoFrame(&d->vi.format, d->vi.width, d->vi.height, src, core);
 
-            for (int i = 0; i < d->vi.format->numPlanes; i++) {
+            for (int i = 0; i < d->vi.format.numPlanes; i++) {
                 pDst[i] = vsapi->getWritePtr(dst, i);
                 pRef[i] = vsapi->getReadPtr(ref, i);
                 pSrc[i] = vsapi->getReadPtr(src, i);
@@ -299,7 +290,7 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
             uint8_t *MaskSmallF = (uint8_t *)malloc(nBlkXP * nBlkYP);
             uint8_t *MaskFullYF = (uint8_t *)malloc(nHeightP * VPitchY);
 
-            if (d->vi.format->colorFamily != cmGray) {
+            if (d->vi.format.colorFamily != cfGray) {
                 if (maskmode == 2) {
                     VXFullUVBB = (int16_t *)malloc(nHeightPUV * VPitchUV * sizeof(int16_t));
                     VYFullUVBB = (int16_t *)malloc(nHeightPUV * VPitchUV * sizeof(int16_t));
@@ -323,7 +314,7 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
             CheckAndPadMaskSmall(MaskSmallB, nBlkXP, nBlkYP, nBlkX, nBlkY);
 
             upsizer->simpleResize_uint8_t(upsizer, MaskFullYB, VPitchY, MaskSmallB, nBlkXP, 0);
-            if (d->vi.format->colorFamily != cmGray)
+            if (d->vi.format.colorFamily != cfGray)
                 upsizer->simpleResize_uint8_t(upsizerUV, MaskFullUVB, VPitchUV, MaskSmallB, nBlkXP, 0);
 
             // analyse vectors field to detect occlusion
@@ -334,23 +325,23 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
             CheckAndPadMaskSmall(MaskSmallF, nBlkXP, nBlkYP, nBlkX, nBlkY);
 
             upsizer->simpleResize_uint8_t(upsizer, MaskFullYF, VPitchY, MaskSmallF, nBlkXP, 0);
-            if (d->vi.format->colorFamily != cmGray)
+            if (d->vi.format.colorFamily != cfGray)
                 upsizerUV->simpleResize_uint8_t(upsizerUV, MaskFullUVF, VPitchUV, MaskSmallF, nBlkXP, 0);
 
             if (maskmode == 2) { // These motion vectors should only be needed with maskmode 2. Why was the Avisynth plugin requesting them for all mask modes?
                 // Get motion info from more frames for occlusion areas
 
                 // forward from previous to current
-                const VSFrameRef *mvFF = vsapi->getFrameFilter(nleft, d->mvfw, frameCtx);
-                const VSMap *mvprops = vsapi->getFramePropsRO(mvFF);
-                fgopUpdate(&fgopF, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+                const VSFrame *mvFF = vsapi->getFrameFilter(nleft, d->mvfw, frameCtx);
+                const VSMap *mvprops = vsapi->getFramePropertiesRO(mvFF);
+                fgopUpdate(&fgopF, (const uint8_t *)vsapi->mapGetData(mvprops, prop_MVTools_vectors, 0, NULL));
                 isUsableF = fgopIsUsable(&fgopF, d->thscd1, d->thscd2);
                 vsapi->freeFrame(mvFF);
 
                 // backward from next next to next
-                const VSFrameRef *mvBB = vsapi->getFrameFilter(nright, d->mvbw, frameCtx);
-                mvprops = vsapi->getFramePropsRO(mvBB);
-                fgopUpdate(&fgopB, (const uint8_t *)vsapi->propGetData(mvprops, prop_MVTools_vectors, 0, NULL));
+                const VSFrame *mvBB = vsapi->getFrameFilter(nright, d->mvbw, frameCtx);
+                mvprops = vsapi->getFramePropertiesRO(mvBB);
+                fgopUpdate(&fgopB, (const uint8_t *)vsapi->mapGetData(mvprops, prop_MVTools_vectors, 0, NULL));
                 isUsableB = fgopIsUsable(&fgopB, d->thscd1, d->thscd2);
                 vsapi->freeFrame(mvBB);
             }
@@ -378,7 +369,7 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
                                   MaskFullYB, MaskFullYF, VPitchY,
                                   nWidth, nHeight, time256, nPel,
                                   VXFullYBB, VXFullYFF, VYFullYBB, VYFullYFF);
-                if (d->vi.format->colorFamily != cmGray) {
+                if (d->vi.format.colorFamily != cfGray) {
                     VectorSmallMaskYToHalfUV(VXSmallYBB, nBlkXP, nBlkYP, VXSmallUVBB, xRatioUV);
                     VectorSmallMaskYToHalfUV(VYSmallYBB, nBlkXP, nBlkYP, VYSmallUVBB, yRatioUV);
                     VectorSmallMaskYToHalfUV(VXSmallYFF, nBlkXP, nBlkYP, VXSmallUVFF, xRatioUV);
@@ -409,7 +400,7 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
                              VXFullYB, VXFullYF, VYFullYB, VYFullYF,
                              MaskFullYB, MaskFullYF, VPitchY,
                              nWidth, nHeight, time256, nPel);
-                if (d->vi.format->colorFamily != cmGray) {
+                if (d->vi.format.colorFamily != cfGray) {
                     d->FlowInter(pDst[1], nDstPitches[1],
                                  pRef[1] + nOffsetUV, pSrc[1] + nOffsetUV, nRefPitches[1],
                                  VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF,
@@ -427,7 +418,7 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
                                    VXFullYB, VXFullYF, VYFullYB, VYFullYF,
                                    MaskFullYB, MaskFullYF, VPitchY,
                                    nWidth, nHeight, time256, nPel);
-                if (d->vi.format->colorFamily != cmGray) {
+                if (d->vi.format.colorFamily != cfGray) {
                     d->FlowInterSimple(pDst[1], nDstPitches[1],
                                        pRef[1] + nOffsetUV, pSrc[1] + nOffsetUV, nRefPitches[1],
                                        VXFullUVB, VXFullUVF, VYFullUVB, VYFullUVF,
@@ -457,7 +448,7 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
             free(MaskSmallF);
             free(MaskFullYF);
 
-            if (d->vi.format->colorFamily != cmGray) {
+            if (d->vi.format.colorFamily != cfGray) {
                 if (maskmode == 2) {
                     free(VXFullUVBB);
                     free(VYFullUVBB);
@@ -490,18 +481,18 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
             vsapi->freeFrame(mvB);
             vsapi->freeFrame(mvF);
 
-            const VSFrameRef *src = vsapi->getFrameFilter(VSMIN(nleft, d->oldvi->numFrames - 1), d->node, frameCtx);
+            const VSFrame *src = vsapi->getFrameFilter(VSMIN(nleft, d->oldvi->numFrames - 1), d->node, frameCtx);
 
             if (blend) { //let's blend src with ref frames like ConvertFPS
                 uint8_t *pDst[3];
                 const uint8_t *pRef[3], *pSrc[3];
                 int nDstPitches[3], nRefPitches[3], nSrcPitches[3];
 
-                const VSFrameRef *ref = vsapi->getFrameFilter(VSMIN(nright, d->oldvi->numFrames - 1), d->node, frameCtx);
+                const VSFrame *ref = vsapi->getFrameFilter(VSMIN(nright, d->oldvi->numFrames - 1), d->node, frameCtx);
 
-                VSFrameRef *dst = vsapi->newVideoFrame(d->vi.format, d->vi.width, d->vi.height, src, core);
+                VSFrame *dst = vsapi->newVideoFrame(&d->vi.format, d->vi.width, d->vi.height, src, core);
 
-                for (int i = 0; i < d->vi.format->numPlanes; i++) {
+                for (int i = 0; i < d->vi.format.numPlanes; i++) {
                     pDst[i] = vsapi->getWritePtr(dst, i);
                     pRef[i] = vsapi->getReadPtr(ref, i);
                     pSrc[i] = vsapi->getReadPtr(src, i);
@@ -512,7 +503,7 @@ static const VSFrameRef *VS_CC mvflowfpsGetFrame(int n, int activationReason, vo
 
                 // blend with time weight
                 Blend(pDst[0], pSrc[0], pRef[0], nHeight, nWidth, nDstPitches[0], nSrcPitches[0], nRefPitches[0], time256, bitsPerSample);
-                if (d->vi.format->colorFamily != cmGray) {
+                if (d->vi.format.colorFamily != cfGray) {
                     Blend(pDst[1], pSrc[1], pRef[1], nHeightUV, nWidthUV, nDstPitches[1], nSrcPitches[1], nRefPitches[1], time256, bitsPerSample);
                     Blend(pDst[2], pSrc[2], pRef[2], nHeightUV, nWidthUV, nDstPitches[2], nSrcPitches[2], nRefPitches[2], time256, bitsPerSample);
                 }
@@ -537,7 +528,7 @@ static void VS_CC mvflowfpsFree(void *instanceData, VSCore *core, const VSAPI *v
     MVFlowFPSData *d = (MVFlowFPSData *)instanceData;
 
 
-    if (d->vi.format->colorFamily != cmGray)
+    if (d->vi.format.colorFamily != cfGray)
         simpleDeinit(&d->upsizerUV);
 
     simpleDeinit(&d->upsizer);
@@ -577,79 +568,79 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
 
     int err;
 
-    d.num = vsapi->propGetInt(in, "num", 0, &err);
+    d.num = vsapi->mapGetInt(in, "num", 0, &err);
     if (err)
         d.num = 25;
 
-    d.den = vsapi->propGetInt(in, "den", 0, &err);
+    d.den = vsapi->mapGetInt(in, "den", 0, &err);
     if (err)
         d.den = 1;
 
-    d.maskmode = int64ToIntS(vsapi->propGetInt(in, "mask", 0, &err));
+    d.maskmode = vsapi->mapGetIntSaturated(in, "mask", 0, &err);
     if (err)
         d.maskmode = 2;
 
-    d.ml = vsapi->propGetFloat(in, "ml", 0, &err);
+    d.ml = vsapi->mapGetFloat(in, "ml", 0, &err);
     if (err)
         d.ml = 100.0;
 
-    d.blend = !!vsapi->propGetInt(in, "blend", 0, &err);
+    d.blend = !!vsapi->mapGetInt(in, "blend", 0, &err);
     if (err)
         d.blend = 1;
 
-    d.thscd1 = vsapi->propGetInt(in, "thscd1", 0, &err);
+    d.thscd1 = vsapi->mapGetInt(in, "thscd1", 0, &err);
     if (err)
         d.thscd1 = MV_DEFAULT_SCD1;
 
-    d.thscd2 = int64ToIntS(vsapi->propGetInt(in, "thscd2", 0, &err));
+    d.thscd2 = vsapi->mapGetIntSaturated(in, "thscd2", 0, &err);
     if (err)
         d.thscd2 = MV_DEFAULT_SCD2;
 
-    d.opt = !!vsapi->propGetInt(in, "opt", 0, &err);
+    d.opt = !!vsapi->mapGetInt(in, "opt", 0, &err);
     if (err)
         d.opt = 1;
 
 
     if (d.maskmode < 0 || d.maskmode > 2) {
-        vsapi->setError(out, "FlowFPS: mask must be 0, 1, or 2.");
+        vsapi->mapSetError(out, "FlowFPS: mask must be 0, 1, or 2.");
         return;
     }
 
     if (d.ml <= 0.0) {
-        vsapi->setError(out, "FlowFPS: ml must be greater than 0.");
+        vsapi->mapSetError(out, "FlowFPS: ml must be greater than 0.");
         return;
     }
 
 
-    d.super = vsapi->propGetNode(in, "super", 0, NULL);
+    d.super = vsapi->mapGetNode(in, "super", 0, NULL);
 
 #define ERROR_SIZE 1024
     char errorMsg[ERROR_SIZE] = "FlowFPS: failed to retrieve first frame from super clip. Error message: ";
     size_t errorLen = strlen(errorMsg);
-    const VSFrameRef *evil = vsapi->getFrame(0, d.super, errorMsg + errorLen, ERROR_SIZE - errorLen);
+    const VSFrame *evil = vsapi->getFrame(0, d.super, errorMsg + errorLen, ERROR_SIZE - errorLen);
 #undef ERROR_SIZE
     if (!evil) {
-        vsapi->setError(out, errorMsg);
+        vsapi->mapSetError(out, errorMsg);
         vsapi->freeNode(d.super);
         return;
     }
-    const VSMap *props = vsapi->getFramePropsRO(evil);
+    const VSMap *props = vsapi->getFramePropertiesRO(evil);
     int evil_err[3];
-    int nHeightS = int64ToIntS(vsapi->propGetInt(props, "Super_height", 0, &evil_err[0]));
-    d.nSuperHPad = int64ToIntS(vsapi->propGetInt(props, "Super_hpad", 0, &evil_err[1]));
-    int nSuperPel = int64ToIntS(vsapi->propGetInt(props, "Super_pel", 0, &evil_err[2]));
+    int nHeightS = vsapi->mapGetIntSaturated(props, "Super_height", 0, &evil_err[0]);
+    d.nSuperHPad = vsapi->mapGetIntSaturated(props, "Super_hpad", 0, &evil_err[1]);
+    int nSuperPel = vsapi->mapGetIntSaturated(props, "Super_pel", 0, &evil_err[2]);
     vsapi->freeFrame(evil);
 
     for (int i = 0; i < 2; i++)
         if (evil_err[i]) {
-            vsapi->setError(out, "FlowFPS: required properties not found in first frame of super clip. Maybe clip didn't come from mv.Super? Was the first frame trimmed away?");
+            vsapi->mapSetError(out, "FlowFPS: required properties not found in first frame of super clip. Maybe clip didn't come from mv.Super? Was the first frame trimmed away?");
             vsapi->freeNode(d.super);
             return;
         }
 
 
-    d.mvbw = vsapi->propGetNode(in, "mvbw", 0, NULL);
-    d.mvfw = vsapi->propGetNode(in, "mvfw", 0, NULL);
+    d.mvbw = vsapi->mapGetNode(in, "mvbw", 0, NULL);
+    d.mvfw = vsapi->mapGetNode(in, "mvfw", 0, NULL);
 
     {
 #define ERROR_SIZE 512
@@ -665,7 +656,7 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
 #undef ERROR_SIZE
 
         if (error[0]) {
-            vsapi->setError(out, error);
+            vsapi->mapSetError(out, error);
 
             vsapi->freeNode(d.super);
             vsapi->freeNode(d.mvfw);
@@ -677,7 +668,7 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
 
     // XXX Alternatively, use both clips' delta as offsets in GetFrame.
     if (d.mvbw_data.nDeltaFrame != d.mvfw_data.nDeltaFrame) {
-        vsapi->setError(out, "FlowFPS: mvbw and mvfw must be generated with the same delta.");
+        vsapi->mapSetError(out, "FlowFPS: mvbw and mvfw must be generated with the same delta.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -687,9 +678,9 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
     // Make sure the motion vector clips are correct.
     if (!d.mvbw_data.isBackward || d.mvfw_data.isBackward) {
         if (!d.mvbw_data.isBackward)
-            vsapi->setError(out, "FlowFPS: mvbw must be generated with isb=True.");
+            vsapi->mapSetError(out, "FlowFPS: mvbw must be generated with isb=True.");
         else
-            vsapi->setError(out, "FlowFPS: mvfw must be generated with isb=False.");
+            vsapi->mapSetError(out, "FlowFPS: mvfw must be generated with isb=False.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
         vsapi->freeNode(d.mvbw);
@@ -698,21 +689,20 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
 
 
     if (d.mvbw_data.nPel == 1)
-        d.finest = vsapi->cloneNodeRef(d.super); // v2.0.9.1
+        d.finest = vsapi->addNodeRef(d.super); // v2.0.9.1
     else {
-        VSPlugin *mvtoolsPlugin = vsapi->getPluginById("com.nodame.mvtools", core);
-        VSPlugin *stdPlugin = vsapi->getPluginById("com.vapoursynth.std", core);
+        VSPlugin *mvtoolsPlugin = vsapi->getPluginByID("com.nodame.mvtools", core);
 
         VSMap *args = vsapi->createMap();
-        vsapi->propSetNode(args, "super", d.super, paReplace);
-        vsapi->propSetInt(args, "opt", d.opt, paReplace);
+        vsapi->mapSetNode(args, "super", d.super, maReplace);
+        vsapi->mapSetInt(args, "opt", d.opt, maReplace);
         VSMap *ret = vsapi->invoke(mvtoolsPlugin, "Finest", args);
-        if (vsapi->getError(ret)) {
+        if (vsapi->mapGetError(ret)) {
 #define ERROR_SIZE 512
             char error_msg[ERROR_SIZE + 1] = { 0 };
-            snprintf(error_msg, ERROR_SIZE, "FlowFPS: %s", vsapi->getError(ret));
+            snprintf(error_msg, ERROR_SIZE, "FlowFPS: %s", vsapi->mapGetError(ret));
 #undef ERROR_SIZE
-            vsapi->setError(out, error_msg);
+            vsapi->mapSetError(out, error_msg);
 
             vsapi->freeNode(d.super);
             vsapi->freeNode(d.mvfw);
@@ -721,38 +711,18 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
             vsapi->freeMap(ret);
             return;
         }
-        d.finest = vsapi->propGetNode(ret, "clip", 0, NULL);
-        vsapi->freeMap(ret);
-
-        vsapi->clearMap(args);
-        vsapi->propSetNode(args, "clip", d.finest, paReplace);
-        vsapi->freeNode(d.finest);
-        ret = vsapi->invoke(stdPlugin, "Cache", args);
+        d.finest = vsapi->mapGetNode(ret, "clip", 0, NULL);
         vsapi->freeMap(args);
-        if (vsapi->getError(ret)) {
-#define ERROR_SIZE 512
-            char error_msg[ERROR_SIZE + 1] = { 0 };
-            snprintf(error_msg, ERROR_SIZE, "FlowFPS: %s", vsapi->getError(ret));
-#undef ERROR_SIZE
-            vsapi->setError(out, error_msg);
-
-            vsapi->freeNode(d.super);
-            vsapi->freeNode(d.mvfw);
-            vsapi->freeNode(d.mvbw);
-            vsapi->freeMap(ret);
-            return;
-        }
-        d.finest = vsapi->propGetNode(ret, "clip", 0, NULL);
         vsapi->freeMap(ret);
     }
 
-    d.node = vsapi->propGetNode(in, "clip", 0, 0);
+    d.node = vsapi->mapGetNode(in, "clip", 0, 0);
     d.oldvi = vsapi->getVideoInfo(d.node);
     d.vi = *d.oldvi;
 
 
     if (d.vi.fpsNum == 0 || d.vi.fpsDen == 0) {
-        vsapi->setError(out, "FlowFPS: The input clip must have a frame rate. Invoke AssumeFPS if necessary.");
+        vsapi->mapSetError(out, "FlowFPS: The input clip must have a frame rate. Invoke AssumeFPS if necessary.");
         vsapi->freeNode(d.finest);
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
@@ -786,7 +756,7 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
 
 
     if (d.mvbw_data.nWidth != d.vi.width || d.mvbw_data.nHeight != d.vi.height) {
-        vsapi->setError(out, "FlowFPS: inconsistent source and vector frame size.");
+        vsapi->mapSetError(out, "FlowFPS: inconsistent source and vector frame size.");
         vsapi->freeNode(d.finest);
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
@@ -800,7 +770,7 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
     int nSuperWidth = supervi->width;
 
     if (d.mvbw_data.nHeight != nHeightS || d.mvbw_data.nWidth != nSuperWidth - d.nSuperHPad * 2 || d.mvbw_data.nPel != nSuperPel) {
-        vsapi->setError(out, "FlowFPS: wrong source or super clip frame size.");
+        vsapi->mapSetError(out, "FlowFPS: wrong source or super clip frame size.");
         vsapi->freeNode(d.finest);
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
@@ -810,7 +780,7 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
     }
 
     if (!((d.mvbw_data.nWidth + d.mvbw_data.nHPadding * 2) == supervi->width && (d.mvbw_data.nHeight + d.mvbw_data.nVPadding * 2) <= supervi->height)) {
-        vsapi->setError(out, "FlowFPS: inconsistent clips frame size! Incomprehensible error messages are the best, right?");
+        vsapi->mapSetError(out, "FlowFPS: inconsistent clips frame size! Incomprehensible error messages are the best, right?");
         vsapi->freeNode(d.finest);
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.mvfw);
@@ -819,8 +789,8 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
         return;
     }
 
-    if (!isConstantFormat(&d.vi) || d.vi.format->bitsPerSample > 16 || d.vi.format->sampleType != stInteger || d.vi.format->subSamplingW > 1 || d.vi.format->subSamplingH > 1 || (d.vi.format->colorFamily != cmYUV && d.vi.format->colorFamily != cmGray)) {
-        vsapi->setError(out, "FlowFPS: input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.");
+    if (!vsh_isConstantVideoFormat(&d.vi) || d.vi.format.bitsPerSample > 16 || d.vi.format.sampleType != stInteger || d.vi.format.subSamplingW > 1 || d.vi.format.subSamplingH > 1 || (d.vi.format.colorFamily != cfYUV && d.vi.format.colorFamily != cfGray)) {
+        vsapi->mapSetError(out, "FlowFPS: input clip must be GRAY, 420, 422, 440, or 444, up to 16 bits, with constant dimensions.");
         vsapi->freeNode(d.super);
         vsapi->freeNode(d.finest);
         vsapi->freeNode(d.mvfw);
@@ -852,10 +822,10 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
     d.VPitchUV = (d.nWidthPUV + 15) & (~15);
 
     simpleInit(&d.upsizer, d.nWidthP, d.nHeightP, d.nBlkXP, d.nBlkYP, d.mvbw_data.nWidth, d.mvbw_data.nHeight, d.mvbw_data.nPel, d.opt);
-    if (d.vi.format->colorFamily != cmGray)
+    if (d.vi.format.colorFamily != cfGray)
         simpleInit(&d.upsizerUV, d.nWidthPUV, d.nHeightPUV, d.nBlkXP, d.nBlkYP, d.nWidthUV, d.nHeightUV, d.mvbw_data.nPel, d.opt);
 
-    selectFlowInterFunctions(&d.FlowInterSimple, &d.FlowInter, &d.FlowInterExtra, d.vi.format->bitsPerSample, d.opt);
+    selectFlowInterFunctions(&d.FlowInterSimple, &d.FlowInter, &d.FlowInterExtra, d.vi.format.bitsPerSample, d.opt);
 
 
     MVFlowFPSHelperData *hb = (MVFlowFPSHelperData *)malloc(sizeof(MVFlowFPSHelperData));
@@ -880,85 +850,69 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
     hb->upsizer = hf->upsizer = d.upsizer;
     hb->upsizerUV = hf->upsizerUV = d.upsizerUV;
 
-    vsapi->createFilter(in, out, "FlowFPSHelper", mvflowfpshelperInit, mvflowfpshelperGetFrame, mvflowfpshelperFree, fmParallel, 0, hb, core);
+    VSFilterDependency hb_deps[1] = { 
+        {hb->vectors, rpStrictSpatial}
+    };
 
-    VSPlugin *std_plugin = vsapi->getPluginById("com.vapoursynth.std", core);
+    VSFilterDependency hf_deps[1] = { 
+        {hf->vectors, rpStrictSpatial}
+    };
 
-    d.mvbw = vsapi->propGetNode(out, "clip", 0, NULL);
+    vsapi->createVideoFilter(out, "FlowFPSHelper", hb->vi, mvflowfpshelperGetFrame, mvflowfpshelperFree, fmParallel, hb_deps, 1, hb, core);
+    d.mvbw = vsapi->mapGetNode(out, "clip", 0, NULL);
     vsapi->clearMap(out);
-    VSMap *args = vsapi->createMap();
-    vsapi->propSetNode(args, "clip", d.mvbw, paReplace);
-    vsapi->freeNode(d.mvbw);
-    VSMap *ret = vsapi->invoke(std_plugin, "Cache", args);
-    d.mvbw = vsapi->propGetNode(ret, "clip", 0, NULL);
-    vsapi->freeMap(ret);
 
-    vsapi->createFilter(in, out, "FlowFPSHelper", mvflowfpshelperInit, mvflowfpshelperGetFrame, mvflowfpshelperFree, fmParallel, 0, hf, core);
-
-    d.mvfw = vsapi->propGetNode(out, "clip", 0, NULL);
+    vsapi->createVideoFilter(out, "FlowFPSHelper", hf->vi, mvflowfpshelperGetFrame, mvflowfpshelperFree, fmParallel, hf_deps, 1, hf, core);
+    d.mvfw = vsapi->mapGetNode(out, "clip", 0, NULL);
     vsapi->clearMap(out);
-    vsapi->clearMap(args);
-    vsapi->propSetNode(args, "clip", d.mvfw, paReplace);
-    vsapi->freeNode(d.mvfw);
-    ret = vsapi->invoke(std_plugin, "Cache", args);
-    d.mvfw = vsapi->propGetNode(ret, "clip", 0, NULL);
-    vsapi->freeMap(ret);
-
 
     data = (MVFlowFPSData *)malloc(sizeof(d));
     *data = d;
 
-    vsapi->createFilter(in, out, "FlowFPS", mvflowfpsInit, mvflowfpsGetFrame, mvflowfpsFree, fmParallel, 0, data, core);
+    VSFilterDependency deps[4] = { 
+        {data->node, rpGeneral},
+        {data->finest, rpGeneral},
+        // {data->super, rpStrictSpatial}, // No frames are requested from the super.
+        {data->mvbw, rpGeneral},
+        {data->mvfw, rpGeneral},
+    };
+    vsapi->createVideoFilter(out, "FlowFPS", &data->vi, mvflowfpsGetFrame, mvflowfpsFree, fmParallel, deps, 4, data, core);
+
+    VSPlugin *std_plugin = vsapi->getPluginByID("com.vapoursynth.std", core);
 
     // AssumeFPS sets the _DurationNum and _DurationDen properties.
-    VSNodeRef *node = vsapi->propGetNode(out, "clip", 0, NULL);
-    vsapi->clearMap(args);
-    vsapi->propSetNode(args, "clip", node, paReplace);
+    VSMap *args = vsapi->createMap();
+    VSNode *node = vsapi->mapGetNode(out, "clip", 0, NULL);
+    vsapi->mapSetNode(args, "clip", node, maReplace);
     vsapi->freeNode(node);
-    vsapi->propSetInt(args, "fpsnum", d.vi.fpsNum, paReplace);
-    vsapi->propSetInt(args, "fpsden", d.vi.fpsDen, paReplace);
-    ret = vsapi->invoke(std_plugin, "AssumeFPS", args);
-    if (vsapi->getError(ret)) {
+    vsapi->mapSetInt(args, "fpsnum", d.vi.fpsNum, maReplace);
+    vsapi->mapSetInt(args, "fpsden", d.vi.fpsDen, maReplace);
+    VSMap *ret = vsapi->invoke(std_plugin, "AssumeFPS", args);
+    if (vsapi->mapGetError(ret)) {
 #define ERROR_SIZE 512
         char error_msg[ERROR_SIZE + 1] = { 0 };
-        snprintf(error_msg, ERROR_SIZE, "FlowFPS: Failed to invoke AssumeFPS. Error message: %s", vsapi->getError(ret));
+        snprintf(error_msg, ERROR_SIZE, "FlowFPS: Failed to invoke AssumeFPS. Error message: %s", vsapi->mapGetError(ret));
 #undef ERROR_SIZE
-        vsapi->setError(out, error_msg);
+        vsapi->mapSetError(out, error_msg);
 
         vsapi->freeMap(args);
         vsapi->freeMap(ret);
         return;
     }
-    node = vsapi->propGetNode(ret, "clip", 0, NULL);
+    node = vsapi->mapGetNode(ret, "clip", 0, NULL);
     vsapi->freeMap(ret);
-    vsapi->clearMap(args);
-    vsapi->propSetNode(args, "clip", node, paReplace);
-    vsapi->freeNode(node);
-    ret = vsapi->invoke(std_plugin, "Cache", args);
     vsapi->freeMap(args);
-    if (vsapi->getError(ret)) {
-#define ERROR_SIZE 512
-        char error_msg[ERROR_SIZE + 1] = { 0 };
-        snprintf(error_msg, ERROR_SIZE, "FlowFPS: Failed to invoke Cache. Error message: %s", vsapi->getError(ret));
-#undef ERROR_SIZE
-        vsapi->setError(out, error_msg);
-
-        vsapi->freeMap(ret);
-        return;
-    }
-    node = vsapi->propGetNode(ret, "clip", 0, NULL);
-    vsapi->freeMap(ret);
-    vsapi->propSetNode(out, "clip", node, paReplace);
+    vsapi->mapSetNode(out, "clip", node, maReplace);
     vsapi->freeNode(node);
 }
 
 
-void mvflowfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
-    registerFunc("FlowFPS",
-                 "clip:clip;"
-                 "super:clip;"
-                 "mvbw:clip;"
-                 "mvfw:clip;"
+void mvflowfpsRegister(VSPlugin *plugin, const VSPLUGINAPI *vspapi) {
+    vspapi->registerFunction("FlowFPS",
+                 "clip:vnode;"
+                 "super:vnode;"
+                 "mvbw:vnode;"
+                 "mvfw:vnode;"
                  "num:int:opt;"
                  "den:int:opt;"
                  "mask:int:opt;"
@@ -967,5 +921,6 @@ void mvflowfpsRegister(VSRegisterFunction registerFunc, VSPlugin *plugin) {
                  "thscd1:int:opt;"
                  "thscd2:int:opt;"
                  "opt:int:opt;",
+                 "clip:vnode;",
                  mvflowfpsCreate, 0, plugin);
 }
