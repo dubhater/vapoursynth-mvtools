@@ -227,7 +227,7 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
     d.pelclip = vsapi->mapGetNode(in, "pelclip", 0, &err);
     const VSVideoInfo *pelvi = d.pelclip ? vsapi->getVideoInfo(d.pelclip) : NULL;
 
-    if (d.pelclip && (!vsh_isConstantVideoFormat(pelvi) || vsh_isSameVideoFormat(&pelvi->format, &d.vi.format))) {
+    if (d.pelclip && (!vsh_isConstantVideoFormat(pelvi) || !vsh_isSameVideoFormat(&pelvi->format, &d.vi.format))) {
         vsapi->mapSetError(out, "Super: pelclip must have the same format as the input clip, and it must have constant dimensions.");
         vsapi->freeNode(d.node);
         vsapi->freeNode(d.pelclip);
