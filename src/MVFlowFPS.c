@@ -32,6 +32,8 @@
 #include "SimpleResize.h"
 
 #include "MVFlowFPSHelper.h"
+#include "CommonMacros.h"
+
 
 
 typedef struct MVFlowFPSData {
@@ -858,11 +860,11 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
         {hf->vectors, rpStrictSpatial}
     };
 
-    vsapi->createVideoFilter(out, "FlowFPSHelper", hb->vi, mvflowfpshelperGetFrame, mvflowfpshelperFree, fmParallel, hb_deps, 1, hb, core);
+    vsapi->createVideoFilter(out, "FlowFPSHelper", hb->vi, mvflowfpshelperGetFrame, mvflowfpshelperFree, fmParallel, hb_deps, ARRAY_SIZE(hb_deps), hb, core);
     d.mvbw = vsapi->mapGetNode(out, "clip", 0, NULL);
     vsapi->clearMap(out);
 
-    vsapi->createVideoFilter(out, "FlowFPSHelper", hf->vi, mvflowfpshelperGetFrame, mvflowfpshelperFree, fmParallel, hf_deps, 1, hf, core);
+    vsapi->createVideoFilter(out, "FlowFPSHelper", hf->vi, mvflowfpshelperGetFrame, mvflowfpshelperFree, fmParallel, hf_deps, ARRAY_SIZE(hf_deps), hf, core);
     d.mvfw = vsapi->mapGetNode(out, "clip", 0, NULL);
     vsapi->clearMap(out);
 
@@ -876,7 +878,7 @@ static void VS_CC mvflowfpsCreate(const VSMap *in, VSMap *out, void *userData, V
         {data->mvbw, rpGeneral},
         {data->mvfw, rpGeneral},
     };
-    vsapi->createVideoFilter(out, "FlowFPS", &data->vi, mvflowfpsGetFrame, mvflowfpsFree, fmParallel, deps, 4, data, core);
+    vsapi->createVideoFilter(out, "FlowFPS", &data->vi, mvflowfpsGetFrame, mvflowfpsFree, fmParallel, deps, ARRAY_SIZE(deps), data, core);
 
     VSPlugin *std_plugin = vsapi->getPluginByID("com.vapoursynth.std", core);
 

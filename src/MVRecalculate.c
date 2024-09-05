@@ -11,6 +11,8 @@
 #include "Fakery.h"
 #include "GroupOfPlanes.h"
 #include "MVAnalysisData.h"
+#include "CommonMacros.h"
+
 
 
 typedef struct MVRecalculateData {
@@ -547,7 +549,7 @@ static void VS_CC mvrecalculateCreate(const VSMap *in, VSMap *out, void *userDat
         {data->vectors, rpStrictSpatial},
     };
 
-    vsapi->createVideoFilter(out, "Recalculate", data->vi, mvrecalculateGetFrame, mvrecalculateFree, fmParallel, deps, 2, data, core);
+    vsapi->createVideoFilter(out, "Recalculate", data->vi, mvrecalculateGetFrame, mvrecalculateFree, fmParallel, deps, ARRAY_SIZE(deps), data, core);
 }
 
 

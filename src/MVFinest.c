@@ -22,6 +22,8 @@
 #include <VSHelper4.h>
 
 #include "MaskFun.h"
+#include "CommonMacros.h"
+
 
 
 typedef struct MVFinestData {
@@ -204,7 +206,7 @@ static void VS_CC mvfinestCreate(const VSMap *in, VSMap *out, void *userData, VS
         {data->super, rpStrictSpatial}, 
     };
 
-    vsapi->createVideoFilter(out, "Finest", &data->vi, mvfinestGetFrame, mvfinestFree, fmParallel, deps, 1, data, core);
+    vsapi->createVideoFilter(out, "Finest", &data->vi, mvfinestGetFrame, mvfinestFree, fmParallel, deps, ARRAY_SIZE(deps), data, core);
 }
 
 

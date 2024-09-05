@@ -31,6 +31,8 @@
 #include "MaskFun.h"
 #include "MVAnalysisData.h"
 #include "SimpleResize.h"
+#include "CommonMacros.h"
+
 
 
 enum FlowModes {
@@ -587,7 +589,7 @@ static void VS_CC mvflowCreate(const VSMap *in, VSMap *out, void *userData, VSCo
         {data->vectors, rpStrictSpatial}, 
     };
 
-    vsapi->createVideoFilter(out, "Flow", data->vi, mvflowGetFrame, mvflowFree, fmParallel, deps, 3, data, core);
+    vsapi->createVideoFilter(out, "Flow", data->vi, mvflowGetFrame, mvflowFree, fmParallel, deps, ARRAY_SIZE(deps), data, core);
 }
 
 

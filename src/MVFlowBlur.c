@@ -31,6 +31,8 @@
 #include "MaskFun.h"
 #include "MVAnalysisData.h"
 #include "SimpleResize.h"
+#include "CommonMacros.h"
+
 
 
 typedef struct MVFlowBlurData {
@@ -545,7 +547,7 @@ static void VS_CC mvflowblurCreate(const VSMap *in, VSMap *out, void *userData, 
         {data->mvfw, rpGeneral}, 
     };
 
-    vsapi->createVideoFilter(out, "FlowBlur", data->vi, mvflowblurGetFrame, mvflowblurFree, fmParallel, deps, 4, data, core);
+    vsapi->createVideoFilter(out, "FlowBlur", data->vi, mvflowblurGetFrame, mvflowblurFree, fmParallel, deps, ARRAY_SIZE(deps), data, core);
 }
 
 

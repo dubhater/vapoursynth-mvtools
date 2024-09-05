@@ -32,6 +32,8 @@
 #include "MVAnalysisData.h"
 #include "Overlap.h"
 #include "SimpleResize.h"
+#include "CommonMacros.h"
+
 
 
 typedef struct MVBlockFPSData {
@@ -982,7 +984,7 @@ static void VS_CC mvblockfpsCreate(const VSMap *in, VSMap *out, void *userData, 
         {data->mvbw, rpGeneral},
         {data->mvfw, rpGeneral},
     };
-    vsapi->createVideoFilter(out, "BlockFPS", &data->vi, mvblockfpsGetFrame, mvblockfpsFree, fmParallel, deps, 4, data, core);
+    vsapi->createVideoFilter(out, "BlockFPS", &data->vi, mvblockfpsGetFrame, mvblockfpsFree, fmParallel, deps, ARRAY_SIZE(deps), data, core);
 
     // AssumeFPS sets the _DurationNum and _DurationDen properties.
     VSNode *node = vsapi->mapGetNode(out, "clip", 0, NULL);
