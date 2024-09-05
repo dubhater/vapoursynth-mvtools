@@ -569,7 +569,7 @@ static void VS_CC mvcompensateCreate(const VSMap *in, VSMap *out, void *userData
         {data->vectors, rpGeneral},
     };
 
-    vsapi->createVideoFilter(out, "Compensate", data->vi,  mvcompensateGetFrame, mvcompensateFree, fmParallel, deps,  3, data, core);
+    vsapi->createVideoFilter(out, "Compensate", data->vi,  mvcompensateGetFrame, mvcompensateFree, fmParallel, deps,  2, data, core);
 }
 
 
