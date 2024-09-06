@@ -32,6 +32,8 @@
 #include "MVDegrains.h"
 #include "MVFrame.h"
 #include "Overlap.h"
+#include "CommonMacros.h"
+
 
 struct MVDegrainData {
     VSNode *node;

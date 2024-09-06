@@ -22,6 +22,8 @@
 
 #include "Fakery.h"
 #include "MVAnalysisData.h"
+#include "CommonMacros.h"
+
 
 
 
@@ -130,7 +132,7 @@ static void VS_CC mvscdetectionCreate(const VSMap *in, VSMap *out, void *userDat
         {data->node, rpStrictSpatial},
         {data->vectors, rpStrictSpatial},
     };
-    vsapi->createVideoFilter(out, "SCDetection", data->vi, mvscdetectionGetFrame, mvscdetectionFree, fmParallel, deps, 2, data, core);
+    vsapi->createVideoFilter(out, "SCDetection", data->vi, mvscdetectionGetFrame, mvscdetectionFree, fmParallel, deps, ARRAY_SIZE(deps), data, core);
 }
 
 

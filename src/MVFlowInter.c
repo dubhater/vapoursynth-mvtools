@@ -30,6 +30,8 @@
 #include "MaskFun.h"
 #include "MVAnalysisData.h"
 #include "SimpleResize.h"
+#include "CommonMacros.h"
+
 
 
 typedef struct MVFlowInterData {
@@ -690,7 +692,7 @@ static void VS_CC mvflowinterCreate(const VSMap *in, VSMap *out, void *userData,
         {data->mvfw, rpGeneral}, 
     };
 
-    vsapi->createVideoFilter(out, "FlowInter", data->vi, mvflowinterGetFrame, mvflowinterFree, fmParallel, deps, 4, data, core);
+    vsapi->createVideoFilter(out, "FlowInter", data->vi, mvflowinterGetFrame, mvflowinterFree, fmParallel, deps, ARRAY_SIZE(deps), data, core);
 }
 
 

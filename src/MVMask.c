@@ -27,6 +27,8 @@
 #include "MaskFun.h"
 #include "MVAnalysisData.h"
 #include "SimpleResize.h"
+#include "CommonMacros.h"
+
 
 
 typedef struct MVMaskData {
@@ -340,7 +342,7 @@ static void VS_CC mvmaskCreate(const VSMap *in, VSMap *out, void *userData, VSCo
         {data->vectors, rpStrictSpatial},
     };
 
-    vsapi->createVideoFilter(out, "Mask", &data->vi, mvmaskGetFrame, mvmaskFree, fmParallel, deps, 2, data, core);
+    vsapi->createVideoFilter(out, "Mask", &data->vi, mvmaskGetFrame, mvmaskFree, fmParallel, deps, ARRAY_SIZE(deps), data, core);
 }
 
 

@@ -11,6 +11,7 @@
 #include "DCTFFTW.h"
 #include "GroupOfPlanes.h"
 #include "MVAnalysisData.h"
+#include "CommonMacros.h"
 
 
 typedef struct MVAnalyseData {
@@ -630,7 +631,7 @@ static void VS_CC mvanalyseCreate(const VSMap *in, VSMap *out, void *userData, V
         {data->node, rpGeneral} //super
     };
 
-    vsapi->createVideoFilter(out, "Analyse", data->vi, mvanalyseGetFrame, mvanalyseFree, fmParallel, deps, 1, data, core);
+    vsapi->createVideoFilter(out, "Analyse", data->vi, mvanalyseGetFrame, mvanalyseFree, fmParallel, deps, ARRAY_SIZE(deps), data, core);
 }
 
 

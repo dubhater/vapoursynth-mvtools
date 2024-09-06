@@ -9,6 +9,8 @@
 
 #include "Fakery.h"
 #include "MVAnalysisData.h"
+#include "CommonMacros.h"
+
 
 
 #define prop_DepanAnalyse_info "DepanAnalyse_info"
@@ -597,7 +599,7 @@ static void VS_CC depanAnalyseCreate(const VSMap *in, VSMap *out, void *userData
         {data->mask, rpStrictSpatial},
     };
 
-    vsapi->createVideoFilter(out, "DepanAnalyse", data->vi, depanAnalyseGetFrame, depanAnalyseFree, fmParallel, deps, 1, data, core);
+    vsapi->createVideoFilter(out, "DepanAnalyse", data->vi, depanAnalyseGetFrame, depanAnalyseFree, fmParallel, deps, ARRAY_SIZE(deps), data, core);
 
     if (vsapi->mapGetError(out)) {
         depanAnalyseFree(data, core, vsapi);
@@ -1454,7 +1456,7 @@ static void VS_CC depanEstimateCreate(const VSMap *in, VSMap *out, void *userDat
         {data1->clip, rpStrictSpatial},
     };
 
-    vsapi->createVideoFilter(out, "DepanEstimateStage1", data1->vi, depanEstimateStage1GetFrame, depanEstimateFree, fmParallel, deps1, 1, data1, core);
+    vsapi->createVideoFilter(out, "DepanEstimateStage1", data1->vi, depanEstimateStage1GetFrame, depanEstimateFree, fmParallel, deps1, ARRAY_SIZE(deps1), data1, core);
 
     if (vsapi->mapGetError(out)) {
         depanEstimateFree(data1, core, vsapi);
@@ -1470,7 +1472,7 @@ static void VS_CC depanEstimateCreate(const VSMap *in, VSMap *out, void *userDat
         {data2->clip, rpGeneral},
     };
 
-    vsapi->createVideoFilter(out, "DepanEstimateStage2", data2->vi, depanEstimateStage2GetFrame, depanEstimateFree, fmParallel, deps2, 1, data2, core);
+    vsapi->createVideoFilter(out, "DepanEstimateStage2", data2->vi, depanEstimateStage2GetFrame, depanEstimateFree, fmParallel, deps2, ARRAY_SIZE(deps2), data2, core);
 
     if (vsapi->mapGetError(out)) {
         depanEstimateFree(data2, core, vsapi);
@@ -1485,7 +1487,7 @@ static void VS_CC depanEstimateCreate(const VSMap *in, VSMap *out, void *userDat
         {data3->clip, rpGeneral},
     };
 
-    vsapi->createVideoFilter(out, "DepanEstimateStage3", data3->vi, depanEstimateStage3GetFrame, depanEstimateFree, fmParallel, deps3, 1, data3, core);
+    vsapi->createVideoFilter(out, "DepanEstimateStage3", data3->vi, depanEstimateStage3GetFrame, depanEstimateFree, fmParallel, deps3, ARRAY_SIZE(deps3), data3, core);
 
     if (vsapi->mapGetError(out)) {
         depanEstimateFree(data3, core, vsapi);
@@ -2863,7 +2865,7 @@ static void VS_CC depanCompensateCreate(const VSMap *in, VSMap *out, void *userD
         {data->data, rpGeneral},
     };
 
-    vsapi->createVideoFilter(out, "DepanCompensate", data->vi, depanCompensateGetFrame, depanCompensateFree, fmParallel, deps, 2, data, core);
+    vsapi->createVideoFilter(out, "DepanCompensate", data->vi, depanCompensateGetFrame, depanCompensateFree, fmParallel, deps, ARRAY_SIZE(deps), data, core);
 
     if (vsapi->mapGetError(out)) {
         depanCompensateFree(data, core, vsapi);
@@ -4190,7 +4192,7 @@ static void VS_CC depanStabiliseCreate(const VSMap *in, VSMap *out, void *userDa
         {d->data, rpGeneral},
     };
 
-    vsapi->createVideoFilter(out, "DepanStabilise", d->vi, getframe_functions[d->method], depanStabiliseFree, fmParallel, deps, 2, d, core);
+    vsapi->createVideoFilter(out, "DepanStabilise", d->vi, getframe_functions[d->method], depanStabiliseFree, fmParallel, deps, ARRAY_SIZE(deps), d, core);
 
     if (vsapi->mapGetError(out)) {
         depanStabiliseFree(d, core, vsapi);

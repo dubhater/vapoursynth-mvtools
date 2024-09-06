@@ -6,6 +6,8 @@
 #include <VSHelper4.h>
 
 #include "MVFrame.h"
+#include "CommonMacros.h"
+
 
 
 typedef struct MVSuperData {
@@ -269,7 +271,7 @@ static void VS_CC mvsuperCreate(const VSMap *in, VSMap *out, void *userData, VSC
         {data->node, rpStrictSpatial}
     };
 
-    vsapi->createVideoFilter(out, "Super", &data->vi, mvsuperGetFrame, mvsuperFree, fmParallel, deps, 1, data, core);
+    vsapi->createVideoFilter(out, "Super", &data->vi, mvsuperGetFrame, mvsuperFree, fmParallel, deps, ARRAY_SIZE(deps), data, core);
 }
 
 
